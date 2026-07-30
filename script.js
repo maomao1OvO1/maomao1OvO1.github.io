@@ -4,6 +4,11 @@ let songs = [
     "music/所有③分熟的地球煎蛋.mp3"
 ];
 
+let covers = [
+    "images/FLXE-001.jpg",
+    "images/kg_1785435965413.jpg",
+    "images/xiongzi.jpg"
+];
 
 let songNames = [
     "暧昧游戏",
@@ -21,6 +26,8 @@ function loadSong(){
 audio.src=songs[index];
 
 document.getElementById("songName").innerHTML=songNames[index];
+
+document.querySelector(".music-player img").src = covers[index];
 
 }
 
