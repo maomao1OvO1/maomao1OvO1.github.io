@@ -84,3 +84,56 @@ to {
 
 }
 
+.music-player{
+
+position:fixed;
+
+right:20px;
+
+bottom:20px;
+
+background:#ffffffaa;
+
+backdrop-filter:blur(10px);
+
+padding:15px;
+
+border-radius:15px;
+
+box-shadow:0 5px 20px #0003;
+
+text-align:center;
+
+}
+
+
+.music-player{
+
+position:fixed;
+bottom:20px;
+right:20px;
+
+background:#ffffffcc;
+padding:15px;
+
+border-radius:15px;
+
+text-align:center;
+
+box-shadow:0 5px 20px #0003;
+
+}
+
+.music-player button{
+
+font-size:20px;
+
+border:none;
+
+border-radius:50%;
+
+padding:10px;
+
+margin:5px;
+
+}

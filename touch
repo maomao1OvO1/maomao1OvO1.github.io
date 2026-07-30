@@ -1,0 +1,91 @@
+let songs = [
+    "music/1.mp3",
+    "music/2.mp3",
+    "music/3.mp3"
+];
+
+let names = [
+    "你是我永不落空的期待",
+    "D.W.U",
+    "暧昧游戏"
+];
+
+
+let index = 0;
+
+let audio = new Audio();
+
+
+function loadSong(){
+
+    audio.src = songs[index];
+
+    document.getElementById("songName").innerHTML = names[index];
+
+}
+
+
+function playPause(){
+
+    if(audio.paused){
+
+        audio.play();
+
+        document.getElementById("playBtn").innerHTML="⏸";
+
+    }else{
+
+        audio.pause();
+
+        document.getElementById("playBtn").innerHTML="▶";
+
+    }
+
+}
+
+
+
+function nextSong(){
+
+    index++;
+
+    if(index>=songs.length){
+
+        index=0;
+
+    }
+
+    loadSong();
+
+    audio.play();
+
+}
+
+
+
+function prevSong(){
+
+    index--;
+
+    if(index<0){
+
+        index=songs.length-1;
+
+    }
+
+    loadSong();
+
+    audio.play();
+
+}
+
+
+
+audio.onended=function(){
+
+    nextSong();
+
+};
+
+
+loadSong();
