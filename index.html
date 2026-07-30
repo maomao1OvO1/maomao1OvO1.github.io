@@ -8,13 +8,20 @@
 <h1>毛毛的网站</h1>
 
 <p>
-👥 本站访问：
-<span id="views">加载中...</span>
+👥 本站访问人数：
+<span id="visitor">加载中...</span>
 </p>
 
-<script defer 
-src="https://cloud.umami.is/script.js"
- data-website-id="cc43ef24-173a-4337-8a9c-27c569d4f218"></script>
+<script>
+fetch("https://maomao-counter.maomao1ovo1.workers.dev")
+.then(response => response.json())
+.then(data => {
+    document.getElementById("visitor").innerText = data.visitors;
+})
+.catch(() => {
+    document.getElementById("visitor").innerText = "获取失败";
+});
+</script>
 
 </head>
 <link rel="stylesheet" href="style.css">
