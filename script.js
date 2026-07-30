@@ -19,6 +19,7 @@ let songNames = [
 let index=0;
 
 let audio=new Audio();
+let loop=false;
 
 
 function loadSong(){
@@ -86,3 +87,26 @@ audio.play();
 
 
 loadSong();
+
+audio.onended = function(){
+
+    if(loop){
+        audio.currentTime = 0;
+        audio.play();
+    }else{
+        nextSong();
+    }
+
+};
+
+function toggleLoop(){
+
+loop=!loop;
+
+if(loop){
+    document.getElementById("loopBtn").innerHTML="🔂";
+}else{
+    document.getElementById("loopBtn").innerHTML="🔁";
+}
+
+}
