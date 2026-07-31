@@ -400,10 +400,8 @@ function getWeather(city, lat, lon){
     document.getElementById("weather-location").innerHTML =
         "📍 " + city;
 
-
-    fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`
-    )
+     fetch( `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,relative_humidity_2m`
+)
 
 
     .then(response => response.json())
@@ -418,6 +416,8 @@ function getWeather(city, lat, lon){
         let temp = data.current.temperature_2m;
 
         let code = data.current.weather_code;
+
+        let humidity = data.current.relative_humidity_2m;
 
 
         let weatherText = "";
@@ -523,13 +523,15 @@ function getWeather(city, lat, lon){
 
         document.getElementById("weather-info").innerHTML =
 
-            weatherText
-            + "<br>"
-            + "🌡 温度: "
-            + temp
-            + "℃";
+    weatherText
+    + "<br>"
+    + "🌡 温度: "
+    + temp
+    + "℃"
 
-
+    + "<br>💧 湿度: "
+    + humidity
+    + "%";
     })
 
 
