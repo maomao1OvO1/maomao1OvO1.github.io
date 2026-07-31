@@ -193,6 +193,15 @@ body.dark-mode .music-player {
 }
 
 
+body.dark-mode #status {
+
+    background:#33245c;
+
+    color:#d8c7ff;
+
+}
+
+
 
 /* ===== 主题切换按钮 ===== */
 
@@ -339,5 +348,23 @@ body.page-show > *:not(#loader){
     to{
         opacity:1;
     }
+
+}
+
+
+
+/* ===== 网站状态 ===== */
+
+#status {
+
+    background:#e5dcff;
+
+    color:#6543a5;
+
+    display:inline-block;
+
+    padding:8px 15px;
+
+    border-radius:20px;
 
 }
