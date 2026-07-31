@@ -1,8 +1,12 @@
+// ===== 音乐文件列表 =====
+
 let songs = [
     "music/暧昧游戏.mp3",
     "music/LLABB、小野道ono - D.W.U.flac",
     "music/所有③分熟的地球煎蛋.mp3"
 ];
+
+// ===== 音乐封面列表 =====
 
 let covers = [
     "images/FLXE-001.jpg",
@@ -10,17 +14,29 @@ let covers = [
     "images/xiongzi.jpg"
 ];
 
+// ===== 歌曲名称列表 =====
+
 let songNames = [
     "暧昧游戏",
     "LLABB、小野道ono - D.W.U",
     "所有③分熟的地球煎蛋"
 ];
 
+
+// 当前播放歌曲索引
 let index=0;
 
+
+// 创建播放器对象
 let audio=new Audio();
+
+
+// 是否循环播放
 let loop=false;
 
+
+
+// ===== 加载歌曲 =====
 
 function loadSong(){
 
@@ -32,6 +48,9 @@ document.querySelector(".music-player img").src = covers[index];
 
 }
 
+
+
+// ===== 播放 / 暂停 =====
 
 function playPause(){
 
@@ -52,6 +71,9 @@ document.getElementById("playBtn").innerHTML="▶";
 }
 
 
+
+// ===== 下一首 =====
+
 function nextSong(){
 
 index++;
@@ -69,6 +91,9 @@ audio.play();
 }
 
 
+
+// ===== 上一首 =====
+
 function prevSong(){
 
 index--;
@@ -79,6 +104,7 @@ index=songs.length-1;
 
 }
 
+
 loadSong();
 
 audio.play();
@@ -86,7 +112,14 @@ audio.play();
 }
 
 
+
+// 初始化第一首歌
+
 loadSong();
+
+
+
+// 播放结束后的处理
 
 audio.onended = function(){
 
@@ -98,6 +131,10 @@ audio.onended = function(){
     }
 
 };
+
+
+
+// ===== 循环播放开关 =====
 
 function toggleLoop(){
 
@@ -112,7 +149,9 @@ if(loop){
 }
 
 
-// 深色模式
+
+// ===== 深色模式 =====
+
 document.addEventListener("DOMContentLoaded", function(){
 
     const themeBtn = document.getElementById("theme-toggle");
