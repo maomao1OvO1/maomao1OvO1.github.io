@@ -192,11 +192,13 @@ if(themeBtn){
 
             localStorage.setItem("theme","dark");
 
-if(localStorage.getItem("theme") === "light"){
+if(document.body.classList.contains("dark-mode")){
 
-    document.body.classList.remove("dark-mode");
+    localStorage.setItem("theme","dark");
 
-}
+    themeBtn.innerHTML="☀️";
+
+}else{
 
             themeBtn.innerHTML="☀️";
 
@@ -319,5 +321,10 @@ let quotes = [
 let randomIndex = Math.floor(Math.random() * quotes.length);
 
 
-document.getElementById("quote").innerHTML =
-    quotes[randomIndex];
+let quote = document.getElementById("quote");
+
+if(quote){
+
+    quote.innerHTML = quotes[randomIndex];
+
+}
