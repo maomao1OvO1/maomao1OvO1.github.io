@@ -58,7 +58,7 @@ h1 {
 
     color: #7c5cbf;
 
-}
+|}
 
 
 
@@ -436,7 +436,9 @@ body.dark-mode .progress-bar {
 
     top: 20px;
 
-    right: 80px;
+    right: 20px;
+
+    z-index: 9999;
 
     background: #ffffffcc;
 
@@ -455,6 +457,7 @@ body.dark-mode .progress-bar {
 }
 
 
+
 #weather-title {
 
     font-size: 18px;
@@ -464,6 +467,7 @@ body.dark-mode .progress-bar {
 }
 
 
+
 #weather-location {
 
     margin-top: 8px;
@@ -471,6 +475,7 @@ body.dark-mode .progress-bar {
     font-size: 14px;
 
 }
+
 
 
 #weather-info {
@@ -487,73 +492,227 @@ body.dark-mode .progress-bar {
 
 body.dark-mode #weather-box {
 
-    background:#222222dd;
+    background: #222222dd;
 
-    color:#eeeeee;
-
-}
-
-
-
-
-/* ===== 天气盒子固定位置 ===== */
-
-#weather-box {
-
-    position: fixed !important;
-
-    top: 20px !important;
-
-    right: 20px !important;
-
-    left: auto !important;
-
-    bottom: auto !important;
-
-    z-index: 9999 !important;
+    color: #eeeeee;
 
 }
 
 
 
-/* 天气盒子禁止受到页面动画影响 */
-
-#weather-box {
-
-    animation: none !important;
-
-    transform: none !important;
-
-}
-
-
-
+/* ===== 城市输入 ===== */
 
 #city-input {
 
-    width:120px;
+    width: 120px;
 
-    padding:8px;
+    padding: 8px;
 
-    border-radius:15px;
+    border-radius: 15px;
 
-    border:none;
+    border: none;
 
-    margin-top:10px;
+    margin-top: 10px;
 
 }
 
 
+
+/* ===== 修改城市按钮 ===== */
+
 #change-city {
 
-    margin-top:10px;
+    margin-top: 10px;
 
-    padding:8px 15px;
+    padding: 8px 15px;
 
-    border:none;
+    border: none;
 
-    border-radius:20px;
+    border-radius: 20px;
 
-    cursor:pointer;
+    cursor: pointer;
+
+}
+
+
+
+/* ===== 手机横屏适配 ===== */
+
+@media (max-width:900px) and (orientation:landscape){
+
+
+    #weather-box {
+
+        position: static;
+
+        margin: 10px auto;
+
+        min-width: 150px;
+
+    }
+
+
+}
+
+
+
+
+/* ===== 手机端适配 ===== */
+
+@media (max-width: 600px) {
+
+
+    body {
+
+        height: auto;
+
+        min-height: 100vh;
+
+        padding: 20px 0;
+
+    }
+
+
+    .card {
+
+        width: 85%;
+
+        padding: 20px;
+
+    }
+
+
+    img {
+
+        width: 120px;
+
+        height: 120px;
+
+    }
+
+
+    h1 {
+
+        font-size: 28px;
+
+    }
+
+
+    #weather-box {
+
+        position: static !important;
+
+        margin-top: 20px;
+
+        width: 80%;
+
+    }
+
+
+    .music-player {
+
+        right: 10px;
+
+        bottom: 10px;
+
+        transform: scale(0.85);
+
+    }
+
+
+    .back-home {
+
+        top: 10px;
+
+        right: 10px;
+
+    }
+
+}
+
+
+
+
+/* ===== 手机横屏适配 ===== */
+
+@media (max-width: 900px) and (orientation: landscape) {
+
+
+    #weather-box {
+
+        top: 10px;
+
+        right: 10px;
+
+        transform: scale(0.85);
+
+        transform-origin: top right;
+
+    }
+
+
+    .music-player {
+
+        right: 10px;
+
+        bottom: 10px;
+
+        transform: scale(0.75);
+
+        transform-origin: bottom right;
+
+    }
+
+
+    .card {
+
+        margin-top: 20px;
+
+        transform: scale(0.85);
+
+    }
+
+
+}
+
+
+
+
+/* ===== 横屏手机布局修复 ===== */
+
+@media (max-width: 900px) and (orientation: landscape) {
+
+
+    #weather-box {
+
+        position: static !important;
+
+        margin: 10px auto;
+
+        width: 220px;
+
+        transform: none !important;
+
+    }
+
+
+    .music-player {
+
+        right: 10px;
+
+        bottom: 10px;
+
+        transform: scale(0.75);
+
+        transform-origin: bottom right;
+
+    }
+
+
+    .card {
+
+        margin-top: 10px;
+
+    }
 
 }
