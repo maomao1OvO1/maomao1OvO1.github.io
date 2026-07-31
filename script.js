@@ -176,6 +176,12 @@ if(localStorage.getItem("theme") === "dark"){
 
     document.body.classList.add("dark-mode");
 
+    if(themeBtn){
+
+        themeBtn.innerHTML="☀️";
+
+    }
+
 }
 
 
@@ -191,14 +197,6 @@ if(themeBtn){
         if(document.body.classList.contains("dark-mode")){
 
             localStorage.setItem("theme","dark");
-
-if(document.body.classList.contains("dark-mode")){
-
-    localStorage.setItem("theme","dark");
-
-    themeBtn.innerHTML="☀️";
-
-}else{
 
             themeBtn.innerHTML="☀️";
 
