@@ -388,56 +388,70 @@ if(quote){
 
 }
 
-// ===== IP 获取位置 + 天气 =====
+// ===== 读取保存城市 =====
 
-fetch("https://ipapi.co/json/")
-.then(response => response.json())
-
-.then(location => {
-
-    let city = location.city;
-    let lat = location.latitude;
-    let lon = location.longitude;
+let savedCity = localStorage.getItem("city");
+let savedLat = localStorage.getItem("lat");
+let savedLon = localStorage.getItem("lon");
 
 
-    console.log("城市:", city);
-    console.log("纬度:", lat);
-    console.log("经度:", lon);
-
+function getWeather(city, lat, lon){
 
     document.getElementById("weather-location").innerHTML =
         "📍 " + city;
-
 
 
     fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
     )
 
-
     .then(response => response.json())
-
 
     .then(data => {
 
-
         let temp = data.current.temperature_2m;
-
 
         document.getElementById("weather-info").innerHTML =
             "🌡 温度: " + temp + "℃";
 
+    });
+
+}
+
+
+
+// 有保存城市
+
+if(savedCity && savedLat && savedLon){
+
+    getWeather(
+        savedCity,
+        savedLat,
+        savedLon
+    );
+
+}
+
+
+// 没保存，使用IP
+
+else{
+
+    fetch("https://ipapi.co/json/")
+
+    .then(response => response.json())
+
+    .then(location => {
+
+        getWeather(
+            location.city,
+            location.latitude,
+            location.longitude
+        );
 
     });
 
-
-})
-
-.catch(error => {
-
-    console.log("IP定位失败", error);
-
-});
+}
 
 
 
