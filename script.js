@@ -169,3 +169,30 @@ document.addEventListener("DOMContentLoaded", function(){
     };
 
 });
+
+
+
+
+// ===== 头像点击彩蛋 =====
+
+let avatarClicks = 0;
+
+const avatar = document.getElementById("avatar");
+
+if(avatar){
+
+    avatar.onclick = function(){
+
+        avatarClicks++;
+
+        if(avatarClicks >= 10){
+
+            alert("彩蛋");
+
+            avatarClicks = 0;
+
+        }
+
+    };
+
+}
