@@ -340,7 +340,6 @@ let visitTime = new Date();
 let lastTime = document.getElementById("last-time");
 
 if(lastTime){
-
     lastTime.innerHTML =
         "你访问于：" +
         visitTime.getFullYear() + "年" +
@@ -388,3 +387,65 @@ if(quote){
     quote.innerHTML = quotes[randomIndex];
 
 }
+
+// ===== 获取用户位置 + 天气 =====
+
+navigator.geolocation.getCurrentPosition(
+
+    function(position){
+
+        let lat = position.coords.latitude;
+        let lon = position.coords.longitude;
+
+
+        console.log("纬度:", lat);
+        console.log("经度:", lon);
+
+
+        fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`
+        )
+
+
+        .then(response => response.json())
+
+
+        .then(data => {
+
+            console.log(data);
+
+
+            let temp = data.current.temperature_2m;
+
+
+            document.getElementById("weather-info").innerHTML =
+                "🌡 温度: " + temp + "℃";
+
+
+        })
+
+
+        .catch(error => {
+
+            console.log("天气获取失败", error);
+
+        });
+
+
+    },
+
+
+    function(error){
+
+    alert(
+        "定位失败\n错误代码:"
+        + error.code
+        + "\n原因:"
+        + error.message
+    );
+
+
+    }
+
+);
+
