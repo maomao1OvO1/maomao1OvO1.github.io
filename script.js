@@ -241,3 +241,35 @@ document.getElementById("last-time").innerHTML =
     visitTime.getHours() + ":" +
     visitTime.getMinutes() + ":" +
     visitTime.getSeconds();
+
+
+
+
+// ===== 随机一句话 =====
+
+let quotes = [
+
+    "保持好奇，持续折腾。",
+    
+    "代码不是魔法，是一点一点写出来的。",
+    
+    "不要害怕失败，先做出来再优化。",
+    
+    "简单的东西，也可以认真打磨。",
+    
+    "今天的小改动，都是未来的积累。",
+
+    "摄影记录生活。",
+
+    "音乐保存情绪。",
+
+    "喜欢折腾，所以开始创造。"
+
+];
+
+
+let randomIndex = Math.floor(Math.random() * quotes.length);
+
+
+document.getElementById("quote").innerHTML =
+    quotes[randomIndex];
