@@ -242,31 +242,35 @@ if(avatar){
 }
 
 
-
 // ===== 页面加载完成关闭加载动画 =====
 
 window.onload=function(){
 
     let loader=document.getElementById("loader");
 
-    setTimeout(function(){
 
-        loader.style.opacity="0";
+    if(loader){
 
-    },3000);
+        setTimeout(function(){
 
+            loader.style.opacity="0";
 
-    setTimeout(function(){
-
-        loader.style.display="none";
+        },3000);
 
 
-    document.body.classList.remove("loading");
+        setTimeout(function(){
 
-document.body.classList.add("page-show");
+            loader.style.display="none";
 
 
-    },3800);
+            document.body.classList.remove("loading");
+
+            document.body.classList.add("page-show");
+
+
+        },3800);
+
+    }
 
 };
 
