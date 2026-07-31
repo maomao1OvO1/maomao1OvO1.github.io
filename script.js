@@ -225,3 +225,19 @@ document.body.classList.add("page-show");
     },3800);
 
 };
+
+
+
+
+// ===== 最后访问时间 =====
+
+let visitTime = new Date();
+
+document.getElementById("last-time").innerHTML =
+    "你访问于：" +
+    visitTime.getFullYear() + "年" +
+    (visitTime.getMonth()+1) + "月" +
+    visitTime.getDate() + "日 " +
+    visitTime.getHours() + ":" +
+    visitTime.getMinutes() + ":" +
+    visitTime.getSeconds();
