@@ -452,8 +452,8 @@ navigator.geolocation.getCurrentPosition(
 
     {
         enableHighAccuracy:true,
-        timeout:5000,
-        maximumAge:0
+        timeout:30000,
+        maximumAge:60000
     }
 
 );
