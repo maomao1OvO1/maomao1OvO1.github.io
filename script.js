@@ -91,17 +91,32 @@ document.getElementById("playBtn").innerHTML="▶";
 
 function nextSong(){
 
+let wasPlaying = !audio.paused;
+
 index++;
 
 if(index>=songs.length){
 
-index=0;
+    index=0;
 
 }
 
 loadSong();
 
-audio.play();
+
+if(wasPlaying){
+
+    audio.play();
+
+    document.getElementById("playBtn").innerHTML="⏸";
+
+}else{
+
+    audio.pause();
+
+    document.getElementById("playBtn").innerHTML="▶";
+
+}
 
 }
 
@@ -111,18 +126,32 @@ audio.play();
 
 function prevSong(){
 
+let wasPlaying = !audio.paused;
+
 index--;
 
 if(index<0){
 
-index=songs.length-1;
+    index=songs.length-1;
 
 }
 
-
 loadSong();
 
-audio.play();
+
+if(wasPlaying){
+
+    audio.play();
+
+    document.getElementById("playBtn").innerHTML="⏸";
+
+}else{
+
+    audio.pause();
+
+    document.getElementById("playBtn").innerHTML="▶";
+
+}
 
 }
 
@@ -131,6 +160,35 @@ audio.play();
 // 初始化第一首歌
 
 loadSong();
+
+
+
+// ===== 播放状态同步按钮 =====
+
+audio.onplay = function(){
+
+    let playBtn = document.getElementById("playBtn");
+
+    if(playBtn){
+
+        playBtn.innerHTML="⏸";
+
+    }
+
+};
+
+
+audio.onpause = function(){
+
+    let playBtn = document.getElementById("playBtn");
+
+    if(playBtn){
+
+        playBtn.innerHTML="▶";
+
+    }
+
+};
 
 
 
