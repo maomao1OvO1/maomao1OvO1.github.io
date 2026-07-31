@@ -525,3 +525,35 @@ body.dark-mode #weather-box {
     transform: none !important;
 
 }
+
+
+
+
+#city-input {
+
+    width:120px;
+
+    padding:8px;
+
+    border-radius:15px;
+
+    border:none;
+
+    margin-top:10px;
+
+}
+
+
+#change-city {
+
+    margin-top:10px;
+
+    padding:8px 15px;
+
+    border:none;
+
+    border-radius:20px;
+
+    cursor:pointer;
+
+}

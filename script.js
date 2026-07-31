@@ -388,25 +388,82 @@ if(quote){
 
 }
 
-// ===== 获取用户位置 + 天气 =====
+// ===== IP 获取位置 + 天气 =====
 
-alert("天气代码开始");
+fetch("https://ipapi.co/json/")
+.then(response => response.json())
+
+.then(location => {
+
+    let city = location.city;
+    let lat = location.latitude;
+    let lon = location.longitude;
 
 
-navigator.geolocation.getCurrentPosition(
-
-    function(position){
-
-        let lat = position.coords.latitude;
-        let lon = position.coords.longitude;
+    console.log("城市:", city);
+    console.log("纬度:", lat);
+    console.log("经度:", lon);
 
 
-        console.log("纬度:", lat);
-        console.log("经度:", lon);
+    document.getElementById("weather-location").innerHTML =
+        "📍 " + city;
+
+
+
+    fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
+    )
+
+
+    .then(response => response.json())
+
+
+    .then(data => {
+
+
+        let temp = data.current.temperature_2m;
+
+
+        document.getElementById("weather-info").innerHTML =
+            "🌡 温度: " + temp + "℃";
+
+
+    });
+
+
+})
+
+.catch(error => {
+
+    console.log("IP定位失败", error);
+
+});
+
+
+
+// ===== 手动修改城市 =====
+
+let changeCityBtn = document.getElementById("change-city");
+
+
+if(changeCityBtn){
+
+    changeCityBtn.onclick = function(){
+
+        let city = document.getElementById("city-input").value;
+
+
+        if(city === ""){
+
+            alert("请输入城市");
+
+            return;
+
+        }
 
 
         fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
+            `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`
         )
 
 
@@ -415,45 +472,63 @@ navigator.geolocation.getCurrentPosition(
 
         .then(data => {
 
-            console.log(data);
+
+            if(!data.results){
+
+                alert("没有找到这个城市");
+
+                return;
+
+            }
 
 
-            let temp = data.current.temperature_2m;
+            let place = data.results[0];
 
 
-            document.getElementById("weather-info").innerHTML =
-                "🌡 温度: " + temp + "℃";
+            document.getElementById("weather-location").innerHTML =
+                "📍 " + place.name;
+
+// 保存用户选择的城市
+
+localStorage.setItem(
+    "city",
+    place.name
+);
+
+localStorage.setItem(
+    "lat",
+    place.latitude
+);
+
+localStorage.setItem(
+    "lon",
+    place.longitude
+);
+
+            fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m`
+            )
 
 
-        })
+            .then(response => response.json())
 
 
-        .catch(error => {
+            .then(weather => {
 
-            console.log("天气获取失败", error);
+
+                let temp = weather.current.temperature_2m;
+
+
+                document.getElementById("weather-info").innerHTML =
+                    "🌡 温度: " + temp + "℃";
+
+
+            });
+
 
         });
 
 
-    },
+    };
 
-
-    function(error){
-
-        alert(
-            "定位失败\n错误代码:"
-            + error.code
-            + "\n原因:"
-            + error.message
-        );
-
-    },
-
-
-    {
-        enableHighAccuracy:true,
-        timeout:30000,
-        maximumAge:60000
-    }
-
-);
+}
