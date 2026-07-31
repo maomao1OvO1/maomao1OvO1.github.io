@@ -196,3 +196,32 @@ if(avatar){
     };
 
 }
+
+
+
+// ===== 页面加载完成关闭加载动画 =====
+
+window.onload=function(){
+
+    let loader=document.getElementById("loader");
+
+    setTimeout(function(){
+
+        loader.style.opacity="0";
+
+    },3000);
+
+
+    setTimeout(function(){
+
+        loader.style.display="none";
+
+
+    document.body.classList.remove("loading");
+
+document.body.classList.add("page-show");
+
+
+    },3800);
+
+};
