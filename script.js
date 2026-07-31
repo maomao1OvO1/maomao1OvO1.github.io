@@ -390,6 +390,9 @@ if(quote){
 
 // ===== 获取用户位置 + 天气 =====
 
+alert("天气代码开始");
+
+
 navigator.geolocation.getCurrentPosition(
 
     function(position){
@@ -403,7 +406,7 @@ navigator.geolocation.getCurrentPosition(
 
 
         fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
         )
 
 
@@ -437,15 +440,20 @@ navigator.geolocation.getCurrentPosition(
 
     function(error){
 
-    alert(
-        "定位失败\n错误代码:"
-        + error.code
-        + "\n原因:"
-        + error.message
-    );
+        alert(
+            "定位失败\n错误代码:"
+            + error.code
+            + "\n原因:"
+            + error.message
+        );
+
+    },
 
 
+    {
+        enableHighAccuracy:true,
+        timeout:5000,
+        maximumAge:0
     }
 
 );
-
