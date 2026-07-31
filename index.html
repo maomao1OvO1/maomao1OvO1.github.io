@@ -198,24 +198,25 @@ maomao1ovo1@gmail.com
 <p id="runtime"></p>
 
 <script>
-let startTime = new Date("2026-07-30 15:00:00");
-
+let startTime = new Date("2026-07-30T15:00:00")
 function updateTime() {
     let now = new Date();
     let diff = now - startTime;
 
     let seconds = Math.floor(diff / 1000);
-    let days = Math.floor(seconds / 86400);
+    let years = Math.floor(seconds / 31536000); // 365天
+    let days = Math.floor((seconds % 31536000) / 86400); 
     let hours = Math.floor((seconds % 86400) / 3600);
     let minutes = Math.floor((seconds % 3600) / 60);
     let sec = seconds % 60;
 
     document.getElementById("runtime").innerHTML =
-        "本站已运行：" +
-        days + "天 " +
-        hours + "小时 " +
-        minutes + "分钟 " +
-        sec + "秒";
+    "本站已运行：" +
+    years + "年 " +
+    days + "天 " +
+    hours + "小时 " +
+    minutes + "分钟 " +
+    sec + "秒";
 }
 
 setInterval(updateTime, 1000);
