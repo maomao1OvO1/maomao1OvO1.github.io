@@ -137,3 +137,48 @@ padding:10px;
 margin:5px;
 
 }
+
+/* 深色模式 */
+
+body.dark-mode {
+    background: #121212;
+    color: #eeeeee;
+}
+
+
+body.dark-mode .card {
+    background: #1e1e1e;
+}
+
+
+body.dark-mode h1 {
+    color: #bb9cff;
+}
+
+
+body.dark-mode .tags span {
+    background: #33245c;
+    color: #d8c7ff;
+}
+
+
+body.dark-mode .music-player {
+    background: #222222dd;
+}
+
+/* 主题切换按钮 */
+#theme-toggle {
+    border: none;
+    border-radius: 50%;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+#theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+#theme-toggle:active {
+    transform: scale(0.9);
+}

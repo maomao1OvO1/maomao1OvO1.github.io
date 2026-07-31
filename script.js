@@ -110,3 +110,23 @@ if(loop){
 }
 
 }
+
+
+// 深色模式
+document.addEventListener("DOMContentLoaded", function(){
+
+    const themeBtn = document.getElementById("theme-toggle");
+
+    themeBtn.onclick = function(){
+
+        document.body.classList.toggle("dark-mode");
+
+        if(document.body.classList.contains("dark-mode")){
+            themeBtn.innerHTML = "☀️";
+        } else {
+            themeBtn.innerHTML = "🌙";
+        }
+
+    };
+
+});

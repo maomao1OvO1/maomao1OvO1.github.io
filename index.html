@@ -43,6 +43,8 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 <div class="card">
 <img src="maomao.jpg" width="150">
 
+<button id="theme-toggle">🌙</button>
+
 <h1>毛毛</h1>
 
 <div id="time"></div>
@@ -90,7 +92,6 @@ showTime();
     <button onclick="nextSong()">⏭</button>
     <button onclick="toggleLoop()" id="loopBtn">🔁</button>
 
-<script src="script.js"></script>
 
 </div>
 
@@ -104,6 +105,7 @@ showTime();
 
 <p>
 原神/单机游戏
+
 </p>
 
 
@@ -168,7 +170,10 @@ function updateTime() {
 setInterval(updateTime, 1000);
 updateTime();
 
+
 </script>
+
+<script src="./script.js?v=2"></script>
 
 </body>
 
