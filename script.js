@@ -40,11 +40,26 @@ let loop=false;
 
 function loadSong(){
 
-audio.src=songs[index];
+audio.src = songs[index];
 
-document.getElementById("songName").innerHTML=songNames[index];
 
-document.querySelector(".music-player img").src = covers[index];
+let songName = document.getElementById("songName");
+
+let cover = document.querySelector(".music-player img");
+
+
+if(songName){
+
+    songName.innerHTML = songNames[index];
+
+}
+
+
+if(cover){
+
+    cover.src = covers[index];
+
+}
 
 }
 
@@ -152,23 +167,50 @@ if(loop){
 
 // ===== 深色模式 =====
 
-document.addEventListener("DOMContentLoaded", function(){
+const themeBtn = document.getElementById("theme-toggle");
 
-    const themeBtn = document.getElementById("theme-toggle");
+
+// 读取保存主题
+
+if(localStorage.getItem("theme") === "dark"){
+
+    document.body.classList.add("dark-mode");
+
+}
+
+
+// 点击切换
+
+if(themeBtn){
 
     themeBtn.onclick = function(){
 
         document.body.classList.toggle("dark-mode");
 
+
         if(document.body.classList.contains("dark-mode")){
-            themeBtn.innerHTML = "☀️";
-        } else {
-            themeBtn.innerHTML = "🌙";
+
+            localStorage.setItem("theme","dark");
+
+if(localStorage.getItem("theme") === "light"){
+
+    document.body.classList.remove("dark-mode");
+
+}
+
+            themeBtn.innerHTML="☀️";
+
+        }else{
+
+            localStorage.setItem("theme","light");
+
+            themeBtn.innerHTML="🌙";
+
         }
 
     };
 
-});
+}
 
 
 
@@ -233,14 +275,20 @@ document.body.classList.add("page-show");
 
 let visitTime = new Date();
 
-document.getElementById("last-time").innerHTML =
-    "你访问于：" +
-    visitTime.getFullYear() + "年" +
-    (visitTime.getMonth()+1) + "月" +
-    visitTime.getDate() + "日 " +
-    visitTime.getHours() + ":" +
-    visitTime.getMinutes() + ":" +
-    visitTime.getSeconds();
+let lastTime = document.getElementById("last-time");
+
+if(lastTime){
+
+    lastTime.innerHTML =
+        "你访问于：" +
+        visitTime.getFullYear() + "年" +
+        (visitTime.getMonth()+1) + "月" +
+        visitTime.getDate() + "日 " +
+        visitTime.getHours() + ":" +
+        visitTime.getMinutes() + ":" +
+        visitTime.getSeconds();
+
+}
 
 
 

@@ -281,7 +281,7 @@ body.dark-mode #status {
     height: 100%;
 
     background: #eeeaf5;
-
+    color: #333;
     display: flex;
 
     justify-content: center;
@@ -366,5 +366,62 @@ body.page-show > *:not(#loader){
     padding:8px 15px;
 
     border-radius:20px;
+
+}
+
+
+
+/* ===== 返回主页按钮 ===== */
+
+.back-home {
+
+    position: fixed;
+
+    top: 20px;
+
+    right: 20px;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+    padding: 10px 15px;
+
+    border-radius: 20px;
+
+    text-decoration: none;
+
+}
+
+
+
+
+/* ===== 深色模式加载界面 ===== */
+
+body.dark-mode #loader {
+
+    background:#121212;
+
+}
+
+
+body.dark-mode #loader h2,
+body.dark-mode #loader p {
+
+    color:#eeeeee;
+
+}
+
+
+body.dark-mode .progress {
+
+    background:#333333;
+
+}
+
+
+body.dark-mode .progress-bar {
+
+    background:#bb9cff;
 
 }
