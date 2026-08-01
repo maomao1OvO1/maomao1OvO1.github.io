@@ -35,6 +35,37 @@ let index = 0;
 let audio = new Audio();
 
 
+
+// ===== 手机媒体卡片信息 =====
+
+function updateMediaSession(){
+
+    if("mediaSession" in navigator){
+
+        navigator.mediaSession.metadata =
+        new MediaMetadata({
+
+            title: songNames[index],
+
+            artist: "毛毛的网站",
+
+            album: "个人音乐播放器",
+
+            artwork:[
+                {
+                    src:covers[index],
+                    sizes:"512x512",
+                    type:"image/jpeg"
+                }
+            ]
+
+        });
+
+    }
+
+}
+
+
 // 单曲循环
 
 let singleLoop = false;
@@ -107,15 +138,15 @@ function loadSong(){
     // 重置进度条
     if(progressBar){
 
-        progressBar.value = 0;
-        progressBar.max = 100;
-
-    }
+    progressBar.value = 0;
+    progressBar.max = 100;
 
 }
 
 
+updateMediaSession();
 
+}
 
 
 // ===== 播放暂停 =====
