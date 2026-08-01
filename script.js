@@ -31,8 +31,9 @@ let index=0;
 let audio=new Audio();
 
 
-// 是否循环播放
-let loop=false;
+
+// 是否单曲循环
+let singleLoop=false;
 
 
 
@@ -89,9 +90,7 @@ document.getElementById("playBtn").innerHTML="▶";
 
 // ===== 下一首 =====
 
-function nextSong(){
-
-let wasPlaying = !audio.paused;
+function nextSong(autoPlay=false){
 
 index++;
 
@@ -104,17 +103,11 @@ if(index>=songs.length){
 loadSong();
 
 
-if(wasPlaying){
+if(autoPlay){
 
     audio.play();
 
     document.getElementById("playBtn").innerHTML="⏸";
-
-}else{
-
-    audio.pause();
-
-    document.getElementById("playBtn").innerHTML="▶";
 
 }
 
@@ -192,18 +185,25 @@ audio.onpause = function(){
 
 
 
-// 播放结束后的处理
+
+// ===== 播放结束后的处理 =====
 
 audio.onended = function(){
 
-    if(loop){
+    if(singleLoop){
+
+        // 单曲循环
         audio.currentTime = 0;
         audio.play();
+
     }else{
-        nextSong();
+
+        // 自动播放下一首
+        nextSong(true);
+
     }
 
-};
+}
 
 
 
@@ -211,12 +211,16 @@ audio.onended = function(){
 
 function toggleLoop(){
 
-loop=!loop;
+singleLoop=!singleLoop;
 
-if(loop){
+if(singleLoop){
+
     document.getElementById("loopBtn").innerHTML="🔂";
+
 }else{
+
     document.getElementById("loopBtn").innerHTML="🔁";
+
 }
 
 }
