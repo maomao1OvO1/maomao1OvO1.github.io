@@ -2,8 +2,16 @@
 <html>
 
 <head>
+
 <meta charset="UTF-8">
+
 <title>毛毛的个人主页</title>
+
+<link rel="stylesheet" href="style.css?v=2">
+
+</head>
+
+<body class="loading">
 
 <h1>毛毛的网站</h1>
 
@@ -11,6 +19,7 @@
 👥 本站累计访问人数：
 <span id="visitor">加载中...</span>
 </p>
+
 
 <script>
 fetch("https://maomao-counter.maomao1ovo1.workers.dev")
@@ -22,24 +31,6 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
     document.getElementById("visitor").innerText = "获取失败";
 });
 </script>
-
-</head>
-<link rel="stylesheet" href="style.css?v=2">
-
-
-<script>
-fetch("https://maomao-counter.maomao1ovo1.workers.dev")
-.then(res => res.json())
-.then(data => {
-    document.getElementById("views").innerHTML =
-    data.pageviews.value;
-})
-.catch(err => {
-    document.getElementById("views").innerHTML="获取失败";
-});
-</script>
-
-<body class="loading">
 
 <!-- ===== 天气盒子 ===== -->
 
@@ -128,14 +119,51 @@ showTime();
 
 <div class="music-player">
 
-<img src="images/FLXE-001.jpg" width="200">
+<img src="images/FLXE-001.jpg" >
 
-    <div id="songName">正在加载...</div>
+<div id="songName">正在加载...</div>
 
-    <button onclick="prevSong()">⏮</button>
-    <button onclick="playPause()" id="playBtn">▶</button>
-    <button onclick="nextSong()">⏭</button>
-    <button onclick="toggleLoop()" id="loopBtn">🔁</button>
+
+<!-- ===== 播放进度条 ===== -->
+
+<input 
+id="progressBar"
+type="range"
+min="0"
+max="100"
+value="0"
+>
+
+
+<!-- ===== 音量控制 ===== -->
+
+<div class="volume-box">
+
+<span>🔊</span>
+
+<input
+id="volumeBar"
+type="range"
+min="0"
+max="1"
+step="0.01"
+value="1"
+>
+
+</div>
+
+
+<button onclick="prevSong()">⏮</button>
+
+<button onclick="playPause()" id="playBtn">
+▶
+</button>
+
+<button onclick="nextSong()">⏭</button>
+
+<button onclick="toggleLoop()" id="loopBtn">
+🔁
+</button>
 
 
 </div>
@@ -252,12 +280,9 @@ updateTime();
 
 </script>
 
-
-
-
-<!-- ===== 功能脚本 ===== -->
-
-<script src="./script.js?v=2"></script>
+<!-- ===== 功能脚本 ===== -->  
+  
+<script src="./script.js?v=2"></script>  
 
 </body>
 

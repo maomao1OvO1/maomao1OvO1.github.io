@@ -2,9 +2,10 @@
 
 let songs = [
     "music/暧昧游戏.mp3",
-    "music/LLABB、小野道ono - D.W.U.flac",
+    "music/LLABB、小野道ono - D.W.U.mp3",
     "music/所有③分熟的地球煎蛋.mp3"
 ];
+
 
 // ===== 音乐封面列表 =====
 
@@ -13,6 +14,7 @@ let covers = [
     "images/kg_1785435965413.jpg",
     "images/xiongzi.jpg"
 ];
+
 
 // ===== 歌曲名称列表 =====
 
@@ -23,17 +25,48 @@ let songNames = [
 ];
 
 
-// 当前播放歌曲索引
-let index=0;
+// 当前歌曲
+
+let index = 0;
 
 
-// 创建播放器对象
-let audio=new Audio();
+// 创建播放器
+
+let audio = new Audio();
+
+
+// 单曲循环
+
+let singleLoop = false;
 
 
 
-// 是否单曲循环
-let singleLoop=false;
+// ===== 获取页面元素 =====
+
+let songName =
+document.getElementById("songName");
+
+
+let cover =
+document.querySelector(".music-player img");
+
+
+let playBtn =
+document.getElementById("playBtn");
+
+
+let loopBtn =
+document.getElementById("loopBtn");
+
+
+let progressBar =
+document.getElementById("progressBar");
+
+
+let volumeBar =
+document.getElementById("volumeBar");
+
+
 
 
 
@@ -41,50 +74,61 @@ let singleLoop=false;
 
 function loadSong(){
 
-audio.src = songs[index];
+    audio.src = songs[index];
+
+    // 重新加载音频，让浏览器获取新的时长
+    audio.load();
 
 
-let songName = document.getElementById("songName");
+    if(songName){
 
-let cover = document.querySelector(".music-player img");
+        songName.innerHTML =
+        songNames[index];
+
+    }
 
 
-if(songName){
+    if(cover){
 
-    songName.innerHTML = songNames[index];
+        cover.src =
+        covers[index];
+
+    }
+
+
+    // 重置进度条
+    if(progressBar){
+
+        progressBar.value = 0;
+
+    }
 
 }
 
 
-if(cover){
-
-    cover.src = covers[index];
-
-}
-
-}
 
 
 
-// ===== 播放 / 暂停 =====
+// ===== 播放暂停 =====
 
 function playPause(){
 
-if(audio.paused){
 
-audio.play();
+    if(audio.paused){
 
-document.getElementById("playBtn").innerHTML="⏸";
+        audio.play();
 
-}else{
 
-audio.pause();
+    }else{
 
-document.getElementById("playBtn").innerHTML="▶";
+        audio.pause();
+
+    }
+
 
 }
 
-}
+
 
 
 
@@ -92,26 +136,30 @@ document.getElementById("playBtn").innerHTML="▶";
 
 function nextSong(autoPlay=false){
 
-index++;
 
-if(index>=songs.length){
+    index++;
 
-    index=0;
+
+    if(index >= songs.length){
+
+        index = 0;
+
+    }
+
+
+    loadSong();
+
+
+    if(autoPlay){
+
+        audio.play();
+
+    }
+
 
 }
 
-loadSong();
 
-
-if(autoPlay){
-
-    audio.play();
-
-    document.getElementById("playBtn").innerHTML="⏸";
-
-}
-
-}
 
 
 
@@ -119,48 +167,42 @@ if(autoPlay){
 
 function prevSong(){
 
-let wasPlaying = !audio.paused;
 
-index--;
+    let wasPlaying =
+    !audio.paused;
 
-if(index<0){
 
-    index=songs.length-1;
+    index--;
+
+
+    if(index < 0){
+
+        index = songs.length-1;
+
+    }
+
+
+    loadSong();
+
+
+
+    if(wasPlaying){
+
+        audio.play();
+
+    }
+
 
 }
 
-loadSong();
-
-
-if(wasPlaying){
-
-    audio.play();
-
-    document.getElementById("playBtn").innerHTML="⏸";
-
-}else{
-
-    audio.pause();
-
-    document.getElementById("playBtn").innerHTML="▶";
-
-}
-
-}
 
 
 
-// 初始化第一首歌
 
-loadSong();
-
+// ===== 播放状态同步 =====
 
 
-// ===== 播放状态同步按钮 =====
-
-audio.onplay = function(){
-
-    let playBtn = document.getElementById("playBtn");
+audio.onplay=function(){
 
     if(playBtn){
 
@@ -171,9 +213,8 @@ audio.onplay = function(){
 };
 
 
-audio.onpause = function(){
 
-    let playBtn = document.getElementById("playBtn");
+audio.onpause=function(){
 
     if(playBtn){
 
@@ -186,44 +227,150 @@ audio.onpause = function(){
 
 
 
-// ===== 播放结束后的处理 =====
 
-audio.onended = function(){
+// ===== 自动播放下一首 =====
+
+
+audio.onended=function(){
+
 
     if(singleLoop){
 
-        // 单曲循环
-        audio.currentTime = 0;
+
+        audio.currentTime=0;
+
         audio.play();
+
 
     }else{
 
-        // 自动播放下一首
+
         nextSong(true);
+
 
     }
 
-}
+
+};
 
 
 
-// ===== 循环播放开关 =====
+
+
+
+// ===== 单曲循环按钮 =====
+
 
 function toggleLoop(){
 
-singleLoop=!singleLoop;
 
-if(singleLoop){
+    singleLoop=!singleLoop;
 
-    document.getElementById("loopBtn").innerHTML="🔂";
 
-}else{
 
-    document.getElementById("loopBtn").innerHTML="🔁";
+    if(singleLoop){
+
+        loopBtn.innerHTML="🔂";
+
+
+    }else{
+
+        loopBtn.innerHTML="🔁";
+
+    }
+
 
 }
 
+
+
+
+
+
+
+// ===== 进度条 =====
+
+
+audio.ontimeupdate=function(){
+
+
+    if(progressBar && audio.duration){
+
+
+        progressBar.value =
+        (audio.currentTime / audio.duration) * 100;
+
+
+    }
+
+
+};
+
+
+
+
+// ===== 音频加载完成 =====
+
+audio.onloadedmetadata=function(){
+
+    if(progressBar){
+
+        progressBar.value = 0;
+
+    }
+
+};
+
+
+
+// ===== 拖动进度条 =====
+
+if(progressBar){
+
+    progressBar.oninput=function(){
+
+        if(audio.duration){
+
+            audio.currentTime =
+            progressBar.value / 100 * audio.duration;
+
+        }
+
+    };
+
 }
+
+
+
+
+
+
+
+// ===== 音量控制 =====
+
+
+if(volumeBar){
+
+
+    volumeBar.oninput=function(){
+
+
+        audio.volume =
+        volumeBar.value;
+
+
+    };
+
+
+}
+
+
+
+
+
+// 初始化
+
+loadSong();
 
 
 

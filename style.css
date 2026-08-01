@@ -110,55 +110,135 @@ to {
 
 .music-player{
 
-position:fixed;
+    position:fixed;
 
-right:20px;
+    right:20px;
 
-bottom:20px;
+    bottom:20px;
 
-background:#ffffffaa;
+    width:280px;
 
-backdrop-filter:blur(10px);
+    background:#ffffffcc;
 
-padding:15px;
+    backdrop-filter:blur(10px);
 
-border-radius:15px;
+    padding:15px;
 
-box-shadow:0 5px 20px #0003;
+    border-radius:20px;
 
-text-align:center;
+    box-shadow:0 5px 20px #0003;
+
+    text-align:center;
+
+}
+
+
+
+/* ===== 音乐封面 ===== */
+
+.music-player img{
+
+    width:180px;
+
+    height:180px;
+
+    object-fit:cover;
+
+    border-radius:50%;
+
+    margin-bottom:10px;
 
 }
 
 
-.music-player{
 
-position:fixed;
-bottom:20px;
-right:20px;
+/* ===== 歌曲名称 ===== */
 
-background:#ffffffcc;
-padding:15px;
+#songName{
 
-border-radius:15px;
+    font-size:16px;
 
-text-align:center;
+    font-weight:bold;
 
-box-shadow:0 5px 20px #0003;
+    margin:10px;
+
+    overflow:hidden;
+
+    white-space:nowrap;
+
+    text-overflow:ellipsis;
 
 }
+
+
+
+/* ===== 播放进度条 ===== */
+
+#progressBar{
+
+    width:85%;
+
+    cursor:pointer;
+
+}
+
+
+
+/* ===== 音量区域 ===== */
+
+.volume-box{
+
+    position:absolute;
+
+    right:8px;
+
+    top:50%;
+
+    transform:translateY(-50%);
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+}
+
+
+
+/* ===== 竖向音量条 ===== */
+
+#volumeBar{
+
+    writing-mode:vertical-lr;
+
+    direction:rtl;
+
+    height:90px;
+
+    width:8px;
+
+    cursor:pointer;
+
+}
+
+
+
+/* ===== 控制按钮 ===== */
 
 .music-player button{
 
-font-size:20px;
+    font-size:18px;
 
-border:none;
+    border:none;
 
-border-radius:50%;
+    border-radius:50%;
 
-padding:10px;
+    padding:8px;
 
-margin:5px;
+    margin:3px;
+
+    cursor:pointer;
 
 }
 
@@ -716,3 +796,7 @@ body.dark-mode #weather-box {
     }
 
 }
+
+
+
+
