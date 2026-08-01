@@ -150,7 +150,7 @@ function getWeather(city, lat, lon){
         console.log("天气获取失败:", error);
 
         document.getElementById("weather-info").innerHTML =
-            "天气获取失败";
+            "⚠️ 天气获取失败<br>请检查网络或稍后重试";
 
     });
 
@@ -229,7 +229,7 @@ if(changeCityBtn){
 
             if(!data.results){
 
-                alert("没有找到这个城市");
+                alert("⚠️ 没有找到这个城市，请换一个名称");
 
                 return;
 
