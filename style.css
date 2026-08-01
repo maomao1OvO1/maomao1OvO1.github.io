@@ -855,9 +855,12 @@ body.dark-mode #weather-box {
 #change-city,
 #use-ip-weather {
 
+    appearance: none;
+    -webkit-appearance: none;
+
     border: none;
 
-    border-radius: 12px;
+    border-radius: 15px;
 
     padding: 10px 20px;
 
