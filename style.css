@@ -653,6 +653,15 @@ body.dark-mode #weather-box {
     }
 
 
+    /* ===== 手机端摄影瀑布流 ===== */
+
+    .photo-gallery {
+
+        columns: 2;
+
+    }
+
+
     .card {
 
         width: 85%;
@@ -709,7 +718,6 @@ body.dark-mode #weather-box {
     }
 
 }
-
 
 
 
@@ -799,15 +807,13 @@ body.dark-mode #weather-box {
 
 
 
-/* ===== 摄影作品一排四张 ===== */
+/* ===== 摄影作品瀑布流 ===== */
 
 .photo-gallery{
 
-    display: grid;
+    columns: 4;
 
-    grid-template-columns: repeat(4, 1fr);
-
-    gap: 20px;
+    column-gap: 20px;
 
     padding: 20px;
 
@@ -818,14 +824,15 @@ body.dark-mode #weather-box {
 
     width: 100%;
 
-    height: 250px;
-
-    object-fit: cover;
+    margin-bottom: 20px;
 
     border-radius: 15px;
 
-}
+    background: #EEEAF5;
 
+    display: block;
+
+}
 
 
 
