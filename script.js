@@ -74,6 +74,13 @@ document.getElementById("volumeBar");
 
 function loadSong(){
 
+    // 切换歌曲前停止上一首
+    audio.pause();
+
+    // 重置播放位置
+    audio.currentTime = 0;
+
+
     audio.src = songs[index];
 
     // 重新加载音频，让浏览器获取新的时长
@@ -116,7 +123,11 @@ function playPause(){
 
     if(audio.paused){
 
-        audio.play();
+        audio.play().catch(function(error){
+
+    console.log("播放失败:", error);
+
+});
 
 
     }else{
@@ -136,9 +147,7 @@ function playPause(){
 
 function nextSong(autoPlay=false){
 
-
     index++;
-
 
     if(index >= songs.length){
 
@@ -152,10 +161,19 @@ function nextSong(autoPlay=false){
 
     if(autoPlay){
 
-        audio.play();
+    audio.oncanplay = function(){
 
-    }
+        audio.play().catch(function(error){
 
+            console.log("播放失败:", error);
+
+        });
+
+    };
+
+}
+
+    
 
 }
 
@@ -185,10 +203,17 @@ function prevSong(){
     loadSong();
 
 
-
     if(wasPlaying){
 
-        audio.play();
+        audio.oncanplay = function(){
+
+    audio.play().catch(function(error){
+
+        console.log("播放失败:", error);
+
+    });
+
+};
 
     }
 
@@ -234,15 +259,21 @@ audio.onpause=function(){
 audio.onended=function(){
 
 
-    if(singleLoop){
+     if(singleLoop){
+
+    audio.currentTime=0;
+
+    audio.play().catch(function(error){
+
+        console.log("播放失败:", error);
+
+    });
+
+}	
 
 
-        audio.currentTime=0;
-
-        audio.play();
-
-
-    }else{
+   
+     else{
 
 
         nextSong(true);
@@ -333,6 +364,13 @@ if(progressBar){
 
             audio.currentTime =
             progressBar.value / 100 * audio.duration;
+
+
+            if(!audio.paused){
+
+                audio.play();
+
+            }
 
         }
 
