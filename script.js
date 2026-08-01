@@ -2,7 +2,7 @@
 
 let songs = [
     "music/暧昧游戏.mp3",
-    "music/LLABB、小野道ono - D.W.U.mp3",
+    "music/dw.mp3",
     "music/所有③分熟的地球煎蛋.mp3"
 ];
 
@@ -125,18 +125,21 @@ function playPause(){
 
     if(audio.paused){
 
-        audio.play().catch(function(error){
+    audio.play().catch(function(error){
 
-    console.log("播放失败:", error);
+        console.log("播放失败:", error);
 
-});
+    });
 
+    updatePlayButton();
 
-    }else{
+}else{
 
-        audio.pause();
+    audio.pause();
 
-    }
+    updatePlayButton();
+
+}
 
 
 }
@@ -158,33 +161,29 @@ function nextSong(autoPlay=false){
     }
 
 
+    let wasPlaying = !audio.paused || autoPlay;
+
+
     loadSong();
 
 
-    if(autoPlay){
+    if(wasPlaying){
 
-    audio.play().then(function(){
+        audio.addEventListener("canplay", function playNext(){
 
-    console.log(
-        "播放状态:",
-        "paused=" + audio.paused,
-        "currentTime=" + audio.currentTime,
-        "volume=" + audio.volume,
-        "muted=" + audio.muted
-    );
+    audio.play().catch(function(error){
 
-}).catch(function(error){
+        console.log("播放失败:", error);
 
-    console.log("播放失败:", error);
+    });
+
+    audio.removeEventListener("canplay", playNext);
 
 });
 
 }
 
-
-
 }
-
 
 
 
@@ -213,17 +212,23 @@ function prevSong(){
 
     if(wasPlaying){
 
-        audio.oncanplay = function(){
+    audio.addEventListener("canplay", function playNext(){
 
-    audio.play().catch(function(error){
+        audio.play().catch(function(error){
 
-        console.log("播放失败:", error);
+            console.log("播放失败:", error);
+
+        }).then(function(){
+
+            updatePlayButton();
+
+        });
+
+        audio.removeEventListener("canplay", playNext);
 
     });
 
-};
-
-    }
+}
 
 
 }
@@ -234,29 +239,37 @@ function prevSong(){
 
 // ===== 播放状态同步 =====
 
-
-audio.onplay=function(){
+function updatePlayButton(){
 
     if(playBtn){
 
-        playBtn.innerHTML="⏸";
+        if(audio.paused){
+
+            playBtn.innerHTML="▶";
+
+        }else{
+
+            playBtn.innerHTML="⏸";
+
+        }
 
     }
 
-};
+}
 
+
+audio.onplay=function(){
+
+    updatePlayButton();
+
+};
 
 
 audio.onpause=function(){
 
-    if(playBtn){
-
-        playBtn.innerHTML="▶";
-
-    }
+    updatePlayButton();
 
 };
-
 
 
 
@@ -270,17 +283,16 @@ audio.onended=function(){
      if(singleLoop){
 
     audio.currentTime=0;
-
     audio.play().catch(function(error){
 
         console.log("播放失败:", error);
 
     });
 
-}	
+}
 
 
-   
+
      else{
 
 
@@ -323,25 +335,16 @@ function toggleLoop(){
 
 
 
-
-
-
-
 // ===== 进度条 =====
-
 
 audio.addEventListener("timeupdate", function(){
 
-
     if(progressBar && audio.duration){
-
 
         progressBar.value =
         (audio.currentTime / audio.duration) * 100;
 
-
     }
-
 
 });
 
@@ -355,6 +358,7 @@ audio.onloadedmetadata=function(){
     if(progressBar){
 
         progressBar.value = 0;
+        progressBar.max = 100;
 
     }
 
@@ -373,22 +377,11 @@ if(progressBar){
             audio.currentTime =
             progressBar.value / 100 * audio.duration;
 
-
-            if(!audio.paused){
-
-                audio.play();
-
-            }
-
         }
 
     });
 
 }
-
-
-
-
 
 
 
