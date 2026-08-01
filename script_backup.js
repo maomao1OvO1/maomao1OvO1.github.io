@@ -85,7 +85,6 @@ function loadSong(){
 
     // 重新加载音频，让浏览器获取新的时长
     audio.load();
-    audio.volume = volumeBar ? volumeBar.value : 1;
 
 
     if(songName){
@@ -108,7 +107,6 @@ function loadSong(){
     if(progressBar){
 
         progressBar.value = 0;
-        progressBar.max = 100;
 
     }
 
@@ -163,21 +161,15 @@ function nextSong(autoPlay=false){
 
     if(autoPlay){
 
-    audio.play().then(function(){
+    audio.oncanplay = function(){
 
-    console.log(
-        "播放状态:",
-        "paused=" + audio.paused,
-        "currentTime=" + audio.currentTime,
-        "volume=" + audio.volume,
-        "muted=" + audio.muted
-    );
+        audio.play().catch(function(error){
 
-}).catch(function(error){
+            console.log("播放失败:", error);
 
-    console.log("播放失败:", error);
+        });
 
-});
+    };
 
 }
 
@@ -330,7 +322,7 @@ function toggleLoop(){
 // ===== 进度条 =====
 
 
-audio.addEventListener("timeupdate", function(){
+audio.ontimeupdate=function(){
 
 
     if(progressBar && audio.duration){
@@ -343,7 +335,7 @@ audio.addEventListener("timeupdate", function(){
     }
 
 
-});
+};
 
 
 
@@ -366,7 +358,7 @@ audio.onloadedmetadata=function(){
 
 if(progressBar){
 
-    progressBar.addEventListener("input", function(){
+    progressBar.oninput=function(){
 
         if(audio.duration){
 
@@ -382,7 +374,7 @@ if(progressBar){
 
         }
 
-    });
+    };
 
 }
 
