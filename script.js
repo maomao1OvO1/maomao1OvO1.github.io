@@ -66,6 +66,52 @@ function updateMediaSession(){
 }
 
 
+// ===== 手机媒体卡片控制 =====
+
+if ("mediaSession" in navigator) {
+
+    navigator.mediaSession.setActionHandler(
+        "nexttrack",
+        function(){
+
+            nextSong(true);
+
+        }
+    );
+
+
+    navigator.mediaSession.setActionHandler(
+        "previoustrack",
+        function(){
+
+            prevSong();
+
+        }
+    );
+
+
+    navigator.mediaSession.setActionHandler(
+        "play",
+        function(){
+
+            audio.play();
+
+        }
+    );
+
+
+    navigator.mediaSession.setActionHandler(
+        "pause",
+        function(){
+
+            audio.pause();
+
+        }
+    );
+
+}
+
+
 // 单曲循环
 
 let singleLoop = false;
