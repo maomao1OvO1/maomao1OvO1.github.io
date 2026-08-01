@@ -847,3 +847,42 @@ body.dark-mode #weather-box {
     padding-top: 80px;
 
 }
+
+
+
+/* ===== 天气按钮美化 ===== */
+
+#change-city,
+#use-ip-weather {
+
+    border: none;
+
+    border-radius: 12px;
+
+    padding: 10px 20px;
+
+    margin-top: 10px;
+
+    font-size: 15px;
+
+    cursor: pointer;
+
+    background: rgba(255,255,255,0.25);
+
+    backdrop-filter: blur(10px);
+
+    color: inherit;
+
+    transition: 0.3s;
+
+}
+
+
+#change-city:hover,
+#use-ip-weather:hover {
+
+    transform: translateY(-2px);
+
+    background: rgba(255,255,255,0.4);
+
+}

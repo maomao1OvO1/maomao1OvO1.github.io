@@ -300,3 +300,58 @@ getWeather(
     };
 
 }
+
+
+
+
+// ===== 使用IP获取天气 =====
+
+let ipWeatherBtn = document.getElementById("use-ip-weather");
+
+
+if(ipWeatherBtn){
+
+    ipWeatherBtn.onclick = function(){
+
+
+        document.getElementById("weather-location").innerHTML =
+            "📍 正在获取位置...";
+
+
+        fetch("https://ipapi.co/json/")
+
+        .then(response => response.json())
+
+        .then(location => {
+
+
+            getWeather(
+                location.city,
+                location.latitude,
+                location.longitude
+            );
+
+
+            // 清除手动保存城市
+
+            localStorage.removeItem("city");
+            localStorage.removeItem("lat");
+            localStorage.removeItem("lon");
+
+
+        })
+
+
+        .catch(error => {
+
+            console.log("IP定位失败:", error);
+
+            document.getElementById("weather-info").innerHTML =
+                "定位失败";
+
+        });
+
+
+    };
+
+}
