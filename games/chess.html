@@ -129,14 +129,48 @@ font-size:16px;
 
 }
 
+/* ===== 深色模式 ===== */
+
+body.dark-mode{
+
+    background:#121212;
+
+    color:white;
+
+}
+
+
+.dark-mode button{
+
+    background:#333;
+
+    color:white;
+
+}
+
+body.dark-mode .cell{
+
+    color:#000;
+
+}
 
 </style>
 
 </head>
 
-
 <body>
 
+<script>
+
+// ===== 读取深色模式 =====
+
+if(localStorage.getItem("theme") === "dark"){
+
+    document.body.classList.add("dark-mode");
+
+}
+
+</script>
 
 <a href="../games.html" class="back-home">
 
@@ -324,7 +358,22 @@ function draw(){
 
             cell.innerHTML=board[x][y];
 
+if("♙♖♘♗♕♔".includes(board[x][y])){
 
+    cell.style.color="white";
+
+    cell.style.textShadow="0 0 2px black";
+
+}
+
+
+if("♟♜♞♝♛♚".includes(board[x][y])){
+
+    cell.style.color="black";
+
+    cell.style.textShadow="none";
+
+}
 
             cell.onclick=function(){
 
