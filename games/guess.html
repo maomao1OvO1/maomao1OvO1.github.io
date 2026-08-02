@@ -85,6 +85,43 @@ button {
 
 }
 
+/* ===== 深色模式 ===== */
+
+body.dark-mode{
+
+    background:#121212;
+
+    color:white;
+
+}
+
+
+.dark-mode .game-box{
+
+    background:#222;
+
+}
+
+
+.dark-mode input{
+
+    background:#222;
+
+    color:white;
+
+    border:1px solid #555;
+
+}
+
+
+.dark-mode button{
+
+    background:#333;
+
+    color:white;
+
+}
+
 </style>
 
 
@@ -92,6 +129,18 @@ button {
 
 
 <body>
+
+<script>
+
+// ===== 读取深色模式 =====
+
+if(localStorage.getItem("theme") === "dark"){
+
+    document.body.classList.add("dark-mode");
+
+}
+
+</script>
 
 <a href="../games.html" class="back-home">
 🎮 返回小游戏
