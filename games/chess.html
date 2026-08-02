@@ -429,75 +429,22 @@ function tryMove(x1,y1,x2,y2){
 
 
 
-    let moves=getMoves(x1,y1);
+    // ===== 正规合法移动判断 =====
 
+if(!isLegalMove(x1,y1,x2,y2)){
 
+    return;
 
-    let ok=false;
+}
 
-
-
-    for(let m of moves){
-
-
-        if(
-
-        m[0]==x2 &&
-
-        m[1]==y2
-
-        ){
-
-            ok=true;
-
-        }
-
-
-    }
-
-
-
-    if(!ok){
-
-        return;
-
-    }
-
-
-
-    // 保存原位置（防止非法移动）
-
-let oldTarget = board[x2][y2];
 
 
 // 移动
 
 board[x2][y2]=piece;
 
-
 board[x1][y1]="";
 
-
-
-// 检查自己是否被将军
-
-if(check()){
-
-
-    // 撤销移动
-
-    board[x1][y1]=piece;
-
-    board[x2][y2]=oldTarget;
-
-
-    alert("不能送王！");
-
-
-    return;
-
-
-}
 
     // 兵升变
 
@@ -517,19 +464,25 @@ lastMove={
 };
 
 
-    // 换回合
+    // 记录刚刚走棋的一方
 
-    turn=
+let oldTurn = turn;
 
-    turn=="white"
 
-    ?
+// 换回合
 
-    "black"
+turn=
 
-    :
+turn=="white"
 
-    "white";
+?
+
+"black"
+
+:
+
+"white";
+
 // 检查对方是否被将军
 
 if(check()){
@@ -1413,6 +1366,117 @@ function check(){
         turn
 
     );
+
+}
+
+
+// ===== 模拟移动 =====
+
+function simulateMove(x1,y1,x2,y2){
+
+
+    let old = board[x2][y2];
+
+
+    let piece = board[x1][y1];
+
+
+    // 模拟移动
+
+    board[x2][y2]=piece;
+
+    board[x1][y1]="";
+
+
+    // 检查王是否安全
+
+    let result = check();
+
+
+
+    // 恢复棋盘
+
+    board[x1][y1]=piece;
+
+    board[x2][y2]=old;
+
+
+
+    return result;
+
+}
+
+
+
+// ===== 判断合法移动 =====
+
+function isLegalMove(x1,y1,x2,y2){
+
+
+    let piece = board[x1][y1];
+
+
+    // 必须是自己的棋子
+
+    if(color(piece)!=turn){
+
+        return false;
+
+    }
+
+
+
+    // 检查棋子本身能不能走
+
+    let moves=getMoves(x1,y1);
+
+
+    let can=false;
+
+
+
+    for(let m of moves){
+
+
+        if(
+
+        m[0]==x2 &&
+
+        m[1]==y2
+
+        ){
+
+            can=true;
+
+        }
+
+
+    }
+
+
+
+    if(!can){
+
+        return false;
+
+    }
+
+
+
+    // 模拟后不能让自己的王被攻击
+
+/*
+if(simulateMove(x1,y1,x2,y2)){
+
+    return false;
+
+}
+*/
+
+
+
+    return true;
+
 
 }
 
