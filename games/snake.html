@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>贪吃蛇小游戏</title>
+
+
+<style>
+
+body {
+
+    text-align: center;
+
+    font-family: Arial;
+
+}
+
+
+
+/* ===== 返回小游戏按钮 ===== */
+
+.back-home {
+
+    position: fixed;
+
+    top: 20px;
+
+    right: 20px;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+    padding: 10px 15px;
+
+    border-radius: 20px;
+
+    text-decoration: none;
+
+    font-size: 16px;
+
+}
+
+
+
+/* ===== 游戏区域 ===== */
+
+#game {
+
+    width: 320px;
+
+    height: 320px;
+
+    margin: 40px auto;
+
+    background: #222;
+
+    display: grid;
+
+    grid-template-columns: repeat(20, 1fr);
+
+    border-radius: 20px;
+
+    padding: 5px;
+
+}
+
+
+
+.cell {
+
+    width: 100%;
+
+    height: 100%;
+
+    border: 1px solid #444;
+
+    box-sizing: border-box;
+
+}
+
+
+
+.snake {
+
+    background: #7bdc6c;
+
+    border-radius: 5px;
+
+}
+
+
+
+.food {
+
+    background: #ff6b6b;
+
+    border-radius: 50%;
+
+}
+
+
+
+button {
+
+    width: 60px;
+
+    height: 60px;
+
+    margin: 5px;
+
+    border-radius: 20px;
+
+    border: none;
+
+    cursor: pointer;
+
+    font-size: 25px;
+
+}
+
+
+
+.restart {
+
+    width: 130px;
+
+    font-size: 16px;
+
+}
+
+
+
+</style>
+
+</head>
+
+
+
+<body>
+
+
+<a href="../games.html" class="back-home">
+
+🎮 返回小游戏
+
+</a>
+
+
+
+<h1>🐍 贪吃蛇</h1>
+
+
+<p>
+
+分数：
+
+<span id="score">
+
+0
+
+</span>
+
+</p>
+
+
+
+<div id="game"></div>
+
+
+
+<div>
+
+
+<button onclick="changeDir('up')">⬆️</button>
+
+<br>
+
+<button onclick="changeDir('left')">⬅️</button>
+
+<button onclick="changeDir('down')">⬇️</button>
+
+<button onclick="changeDir('right')">➡️</button>
+
+
+</div>
+
+
+
+<button class="restart" onclick="restart()">
+
+重新开始
+
+</button>
+
+
+
+
+<script>
+
+
+let snake;
+
+let food;
+
+let direction;
+
+let score;
+
+let timer;
+
+
+
+function startGame(){
+
+
+    snake=[
+
+        {x:10,y:10}
+
+    ];
+
+
+    direction="right";
+
+
+    score=0;
+
+
+    createFood();
+
+
+    update();
+
+
+    clearInterval(timer);
+
+
+    timer=setInterval(move,150);
+
+
+}
+
+
+
+
+function update(){
+
+
+    let game=document.getElementById("game");
+
+
+    game.innerHTML="";
+
+
+    document.getElementById("score").innerHTML=score;
+
+
+
+    for(let y=0;y<20;y++){
+
+
+        for(let x=0;x<20;x++){
+
+
+            let div=document.createElement("div");
+
+
+            div.className="cell";
+
+
+
+            snake.forEach(part=>{
+
+                if(part.x==x && part.y==y){
+
+                    div.classList.add("snake");
+
+                }
+
+            });
+
+
+
+            if(food.x==x && food.y==y){
+
+                div.classList.add("food");
+
+            }
+
+
+            game.appendChild(div);
+
+
+        }
+
+    }
+
+}
+
+
+
+
+function move(){
+
+
+    let head={
+
+        x:snake[0].x,
+
+        y:snake[0].y
+
+    };
+
+
+
+    if(direction=="up"){
+
+        head.y--;
+
+    }
+
+
+    if(direction=="down"){
+
+        head.y++;
+
+    }
+
+
+    if(direction=="left"){
+
+        head.x--;
+
+    }
+
+
+    if(direction=="right"){
+
+        head.x++;
+
+    }
+
+
+
+    if(
+
+        head.x<0 ||
+
+        head.x>=20 ||
+
+        head.y<0 ||
+
+        head.y>=20
+
+    ){
+
+        gameOver();
+
+        return;
+
+    }
+
+
+
+    snake.unshift(head);
+
+
+
+    if(head.x==food.x && head.y==food.y){
+
+
+        score++;
+
+
+        createFood();
+
+
+    }else{
+
+
+        snake.pop();
+
+
+    }
+
+
+
+    update();
+
+
+}
+
+
+
+
+function createFood(){
+
+
+    food={
+
+        x:Math.floor(Math.random()*20),
+
+        y:Math.floor(Math.random()*20)
+
+    };
+
+
+}
+
+
+
+
+function changeDir(dir){
+
+
+    if(
+
+        dir=="up" && direction!="down" ||
+
+        dir=="down" && direction!="up" ||
+
+        dir=="left" && direction!="right" ||
+
+        dir=="right" && direction!="left"
+
+    ){
+
+        direction=dir;
+
+    }
+
+
+}
+
+
+
+
+document.addEventListener("keydown",function(e){
+
+
+    if(e.key=="ArrowUp"){
+
+        changeDir("up");
+
+    }
+
+
+    if(e.key=="ArrowDown"){
+
+        changeDir("down");
+
+    }
+
+
+    if(e.key=="ArrowLeft"){
+
+        changeDir("left");
+
+    }
+
+
+    if(e.key=="ArrowRight"){
+
+        changeDir("right");
+
+    }
+
+
+});
+
+
+
+
+function gameOver(){
+
+
+    alert("🐍 游戏结束！分数："+score);
+
+
+    restart();
+
+
+}
+
+
+
+
+function restart(){
+
+
+    clearInterval(timer);
+
+
+    startGame();
+
+
+}
+
+
+
+startGame();
+
+
+</script>
+
+
+</body>
+
+</html>
