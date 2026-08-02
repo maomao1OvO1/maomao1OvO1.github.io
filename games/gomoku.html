@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>五子棋小游戏</title>
+
+
+<style>
+
+body {
+
+    text-align: center;
+
+    font-family: Arial;
+
+}
+
+
+
+/* ===== 返回小游戏按钮 ===== */
+
+.back-home {
+
+    position: fixed;
+
+    top: 20px;
+
+    right: 20px;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+    padding: 10px 15px;
+
+    border-radius: 20px;
+
+    text-decoration: none;
+
+    font-size: 16px;
+
+}
+
+
+
+#board {
+
+    width: 360px;
+
+    height: 360px;
+
+    box-sizing: border-box;
+
+    margin: 30px auto;
+
+    display: grid;
+
+    grid-template-columns: repeat(15, 1fr);
+
+    background: #deb887;
+
+    border-radius: 15px;
+
+    padding: 5px;
+
+}
+
+
+
+.cell {
+
+    width: 100%;
+
+    aspect-ratio: 1 / 1;
+
+    border: 1px solid #555;
+
+    box-sizing: border-box;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+}
+
+
+
+.black {
+
+    color: black;
+
+}
+
+
+
+.white {
+
+    color: white;
+
+    text-shadow: 0 0 2px black;
+
+}
+
+
+
+button {
+
+    padding: 10px 20px;
+
+    margin: 5px;
+
+    border-radius: 20px;
+
+    border: none;
+
+    cursor: pointer;
+
+    font-size: 16px;
+
+}
+
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<a href="../games.html" class="back-home">
+
+🎮 返回小游戏
+
+</a>
+
+
+
+<h1>⚫ 五子棋</h1>
+
+
+<p id="mode">
+
+当前模式：双人
+
+</p>
+
+
+
+<button onclick="setMode('player')">
+
+双人模式
+
+</button>
+
+
+<button onclick="setMode('ai')">
+
+AI模式
+
+</button>
+
+
+
+<p id="info">
+
+黑棋先手
+
+</p>
+
+
+
+<div id="board"></div>
+
+
+
+<button onclick="restart()">
+
+重新开始
+
+</button>
+
+<script>
+
+
+let board = [];
+
+let turn = 1; // 1黑棋 2白棋
+
+let mode = "player";
+
+let gameEnd = false;
+
+
+
+// ===== 创建棋盘 =====
+
+function createBoard(){
+
+
+    board=[];
+
+
+    let box=document.getElementById("board");
+
+    box.innerHTML="";
+
+
+    for(let i=0;i<15;i++){
+
+        board[i]=[];
+
+        for(let j=0;j<15;j++){
+
+
+            board[i][j]=0;
+
+
+            let cell=document.createElement("div");
+
+
+            cell.className="cell";
+
+
+            cell.onclick=function(){
+
+                play(i,j);
+
+            };
+
+
+            box.appendChild(cell);
+
+
+        }
+
+    }
+
+
+}
+
+
+
+
+// ===== 下棋 =====
+
+function play(x,y){
+
+
+    if(gameEnd) return;
+
+
+    if(board[x][y]!=0) return;
+
+
+
+    board[x][y]=turn;
+
+
+    update();
+
+
+
+    if(checkWin(x,y,turn)){
+
+
+        alert(
+
+            turn==1 ?
+
+            "⚫ 黑棋胜利！"
+
+            :
+
+            "⚪ 白棋胜利！"
+
+        );
+
+
+        gameEnd=true;
+
+        return;
+
+    }
+
+
+
+    turn=turn==1?2:1;
+
+
+
+    document.getElementById("info").innerHTML=
+
+    turn==1 ?
+
+    "轮到黑棋"
+
+    :
+
+    "轮到白棋";
+
+
+
+    // AI回合
+
+    if(mode=="ai" && turn==2){
+
+
+        setTimeout(aiMove,500);
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 刷新棋盘 =====
+
+function update(){
+
+
+    let cells=document.querySelectorAll(".cell");
+
+
+    let index=0;
+
+
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
+
+
+            cells[index].innerHTML="";
+
+
+            if(board[i][j]==1){
+
+                cells[index].innerHTML="●";
+
+                cells[index].className="cell black";
+
+            }
+
+
+            if(board[i][j]==2){
+
+                cells[index].innerHTML="○";
+
+                cells[index].className="cell white";
+
+            }
+
+
+            index++;
+
+
+        }
+
+    }
+
+
+}
+
+
+
+
+// ===== AI =====
+
+function aiMove(){
+
+
+    if(gameEnd)return;
+
+
+
+    let empty=[];
+
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
+
+
+            if(board[i][j]==0){
+
+                empty.push([i,j]);
+
+            }
+
+
+        }
+
+    }
+
+
+
+    if(empty.length>0){
+
+
+        let move=
+
+        empty[Math.floor(Math.random()*empty.length)];
+
+
+        play(move[0],move[1]);
+
+
+    }
+
+
+}
+
+
+
+
+
+// ===== 胜利判断 =====
+
+function checkWin(x,y,p){
+
+
+    let dirs=[
+
+        [1,0],
+
+        [0,1],
+
+        [1,1],
+
+        [1,-1]
+
+    ];
+
+
+
+    for(let d of dirs){
+
+
+        let count=1;
+
+
+        count+=countLine(x,y,d[0],d[1],p);
+
+
+        count+=countLine(x,y,-d[0],-d[1],p);
+
+
+
+        if(count>=5){
+
+            return true;
+
+        }
+
+
+    }
+
+
+    return false;
+
+
+}
+
+
+
+
+function countLine(x,y,dx,dy,p){
+
+
+    let count=0;
+
+
+    x+=dx;
+
+    y+=dy;
+
+
+
+    while(
+
+        x>=0 &&
+
+        x<15 &&
+
+        y>=0 &&
+
+        y<15 &&
+
+        board[x][y]==p
+
+    ){
+
+
+        count++;
+
+
+        x+=dx;
+
+        y+=dy;
+
+
+    }
+
+
+    return count;
+
+
+}
+
+
+
+
+// ===== 模式 =====
+
+function setMode(m){
+
+
+    mode=m;
+
+
+    document.getElementById("mode").innerHTML=
+
+    mode=="ai"
+
+    ?
+
+    "当前模式：AI"
+
+    :
+
+    "当前模式：双人";
+
+
+    restart();
+
+
+}
+
+
+
+
+// ===== 重开 =====
+
+function restart(){
+
+
+    turn=1;
+
+    gameEnd=false;
+
+
+    document.getElementById("info").innerHTML=
+
+    "黑棋先手";
+
+
+    createBoard();
+
+
+}
+
+
+
+createBoard();
+
+
+</script>
+
+
+</body>
+
+</html>
