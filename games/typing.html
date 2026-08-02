@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>打字测试</title>
+
+
+<style>
+
+body {
+
+    text-align: center;
+
+    font-family: Arial;
+
+}
+
+
+/* ===== 返回小游戏按钮 ===== */
+
+.back-home {
+
+    position: fixed;
+
+    top: 20px;
+
+    right: 20px;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+    padding: 10px 15px;
+
+    border-radius: 20px;
+
+    text-decoration: none;
+
+    font-size: 16px;
+
+}
+
+
+
+.game-box {
+
+    margin: 80px auto;
+
+    width: 300px;
+
+    padding: 30px;
+
+    border-radius: 20px;
+
+    background: #f2f2f2;
+
+}
+
+
+
+textarea {
+
+    width: 90%;
+
+    height: 80px;
+
+    border-radius: 10px;
+
+    padding: 10px;
+
+}
+
+
+
+button {
+
+    margin-top: 15px;
+
+    padding: 10px 20px;
+
+    border-radius: 20px;
+
+    border: none;
+
+    cursor: pointer;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<a href="../games.html" class="back-home">
+🎮 返回小游戏
+</a>
+
+
+
+<div class="game-box">
+
+
+<h1>⌨️ 打字测试</h1>
+
+
+<p id="text">
+
+正在加载...
+
+</p>
+
+
+<textarea id="input" placeholder="开始输入上面的文字"></textarea>
+
+
+<br>
+
+
+<button onclick="startTest()">
+
+开始测试
+
+</button>
+
+
+<p id="result"></p>
+
+
+</div>
+
+
+
+<script>
+
+
+let words = "欢迎来到毛毛的个人网站，这是一个自制小游戏";
+
+
+let startTime = 0;
+
+
+
+document.getElementById("text").innerHTML = words;
+
+
+
+function startTest(){
+
+
+    let input = document.getElementById("input");
+
+
+    input.value = "";
+
+
+    input.focus();
+
+
+    startTime = new Date().getTime();
+
+
+
+    input.oninput = function(){
+
+
+        if(input.value === words){
+
+
+            let endTime = new Date().getTime();
+
+
+            let time = (endTime - startTime) / 1000;
+
+
+            let speed = Math.floor(words.length / time * 60);
+
+
+
+            document.getElementById("result").innerHTML =
+
+            "🎉 完成！速度：" + speed + " 字/分钟";
+
+
+        }
+
+
+    }
+
+
+}
+
+
+
+</script>
+
+
+</body>
+
+</html>

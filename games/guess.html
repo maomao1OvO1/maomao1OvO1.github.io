@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>猜数字小游戏</title>
+
+
+<style>
+
+body {
+
+    text-align: center;
+
+    font-family: Arial;
+
+}
+
+
+.game-box {
+
+    margin: 80px auto;
+
+    width: 300px;
+
+    padding: 30px;
+
+    border-radius: 20px;
+
+    background: #f2f2f2;
+
+}
+
+
+input {
+
+    width: 100px;
+
+    padding: 8px;
+
+    border-radius: 10px;
+
+    border: 1px solid #ccc;
+
+}
+
+
+button {
+
+    margin-top: 15px;
+
+    padding: 10px 20px;
+
+    border-radius: 20px;
+
+    border: none;
+
+    cursor: pointer;
+
+}
+
+/* ===== 返回小游戏按钮 ===== */
+
+.back-home {
+
+    position: fixed;
+
+    top: 20px;
+
+    right: 20px;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+    padding: 10px 15px;
+
+    border-radius: 20px;
+
+    text-decoration: none;
+
+    font-size: 16px;
+
+}
+
+</style>
+
+
+</head>
+
+
+<body>
+
+<a href="../games.html" class="back-home">
+🎮 返回小游戏
+</a>
+
+<div class="game-box">
+
+
+<h1>🎯 猜数字</h1>
+
+
+<p>我已经想好了一个 1~100 的数字</p>
+
+
+<input id="guess" type="number">
+
+
+<br>
+
+
+<button onclick="checkGuess()">
+
+猜一下
+
+</button>
+
+
+<p id="result"></p>
+
+
+</div>
+
+
+
+<script>
+
+
+// ===== 游戏核心 =====
+
+
+let answer = Math.floor(Math.random() * 100) + 1;
+
+
+let count = 0;
+
+
+
+function checkGuess(){
+
+
+    let num = Number(document.getElementById("guess").value);
+
+
+    let result = document.getElementById("result");
+
+
+    count++;
+
+
+    if(num === answer){
+
+
+        result.innerHTML = 
+        "🎉 猜中了！用了 " + count + " 次";
+
+
+    }else if(num > answer){
+
+
+        result.innerHTML = "⬇️ 太大了";
+
+
+    }else{
+
+
+        result.innerHTML = "⬆️ 太小了";
+
+
+    }
+
+
+}
+
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>2048小游戏</title>
+
+
+<style>
+
+body {
+
+    text-align: center;
+
+    font-family: Arial;
+
+}
+
+
+/* ===== 返回小游戏按钮 ===== */
+
+.back-home {
+
+    position: fixed;
+
+    top: 20px;
+
+    right: 20px;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+    padding: 10px 15px;
+
+    border-radius: 20px;
+
+    text-decoration: none;
+
+    font-size: 16px;
+
+}
+
+
+
+#game {
+
+    width: 320px;
+
+    margin: 40px auto;
+
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 10px;
+
+    background: #bbada0;
+
+    padding: 10px;
+
+    border-radius: 20px;
+
+}
+
+
+
+.cell {
+
+    width: 100%;
+
+    aspect-ratio: 1 / 1;
+
+    background: #cdc1b4;
+
+    border-radius: 10px;
+
+    font-size: 35px;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    font-weight: bold;
+
+}
+
+
+
+button {
+
+    width: 70px;
+
+    height: 60px;
+
+    margin: 5px;
+
+    border-radius: 20px;
+
+    border: none;
+
+    cursor: pointer;
+
+    font-size: 25px;
+
+}
+
+
+.restart {
+
+    width: 130px;
+
+    font-size: 16px;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<a href="../games.html" class="back-home">
+
+🎮 返回小游戏
+
+</a>
+
+
+
+<h1>🧩 2048</h1>
+
+
+<p>
+
+分数：<span id="score">0</span>
+
+</p>
+
+
+
+<div id="game"></div>
+
+
+
+<div class="controls">
+
+
+<button onclick="moveUp()">⬆️</button>
+
+
+<br>
+
+
+<button onclick="moveLeft()">⬅️</button>
+
+
+<button onclick="moveDown()">⬇️</button>
+
+
+<button onclick="moveRight()">➡️</button>
+
+
+</div>
+
+
+
+<button class="restart" onclick="restart()">
+
+重新开始
+
+</button>
+
+
+
+
+<script>
+
+
+// ===== 游戏数据 =====
+
+let board;
+
+let score;
+
+
+
+// ===== 开始游戏 =====
+
+function startGame(){
+
+
+    board=[
+
+        [0,0,0,0],
+
+        [0,0,0,0],
+
+        [0,0,0,0],
+
+        [0,0,0,0]
+
+    ];
+
+
+    score=0;
+
+
+    addNumber();
+
+    addNumber();
+
+
+    update();
+
+
+}
+
+
+
+
+// ===== 刷新画面 =====
+
+function update(){
+
+
+    let game=document.getElementById("game");
+
+
+    game.innerHTML="";
+
+
+    document.getElementById("score").innerHTML=score;
+
+
+
+    for(let i=0;i<4;i++){
+
+
+        for(let j=0;j<4;j++){
+
+
+            let cell=document.createElement("div");
+
+
+            cell.className="cell";
+
+
+
+            if(board[i][j]!=0){
+
+
+                cell.innerHTML=board[i][j];
+
+
+            }
+
+
+            game.appendChild(cell);
+
+
+        }
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 生成数字 =====
+
+function addNumber(){
+
+
+    let empty=[];
+
+
+
+    for(let i=0;i<4;i++){
+
+
+        for(let j=0;j<4;j++){
+
+
+            if(board[i][j]==0){
+
+
+                empty.push([i,j]);
+
+
+            }
+
+
+        }
+
+
+    }
+
+
+
+    if(empty.length>0){
+
+
+        let place=empty[Math.floor(Math.random()*empty.length)];
+
+
+        board[place[0]][place[1]]=2;
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 合并 =====
+
+function move(row){
+
+
+    row=row.filter(x=>x!=0);
+
+
+
+    for(let i=0;i<row.length-1;i++){
+
+
+        if(row[i]==row[i+1]){
+
+
+            row[i]*=2;
+
+
+            score+=row[i];
+
+
+            row[i+1]=0;
+
+
+        }
+
+
+    }
+
+
+
+    row=row.filter(x=>x!=0);
+
+
+
+    while(row.length<4){
+
+
+        row.push(0);
+
+
+    }
+
+
+
+    return row;
+
+
+}
+
+
+
+
+// ===== 左 =====
+
+function moveLeft(){
+
+
+    for(let i=0;i<4;i++){
+
+
+        board[i]=move(board[i]);
+
+
+    }
+
+
+    addNumber();
+
+    update();
+
+
+}
+
+
+
+
+// ===== 右 =====
+
+function moveRight(){
+
+
+    for(let i=0;i<4;i++){
+
+
+        board[i].reverse();
+
+
+        board[i]=move(board[i]);
+
+
+        board[i].reverse();
+
+
+    }
+
+
+    addNumber();
+
+    update();
+
+
+}
+
+
+
+
+// ===== 上 =====
+
+function moveUp(){
+
+
+    for(let j=0;j<4;j++){
+
+
+        let column=[];
+
+
+        for(let i=0;i<4;i++){
+
+
+            column.push(board[i][j]);
+
+
+        }
+
+
+        column=move(column);
+
+
+
+        for(let i=0;i<4;i++){
+
+
+            board[i][j]=column[i];
+
+
+        }
+
+
+    }
+
+
+    addNumber();
+
+    update();
+
+
+}
+
+
+
+
+// ===== 下 =====
+
+function moveDown(){
+
+
+    for(let j=0;j<4;j++){
+
+
+        let column=[];
+
+
+
+        for(let i=0;i<4;i++){
+
+
+            column.push(board[i][j]);
+
+
+        }
+
+
+        column.reverse();
+
+
+        column=move(column);
+
+
+        column.reverse();
+
+
+
+        for(let i=0;i<4;i++){
+
+
+            board[i][j]=column[i];
+
+
+        }
+
+
+    }
+
+
+    addNumber();
+
+    update();
+
+
+}
+
+
+
+
+// ===== 键盘控制 =====
+
+document.addEventListener("keydown",function(e){
+
+
+    if(e.key=="ArrowLeft"){
+
+        moveLeft();
+
+    }
+
+
+    if(e.key=="ArrowRight"){
+
+        moveRight();
+
+    }
+
+
+    if(e.key=="ArrowUp"){
+
+        moveUp();
+
+    }
+
+
+    if(e.key=="ArrowDown"){
+
+        moveDown();
+
+    }
+
+
+});
+
+
+
+
+// ===== 重开 =====
+
+function restart(){
+
+
+    startGame();
+
+
+}
+
+
+
+// ===== 启动 =====
+
+startGame();
+
+
+
+</script>
+
+
+</body>
+
+</html>
