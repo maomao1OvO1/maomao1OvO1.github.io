@@ -378,17 +378,13 @@ function move(row){
 
 
 
-
 // ===== 左 =====
 
 function moveLeft(){
 
-
     for(let i=0;i<4;i++){
 
-
         board[i]=move(board[i]);
-
 
     }
 
@@ -397,6 +393,7 @@ function moveLeft(){
 
     update();
 
+    checkGameOver();
 
 }
 
@@ -407,18 +404,13 @@ function moveLeft(){
 
 function moveRight(){
 
-
     for(let i=0;i<4;i++){
 
-
         board[i].reverse();
-
 
         board[i]=move(board[i]);
 
-
         board[i].reverse();
-
 
     }
 
@@ -427,6 +419,7 @@ function moveRight(){
 
     update();
 
+    checkGameOver();
 
 }
 
@@ -437,18 +430,14 @@ function moveRight(){
 
 function moveUp(){
 
-
     for(let j=0;j<4;j++){
-
 
         let column=[];
 
 
         for(let i=0;i<4;i++){
 
-
             column.push(board[i][j]);
-
 
         }
 
@@ -456,15 +445,11 @@ function moveUp(){
         column=move(column);
 
 
-
         for(let i=0;i<4;i++){
-
 
             board[i][j]=column[i];
 
-
         }
-
 
     }
 
@@ -473,6 +458,7 @@ function moveUp(){
 
     update();
 
+    checkGameOver();
 
 }
 
@@ -483,41 +469,30 @@ function moveUp(){
 
 function moveDown(){
 
-
     for(let j=0;j<4;j++){
-
 
         let column=[];
 
 
-
         for(let i=0;i<4;i++){
-
 
             column.push(board[i][j]);
 
-
         }
 
 
         column.reverse();
 
-
         column=move(column);
 
-
         column.reverse();
-
 
 
         for(let i=0;i<4;i++){
 
-
             board[i][j]=column[i];
 
-
         }
-
 
     }
 
@@ -526,9 +501,26 @@ function moveDown(){
 
     update();
 
+    checkGameOver();
 
 }
 
+
+
+
+// ===== 检查游戏结束 =====
+
+function checkGameOver(){
+
+    if(gameOver()){
+
+        alert("😢 游戏结束，重新开始！");
+
+        restart();
+
+    }
+
+}
 
 
 
@@ -574,9 +566,71 @@ document.addEventListener("keydown",function(e){
 
 function restart(){
 
-
     startGame();
 
+}
+
+
+
+// ===== 判断游戏结束 =====
+
+function gameOver(){
+
+
+    // 有空位，不结束
+
+    for(let i=0;i<4;i++){
+
+        for(let j=0;j<4;j++){
+
+            if(board[i][j]==0){
+
+                return false;
+
+            }
+
+        }
+
+    }
+
+
+
+    // 横向可以合并
+
+    for(let i=0;i<4;i++){
+
+        for(let j=0;j<3;j++){
+
+            if(board[i][j]==board[i][j+1]){
+
+                return false;
+
+            }
+
+        }
+
+    }
+
+
+
+    // 纵向可以合并
+
+    for(let i=0;i<3;i++){
+
+        for(let j=0;j<4;j++){
+
+            if(board[i][j]==board[i+1][j]){
+
+                return false;
+
+            }
+
+        }
+
+    }
+
+
+    return true;
 
 }
 
