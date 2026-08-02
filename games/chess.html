@@ -198,6 +198,29 @@ let turn = "white";
 let mode = "player";
 
 
+// ===== 游戏模式切换 =====
+
+function setMode(m){
+
+    mode = m;
+
+
+    if(mode=="ai"){
+
+        document.getElementById("info").innerHTML =
+        "AI模式";
+
+    }
+    else{
+
+        document.getElementById("info").innerHTML =
+        "双人模式";
+
+    }
+
+}
+
+
 // 选择的棋子
 
 let selected = null;
@@ -505,12 +528,18 @@ if(check()){
 
     "黑方回合";
 
+// ===== AI回合 =====
 
+if(
+mode=="ai" &&
+turn=="black"
+){
+
+    setTimeout(aiMove,500);
 
 }
 
-
-
+}
 
 
 // ===== 获取移动范围 =====
@@ -522,7 +551,6 @@ function getMoves(x,y){
 
 
     let result=[];
-
 
 
     // 王
@@ -1283,6 +1311,9 @@ function findKing(side){
     return null;
 
 }
+
+
+
 // ===== 判断位置是否被攻击 =====
 
 function isAttacked(x,y,side){
@@ -1297,42 +1328,144 @@ function isAttacked(x,y,side){
 
 
             if(
-
-            p!="" &&
-
-            color(p)!=side
-
+            p=="" ||
+            color(p)==side
             ){
 
+                continue;
 
-                let moves=getMoves(i,j);
+            }
 
 
 
-                for(let m of moves){
+            // 马攻击
 
+            if(p=="♘" || p=="♞"){
+
+                let horse=[
+                [-2,-1],[-2,1],
+                [-1,-2],[-1,2],
+                [1,-2],[1,2],
+                [2,-1],[2,1]
+                ];
+
+
+                for(let h of horse){
 
                     if(
-
-                    m[0]==x &&
-
-                    m[1]==y
-
+                    i+h[0]==x &&
+                    j+h[1]==y
                     ){
 
                         return true;
 
                     }
 
-
                 }
-
 
             }
 
 
-        }
 
+            // 王攻击
+
+            if(p=="♔" || p=="♚"){
+
+                if(
+                Math.abs(i-x)<=1 &&
+                Math.abs(j-y)<=1
+                ){
+
+                    return true;
+
+                }
+
+            }
+
+
+
+            // 兵攻击
+
+            if(p=="♙"){
+
+                if(
+                i-1==x &&
+                Math.abs(j-y)==1
+                ){
+
+                    return true;
+
+                }
+
+            }
+
+
+            if(p=="♟"){
+
+                if(
+                i+1==x &&
+                Math.abs(j-y)==1
+                ){
+
+                    return true;
+
+                }
+
+            }
+
+
+
+            // 车、象、后攻击
+
+            let dx=x-i;
+
+            let dy=y-j;
+
+
+            // 车/后
+
+            if(
+            dx==0 ||
+            dy==0
+            ){
+
+                if(
+                p=="♖" ||
+                p=="♜" ||
+                p=="♕" ||
+                p=="♛"
+                ){
+
+                    return true;
+
+                }
+
+            }
+
+
+
+            // 象/后
+
+            if(
+            Math.abs(dx)==Math.abs(dy)
+            ){
+
+                if(
+                p=="♗" ||
+                p=="♝" ||
+                p=="♕" ||
+                p=="♛"
+                ){
+
+                    return true;
+
+                }
+
+            }
+
+
+
+        }
 
     }
 
@@ -1340,7 +1473,6 @@ function isAttacked(x,y,side){
     return false;
 
 }
-
 
 
 // ===== 检查将军 =====
@@ -1465,18 +1597,128 @@ function isLegalMove(x1,y1,x2,y2){
 
     // 模拟后不能让自己的王被攻击
 
-/*
 if(simulateMove(x1,y1,x2,y2)){
 
     return false;
 
 }
-*/
+
 
 
 
     return true;
 
+
+}
+
+
+// ===== 简单AI =====
+
+function aiMove(){
+
+    let moves=[];
+
+
+    // 找黑棋所有合法移动
+
+    for(let x=0;x<8;x++){
+
+        for(let y=0;y<8;y++){
+
+
+            let p=board[x][y];
+
+
+            if(
+            p!="" &&
+            color(p)=="black"
+            ){
+
+
+                let possible=getMoves(x,y);
+
+
+                for(let m of possible){
+
+
+                    if(
+                    isLegalMove(x,y,m[0],m[1])
+                    ){
+
+
+                        moves.push({
+
+                            from:[x,y],
+
+                            to:m
+
+                        });
+
+
+                    }
+
+                }
+
+
+            }
+
+
+        }
+
+    }
+
+
+
+    if(moves.length==0){
+
+    alert("AI没有找到走法");
+
+        return;
+
+    }
+
+
+
+    // 优先吃子
+
+    let eat=moves.filter(function(m){
+
+        return board[m.to[0]][m.to[1]]!="";
+
+    });
+
+
+
+    if(eat.length>0){
+
+        moves=eat;
+
+    }
+
+
+
+    // 随机选择
+
+    let move=
+    moves[
+    Math.floor(Math.random()*moves.length)
+    ];
+
+
+
+    tryMove(
+
+        move.from[0],
+
+        move.from[1],
+
+        move.to[0],
+
+        move.to[1]
+
+    );
+
+draw();
 
 }
 
