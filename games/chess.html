@@ -1318,11 +1318,9 @@ function findKing(side){
 
 function isAttacked(x,y,side){
 
-
     for(let i=0;i<8;i++){
 
         for(let j=0;j<8;j++){
-
 
             let p=board[i][j];
 
@@ -1335,7 +1333,6 @@ function isAttacked(x,y,side){
                 continue;
 
             }
-
 
 
             // 马攻击
@@ -1415,19 +1412,14 @@ function isAttacked(x,y,side){
 
 
 
-            // 车、象、后攻击
-
             let dx=x-i;
-
             let dy=y-j;
 
 
-            // 车/后
 
-            if(
-            dx==0 ||
-            dy==0
-            ){
+            // 车和后
+
+            if(dx==0 || dy==0){
 
                 if(
                 p=="♖" ||
@@ -1436,7 +1428,11 @@ function isAttacked(x,y,side){
                 p=="♛"
                 ){
 
-                    return true;
+                    if(clearPath(i,j,x,y)){
+
+                        return true;
+
+                    }
 
                 }
 
@@ -1444,11 +1440,9 @@ function isAttacked(x,y,side){
 
 
 
-            // 象/后
+            // 象和后
 
-            if(
-            Math.abs(dx)==Math.abs(dy)
-            ){
+            if(Math.abs(dx)==Math.abs(dy)){
 
                 if(
                 p=="♗" ||
@@ -1457,12 +1451,15 @@ function isAttacked(x,y,side){
                 p=="♛"
                 ){
 
-                    return true;
+                    if(clearPath(i,j,x,y)){
+
+                        return true;
+
+                    }
 
                 }
 
             }
-
 
 
         }
@@ -1474,6 +1471,38 @@ function isAttacked(x,y,side){
 
 }
 
+
+
+// ===== 检查攻击路线是否畅通 =====
+
+function clearPath(x1,y1,x2,y2){
+
+    let dx=Math.sign(x2-x1);
+    let dy=Math.sign(y2-y1);
+
+
+    let x=x1+dx;
+    let y=y1+dy;
+
+
+    while(x!=x2 || y!=y2){
+
+        if(board[x][y]!=""){
+
+            return false;
+
+        }
+
+
+        x+=dx;
+        y+=dy;
+
+    }
+
+
+    return true;
+
+}
 
 // ===== 检查将军 =====
 
