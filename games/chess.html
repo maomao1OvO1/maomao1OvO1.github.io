@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>♟️ 国际象棋</title>
+
+
+<style>
+
+body{
+
+text-align:center;
+
+font-family:Arial;
+
+}
+
+
+/* ===== 返回小游戏按钮 ===== */
+
+.back-home{
+
+position:fixed;
+
+top:20px;
+
+right:20px;
+
+background:#e5dcff;
+
+color:#6543a5;
+
+padding:10px 15px;
+
+border-radius:20px;
+
+text-decoration:none;
+
+font-size:16px;
+
+}
+
+
+
+/* ===== 棋盘 ===== */
+
+#board{
+
+width:400px;
+
+height:400px;
+
+margin:30px auto;
+
+display:grid;
+
+grid-template-columns:repeat(8,1fr);
+
+border-radius:15px;
+
+overflow:hidden;
+
+}
+
+
+
+.cell{
+
+width:50px;
+
+height:50px;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+font-size:36px;
+
+cursor:pointer;
+
+box-sizing:border-box;
+
+}
+
+
+
+.light{
+
+background:#f0d9b5;
+
+}
+
+
+
+.dark{
+
+background:#b58863;
+
+}
+
+
+
+.select{
+
+outline:4px solid #6543a5;
+
+}
+
+
+
+button{
+
+padding:10px 20px;
+
+border:none;
+
+border-radius:20px;
+
+margin:5px;
+
+cursor:pointer;
+
+font-size:16px;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<a href="../games.html" class="back-home">
+
+🎮 返回小游戏
+
+</a>
+
+
+<h1>♟️ 国际象棋</h1>
+
+
+<button onclick="setMode('player')">
+
+双人模式
+
+</button>
+
+
+<button onclick="setMode('ai')">
+
+AI模式
+
+</button>
+
+
+<p id="info">
+
+白方回合
+
+</p>
+
+
+<div id="board"></div>
+
+
+<button onclick="restart()">
+
+重新开始
+
+</button>
+
+<script>
+
+// ===== 国际象棋 JS v2 =====
+
+
+// 棋盘
+
+let board = [];
+
+
+// 当前回合
+
+let turn = "white";
+
+
+// 模式
+
+let mode = "player";
+
+
+// 选择的棋子
+
+let selected = null;
+
+
+// 游戏结束
+
+let gameEnd = false;
+
+
+
+// ===== 初始棋盘 =====
+
+const startBoard = [
+
+["♜","♞","♝","♛","♚","♝","♞","♜"],
+
+["♟","♟","♟","♟","♟","♟","♟","♟"],
+
+["","","","","","","",""],
+
+["","","","","","","",""],
+
+["","","","","","","",""],
+
+["","","","","","","",""],
+
+["♙","♙","♙","♙","♙","♙","♙","♙"],
+
+["♖","♘","♗","♕","♔","♗","♘","♖"]
+
+];
+
+
+
+
+// ===== 开始游戏 =====
+
+function restart(){
+
+
+    board = JSON.parse(JSON.stringify(startBoard));
+
+
+    turn="white";
+
+
+    selected=null;
+
+
+    gameEnd=false;
+
+
+    document.getElementById("info").innerHTML=
+
+    "白方回合";
+
+
+    draw();
+
+
+}
+
+
+
+
+// ===== 绘制棋盘 =====
+
+function draw(){
+
+
+    let box=document.getElementById("board");
+
+
+    box.innerHTML="";
+
+
+
+    for(let x=0;x<8;x++){
+
+
+        for(let y=0;y<8;y++){
+
+
+            let cell=document.createElement("div");
+
+
+            cell.className=
+
+            "cell "
+
+            +
+
+            ((x+y)%2==0?
+
+            "light":
+
+            "dark");
+
+
+
+            cell.innerHTML=board[x][y];
+
+
+
+            cell.onclick=function(){
+
+
+                clickCell(x,y);
+
+
+            };
+
+
+
+            box.appendChild(cell);
+
+
+        }
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 点击棋盘 =====
+
+function clickCell(x,y){
+
+
+    if(gameEnd)return;
+
+
+
+    if(selected==null){
+
+
+        let p=board[x][y];
+
+
+        if(
+
+        p!="" &&
+
+        color(p)==turn
+
+        ){
+
+
+            selected=[x,y];
+
+
+        }
+
+
+    }
+
+    else{
+
+
+        tryMove(
+
+        selected[0],
+
+        selected[1],
+
+        x,
+
+        y
+
+        );
+
+
+        selected=null;
+
+
+        draw();
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 判断颜色 =====
+
+function color(p){
+
+
+    if(
+
+    "♙♖♘♗♕♔".includes(p)
+
+    ){
+
+        return "white";
+
+    }
+
+
+    return "black";
+
+
+}
+
+
+
+
+// ===== 启动 =====
+
+restart();
+
+// ===== 移动棋子 =====
+
+function tryMove(x1,y1,x2,y2){
+
+
+    let piece=board[x1][y1];
+
+
+    if(piece=="") return;
+
+
+
+    let moves=getMoves(x1,y1);
+
+
+
+    let ok=false;
+
+
+
+    for(let m of moves){
+
+
+        if(
+
+        m[0]==x2 &&
+
+        m[1]==y2
+
+        ){
+
+            ok=true;
+
+        }
+
+
+    }
+
+
+
+    if(!ok){
+
+        return;
+
+    }
+
+
+
+    // 保存原位置（防止非法移动）
+
+let oldTarget = board[x2][y2];
+
+
+// 移动
+
+board[x2][y2]=piece;
+
+
+board[x1][y1]="";
+
+
+
+// 检查自己是否被将军
+
+if(check()){
+
+
+    // 撤销移动
+
+    board[x1][y1]=piece;
+
+    board[x2][y2]=oldTarget;
+
+
+    alert("不能送王！");
+
+
+    return;
+
+
+}
+
+    // 兵升变
+
+promotion(x2,y2);
+
+
+// 记录上一手
+
+lastMove={
+
+    piece:piece,
+
+    from:[x1,y1],
+
+    to:[x2,y2]
+
+};
+
+
+    // 换回合
+
+    turn=
+
+    turn=="white"
+
+    ?
+
+    "black"
+
+    :
+
+    "white";
+// 检查对方是否被将军
+
+if(check()){
+
+    alert("♟ 将军！");
+
+}
+
+
+
+    document.getElementById("info").innerHTML=
+
+    turn=="white"
+
+    ?
+
+    "白方回合"
+
+    :
+
+    "黑方回合";
+
+
+
+}
+
+
+
+
+
+// ===== 获取移动范围 =====
+
+function getMoves(x,y){
+
+
+    let p=board[x][y];
+
+
+    let result=[];
+
+
+
+    // 王
+
+    if(p=="♔" || p=="♚"){
+
+
+        let dir=[
+
+        [-1,-1],[-1,0],[-1,1],
+
+        [0,-1],[0,1],
+
+        [1,-1],[1,0],[1,1]
+
+        ];
+
+
+
+        for(let d of dir){
+
+
+            addMove(
+
+            result,
+
+            x+d[0],
+
+            y+d[1],
+
+            p
+
+            );
+
+
+        }
+
+
+    }
+
+
+
+
+    // 马
+
+    if(p=="♘" || p=="♞"){
+
+
+        let horse=[
+
+        [-2,-1],
+
+        [-2,1],
+
+        [-1,-2],
+
+        [-1,2],
+
+        [1,-2],
+
+        [1,2],
+
+        [2,-1],
+
+        [2,1]
+
+        ];
+
+
+
+        for(let h of horse){
+
+
+            addMove(
+
+            result,
+
+            x+h[0],
+
+            y+h[1],
+
+            p
+
+            );
+
+
+        }
+
+
+    }
+
+
+
+
+    // 车
+
+    if(p=="♖" || p=="♜"){
+
+
+        lineMove(
+
+        result,
+
+        x,
+
+        y,
+
+        [
+
+        [-1,0],
+
+        [1,0],
+
+        [0,-1],
+
+        [0,1]
+
+        ]
+
+        );
+
+
+    }
+
+
+
+
+    // 象
+
+    if(p=="♗" || p=="♝"){
+
+
+        lineMove(
+
+        result,
+
+        x,
+
+        y,
+
+        [
+
+        [-1,-1],
+
+        [-1,1],
+
+        [1,-1],
+
+        [1,1]
+
+        ]
+
+        );
+
+
+    }
+
+
+
+
+    // 后
+
+    if(p=="♕" || p=="♛"){
+
+
+        lineMove(
+
+        result,
+
+        x,
+
+        y,
+
+        [
+
+        [-1,0],
+
+        [1,0],
+
+        [0,-1],
+
+        [0,1],
+
+        [-1,-1],
+
+        [-1,1],
+
+        [1,-1],
+
+        [1,1]
+
+        ]
+
+        );
+
+
+    }
+
+
+
+
+    // 兵
+
+    pawnMove(
+
+    result,
+
+    x,
+
+    y,
+
+    p
+
+    );
+
+
+
+    return result;
+
+
+}
+
+// ===== 添加普通移动 =====
+
+function addMove(arr,x,y,p){
+
+
+    // 超出棋盘
+
+    if(
+
+    x<0 ||
+
+    x>7 ||
+
+    y<0 ||
+
+    y>7
+
+    ){
+
+        return;
+
+    }
+
+
+
+    // 空格或者敌方棋子
+
+    if(
+
+    board[x][y]=="" ||
+
+    color(board[x][y])!=color(p)
+
+    ){
+
+
+        arr.push([x,y]);
+
+
+    }
+
+
+}
+
+
+
+
+
+// ===== 直线移动 =====
+
+function lineMove(arr,x,y,directions){
+
+
+    for(let d of directions){
+
+
+        let nx=x+d[0];
+
+        let ny=y+d[1];
+
+
+
+        while(
+
+        nx>=0 &&
+
+        nx<8 &&
+
+        ny>=0 &&
+
+        ny<8
+
+        ){
+
+
+            if(board[nx][ny]==""){
+
+
+                arr.push([nx,ny]);
+
+
+            }
+
+            else{
+
+
+                // 可以吃敌方棋子
+
+                if(
+
+                color(board[nx][ny])
+
+                !=
+
+                color(board[x][y])
+
+                ){
+
+
+                    arr.push([nx,ny]);
+
+
+                }
+
+
+
+                // 被挡住停止
+
+                break;
+
+
+            }
+
+
+
+            nx+=d[0];
+
+            ny+=d[1];
+
+
+        }
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 兵移动 =====
+
+function pawnMove(arr,x,y,p){
+
+
+    let dir;
+
+
+    // 白兵向上
+
+    if(p=="♙"){
+
+
+        dir=-1;
+
+
+    }
+
+    // 黑兵向下
+
+    else{
+
+
+        dir=1;
+
+
+    }
+
+
+
+
+
+    // 前进一步
+
+    if(
+
+    board[x+dir] &&
+
+    board[x+dir][y]==""
+
+    ){
+
+
+        arr.push([x+dir,y]);
+
+
+    }
+
+
+
+
+    // 初始两步
+
+    if(
+
+    (p=="♙" && x==6)
+
+    ||
+
+    (p=="♟" && x==1)
+
+    ){
+
+
+
+        if(
+
+        board[x+dir][y]=="" &&
+
+        board[x+dir*2][y]==""
+
+        ){
+
+
+            arr.push([x+dir*2,y]);
+
+
+        }
+
+
+    }
+
+
+
+
+
+    // 斜着吃子
+
+    for(let dy of [-1,1]){
+
+
+        let nx=x+dir;
+
+        let ny=y+dy;
+
+
+
+        if(
+
+        board[nx] &&
+
+        board[nx][ny] &&
+
+        board[nx][ny]!="" &&
+
+        color(board[nx][ny])!=color(p)
+
+        ){
+
+
+            arr.push([nx,ny]);
+
+
+        }
+
+
+    }
+
+
+
+}
+
+// ===== 特殊规则数据 =====
+
+// 记录棋子是否移动过
+
+let moved = {
+
+    whiteKing:false,
+
+    blackKing:false,
+
+    whiteLeftRook:false,
+
+    whiteRightRook:false,
+
+    blackLeftRook:false,
+
+    blackRightRook:false
+
+};
+
+
+// 记录上一手
+
+let lastMove=null;
+
+
+
+
+// ===== 王车易位 =====
+
+function castleMove(x1,y1,x2,y2,p){
+
+
+    // 白王
+
+    if(
+
+    p=="♔" &&
+
+    !moved.whiteKing &&
+
+    x1==7 &&
+
+    y1==4
+
+    ){
+
+
+
+        // 王翼
+
+        if(
+
+        x2==7 &&
+
+        y2==6 &&
+
+        board[7][5]=="" &&
+
+        board[7][6]==""
+
+        ){
+
+
+            board[7][5]=board[7][7];
+
+            board[7][7]="";
+
+
+            return true;
+
+        }
+
+
+
+        // 后翼
+
+        if(
+
+        x2==7 &&
+
+        y2==2 &&
+
+        board[7][1]=="" &&
+
+        board[7][2]=="" &&
+
+        board[7][3]==""
+
+        ){
+
+
+            board[7][3]=board[7][0];
+
+            board[7][0]="";
+
+
+            return true;
+
+        }
+
+
+    }
+
+
+
+
+    // 黑王
+
+    if(
+
+    p=="♚" &&
+
+    !moved.blackKing &&
+
+    x1==0 &&
+
+    y1==4
+
+    ){
+
+
+
+        if(
+
+        x2==0 &&
+
+        y2==6 &&
+
+        board[0][5]=="" &&
+
+        board[0][6]==""
+
+        ){
+
+
+            board[0][5]=board[0][7];
+
+            board[0][7]="";
+
+
+            return true;
+
+        }
+
+
+
+
+        if(
+
+        x2==0 &&
+
+        y2==2 &&
+
+        board[0][1]=="" &&
+
+        board[0][2]=="" &&
+
+        board[0][3]==""
+
+        ){
+
+
+            board[0][3]=board[0][0];
+
+            board[0][0]="";
+
+
+            return true;
+
+        }
+
+
+    }
+
+
+    return false;
+
+
+}
+
+
+
+
+
+// ===== 兵升变 =====
+
+function promotion(x,y){
+
+
+    if(board[x][y]=="♙" && x==0){
+
+
+        let c=prompt(
+
+        "兵升变 Q后 R车 B象 N马"
+
+        );
+
+
+        if(c=="R")
+
+        board[x][y]="♖";
+
+
+        else if(c=="B")
+
+        board[x][y]="♗";
+
+
+        else if(c=="N")
+
+        board[x][y]="♘";
+
+
+        else
+
+        board[x][y]="♕";
+
+
+    }
+
+
+
+    if(board[x][y]=="♟" && x==7){
+
+
+        let c=prompt(
+
+        "兵升变 Q后 R车 B象 N马"
+
+        );
+
+
+        if(c=="R")
+
+        board[x][y]="♜";
+
+
+        else if(c=="B")
+
+        board[x][y]="♝";
+
+
+        else if(c=="N")
+
+        board[x][y]="♞";
+
+
+        else
+
+        board[x][y]="♛";
+
+
+    }
+
+
+}
+
+
+// ===== 查找王的位置 =====
+
+function findKing(side){
+
+    let king = side=="white" ? "♔" : "♚";
+
+
+    for(let x=0;x<8;x++){
+
+        for(let y=0;y<8;y++){
+
+            if(board[x][y]==king){
+
+                return [x,y];
+
+            }
+
+        }
+
+    }
+
+
+    return null;
+
+}
+// ===== 判断位置是否被攻击 =====
+
+function isAttacked(x,y,side){
+
+
+    for(let i=0;i<8;i++){
+
+        for(let j=0;j<8;j++){
+
+
+            let p=board[i][j];
+
+
+            if(
+
+            p!="" &&
+
+            color(p)!=side
+
+            ){
+
+
+                let moves=getMoves(i,j);
+
+
+
+                for(let m of moves){
+
+
+                    if(
+
+                    m[0]==x &&
+
+                    m[1]==y
+
+                    ){
+
+                        return true;
+
+                    }
+
+
+                }
+
+
+            }
+
+
+        }
+
+
+    }
+
+
+    return false;
+
+}
+
+
+
+// ===== 检查将军 =====
+
+function check(){
+
+    let kingPos=findKing(turn);
+
+
+    if(!kingPos){
+
+        return true;
+
+    }
+
+
+    return isAttacked(
+
+        kingPos[0],
+
+        kingPos[1],
+
+        turn
+
+    );
+
+}
+
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>♟️ 国际象棋</title>
+
+
+<style>
+
+body{
+
+text-align:center;
+
+font-family:Arial;
+
+}
+
+
+/* ===== 返回小游戏按钮 ===== */
+
+.back-home{
+
+position:fixed;
+
+top:20px;
+
+right:20px;
+
+background:#e5dcff;
+
+color:#6543a5;
+
+padding:10px 15px;
+
+border-radius:20px;
+
+text-decoration:none;
+
+font-size:16px;
+
+}
+
+
+
+/* ===== 棋盘 ===== */
+
+#board{
+
+width:400px;
+
+height:400px;
+
+margin:30px auto;
+
+display:grid;
+
+grid-template-columns:repeat(8,1fr);
+
+border-radius:15px;
+
+overflow:hidden;
+
+}
+
+
+
+.cell{
+
+width:50px;
+
+height:50px;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+font-size:36px;
+
+cursor:pointer;
+
+box-sizing:border-box;
+
+}
+
+
+
+.light{
+
+background:#f0d9b5;
+
+}
+
+
+
+.dark{
+
+background:#b58863;
+
+}
+
+
+
+.select{
+
+outline:4px solid #6543a5;
+
+}
+
+
+
+button{
+
+padding:10px 20px;
+
+border:none;
+
+border-radius:20px;
+
+margin:5px;
+
+cursor:pointer;
+
+font-size:16px;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<a href="../games.html" class="back-home">
+
+🎮 返回小游戏
+
+</a>
+
+
+<h1>♟️ 国际象棋</h1>
+
+
+<button onclick="setMode('player')">
+
+双人模式
+
+</button>
+
+
+<button onclick="setMode('ai')">
+
+AI模式
+
+</button>
+
+
+<p id="info">
+
+白方回合
+
+</p>
+
+
+<div id="board"></div>
+
+
+<button onclick="restart()">
+
+重新开始
+
+</button>
+
+<script>
+
+
+// ===== 游戏数据 =====
+
+let board=[];
+
+let turn="white";
+
+let mode="player";
+
+let selected=null;
+
+let gameEnd=false;
+
+
+
+
+// ===== 初始棋盘 =====
+
+const startBoard=[
+
+
+["♜","♞","♝","♛","♚","♝","♞","♜"],
+
+["♟","♟","♟","♟","♟","♟","♟","♟"],
+
+["","","","","","","",""],
+
+["","","","","","","",""],
+
+["","","","","","","",""],
+
+["","","","","","","",""],
+
+["♙","♙","♙","♙","♙","♙","♙","♙"],
+
+["♖","♘","♗","♕","♔","♗","♘","♖"]
+
+];
+
+
+
+
+// ===== 重开 =====
+
+function restart(){
+
+
+    board=JSON.parse(JSON.stringify(startBoard));
+
+
+    turn="white";
+
+
+    selected=null;
+
+
+    gameEnd=false;
+
+
+    document.getElementById("info").innerHTML=
+
+    "白方回合";
+
+
+    draw();
+
+
+}
+
+
+
+
+
+// ===== 绘制棋盘 =====
+
+function draw(){
+
+
+    let box=document.getElementById("board");
+
+
+    box.innerHTML="";
+
+
+    for(let x=0;x<8;x++){
+
+
+        for(let y=0;y<8;y++){
+
+
+
+            let cell=document.createElement("div");
+
+
+
+            cell.className=
+
+            "cell "
+
+            +
+
+            ((x+y)%2==0?
+
+            "light":
+
+            "dark");
+
+
+
+            cell.innerHTML=board[x][y];
+
+
+
+            cell.onclick=function(){
+
+                clickCell(x,y);
+
+            };
+
+
+
+            box.appendChild(cell);
+
+
+        }
+
+    }
+
+
+}
+
+
+
+
+// ===== 点击棋盘 =====
+
+function clickCell(x,y){
+
+
+    if(gameEnd)return;
+
+
+
+    if(selected==null){
+
+
+        let p=board[x][y];
+
+
+        if(
+
+        p!="" &&
+
+        color(p)==turn
+
+        ){
+
+
+            selected=[x,y];
+
+
+            let cells=
+
+            document.querySelectorAll(".cell");
+
+
+            cells[x*8+y]
+
+            .classList.add("select");
+
+
+        }
+
+
+    }
+
+    else{
+
+
+        movePiece(
+
+        selected[0],
+
+        selected[1],
+
+        x,
+
+        y
+
+        );
+
+
+        selected=null;
+
+
+        draw();
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 判断颜色 =====
+
+function color(p){
+
+
+    if(
+
+    "♙♖♘♗♕♔"
+
+    .includes(p)
+
+    ){
+
+        return "white";
+
+    }
+
+
+    return "black";
+
+
+}
+
+// ===== 移动棋子 =====
+
+function movePiece(x1,y1,x2,y2){
+
+
+    let piece=board[x1][y1];
+
+
+    if(piece=="") return;
+
+
+
+    // 不能吃自己的棋子
+
+    if(
+
+    board[x2][y2]!="" &&
+
+    color(board[x2][y2])==color(piece)
+
+    ){
+
+        return;
+
+    }
+
+
+
+    // 检查规则
+
+    if(!canMove(piece,x1,y1,x2,y2)){
+
+
+        return;
+
+    }
+
+
+
+    board[x2][y2]=piece;
+
+
+    board[x1][y1]="";
+
+
+
+    // 换回合
+
+    turn=
+
+    turn=="white"
+
+    ?
+
+    "black"
+
+    :
+
+    "white";
+
+
+
+    document.getElementById("info").innerHTML=
+
+    turn=="white"
+
+    ?
+
+    "白方回合"
+
+    :
+
+    "黑方回合";
+
+
+
+}
+
+
+
+
+// ===== 判断走法 =====
+
+function canMove(p,x1,y1,x2,y2){
+
+
+    let dx=Math.abs(x2-x1);
+
+    let dy=Math.abs(y2-y1);
+
+
+
+    // 王
+
+    if(p=="♔"||p=="♚"){
+
+
+        return dx<=1 && dy<=1;
+
+
+    }
+
+
+
+    // 马
+
+    if(p=="♘"||p=="♞"){
+
+
+        return (
+
+        dx==2&&dy==1 ||
+
+        dx==1&&dy==2
+
+        );
+
+
+    }
+
+
+
+
+    // 象
+
+    if(p=="♗"||p=="♝"){
+
+
+        return (
+
+        dx==dy &&
+
+        clearLine(x1,y1,x2,y2)
+
+        );
+
+
+    }
+
+
+
+
+    // 车
+
+    if(p=="♖"||p=="♜"){
+
+
+        return (
+
+        (x1==x2 || y1==y2)
+
+        &&
+
+        clearLine(x1,y1,x2,y2)
+
+        );
+
+
+    }
+
+
+
+
+    // 后
+
+    if(p=="♕"||p=="♛"){
+
+
+        return (
+
+        (
+
+        dx==dy ||
+
+        x1==x2 ||
+
+        y1==y2
+
+        )
+
+        &&
+
+        clearLine(x1,y1,x2,y2)
+
+        );
+
+
+    }
+
+
+
+
+    // 白兵
+
+    if(p=="♙"){
+
+
+        // 前进
+
+        if(
+
+        y1==y2 &&
+
+        board[x2][y2]=="" &&
+
+        x2==x1-1
+
+        ){
+
+            return true;
+
+        }
+
+
+
+        // 开局两格
+
+        if(
+
+        x1==6 &&
+
+        y1==y2 &&
+
+        x2==4 &&
+
+        board[5][y1]=="" &&
+
+        board[4][y1]==""
+
+        ){
+
+            return true;
+
+        }
+
+
+
+        // 吃子
+
+        if(
+
+        x2==x1-1 &&
+
+        Math.abs(y2-y1)==1 &&
+
+        board[x2][y2]!="" &&
+
+        color(board[x2][y2])=="black"
+
+        ){
+
+            return true;
+
+        }
+
+
+    }
+
+
+
+
+
+    // 黑兵
+
+    if(p=="♟"){
+
+
+        if(
+
+        y1==y2 &&
+
+        board[x2][y2]=="" &&
+
+        x2==x1+1
+
+        ){
+
+            return true;
+
+        }
+
+
+
+        if(
+
+        x1==1 &&
+
+        y1==y2 &&
+
+        x2==3 &&
+
+        board[2][y1]=="" &&
+
+        board[3][y1]==""
+
+        ){
+
+            return true;
+
+        }
+
+
+
+        if(
+
+        x2==x1+1 &&
+
+        Math.abs(y2-y1)==1 &&
+
+        board[x2][y2]!="" &&
+
+        color(board[x2][y2])=="white"
+
+        ){
+
+            return true;
+
+        }
+
+
+    }
+
+
+
+    return false;
+
+
+}
+
+
+
+
+// ===== 检查路径 =====
+
+function clearLine(x1,y1,x2,y2){
+
+
+    let dx=Math.sign(x2-x1);
+
+    let dy=Math.sign(y2-y1);
+
+
+
+    x1+=dx;
+
+    y1+=dy;
+
+
+
+    while(
+
+    x1!=x2 ||
+
+    y1!=y2
+
+    ){
+
+
+        if(board[x1][y1]!=""){
+
+
+            return false;
+
+
+        }
+
+
+        x1+=dx;
+
+        y1+=dy;
+
+
+    }
+
+
+
+    return true;
+
+
+}
+
+// ===== 切换模式 =====
+
+function setMode(m){
+
+    mode=m;
+
+    restart();
+
+
+    if(mode=="ai"){
+
+        document.getElementById("info").innerHTML=
+        "AI模式：白方回合";
+
+    }
+
+    else{
+
+        document.getElementById("info").innerHTML=
+        "双人模式：白方回合";
+
+    }
+
+}
+
+
+
+
+// ===== AI走棋 =====
+
+function aiMove(){
+
+
+    if(gameEnd)return;
+
+
+
+    let moves=[];
+
+
+
+    // 搜索黑方所有可能走法
+
+    for(let x=0;x<8;x++){
+
+
+        for(let y=0;y<8;y++){
+
+
+            let p=board[x][y];
+
+
+            if(
+
+            p!="" &&
+
+            color(p)=="black"
+
+            ){
+
+
+                for(let a=0;a<8;a++){
+
+
+                    for(let b=0;b<8;b++){
+
+
+
+                        if(
+
+                        canMove(
+
+                        p,
+
+                        x,
+
+                        y,
+
+                        a,
+
+                        b
+
+                        )
+
+                        &&
+
+                        (
+
+                        board[a][b]==""
+
+                        ||
+
+                        color(board[a][b])=="white"
+
+                        )
+
+                        ){
+
+
+                            moves.push([
+
+                            x,y,a,b
+
+                            ]);
+
+                        }
+
+
+                    }
+
+
+                }
+
+
+            }
+
+
+        }
+
+
+    }
+
+
+
+    if(moves.length>0){
+
+
+        // 随机选择一个合法动作
+
+        let m=
+
+        moves[
+
+        Math.floor(
+
+        Math.random()*moves.length
+
+        )
+
+        ];
+
+
+
+        movePiece(
+
+        m[0],
+
+        m[1],
+
+        m[2],
+
+        m[3]
+
+        );
+
+
+
+        draw();
+
+
+
+        checkKing();
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 找王 =====
+
+function findKing(c){
+
+
+    let king=
+
+    c=="white"
+
+    ?
+
+    "♔"
+
+    :
+
+    "♚";
+
+
+
+    for(let x=0;x<8;x++){
+
+
+        for(let y=0;y<8;y++){
+
+
+            if(board[x][y]==king){
+
+
+                return [x,y];
+
+
+            }
+
+
+        }
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 检查王是否被攻击 =====
+
+function isCheck(c){
+
+
+    let king=findKing(c);
+
+
+
+    if(!king)return true;
+
+
+
+    for(let x=0;x<8;x++){
+
+
+        for(let y=0;y<8;y++){
+
+
+            let p=board[x][y];
+
+
+            if(
+
+            p!="" &&
+
+            color(p)!=c
+
+            ){
+
+
+                if(
+
+                canMove(
+
+                p,
+
+                x,
+
+                y,
+
+                king[0],
+
+                king[1]
+
+                )
+
+                ){
+
+
+                    return true;
+
+
+                }
+
+
+            }
+
+
+        }
+
+
+    }
+
+
+
+    return false;
+
+
+}
+
+
+
+
+// ===== 将军提示 =====
+
+function checkKing(){
+
+
+    if(isCheck("white")){
+
+
+        alert("⚫ 黑方将军白王！");
+
+
+    }
+
+
+
+    if(isCheck("black")){
+
+
+        alert("⚪ 白方将军黑王！");
+
+
+    }
+
+
+}
+
+
+
+
+// ===== 启动 =====
+
+restart();
+
+
+
+</script>
+
+
+</body>
+
+</html>
