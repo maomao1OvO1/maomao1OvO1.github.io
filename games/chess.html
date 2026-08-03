@@ -257,12 +257,13 @@ if(localStorage.getItem("theme") === "dark"){
 </button>
 
 
-<button onclick="setMode('ai')">
-
-AI模式
-
+<button onclick="setMode('normal')">
+普通AI
 </button>
 
+<button onclick="setMode('stockfish')">
+Stockfish AI
+</button>
 
 <p id="info">
 
@@ -312,6 +313,8 @@ AI模式
 
 </button>
 
+<script src="stockfish/stockfish-18.js"></script>
+
 <script>
 
 // ===== 国际象棋 JS v2 =====
@@ -331,6 +334,38 @@ let turn = "white";
 
 let mode = "player";
 
+// ===== Stockfish AI =====
+
+let stockfish = null;
+
+let stockfishReady = false;
+
+// ===== 初始化 Stockfish =====
+
+// ===== 初始化 Stockfish =====
+
+function initStockfish(){
+
+    stockfish = new Worker("stockfish/stockfish-18-single.js");
+
+
+    stockfish.onerror=function(e){
+
+        console.log("Stockfish错误:",e.message);
+
+    };
+
+
+    stockfish.postMessage("uci");
+
+
+    stockfish.onmessage=function(e){
+
+        console.log("Stockfish:",e.data);
+
+    };
+
+}
 
 // ===== 游戏模式切换 =====
 
@@ -339,12 +374,24 @@ function setMode(m){
     mode = m;
 
 
-    if(mode=="ai"){
+    if(mode=="normal"){
 
         document.getElementById("info").innerHTML =
-        "AI模式";
+        "普通AI模式";
 
     }
+
+
+    else if(mode=="stockfish"){
+
+    document.getElementById("info").innerHTML =
+    "Stockfish AI模式";
+
+    initStockfish();
+
+}
+
+
     else{
 
         document.getElementById("info").innerHTML =
@@ -354,6 +401,43 @@ function setMode(m){
 
 }
 
+// ===== Stockfish测试走棋 =====
+
+function testStockfishMove(){
+
+    if(!stockfish){
+
+        alert("Stockfish没启动");
+
+        return;
+
+    }
+
+
+    stockfish.onmessage=function(e){
+
+        let msg=e.data;
+
+
+        if(msg.startsWith("bestmove")){
+
+            alert("AI走:"+msg);
+
+        }
+
+    };
+
+
+    stockfish.postMessage(
+    "position fen " + boardToFEN()
+);
+
+
+stockfish.postMessage(
+    "go depth 10"
+);
+
+}
 
 // 选择的棋子
 
@@ -363,8 +447,6 @@ let selected = null;
 // 游戏结束
 
 let gameEnd = false;
-
-
 
 // ===== 初始棋盘 =====
 
@@ -584,7 +666,6 @@ function color(p){
 
 
 
-
 // ===== 启动 =====
 
 restart();
@@ -791,12 +872,22 @@ function noLegalMove(side){
 
 // ===== AI回合 =====
 
-if(
-mode=="ai" &&
-turn=="black"
-){
+// ===== AI回合 =====
 
-    setTimeout(aiMove,500);
+if(turn=="black"){
+
+    if(mode=="stockfish"){
+
+        setTimeout(stockfishMove,500);
+
+    }
+
+
+    if(mode=="normal"){
+
+        setTimeout(aiMove,500);
+
+    }
 
 }
 
@@ -1904,6 +1995,179 @@ if(simulateMove(x1,y1,x2,y2)){
 
 }
 
+// ===== 棋盘转FEN =====
+
+function boardToFEN(){
+
+    let fen="";
+
+
+    for(let x=0;x<8;x++){
+
+        let empty=0;
+
+
+        for(let y=0;y<8;y++){
+
+            let p=board[x][y];
+
+
+            if(p==""){
+
+                empty++;
+
+            }
+            else{
+
+                if(empty>0){
+
+                    fen+=empty;
+                    empty=0;
+
+                }
+
+
+                let map={
+
+                "♙":"P",
+                "♖":"R",
+                "♘":"N",
+                "♗":"B",
+                "♕":"Q",
+                "♔":"K",
+
+                "♟":"p",
+                "♜":"r",
+                "♞":"n",
+                "♝":"b",
+                "♛":"q",
+                "♚":"k"
+
+                };
+
+
+                fen+=map[p];
+
+            }
+
+        }
+
+
+        if(empty>0){
+
+            fen+=empty;
+
+        }
+
+
+        if(x!=7){
+
+            fen+="/";
+
+        }
+
+    }
+
+
+    // 当前回合
+
+    fen+= turn=="white" ? " w " : " b ";
+
+
+    // 先不处理王车易位和吃过路兵
+
+    fen+="- - 0 1";
+
+
+    return fen;
+
+}
+
+// ===== Stockfish AI自动走棋 =====
+
+function stockfishMove(){
+
+    if(!stockfish){
+
+        alert("Stockfish未启动");
+
+        return;
+
+    }
+
+
+    stockfish.onmessage=function(e){
+
+        let msg=e.data;
+
+
+        if(msg.startsWith("bestmove")){
+
+
+            let move=msg.split(" ")[1];
+
+            // 起点
+
+            let fromFile=move[0];
+
+            let fromRank=move[1];
+
+
+            // 终点
+
+            let toFile=move[2];
+
+            let toRank=move[3];
+
+
+
+            // 字母转数组
+
+            let y1=fromFile.charCodeAt(0)-97;
+
+            let y2=toFile.charCodeAt(0)-97;
+
+
+
+            // 数字转数组
+
+            let x1=8-Number(fromRank);
+
+            let x2=8-Number(toRank);
+
+
+
+            // 执行移动
+
+            tryMove(
+                x1,
+                y1,
+                x2,
+                y2
+            );
+
+
+            draw();
+
+
+        }
+
+    };
+
+
+    // 发送当前棋局
+
+    stockfish.postMessage(
+        "position fen " + boardToFEN()
+    );
+
+
+    stockfish.postMessage(
+        "go depth 10"
+    );
+
+}
+
 
 // ===== 简单AI =====
 
@@ -1964,7 +2228,7 @@ function aiMove(){
 
     if(moves.length==0){
 
-    alert("AI没有找到走法");
+    console.log("AI没有找到走法");
 
         return;
 
