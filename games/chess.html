@@ -53,7 +53,7 @@ width:400px;
 
 height:400px;
 
-margin:30px auto;
+margin:0 auto;
 
 display:grid;
 
@@ -154,6 +154,74 @@ body.dark-mode .cell{
 
 }
 
+/* ===== 国际象棋坐标 ===== */
+
+.letters{
+
+    margin-left:40px;
+
+    width:400px;
+
+    height:30px;
+
+    display:grid;
+
+    grid-template-columns:repeat(8,50px);
+
+}
+
+
+.letters span{
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+
+
+.numbers{
+
+    width:40px;
+
+    height:400px;
+
+    display:grid;
+
+    grid-template-rows:repeat(8,50px);
+
+}
+
+
+.numbers span{
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+.board-row{
+
+    display:flex;
+
+    align-items:flex-start;
+
+}
+
+.chess-wrapper{
+
+    width:440px;
+
+    margin:30px auto;
+
+}
+
 </style>
 
 </head>
@@ -203,7 +271,39 @@ AI模式
 </p>
 
 
-<div id="board"></div>
+<div class="chess-wrapper">
+
+    <div class="letters">
+        <span>a</span>
+        <span>b</span>
+        <span>c</span>
+        <span>d</span>
+        <span>e</span>
+        <span>f</span>
+        <span>g</span>
+        <span>h</span>
+    </div>
+
+
+    <div class="board-row">
+
+        <div class="numbers">
+            <span>8</span>
+            <span>7</span>
+            <span>6</span>
+            <span>5</span>
+            <span>4</span>
+            <span>3</span>
+            <span>2</span>
+            <span>1</span>
+        </div>
+
+
+        <div id="board"></div>
+
+    </div>
+
+</div>
 
 
 <button onclick="restart()">
