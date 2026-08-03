@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+/<!DOCTYPE html>
 <html>
 
 <head>
@@ -966,6 +966,9 @@ function lineMove(arr,x,y,directions){
 
 function pawnMove(arr,x,y,p){
 
+if(p!="♙" && p!="♟"){
+    return;
+}
 
     let dir;
 
