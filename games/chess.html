@@ -655,23 +655,126 @@ turn=="white"
 
 "white";
 
-// 检查对方是否被将军
+// ===== 检查将军 / 将死 =====
 
 if(check()){
 
-    if(turn=="white"){
 
-        alert("♟ 黑棋将军！");
+    // 检查有没有合法移动
+
+    if(noLegalMove(turn)){
+
+
+        if(turn=="white"){
+
+
+            alert(
+            "♟ 黑棋胜利！\n白方被将死！"
+            );
+
+
+        }
+        else{
+
+
+            alert(
+            "♙ 白棋胜利！\n黑方被将死！"
+            );
+
+
+        }
+
+
+        gameEnd=true;
+
 
     }
+
     else{
 
-        alert("♙ 白棋将军！");
+
+        if(turn=="white"){
+
+
+            alert(
+            "♟ 黑棋将军！"
+            );
+
+
+        }
+        else{
+
+
+            alert(
+            "♙ 白棋将军！"
+            );
+
+
+        }
+
 
     }
+
 
 }
 
+
+
+// ===== 判断是否还有合法走法 =====
+
+function noLegalMove(side){
+
+
+    for(let x=0;x<8;x++){
+
+
+        for(let y=0;y<8;y++){
+
+
+            let p=board[x][y];
+
+
+            if(
+            p!="" &&
+            color(p)==side
+            ){
+
+
+                let moves=getMoves(x,y);
+
+
+                for(let m of moves){
+
+
+                    if(
+                    isLegalMove(
+                    x,
+                    y,
+                    m[0],
+                    m[1]
+                    )
+                    ){
+
+                        return false;
+
+                    }
+
+
+                }
+
+
+            }
+
+
+        }
+
+
+    }
+
+
+    return true;
+
+}
 
 
     document.getElementById("info").innerHTML=
