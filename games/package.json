@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "stockfish": "^18.0.8"
+  },
+  "allowScripts": {
+    "stockfish@18.0.8": true
+  }
+}
