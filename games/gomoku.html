@@ -447,8 +447,20 @@ function aiMove(){
     }
 
 
+// ===== 3. 玩家形成三连/四连，提前堵 =====
 
-    // ===== 3. 没有危险，选择附近位置 =====
+move=findThreatMove(1);
+
+
+if(move){
+
+    play(move[0],move[1]);
+
+    return;
+
+}
+
+    // ===== 4. 没有危险，选择附近位置 =====
 
 let moves=[];
 
@@ -471,7 +483,7 @@ for(let i=0;i<15;i++){
 }
 
 
-// ===== 3. 评分选择最佳位置 =====
+// ===== 5. 评分选择最佳位置 =====
 
 let bestScore = -1;
 
@@ -732,7 +744,47 @@ function findBestMove(player){
 
 }
 
+// ===== 寻找玩家威胁位置 =====
 
+function findThreatMove(player){
+
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
+
+
+            if(board[i][j]==0){
+
+
+                board[i][j]=player;
+
+
+                let count=maxLine(i,j,player);
+
+
+                board[i][j]=0;
+
+
+
+                if(count>=3){
+
+                    return [i,j];
+
+                }
+
+
+            }
+
+
+        }
+
+    }
+
+
+    return null;
+
+}
 
 // ===== 胜利判断 =====
 
