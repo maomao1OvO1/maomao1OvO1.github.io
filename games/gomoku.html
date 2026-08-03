@@ -415,22 +415,140 @@ function update(){
 
 function aiMove(){
 
-
     if(gameEnd)return;
 
 
+    // ===== 1. AI可以赢，直接赢 =====
 
-    let empty=[];
-
-
-    for(let i=0;i<15;i++){
-
-        for(let j=0;j<15;j++){
+    let move=findBestMove(2);
 
 
-            if(board[i][j]==0){
+    if(move){
 
-                empty.push([i,j]);
+        play(move[0],move[1]);
+
+        return;
+
+    }
+
+
+
+    // ===== 2. 玩家要赢，优先堵住 =====
+
+    move=findBestMove(1);
+
+
+    if(move){
+
+        play(move[0],move[1]);
+
+        return;
+
+    }
+
+
+
+    // ===== 3. 没有危险，选择附近位置 =====
+
+let moves=[];
+
+
+for(let i=0;i<15;i++){
+
+    for(let j=0;j<15;j++){
+
+
+        if(board[i][j]==0 && nearChess(i,j)){
+
+
+            moves.push([i,j]);
+
+
+        }
+
+    }
+
+}
+
+
+// ===== 3. 评分选择最佳位置 =====
+
+let bestScore = -1;
+
+let bestMove = null;
+
+
+for(let i=0;i<15;i++){
+
+    for(let j=0;j<15;j++){
+
+
+        if(board[i][j]==0){
+
+
+            let score = evaluatePoint(i,j,2);
+
+
+            // 加一点随机，让AI不要每次一样
+
+            score += Math.random()*5;
+
+
+
+            if(score > bestScore){
+
+                bestScore = score;
+
+                bestMove = [i,j];
+
+            }
+
+
+        }
+
+    }
+
+}
+
+
+if(bestMove){
+
+    play(bestMove[0],bestMove[1]);
+
+}
+
+}
+
+// ===== 判断附近有没有棋子 =====
+
+function nearChess(x,y){
+
+
+    for(let i=-1;i<=1;i++){
+
+        for(let j=-1;j<=1;j++){
+
+
+            let nx=x+i;
+
+            let ny=y+j;
+
+
+            if(
+
+            nx>=0 &&
+
+            nx<15 &&
+
+            ny>=0 &&
+
+            ny<15 &&
+
+            board[nx][ny]!=0
+
+            ){
+
+                return true;
 
             }
 
@@ -440,24 +558,179 @@ function aiMove(){
     }
 
 
-
-    if(empty.length>0){
-
-
-        let move=
-
-        empty[Math.floor(Math.random()*empty.length)];
-
-
-        play(move[0],move[1]);
-
-
-    }
-
+    return false;
 
 }
 
 
+// ===== 评价落子价值 =====
+
+function evaluatePoint(x,y,player){
+
+    let score = 0;
+
+
+    board[x][y]=player;
+
+
+    let count=maxLine(x,y,player);
+
+
+    board[x][y]=0;
+
+
+
+    if(count>=4){
+
+        score += 5000;
+
+    }
+    else if(count==3){
+
+        score += 500;
+
+    }
+    else if(count==2){
+
+        score += 50;
+
+    }
+
+
+    if(nearChess(x,y)){
+
+        score += 20;
+
+    }
+
+
+    return score;
+
+}
+
+// ===== 最大连续棋子数量 =====
+
+function maxLine(x,y,p){
+
+    let dirs=[
+        [1,0],
+        [0,1],
+        [1,1],
+        [1,-1]
+    ];
+
+
+    let max=0;
+
+
+    for(let d of dirs){
+
+        let count=1;
+
+        count+=countLine(x,y,d[0],d[1],p);
+
+        count+=countLine(x,y,-d[0],-d[1],p);
+
+
+        if(count>max){
+
+            max=count;
+
+        }
+
+    }
+
+
+    return max;
+
+}
+
+// ===== 评价落子价值 =====
+
+function evaluatePoint(x,y,player){
+
+    let score = 0;
+
+
+    // 模拟自己落子
+
+    board[x][y]=player;
+
+
+    let count=maxLine(x,y,player);
+
+
+    board[x][y]=0;
+
+
+
+    if(count>=4){
+
+        score += 5000;
+
+    }
+    else if(count==3){
+
+        score += 500;
+
+    }
+    else if(count==2){
+
+        score += 50;
+
+    }
+
+
+
+    // 附近有棋子加分
+
+    if(nearChess(x,y)){
+
+        score += 20;
+
+    }
+
+
+    return score;
+
+}
+
+function findBestMove(player){
+
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
+
+
+            if(board[i][j]==0){
+
+
+                board[i][j]=player;
+
+
+                let win=checkWin(i,j,player);
+
+
+                board[i][j]=0;
+
+
+                if(win){
+
+                    return [i,j];
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    return null;
+
+}
 
 
 
