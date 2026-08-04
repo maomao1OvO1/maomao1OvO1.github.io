@@ -439,7 +439,7 @@ aiStartTime = Date.now();
                 board[i][j]=2;
 
 
-                let score = minimax(5,false);
+                let score = minimax(5,false,-999999,999999);
 
 
                 // 恢复
@@ -466,12 +466,43 @@ aiStartTime = Date.now();
 
 }
 
+// ===== 获取搜索候选点 =====
 
+function getCandidateMoves(){
+
+    let moves=[];
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
+
+            if(board[i][j]==0 && nearChess(i,j)){
+
+                moves.push([i,j]);
+
+            }
+
+        }
+
+    }
+
+
+    // 开局没有棋子
+
+    if(moves.length==0){
+
+        return [[7,7]];
+
+    }
+
+
+    return moves;
+
+}
 
 // ===== 深度搜索 =====
 
-function minimax(depth,isAI){
-
+function minimax(depth,isAI,alpha,beta){
 
     if(Date.now()-aiStartTime > aiTimeout){
 
@@ -487,42 +518,48 @@ function minimax(depth,isAI){
     }
 
 
-
     let best = isAI ? -999999 : 999999;
 
 
-
-    for(let i=0;i<15;i++){
-
-        for(let j=0;j<15;j++){
+    let moves=getCandidateMoves();
 
 
-            if(board[i][j]==0 && nearChess(i,j)){
+    for(let m of moves){
+
+        let i=m[0];
+        let j=m[1];
 
 
-                board[i][j]=isAI?2:1;
+        board[i][j]=isAI?2:1;
 
 
-                let score=minimax(depth-1,!isAI);
+        let score=minimax(depth-1,!isAI,alpha,beta);
 
 
-                board[i][j]=0;
+        board[i][j]=0;
 
 
+        if(isAI){
 
-                if(isAI){
+            best=Math.max(best,score);
 
-                    best=Math.max(best,score);
+            alpha=Math.max(alpha,best);
 
-                }
-                else{
+        }
+        else{
 
-                    best=Math.min(best,score);
+            best=Math.min(best,score);
 
-                }
+            beta=Math.min(beta,best);
+
+        }
 
 
-            }
+        // ===== 剪枝 =====
+
+        if(beta<=alpha){
+
+            break;
 
         }
 
@@ -532,34 +569,31 @@ function minimax(depth,isAI){
     return best;
 
 }
-
-
-
 // ===== 评估整个棋盘 =====
 
 function evaluateBoard(){
 
     let score=0;
 
-
-    for(let i=0;i<15;i++){
-
-        for(let j=0;j<15;j++){
+    let moves=getCandidateMoves();
 
 
-            if(board[i][j]==2){
+    for(let m of moves){
 
-                score+=evaluatePoint(i,j,2);
+        let i=m[0];
+        let j=m[1];
 
-            }
+
+        if(board[i][j]==2){
+
+            score+=evaluatePoint(i,j,2);
+
+        }
 
 
-            if(board[i][j]==1){
+        if(board[i][j]==1){
 
-                score-=evaluatePoint(i,j,1);
-
-            }
-
+            score-=evaluatePoint(i,j,1);
 
         }
 
