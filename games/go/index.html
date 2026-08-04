@@ -300,14 +300,65 @@ for(let i=0;i<19*19;i++){
 
     cell.onclick=function(){
 
-    if(mode!="双人模式") return;
+    if(mode=="双人模式"){
+
+        playMove(x,y);
+
+    }
+
+    else if(mode=="最强AI"){
+
+        playMove(x,y);
 
 
-    playMove(x,y);
+        setTimeout(()=>{
 
+            askKataGo();
+
+        },500);
+
+    }
 
 };
 
+function askKataGo(){
+
+    kataWorker.postMessage({
+
+        type:"katago:analyze",
+        id:Date.now(),
+
+        board:boardData.map(row=>
+            row.map(v=>{
+                if(v==1) return "black";
+                if(v==2) return "white";
+                return null;
+            })
+        ),
+
+        currentPlayer:
+            turn=="black"?"black":"white",
+
+        moveHistory:[],
+
+        komi:7.5,
+
+        rules:{
+            koRule:"simple",
+            scoringRule:"area",
+            taxRule:"none",
+            multiStoneSuicideLegal:false
+        },
+
+        modelUrl:
+        "/games/go/katago-test/models/katago-small.bin.gz",
+
+        visits:100,
+        maxTimeMs:3000
+
+    });
+
+}
 
     cells.push(cell);
 
@@ -326,6 +377,64 @@ let gameOver=false;
 let passCount=0;
 
 let confirmScore=false;
+
+let kataWorker = null;
+
+function loadKataGo(){
+
+    if(kataWorker){
+        document.getElementById("status").innerHTML =
+        "🔥 KataGo已加载";
+        return;
+    }
+
+    kataWorker = new Worker(
+        "/games/go/katago-test/assets/worker-DzsLrmAN.js",
+        {type:"module"}
+    );
+
+
+    kataWorker.onmessage = function(e){
+
+        if(e.data.type=="katago:init_result"){
+
+            if(e.data.ok){
+
+                document.getElementById("status").innerHTML =
+                "🔥 KataGo就绪";
+
+            }else{
+
+                document.getElementById("status").innerHTML =
+                "KataGo加载失败";
+
+            }
+
+        }
+
+        if(e.data.type=="katago:analyze_result"){
+
+    let move=e.data.analysis.moves[0];
+
+    if(move){
+        playMove(move.x,move.y);
+    }
+
+}
+
+    };
+
+
+    kataWorker.postMessage({
+
+        type:"katago:init",
+
+        modelUrl:
+        "/games/go/katago-test/models/katago-small.bin.gz"
+
+    });
+
+}
 
 function startGame(selectMode){
 
@@ -349,10 +458,13 @@ function startGame(selectMode){
 
     else if(mode=="最强AI"){
 
-        document.getElementById("status").innerHTML =
-        "当前模式：最强AI（开发中）";
+    document.getElementById("status").innerHTML =
+    "🔥 KataGo准备中...";
 
-    }
+
+    loadKataGo();
+
+}
 
 }
 
@@ -1445,7 +1557,7 @@ function drawBoard(){
 
 </script>
 
-
+<script src="katago-ai.js"></script>
 
 </body>
 
