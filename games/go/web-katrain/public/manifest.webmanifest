@@ -1,0 +1,83 @@
+{
+  "id": ".",
+  "name": "Web KaTrain",
+  "short_name": "KaTrain",
+  "description": "Browser-native Go study with SGF editing, analysis, library storage, and offline review tools.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "background_color": "#101827",
+  "theme_color": "#101827",
+  "orientation": "any",
+  "categories": ["education", "games", "productivity"],
+  "icons": [
+    {
+      "src": "pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "pwa/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "pwa/screenshot-wide.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Web KaTrain desktop study workspace"
+    },
+    {
+      "src": "pwa/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Web KaTrain mobile board workspace"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Study Board",
+      "short_name": "Board",
+      "description": "Start Web KaTrain on the board workspace.",
+      "url": ".",
+      "icons": [
+        {
+          "src": "pwa/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": ".",
+      "accept": {
+        "application/x-go-sgf": [".sgf"],
+        "text/plain": [".sgf"]
+      }
+    }
+  ],
+  "share_target": {
+    "action": ".",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+import { SaveToLibraryDialog } from '../src/components/SaveToLibraryDialog';
+
+describe('SaveToLibraryDialog', () => {
+  it('uses explicit labels for the name and folder controls', () => {
+    const html = renderToStaticMarkup(
+      <SaveToLibraryDialog
+        open
+        initialName="Game 1"
+        initialFolderId="study"
+        folderOptions={[{ id: 'study', name: 'Study Games', depth: 0 }]}
+        onClose={() => undefined}
+        onSave={() => true}
+      />
+    );
+
+    expect(html).toContain('for="save-to-library-name"');
+    expect(html).toContain('id="save-to-library-name"');
+    expect(html).toContain('for="save-to-library-folder"');
+    expect(html).toContain('id="save-to-library-folder"');
+    expect(html).toMatch(/for="save-to-library-folder"[^>]*>Save to folder<\/label><select/);
+  });
+});
