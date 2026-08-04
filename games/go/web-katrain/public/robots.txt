@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sir-teo.github.io/web-katrain/sitemap.xml
