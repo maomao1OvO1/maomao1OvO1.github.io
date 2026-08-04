@@ -297,7 +297,6 @@ for(let i=0;i<19*19;i++){
 
     cell.className="cell";
 
-
     cell.onclick=function(){
 
     if(mode=="双人模式"){
@@ -306,10 +305,21 @@ for(let i=0;i<19*19;i++){
 
     }
 
-    else if(mode=="最强AI"){
+    else if(mode=="普通AI"){
 
         playMove(x,y);
 
+        setTimeout(()=>{
+
+            simpleAI();
+
+        },500);
+
+    }
+
+    else if(mode=="最强AI"){
+
+        playMove(x,y);
 
         setTimeout(()=>{
 
@@ -1290,6 +1300,53 @@ if(eyes<2){
     return dead;
 
 }
+
+function simpleAI(){
+
+    let empty=[];
+
+
+    for(let x=0;x<19;x++){
+
+        for(let y=0;y<19;y++){
+
+            if(boardData[x][y]==0){
+
+                empty.push([x,y]);
+
+            }
+
+        }
+
+    }
+
+
+    if(empty.length==0) return;
+
+
+    // 靠近中心
+
+    empty.sort((a,b)=>{
+
+        let da=Math.abs(a[0]-9)+Math.abs(a[1]-9);
+        let db=Math.abs(b[0]-9)+Math.abs(b[1]-9);
+
+        return da-db;
+
+    });
+
+
+    let move=empty[
+        Math.floor(
+            Math.random()*Math.min(10,empty.length)
+        )
+    ];
+
+
+    playMove(move[0],move[1]);
+
+}
+
 
 function playMove(x,y){
 
