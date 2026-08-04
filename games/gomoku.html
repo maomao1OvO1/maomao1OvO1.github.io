@@ -490,33 +490,30 @@ let bestScore = -1;
 let bestMove = null;
 
 
-for(let i=0;i<15;i++){
-
-    for(let j=0;j<15;j++){
+for(let m of moves){
 
 
-        if(board[i][j]==0){
+    let i=m[0];
+
+    let j=m[1];
 
 
-            let score = evaluatePoint(i,j,2);
+    let attack = evaluatePoint(i,j,2);
+
+    let defense = evaluatePoint(i,j,1);
 
 
-            // 加一点随机，让AI不要每次一样
-
-            score += Math.random()*5;
+    let score = attack + defense * 1.2;
 
 
-
-            if(score > bestScore){
-
-                bestScore = score;
-
-                bestMove = [i,j];
-
-            }
+    score += Math.random()*5;
 
 
-        }
+    if(score > bestScore){
+
+        bestScore = score;
+
+        bestMove=[i,j];
 
     }
 
@@ -574,52 +571,6 @@ function nearChess(x,y){
 
 }
 
-
-// ===== 评价落子价值 =====
-
-function evaluatePoint(x,y,player){
-
-    let score = 0;
-
-
-    board[x][y]=player;
-
-
-    let count=maxLine(x,y,player);
-
-
-    board[x][y]=0;
-
-
-
-    if(count>=4){
-
-        score += 5000;
-
-    }
-    else if(count==3){
-
-        score += 500;
-
-    }
-    else if(count==2){
-
-        score += 50;
-
-    }
-
-
-    if(nearChess(x,y)){
-
-        score += 20;
-
-    }
-
-
-    return score;
-
-}
-
 // ===== 最大连续棋子数量 =====
 
 function maxLine(x,y,p){
@@ -657,66 +608,109 @@ function maxLine(x,y,p){
 
 }
 
-// ===== 评价落子价值 =====
+// ===== AI棋型评分 =====
 
 function evaluatePoint(x,y,player){
 
     let score = 0;
 
 
-    // 模拟自己落子
+    // 模拟落子
 
     board[x][y]=player;
 
 
-    let count=maxLine(x,y,player);
+    // 四个方向检查
 
+    let dirs=[
+
+        [1,0],
+        [0,1],
+        [1,1],
+        [1,-1]
+
+    ];
+
+
+    for(let d of dirs){
+
+
+        let line = countLine(x,y,d[0],d[1],player)
+                 + countLine(x,y,-d[0],-d[1],player);
+
+
+        // 连五
+
+        if(line>=5){
+
+            score += 100000;
+
+        }
+
+        // 活四/冲四
+
+        else if(line==4){
+
+            score += 10000;
+
+        }
+
+        // 三连
+
+        else if(line==3){
+
+            score += 1000;
+
+        }
+
+        // 二连
+
+        else if(line==2){
+
+            score += 100;
+
+        }
+
+    }
+
+
+    // 恢复棋盘
 
     board[x][y]=0;
 
 
 
-    if(count>=4){
-
-        score += 5000;
-
-    }
-    else if(count==3){
-
-        score += 500;
-
-    }
-    else if(count==2){
-
-        score += 50;
-
-    }
-
-
-
-    // 附近有棋子加分
+    // 靠近已有棋子
 
     if(nearChess(x,y)){
 
-        score += 20;
+        score += 30;
 
     }
+
+
+    // 中心位置加分
+
+    let center=7;
+
+    score += 
+    20 - (Math.abs(x-center)+Math.abs(y-center));
+
 
 
     return score;
 
 }
 
-function findBestMove(player){
+// ===== 寻找必胜位置 =====
 
+function findBestMove(player){
 
     for(let i=0;i<15;i++){
 
         for(let j=0;j<15;j++){
 
-
             if(board[i][j]==0){
-
 
                 board[i][j]=player;
 
