@@ -203,7 +203,11 @@ AI模式
 
 </button>
 
+<button onclick="setMode('pro')">
 
+职业AI
+
+</button>
 
 <p id="info">
 
@@ -222,6 +226,8 @@ AI模式
 重新开始
 
 </button>
+
+<script src="proAI.js"></script>
 
 <script>
 
@@ -355,7 +361,11 @@ function play(x,y){
 
 
     }
+   if(mode=="pro" && turn==2){
 
+    setTimeout(proAIMove,500);
+
+}
 
 }
 
@@ -1510,28 +1520,32 @@ function countLine(x,y,dx,dy,p){
 
 function setMode(m){
 
-
     mode=m;
 
 
-    document.getElementById("mode").innerHTML=
+    let text="当前模式：双人";
 
-    mode=="ai"
 
-    ?
+    if(mode=="ai"){
 
-    "当前模式：AI"
+        text="当前模式：普通AI";
 
-    :
+    }
 
-    "当前模式：双人";
+
+    if(mode=="pro"){
+
+        text="当前模式：职业AI";
+
+    }
+
+
+    document.getElementById("mode").innerHTML=text;
 
 
     restart();
 
-
 }
-
 
 
 
