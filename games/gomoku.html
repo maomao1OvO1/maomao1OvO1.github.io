@@ -498,12 +498,7 @@ for(let m of moves){
     let j=m[1];
 
 
-    let attack = evaluatePoint(i,j,2);
-
-    let defense = evaluatePoint(i,j,1);
-
-
-    let score = attack + defense * 1.2;
+    let score = minimaxScore(i,j);
 
 
     score += Math.random()*5;
@@ -638,7 +633,6 @@ function evaluatePoint(x,y,player){
         let line = countLine(x,y,d[0],d[1],player)
                  + countLine(x,y,-d[0],-d[1],player);
 
-
         // 连五
 
         if(line>=5){
@@ -699,6 +693,64 @@ function evaluatePoint(x,y,player){
 
 
     return score;
+
+}
+
+// ===== Minimax一层搜索 =====
+
+function minimaxScore(x,y){
+
+
+    // AI尝试落子
+
+    board[x][y]=2;
+
+
+    let worst=999999;
+
+
+    // 模拟玩家下一步
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
+
+
+            if(board[i][j]==0){
+
+
+                board[i][j]=1;
+
+
+                let score=evaluatePoint(i,j,1);
+
+
+                if(score<worst){
+
+                    worst=score;
+
+                }
+
+
+                board[i][j]=0;
+
+
+            }
+
+        }
+
+    }
+
+
+    // 恢复
+
+    board[x][y]=0;
+
+
+
+    // 自己攻击价值 - 对方威胁
+
+    return evaluatePoint(x,y,2)-worst;
 
 }
 
