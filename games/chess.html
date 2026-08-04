@@ -697,7 +697,51 @@ function tryMove(x1,y1,x2,y2){
 
         draw();
 
-        return;
+
+// ===== 王车易位后换回合 =====
+
+turn =
+turn=="white"
+?
+"black"
+:
+"white";
+
+
+document.getElementById("info").innerHTML=
+
+turn=="white"
+
+?
+
+"白方回合"
+
+:
+
+"黑方回合";
+
+
+// ===== AI回合 =====
+
+if(turn=="black"){
+
+    if(mode=="stockfish"){
+
+        setTimeout(stockfishMove,500);
+
+    }
+
+
+    if(mode=="normal"){
+
+        setTimeout(aiMove,500);
+
+    }
+
+}
+
+
+return;
     }
 
     // ===== 正规合法移动判断 =====
