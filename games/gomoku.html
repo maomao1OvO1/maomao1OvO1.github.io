@@ -234,7 +234,9 @@ let mode = "player";
 
 let gameEnd = false;
 
+let aiStartTime = 0;
 
+let aiTimeout = 5000;
 
 // ===== 创建棋盘 =====
 
@@ -412,15 +414,25 @@ function update(){
 
 function searchBestMove(){
 
+aiStartTime = Date.now();
+
     let bestScore = -999999;
     let bestMove = null;
 
 
     for(let i=0;i<15;i++){
 
-        for(let j=0;j<15;j++){
+    for(let j=0;j<15;j++){
 
-            if(board[i][j]==0 && nearChess(i,j)){
+
+        if(Date.now()-aiStartTime > aiTimeout){
+
+            return bestMove;
+
+        }
+
+
+        if(board[i][j]==0 && nearChess(i,j)){
 
 
                 // 模拟AI下棋
@@ -459,6 +471,13 @@ function searchBestMove(){
 // ===== 深度搜索 =====
 
 function minimax(depth,isAI){
+
+
+    if(Date.now()-aiStartTime > aiTimeout){
+
+        return evaluateBoard();
+
+    }
 
 
     if(depth==0){
