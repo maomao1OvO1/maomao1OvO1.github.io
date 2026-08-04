@@ -797,7 +797,7 @@ board[x1][y1]="";
 promotion(x2,y2);
 
 
-// 记录上一手
+// ===== 记录上一手 =====
 
 lastMove={
 
@@ -805,7 +805,16 @@ lastMove={
 
     from:[x1,y1],
 
-    to:[x2,y2]
+    to:[x2,y2],
+
+    // 是否兵走两格
+
+    doublePawn:
+    (
+        (piece=="♙" && x1==6 && x2==4)
+        ||
+        (piece=="♟" && x1==1 && x2==3)
+    )
 
 };
 
@@ -1470,6 +1479,47 @@ if(p!="♙" && p!="♟"){
 
     }
 
+     // ===== 吃过路兵 =====
+
+if(lastMove){
+
+    let lx=lastMove.to[0];
+
+    let ly=lastMove.to[1];
+
+
+    // 白兵吃黑兵
+
+    if(
+    p=="♙" &&
+    lastMove.piece=="♟" &&
+    lastMove.doublePawn &&
+    x==3 &&
+    Math.abs(y-ly)==1 &&
+    lx==3
+    ){
+
+        arr.push([x-1,ly]);
+
+    }
+
+
+    // 黑兵吃白兵
+
+    if(
+    p=="♟" &&
+    lastMove.piece=="♙" &&
+    lastMove.doublePawn &&
+    x==4 &&
+    Math.abs(y-ly)==1 &&
+    lx==4
+    ){
+
+        arr.push([x+1,ly]);
+
+    }
+
+}
 
 
 }
@@ -1976,11 +2026,39 @@ function simulateMove(x1,y1,x2,y2){
     let piece = board[x1][y1];
 
 
-    // 模拟移动
+     // ===== 吃过路兵删除被吃兵 =====
 
-    board[x2][y2]=piece;
+if(
+piece=="♙" &&
+x1==3 &&
+x2==2 &&
+y1!=y2 &&
+board[x2][y2]==""
+){
 
-    board[x1][y1]="";
+    board[x1][y2]="";
+
+}
+
+
+if(
+piece=="♟" &&
+x1==4 &&
+x2==5 &&
+y1!=y2 &&
+board[x2][y2]==""
+){
+
+    board[x1][y2]="";
+
+}
+
+
+// 移动
+
+board[x2][y2]=piece;
+
+board[x1][y1]="";
 
 
     // 检查王是否安全
@@ -2192,9 +2270,48 @@ if(castle==""){
 fen += castle;
 
 
-// 吃过路兵暂时没有
+// ===== 吃过路兵信息 =====
 
-fen += " - 0 1";
+let enPassant = "-";
+
+
+if(lastMove && lastMove.doublePawn){
+
+    // 黑兵两格走，白方可吃
+
+    if(lastMove.piece=="♟"){
+
+        let x = lastMove.to[0];
+
+        let y = lastMove.to[1];
+
+        enPassant =
+        String.fromCharCode(97+y)
+        +
+        (8-x+1);
+
+    }
+
+
+    // 白兵两格走，黑方可吃
+
+    if(lastMove.piece=="♙"){
+
+        let x = lastMove.to[0];
+
+        let y = lastMove.to[1];
+
+        enPassant =
+        String.fromCharCode(97+y)
+        +
+        (8-x-1);
+
+    }
+
+}
+
+
+fen += " " + enPassant + " 0 1";
 
 
     return fen;
