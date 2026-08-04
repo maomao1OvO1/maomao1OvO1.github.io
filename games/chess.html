@@ -708,6 +708,35 @@ function tryMove(x1,y1,x2,y2){
 
     let piece=board[x1][y1];
 
+let target=board[x2][y2];
+
+
+// ===== 记录被吃掉的车 =====
+
+if(target=="♖"){
+
+    if(x2==7 && y2==0){
+        moved.whiteLeftRook=true;
+    }
+
+    if(x2==7 && y2==7){
+        moved.whiteRightRook=true;
+    }
+
+}
+
+
+if(target=="♜"){
+
+    if(x2==0 && y2==0){
+        moved.blackLeftRook=true;
+    }
+
+    if(x2==0 && y2==7){
+        moved.blackRightRook=true;
+    }
+
+}
 
     if(piece=="") return;
 
@@ -1552,19 +1581,14 @@ function castleMove(x1,y1,x2,y2,p){
 
 
 
-        // 王翼
-
-        if(
-
-        x2==7 &&
-
-        y2==6 &&
-
-        board[7][5]=="" &&
-
-        board[7][6]==""
-
-        ){
+        // 白王翼易位
+if(
+x2==7 &&
+y2==6 &&
+board[7][7]=="♖" &&
+board[7][5]=="" &&
+board[7][6]==""
+){
 
 
             board[7][6]=board[7][4];
@@ -1580,21 +1604,15 @@ board[7][7]="";
 
 
 
-        // 后翼
-
-        if(
-
-        x2==7 &&
-
-        y2==2 &&
-
-        board[7][1]=="" &&
-
-        board[7][2]=="" &&
-
-        board[7][3]==""
-
-        ){
+        // 白后翼易位
+if(
+x2==7 &&
+y2==2 &&
+board[7][0]=="♖" &&
+board[7][1]=="" &&
+board[7][2]=="" &&
+board[7][3]==""
+){
 
 
             board[7][2]=board[7][4];
@@ -1630,17 +1648,14 @@ board[7][0]="";
 
 
 
-        if(
-
-        x2==0 &&
-
-        y2==6 &&
-
-        board[0][5]=="" &&
-
-        board[0][6]==""
-
-        ){
+        // 黑王翼易位
+if(
+x2==0 &&
+y2==6 &&
+board[0][7]=="♜" &&
+board[0][5]=="" &&
+board[0][6]==""
+){
 
 
             board[0][6]=board[0][4];
@@ -1657,19 +1672,15 @@ board[0][7]="";
 
 
 
-        if(
-
-        x2==0 &&
-
-        y2==2 &&
-
-        board[0][1]=="" &&
-
-        board[0][2]=="" &&
-
-        board[0][3]==""
-
-        ){
+        // 黑后翼易位
+if(
+x2==0 &&
+y2==2 &&
+board[0][0]=="♜" &&
+board[0][1]=="" &&
+board[0][2]=="" &&
+board[0][3]==""
+){
 
 
             board[0][2]=board[0][4];
@@ -2053,6 +2064,45 @@ board[x2][y2]==""
 
 }
 
+// ===== 记录王车易位移动状态 =====
+
+// 白王
+if(piece=="♔"){
+    moved.whiteKing=true;
+}
+
+// 黑王
+if(piece=="♚"){
+    moved.blackKing=true;
+}
+
+
+// 白车
+if(piece=="♖"){
+
+    if(x1==7 && y1==0){
+        moved.whiteLeftRook=true;
+    }
+
+    if(x1==7 && y1==7){
+        moved.whiteRightRook=true;
+    }
+
+}
+
+
+// 黑车
+if(piece=="♜"){
+
+    if(x1==0 && y1==0){
+        moved.blackLeftRook=true;
+    }
+
+    if(x1==0 && y1==7){
+        moved.blackRightRook=true;
+    }
+
+}
 
 // 移动
 
