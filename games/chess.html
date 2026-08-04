@@ -448,6 +448,24 @@ let selected = null;
 
 let gameEnd = false;
 
+// ===== 特殊规则数据 =====
+
+let moved = {
+
+    whiteKing:false,
+
+    blackKing:false,
+
+    whiteLeftRook:false,
+
+    whiteRightRook:false,
+
+    blackLeftRook:false,
+
+    blackRightRook:false
+
+};
+
 // ===== 初始棋盘 =====
 
 const startBoard = [
@@ -470,9 +488,6 @@ const startBoard = [
 
 ];
 
-
-
-
 // ===== 开始游戏 =====
 
 function restart(){
@@ -487,6 +502,25 @@ function restart(){
     selected=null;
 
 
+    // ===== 重置王车易位状态 =====
+
+    moved = {
+
+        whiteKing:false,
+
+        blackKing:false,
+
+        whiteLeftRook:false,
+
+        whiteRightRook:false,
+
+        blackLeftRook:false,
+
+        blackRightRook:false
+
+    };
+
+
     gameEnd=false;
 
 
@@ -499,9 +533,6 @@ function restart(){
 
 
 }
-
-
-
 
 // ===== 绘制棋盘 =====
 
@@ -1443,26 +1474,6 @@ if(p!="♙" && p!="♟"){
 
 }
 
-// ===== 特殊规则数据 =====
-
-// 记录棋子是否移动过
-
-let moved = {
-
-    whiteKing:false,
-
-    blackKing:false,
-
-    whiteLeftRook:false,
-
-    whiteRightRook:false,
-
-    blackLeftRook:false,
-
-    blackRightRook:false
-
-};
-
 
 // 记录上一手
 
@@ -2139,12 +2150,51 @@ function boardToFEN(){
 
     // 当前回合
 
-    fen+= turn=="white" ? " w " : " b ";
+fen += turn=="white" ? " w " : " b ";
 
 
-    // 先不处理王车易位和吃过路兵
+// ===== 王车易位权限 =====
 
-    fen+="- - 0 1";
+let castle = "";
+
+if(!moved.whiteKing && !moved.whiteRightRook){
+
+    castle += "K";
+
+}
+
+if(!moved.whiteKing && !moved.whiteLeftRook){
+
+    castle += "Q";
+
+}
+
+if(!moved.blackKing && !moved.blackRightRook){
+
+    castle += "k";
+
+}
+
+if(!moved.blackKing && !moved.blackLeftRook){
+
+    castle += "q";
+
+}
+
+
+if(castle==""){
+
+    castle="-";
+
+}
+
+
+fen += castle;
+
+
+// 吃过路兵暂时没有
+
+fen += " - 0 1";
 
 
     return fen;
