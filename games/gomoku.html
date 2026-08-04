@@ -569,31 +569,32 @@ function minimax(depth,isAI,alpha,beta){
     return best;
 
 }
+
 // ===== 评估整个棋盘 =====
 
 function evaluateBoard(){
 
     let score=0;
 
-    let moves=getCandidateMoves();
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
 
 
-    for(let m of moves){
+            if(board[i][j]==2){
 
-        let i=m[0];
-        let j=m[1];
+                score+=evaluatePoint(i,j,2);
 
-
-        if(board[i][j]==2){
-
-            score+=evaluatePoint(i,j,2);
-
-        }
+            }
 
 
-        if(board[i][j]==1){
+            if(board[i][j]==1){
 
-            score-=evaluatePoint(i,j,1);
+                score-=evaluatePoint(i,j,1);
+
+            }
+
 
         }
 
@@ -601,6 +602,44 @@ function evaluateBoard(){
 
 
     return score;
+
+}
+
+// ===== 寻找强制进攻点 =====
+
+function findThreatSearch(){
+
+    let best=null;
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
+
+            if(board[i][j]==0){
+
+                board[i][j]=2;
+
+
+                let score=evaluatePoint(i,j,2);
+
+
+                board[i][j]=0;
+
+
+                if(score>=10000){
+
+                    best=[i,j];
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    return best;
 
 }
 
@@ -624,7 +663,17 @@ function aiMove(){
 
     }
 
+// ===== AI威胁搜索 =====
 
+let threatMove=findThreatSearch();
+
+if(threatMove){
+
+    play(threatMove[0],threatMove[1]);
+
+    return;
+
+}
 
     // ===== 2. 玩家要赢，优先堵住 =====
 
@@ -638,6 +687,18 @@ function aiMove(){
         return;
 
     }
+
+// ===== 防止玩家双三 =====
+
+move=findDoubleThreatMove(1);
+
+if(move){
+
+    play(move[0],move[1]);
+
+    return;
+
+}
 
 // ===== 防止玩家活四 =====
 
@@ -829,15 +890,15 @@ function maxLine(x,y,p){
 
 }
 
-// ===== AI棋型评分 =====
+// ===== 新版棋型评分 =====
 
 function evaluatePoint(x,y,player){
 
     let score=0;
 
-    let old = board[x][y];
+    let old=board[x][y];
 
-board[x][y]=player;
+    board[x][y]=player;
 
 
     let dirs=[
@@ -850,44 +911,106 @@ board[x][y]=player;
 
     for(let d of dirs){
 
-        let line =
-        countLine(x,y,d[0],d[1],player)
-        +
-        countLine(x,y,-d[0],-d[1],player);
+        let count=1;
+
+        let left=countLine(
+            x,y,
+            d[0],
+            d[1],
+            player
+        );
+
+        let right=countLine(
+            x,y,
+            -d[0],
+            -d[1],
+            player
+        );
 
 
-        if(line>=5){
+        count+=left+right;
 
-            score+=100000;
+
+        let open=0;
+
+
+        // 判断两端是否为空
+
+        let x1=x+d[0]*(left+1);
+        let y1=y+d[1]*(left+1);
+
+
+        let x2=x-d[0]*(right+1);
+        let y2=y-d[1]*(right+1);
+
+
+        if(
+            x1>=0&&x1<15&&
+            y1>=0&&y1<15&&
+            board[x1][y1]==0
+        ){
+
+            open++;
 
         }
-        else if(line==4){
 
-            score+=10000;
+
+        if(
+            x2>=0&&x2<15&&
+            y2>=0&&y2<15&&
+            board[x2][y2]==0
+        ){
+
+            open++;
 
         }
-        else if(line==3){
+
+
+
+        // ===== 棋型判断 =====
+
+
+        if(count>=5){
+
+            score+=1000000;
+
+        }
+
+        else if(count==4 && open==2){
+
+            score+=500000; // 活四
+
+        }
+
+        else if(count==4 && open==1){
+
+            score+=100000; // 冲四
+
+        }
+
+        else if(count==3 && open==2){
+
+            score+=10000; // 活三
+
+        }
+
+        else if(count==3 && open==1){
 
             score+=1000;
 
         }
-        else if(line==2){
 
-            score+=100;
+        else if(count==2 && open==2){
+
+            score+=500;
 
         }
+
 
     }
 
 
     board[x][y]=old;
-
-
-    if(nearChess(x,y)){
-
-        score+=30;
-
-    }
 
 
     return score;
@@ -1027,6 +1150,221 @@ function findBestMove(player){
 
 }
 
+// ===== 判断活三 =====
+
+function isOpenThree(x,y,player){
+
+    let old=board[x][y];
+
+    board[x][y]=player;
+
+
+    let dirs=[
+        [1,0],
+        [0,1],
+        [1,1],
+        [1,-1]
+    ];
+
+
+    let result=false;
+
+
+    for(let d of dirs){
+
+        let left=countLine(
+            x,y,
+            d[0],
+            d[1],
+            player
+        );
+
+        let right=countLine(
+            x,y,
+            -d[0],
+            -d[1],
+            player
+        );
+
+
+        let count=1+left+right;
+
+
+        if(count==3){
+
+            let open=0;
+
+
+            let x1=x+d[0]*(left+1);
+            let y1=y+d[1]*(left+1);
+
+
+            let x2=x-d[0]*(right+1);
+            let y2=y-d[1]*(right+1);
+
+
+            if(
+                x1>=0&&x1<15&&
+                y1>=0&&y1<15&&
+                board[x1][y1]==0
+            ){
+                open++;
+            }
+
+
+            if(
+                x2>=0&&x2<15&&
+                y2>=0&&y2<15&&
+                board[x2][y2]==0
+            ){
+                open++;
+            }
+
+
+            if(open==2){
+
+                result=true;
+
+            }
+
+        }
+
+    }
+
+
+    board[x][y]=0;
+
+
+    return result;
+
+}
+
+// ===== 寻找双三威胁位置 =====
+
+function findDoubleThreatMove(player){
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
+
+            if(board[i][j]==0){
+
+                board[i][j]=player;
+
+
+                let threat=countOpenThree(i,j,player);
+
+
+                board[i][j]=0;
+
+
+                if(threat>=2){
+
+                    return [i,j];
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    return null;
+
+}
+
+// ===== 计算一个落子产生几个活三 =====
+
+function countOpenThree(x,y,player){
+
+    let count=0;
+
+    // 保存原来的棋子
+    let old=board[x][y];
+
+    board[x][y]=player;
+
+
+    let dirs=[
+        [1,0],
+        [0,1],
+        [1,1],
+        [1,-1]
+    ];
+
+
+    for(let d of dirs){
+
+        let left=countLine(
+            x,y,
+            d[0],
+            d[1],
+            player
+        );
+
+        let right=countLine(
+            x,y,
+            -d[0],
+            -d[1],
+            player
+        );
+
+
+        let total=1+left+right;
+
+
+        if(total==3){
+
+            let open=0;
+
+
+            let x1=x+d[0]*(left+1);
+            let y1=y+d[1]*(left+1);
+
+
+            let x2=x-d[0]*(right+1);
+            let y2=y-d[1]*(right+1);
+
+
+            if(
+                x1>=0&&x1<15&&
+                y1>=0&&y1<15&&
+                board[x1][y1]==0
+            ){
+                open++;
+            }
+
+
+            if(
+                x2>=0&&x2<15&&
+                y2>=0&&y2<15&&
+                board[x2][y2]==0
+            ){
+                open++;
+            }
+
+
+            if(open==2){
+
+                count++;
+
+            }
+
+        }
+
+    }
+
+
+        // 恢复原棋盘
+    board[x][y]=old;
+
+
+    return count;
+
+}
+
 // ===== 寻找玩家威胁位置 =====
 
 function findThreatMove(player){
@@ -1050,11 +1388,14 @@ function findThreatMove(player){
 
 
 
-                if(count>=3){
+                if(
+    count>=4 ||
+    isOpenThree(i,j,player)
+){
 
-                    return [i,j];
+    return [i,j];
 
-                }
+}
 
 
             }
