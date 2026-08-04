@@ -680,7 +680,25 @@ function tryMove(x1,y1,x2,y2){
 
     if(piece=="") return;
 
+// ===== 王车易位 =====
 
+    if(castleMove(x1,y1,x2,y2,piece)){
+
+
+        if(piece=="♔"){
+            moved.whiteKing=true;
+        }
+
+
+        if(piece=="♚"){
+            moved.blackKing=true;
+        }
+
+
+        draw();
+
+        return;
+    }
 
     // ===== 正规合法移动判断 =====
 
@@ -1413,7 +1431,6 @@ let lastMove=null;
 
 function castleMove(x1,y1,x2,y2,p){
 
-
     // 白王
 
     if(
@@ -1445,9 +1462,11 @@ function castleMove(x1,y1,x2,y2,p){
         ){
 
 
-            board[7][5]=board[7][7];
+            board[7][6]=board[7][4];
+board[7][4]="";
 
-            board[7][7]="";
+board[7][5]=board[7][7];
+board[7][7]="";
 
 
             return true;
@@ -1473,9 +1492,11 @@ function castleMove(x1,y1,x2,y2,p){
         ){
 
 
-            board[7][3]=board[7][0];
+            board[7][2]=board[7][4];
+board[7][4]="";
 
-            board[7][0]="";
+board[7][3]=board[7][0];
+board[7][0]="";
 
 
             return true;
@@ -1517,9 +1538,11 @@ function castleMove(x1,y1,x2,y2,p){
         ){
 
 
-            board[0][5]=board[0][7];
+            board[0][6]=board[0][4];
+board[0][4]="";
 
-            board[0][7]="";
+board[0][5]=board[0][7];
+board[0][7]="";
 
 
             return true;
@@ -1544,9 +1567,11 @@ function castleMove(x1,y1,x2,y2,p){
         ){
 
 
-            board[0][3]=board[0][0];
+            board[0][2]=board[0][4];
+board[0][4]="";
 
-            board[0][0]="";
+board[0][3]=board[0][0];
+board[0][0]="";
 
 
             return true;
@@ -1555,7 +1580,6 @@ function castleMove(x1,y1,x2,y2,p){
 
 
     }
-
 
     return false;
 
