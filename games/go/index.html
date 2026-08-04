@@ -258,6 +258,8 @@ let backupBoard=[];
 
 let previousBoard=[];
 
+let boardHistory=[];
+
 let koPosition=null;
 
 // 创建19×19空棋盘
@@ -454,6 +456,7 @@ previousBoard=[];
 
 backupBoard=[];
 
+boardHistory=[];
 
 drawBoard();
 
@@ -724,6 +727,81 @@ function countLiberties(group){
 
 
     return Object.keys(liberties).length;
+
+}
+
+function hasSharedLiberty(group){
+
+    let liberties={};
+
+
+    let directions=[
+
+        [1,0],
+        [-1,0],
+        [0,1],
+        [0,-1]
+
+    ];
+
+
+    for(let stone of group){
+
+        let x=stone[0];
+
+        let y=stone[1];
+
+
+        for(let d of directions){
+
+            let nx=x+d[0];
+
+            let ny=y+d[1];
+
+
+            if(nx>=0 && nx<19 && ny>=0 && ny<19){
+
+                if(boardData[nx][ny]==0){
+
+                    liberties[nx+","+ny]=true;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    return Object.keys(liberties).length;
+
+}
+
+function isSekiGroup(group){
+
+    let liberties=countLiberties(group);
+
+
+    // 有气才可能双活
+
+    if(liberties==0){
+
+        return false;
+
+    }
+
+
+    // 有两个真眼直接算活
+
+    if(countEyes(group)>=2){
+
+        return false;
+
+    }
+
+
+    return true;
 
 }
 
@@ -1079,13 +1157,19 @@ function findDeadGroups(){
 
 
 
-        // 没有两个真眼，终局时认为不活
+        // 没有两个真眼
 
-        if(eyes<2){
+if(eyes<2){
 
-            dead.push(group);
+    // 双活棋块不删除
 
-        }
+    if(!isSekiGroup(group)){
+
+        dead.push(group);
+
+    }
+
+}
 
 
     }
@@ -1209,22 +1293,26 @@ for(let d of directions){
 
 }
 
-// ===== 打劫判断 =====
+// ===== 完整劫判断 =====
 
-if(previousBoard.length!=0 && sameBoard(boardData,previousBoard)){
+for(let oldBoard of boardHistory){
 
-
-    boardData=backupBoard;
-
-
-    drawBoard();
+    if(sameBoard(boardData,oldBoard)){
 
 
-    document.getElementById("status").innerHTML=
-    "❌ 打劫，不能立即回吃";
+        boardData=backupBoard;
 
 
-    return;
+        drawBoard();
+
+
+        document.getElementById("status").innerHTML=
+        "❌ 劫争，不能回到之前局面";
+
+
+        return;
+
+    }
 
 }
 
@@ -1283,6 +1371,8 @@ if(!selfAlive){
     }
 
      previousBoard=copyBoard();
+
+boardHistory.push(copyBoard());
 
 }
 
