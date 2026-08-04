@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>围棋</title>
+
+
+<style>
+
+body {
+
+    text-align: center;
+
+    font-family: Arial;
+
+}
+
+
+/* ===== 返回小游戏按钮 ===== */
+
+.back-home {
+
+    position: fixed;
+
+    top: 20px;
+
+    right: 20px;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+    padding: 10px 15px;
+
+    border-radius: 20px;
+
+    text-decoration: none;
+
+    font-size: 16px;
+
+}
+
+
+
+/* ===== 棋盘 ===== */
+
+.board {
+
+    margin:40px auto;
+
+    width:360px;
+
+    height:360px;
+
+    background:#dca85d;
+
+    display:grid;
+
+    grid-template-columns:repeat(19,1fr);
+
+    grid-template-rows:repeat(19,1fr);
+
+    padding:10px;
+
+}
+
+
+
+.cell {
+
+    border:1px solid #333;
+
+    position:relative;
+
+}
+
+
+
+/* ===== 棋子 ===== */
+
+.stone {
+
+    width:18px;
+
+    height:18px;
+
+    border-radius:50%;
+
+    position:absolute;
+
+    top:50%;
+
+    left:50%;
+
+    transform:translate(-50%,-50%);
+
+}
+
+
+
+.black {
+
+    background:black;
+
+}
+
+
+
+.white {
+
+    background:white;
+
+    border:1px solid #555;
+
+}
+
+
+
+/* ===== 按钮 ===== */
+
+button {
+
+    margin-top:15px;
+
+    padding:10px 20px;
+
+    border-radius:20px;
+
+    border:none;
+
+    cursor:pointer;
+
+}
+
+
+
+.mode-buttons button{
+
+    margin:10px 5px;
+
+}
+
+
+
+/* ===== 深色模式 ===== */
+
+body.dark-mode{
+
+    background:#121212;
+
+    color:white;
+
+}
+
+
+
+.dark-mode button{
+
+    background:#333;
+
+    color:white;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<script>
+
+// ===== 读取深色模式 =====
+
+if(localStorage.getItem("theme") === "dark"){
+
+    document.body.classList.add("dark-mode");
+
+}
+
+</script>
+
+
+
+<a href="../../games.html" class="back-home">
+🎮 返回小游戏
+</a>
+
+
+
+<h1>⚫⚪ 围棋</h1>
+
+
+<p>
+黑白棋子对战
+</p>
+
+
+
+<div class="board">
+
+</div>
+
+
+
+<p id="status">
+
+等待开始
+
+</p>
+
+
+
+<div class="mode-buttons">
+
+<button onclick="startGame('双人模式')">
+👥 双人模式
+</button>
+
+
+<button onclick="startGame('普通AI')">
+🤖 普通AI
+</button>
+
+
+<button onclick="startGame('最强AI')">
+🔥 最强AI
+</button>
+
+</div>
+
+<button onclick="restartGame()">
+🔄 重新开始
+</button>
+
+<button onclick="endGame()">
+🏳️ 结束棋局
+</button>
+
+<script>
+
+
+let board=document.querySelector(".board");
+
+
+// ===== 围棋数据 =====
+
+let boardData=[];
+
+let backupBoard=[];
+
+let previousBoard=[];
+
+let koPosition=null;
+
+// 创建19×19空棋盘
+
+for(let i=0;i<19;i++){
+
+    boardData[i]=[];
+
+    for(let j=0;j<19;j++){
+
+        boardData[i][j]=0;
+
+    }
+
+}
+
+
+
+let cells=[];
+
+let turn="black";
+
+let index=0;
+
+
+
+for(let i=0;i<19*19;i++){
+
+    let x=Math.floor(i/19);
+
+    let y=i%19;
+
+
+    let cell=document.createElement("div");
+
+    cell.className="cell";
+
+
+    cell.onclick=function(){
+
+    if(mode!="双人模式") return;
+
+
+    playMove(x,y);
+
+
+};
+
+
+    cells.push(cell);
+
+    board.appendChild(cell);
+
+}
+
+
+
+// 模式选择
+
+let mode="";
+
+let gameOver=false;
+
+let passCount=0;
+
+let confirmScore=false;
+
+function startGame(selectMode){
+
+    mode=selectMode;
+
+
+    if(mode=="双人模式"){
+
+        document.getElementById("status").innerHTML =
+"当前模式：双人模式，黑棋回合";
+
+}
+
+    else if(mode=="普通AI"){
+
+        document.getElementById("status").innerHTML =
+        "当前模式：普通AI";
+
+    }
+
+
+    else if(mode=="最强AI"){
+
+        document.getElementById("status").innerHTML =
+        "当前模式：最强AI（开发中）";
+
+    }
+
+}
+
+function endGame(){
+
+
+    passCount++;
+
+
+    if(passCount<2){
+
+        document.getElementById("status").innerHTML=
+        "🏳️ 一方停手，等待另一方确认";
+
+        return;
+
+    }
+
+    gameOver=true;
+    
+    // 清除死棋
+
+let deadGroups=findDeadGroups();
+
+
+for(let group of deadGroups){
+
+    removeGroup(group);
+
+}
+
+    let score=calculateScore();
+
+
+    let result="";
+
+
+    if(score.black>score.white){
+
+        result=
+        "⚫ 黑胜 " + 
+        (score.black-score.white).toFixed(1) +
+        " 目";
+
+    }
+
+    else if(score.white>score.black){
+
+        result=
+        "⚪ 白胜 " +
+        (score.white-score.black).toFixed(1) +
+        " 目";
+
+    }
+
+    else{
+
+        result="和棋";
+
+    }
+
+
+
+    document.getElementById("status").innerHTML=
+    "🏳️ 棋局结束<br>" +
+    "黑：" + score.black +
+    " 白：" + score.white +
+    "<br>" +
+    result;
+
+
+}
+
+function restartGame(){
+
+    for(let i=0;i<19;i++){
+
+        for(let j=0;j<19;j++){
+
+            boardData[i][j]=0;
+
+        }
+
+    }
+
+
+    turn="black";
+
+passCount=0;
+
+gameOver=false;
+
+confirmScore=false;
+
+
+// 清空围棋状态
+
+koPosition=null;
+
+previousBoard=[];
+
+backupBoard=[];
+
+
+drawBoard();
+
+
+    document.getElementById("status").innerHTML=
+    "等待开始";
+
+}
+
+
+
+    
+
+function hasLiberty(x,y){
+
+    let color=boardData[x][y];
+
+
+    if(color==0){
+
+        return false;
+
+    }
+
+
+
+    let directions=[
+
+        [1,0],
+        [-1,0],
+        [0,1],
+        [0,-1]
+
+    ];
+
+
+
+    for(let d of directions){
+
+        let nx=x+d[0];
+
+        let ny=y+d[1];
+
+
+        if(nx>=0 && nx<19 && ny>=0 && ny<19){
+
+            if(boardData[nx][ny]==0){
+
+                return true;
+
+            }
+
+        }
+
+    }
+
+
+    return false;
+
+}
+
+function copyBoard(){
+
+    let copy=[];
+
+
+    for(let i=0;i<19;i++){
+
+        copy[i]=[];
+
+        for(let j=0;j<19;j++){
+
+            copy[i][j]=boardData[i][j];
+
+        }
+
+    }
+
+
+    return copy;
+
+}
+
+function sameBoard(a,b){
+
+    for(let i=0;i<19;i++){
+
+        for(let j=0;j<19;j++){
+
+            if(a[i][j]!=b[i][j]){
+
+                return false;
+
+            }
+
+        }
+
+    }
+
+
+    return true;
+
+}
+
+function getGroup(x,y){
+
+    let color=boardData[x][y];
+
+    let group=[];
+
+    let visited={};
+
+
+    function dfs(a,b){
+
+        let key=a+","+b;
+
+
+        if(visited[key]) return;
+
+
+        visited[key]=true;
+
+
+
+        if(boardData[a][b]!=color) return;
+
+
+        group.push([a,b]);
+
+
+
+        let directions=[
+
+            [1,0],
+            [-1,0],
+            [0,1],
+            [0,-1]
+
+        ];
+
+
+
+        for(let d of directions){
+
+            let nx=a+d[0];
+
+            let ny=b+d[1];
+
+
+            if(nx>=0 && nx<19 && ny>=0 && ny<19){
+
+                dfs(nx,ny);
+
+            }
+
+        }
+
+    }
+
+
+
+    dfs(x,y);
+
+
+    return group;
+
+}
+
+function getAllGroups(){
+
+    let groups=[];
+
+    let visited=[];
+
+
+    for(let i=0;i<19;i++){
+
+        visited[i]=[];
+
+        for(let j=0;j<19;j++){
+
+            visited[i][j]=false;
+
+        }
+
+    }
+
+
+
+    for(let x=0;x<19;x++){
+
+        for(let y=0;y<19;y++){
+
+
+            if(boardData[x][y]!=0 && !visited[x][y]){
+
+
+                let group=getGroup(x,y);
+
+
+                for(let stone of group){
+
+                    visited[stone[0]][stone[1]]=true;
+
+                }
+
+
+                groups.push(group);
+
+
+            }
+
+
+        }
+
+    }
+
+
+    return groups;
+
+}
+
+function countLiberties(group){
+
+    let liberties={};
+
+
+    let directions=[
+
+        [1,0],
+        [-1,0],
+        [0,1],
+        [0,-1]
+
+    ];
+
+
+
+    for(let stone of group){
+
+        let x=stone[0];
+
+        let y=stone[1];
+
+
+        for(let d of directions){
+
+            let nx=x+d[0];
+
+            let ny=y+d[1];
+
+
+            if(nx>=0 && nx<19 && ny>=0 && ny<19){
+
+
+                if(boardData[nx][ny]==0){
+
+                    liberties[nx+","+ny]=true;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    return Object.keys(liberties).length;
+
+}
+
+function countEyes(group){
+
+    let eyes=0;
+
+    let checked={};
+
+
+    let color=groupColor(group);
+
+
+    for(let stone of group){
+
+        let x=stone[0];
+
+        let y=stone[1];
+
+
+        let directions=[
+
+            [1,0],
+            [-1,0],
+            [0,1],
+            [0,-1]
+
+        ];
+
+
+        for(let d of directions){
+
+            let nx=x+d[0];
+
+            let ny=y+d[1];
+
+
+            if(nx>=0 && nx<19 && ny>=0 && ny<19){
+
+
+                if(boardData[nx][ny]==0){
+
+
+                    let key=nx+","+ny;
+
+
+                    if(!checked[key]){
+
+
+                        checked[key]=true;
+
+
+                        if(isRealEye(nx,ny,color)){
+
+                            eyes++;
+
+                        }
+
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    return eyes;
+
+}
+
+function isRealEye(x,y,color){
+
+    if(boardData[x][y]!=0){
+
+        return false;
+
+    }
+
+
+    let directions=[
+        [1,0],
+        [-1,0],
+        [0,1],
+        [0,-1]
+    ];
+
+
+    for(let d of directions){
+
+        let nx=x+d[0];
+
+        let ny=y+d[1];
+
+
+        if(nx>=0 && nx<19 && ny>=0 && ny<19){
+
+            if(boardData[nx][ny]!=color){
+
+                return false;
+
+            }
+
+        }
+
+    }
+
+
+    return true;
+
+}
+
+function groupColor(group){
+
+    return boardData[group[0][0]][group[0][1]];
+
+}
+
+function getTerritory(){
+
+    let territory=[];
+
+    let visited=[];
+
+
+    for(let i=0;i<19;i++){
+
+        visited[i]=[];
+
+        for(let j=0;j<19;j++){
+
+            visited[i][j]=false;
+
+        }
+
+    }
+
+
+
+    for(let x=0;x<19;x++){
+
+        for(let y=0;y<19;y++){
+
+
+            if(boardData[x][y]==0 && !visited[x][y]){
+
+
+                let area=[];
+
+                let borders={};
+
+
+                let queue=[[x,y]];
+
+
+                visited[x][y]=true;
+
+
+
+                while(queue.length){
+
+
+                    let p=queue.shift();
+
+
+                    area.push(p);
+
+
+                    let directions=[
+
+                        [1,0],
+                        [-1,0],
+                        [0,1],
+                        [0,-1]
+
+                    ];
+
+
+
+                    for(let d of directions){
+
+
+                        let nx=p[0]+d[0];
+
+                        let ny=p[1]+d[1];
+
+
+
+                        if(nx>=0 && nx<19 && ny>=0 && ny<19){
+
+
+                            if(boardData[nx][ny]==0 && !visited[nx][ny]){
+
+
+                                visited[nx][ny]=true;
+
+                                queue.push([nx,ny]);
+
+
+                            }
+
+
+                            else if(boardData[nx][ny]!=0){
+
+
+                                borders[boardData[nx][ny]]=true;
+
+
+                            }
+
+
+                        }
+
+
+                    }
+
+
+                }
+
+
+
+                territory.push({
+
+                    area:area,
+
+                    borders:borders
+
+                });
+
+
+            }
+
+        }
+
+    }
+
+
+    return territory;
+
+}
+
+function calculateScore(){
+
+    let blackScore=0;
+
+    let whiteScore=7.5;   // 白贴目
+
+
+
+    // 计算棋子数量
+
+    for(let x=0;x<19;x++){
+
+        for(let y=0;y<19;y++){
+
+
+            if(boardData[x][y]==1){
+
+                blackScore++;
+
+            }
+
+
+            if(boardData[x][y]==2){
+
+                whiteScore++;
+
+            }
+
+        }
+
+    }
+
+
+
+    // 计算地盘
+
+    let territories=getTerritory();
+
+
+
+    for(let area of territories){
+
+
+        let keys=Object.keys(area.borders);
+
+
+
+        if(keys.length==1){
+
+
+            if(keys[0]=="1"){
+
+                blackScore+=area.area.length;
+
+            }
+
+
+            if(keys[0]=="2"){
+
+                whiteScore+=area.area.length;
+
+            }
+
+
+        }
+
+
+    }
+
+
+
+    return {
+
+        black:blackScore,
+
+        white:whiteScore
+
+    };
+
+
+}
+
+function findDeadGroups(){
+
+    let dead=[];
+
+
+    let groups=getAllGroups();
+
+
+    for(let group of groups){
+
+
+        let liberties=countLiberties(group);
+
+        let eyes=countEyes(group);
+
+
+
+        // 完全无气，直接死
+
+        if(liberties==0){
+
+            dead.push(group);
+
+            continue;
+
+        }
+
+
+
+        // 没有两个真眼，终局时认为不活
+
+        if(eyes<2){
+
+            dead.push(group);
+
+        }
+
+
+    }
+
+
+    return dead;
+
+}
+
+function playMove(x,y){
+
+    if(gameOver){
+
+        return;
+
+    }
+
+
+    if(boardData[x][y]!=0){
+
+        return;
+
+    }
+    
+    if(
+    koPosition &&
+    koPosition[0]==x &&
+    koPosition[1]==y
+){
+
+    return;
+
+}
+
+// 新的一手开始，清除旧劫点
+
+koPosition=null;
+
+    // 检查打劫禁着点
+
+    if(koPosition && koPosition[0]==x && koPosition[1]==y){
+
+        document.getElementById("status").innerHTML=
+        "❌ 打劫，不能立即回吃";
+
+        return;
+
+    }
+
+     // 保存落子前棋盘
+
+backupBoard=copyBoard();
+
+    let color = turn=="black" ? 1 : 2;
+
+
+// 保存落子前棋盘
+
+backupBoard=copyBoard();
+
+
+boardData[x][y]=color;
+
+
+
+// 检查周围敌方棋子
+
+let enemy=color==1 ? 2 : 1;
+
+
+let directions=[
+
+    [1,0],
+    [-1,0],
+    [0,1],
+    [0,-1]
+
+];
+
+
+
+for(let d of directions){
+
+    let nx=x+d[0];
+
+    let ny=y+d[1];
+
+
+    if(nx>=0 && nx<19 && ny>=0 && ny<19){
+
+        if(boardData[nx][ny]==enemy){
+
+
+            let group=getGroup(nx,ny);
+
+
+            let alive=false;
+
+
+            for(let stone of group){
+
+                if(hasLiberty(stone[0],stone[1])){
+
+                    alive=true;
+
+                }
+
+            }
+
+
+            if(!alive){
+
+                removeGroup(group);
+
+            }
+
+
+        }
+
+    }
+
+}
+
+// ===== 打劫判断 =====
+
+if(previousBoard.length!=0 && sameBoard(boardData,previousBoard)){
+
+
+    boardData=backupBoard;
+
+
+    drawBoard();
+
+
+    document.getElementById("status").innerHTML=
+    "❌ 打劫，不能立即回吃";
+
+
+    return;
+
+}
+
+drawBoard();
+
+// 检查自己是否无气
+
+let selfGroup=getGroup(x,y);
+
+
+let selfAlive=false;
+
+
+for(let stone of selfGroup){
+
+    if(hasLiberty(stone[0],stone[1])){
+
+        selfAlive=true;
+
+    }
+
+}
+
+
+
+if(!selfAlive){
+
+    boardData=backupBoard;
+
+
+    drawBoard();
+
+
+    document.getElementById("status").innerHTML=
+    "❌ 无气，不能落子";
+
+
+    return;
+
+}
+    if(turn=="black"){
+
+        turn="white";
+
+        document.getElementById("status").innerHTML=
+        "白棋回合";
+
+    }
+    else{
+
+        turn="black";
+
+        document.getElementById("status").innerHTML=
+        "黑棋回合";
+
+    }
+
+     previousBoard=copyBoard();
+
+}
+
+function removeGroup(group){
+
+    for(let stone of group){
+
+        let x=stone[0];
+
+        let y=stone[1];
+
+
+        boardData[x][y]=0;
+
+    }
+
+
+
+    // 单颗提子，记录劫点
+
+    if(group.length==1){
+
+        koPosition=[
+            group[0][0],
+            group[0][1]
+        ];
+
+    }
+
+}
+
+
+function drawBoard(){
+
+    for(let i=0;i<19;i++){
+
+        for(let j=0;j<19;j++){
+
+            let index=i*19+j;
+
+            cells[index].innerHTML="";
+
+
+            if(boardData[i][j]==1){
+
+                let stone=document.createElement("div");
+
+                stone.className="stone black";
+
+                cells[index].appendChild(stone);
+
+            }
+
+
+            if(boardData[i][j]==2){
+
+                let stone=document.createElement("div");
+
+                stone.className="stone white";
+
+                cells[index].appendChild(stone);
+
+            }
+
+        }
+
+    }
+
+}
+
+</script>
+
+
+
+</body>
+
+</html>
