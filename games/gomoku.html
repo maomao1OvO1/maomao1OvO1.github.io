@@ -236,7 +236,7 @@ let gameEnd = false;
 
 let aiStartTime = 0;
 
-let aiTimeout = 5000;
+let aiTimeout = 10000;
 
 // ===== 创建棋盘 =====
 
@@ -439,7 +439,7 @@ aiStartTime = Date.now();
                 board[i][j]=2;
 
 
-                let score = minimax(4,false);
+                let score = minimax(5,false);
 
 
                 // 恢复
