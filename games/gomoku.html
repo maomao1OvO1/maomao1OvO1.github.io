@@ -446,11 +446,9 @@ function aiMove(){
 
     }
 
-
-// ===== 3. 玩家形成三连/四连，提前堵 =====
+// ===== 防止玩家活四 =====
 
 move=findThreatMove(1);
-
 
 if(move){
 
@@ -498,7 +496,17 @@ for(let m of moves){
     let j=m[1];
 
 
-    let score = minimaxScore(i,j);
+    let attack = evaluatePoint(i,j,2);
+
+let defense = evaluatePoint(i,j,1);
+
+let search = minimaxScore(i,j);
+
+
+let score =
+attack +
+defense * 1.5 +
+search * 0.3;
 
 
     score += Math.random()*5;
@@ -585,9 +593,23 @@ function maxLine(x,y,p){
 
         let count=1;
 
-        count+=countLine(x,y,d[0],d[1],p);
 
-        count+=countLine(x,y,-d[0],-d[1],p);
+        count += countLine(
+            x,
+            y,
+            d[0],
+            d[1],
+            p
+        );
+
+
+        count += countLine(
+            x,
+            y,
+            -d[0],
+            -d[1],
+            p
+        );
 
 
         if(count>max){
@@ -633,37 +655,142 @@ function evaluatePoint(x,y,player){
         let line = countLine(x,y,d[0],d[1],player)
                  + countLine(x,y,-d[0],-d[1],player);
 
-        // 连五
+        // ===== 棋型评分 =====
 
-        if(line>=5){
+let patterns = [
+    ["011110",100000], // 活四
+    ["01110",10000],   // 活三
+    ["001110",8000],   // 活三变形
+    ["0110",2000],     // 活二
+];
 
-            score += 100000;
+
+let str = "";
+
+// 四个方向检测
+
+for(let d of dirs){
+
+    let temp = "";
+
+    for(let k=-4;k<=4;k++){
+
+        let nx=x+d[0]*k;
+        let ny=y+d[1]*k;
+
+
+        if(
+        nx<0 ||
+        nx>=15 ||
+        ny<0 ||
+        ny>=15
+        ){
+
+            temp += "2";
+
+        }
+        else if(board[nx][ny]==player){
+
+            temp += "1";
+
+        }
+        else if(board[nx][ny]==0){
+
+            temp += "0";
+
+        }
+        else{
+
+            temp += "2";
 
         }
 
-        // 活四/冲四
+    }
 
-        else if(line==4){
 
-            score += 10000;
+    for(let p of patterns){
 
-        }
+        if(temp.includes(p[0])){
 
-        // 三连
-
-        else if(line==3){
-
-            score += 1000;
+            score += p[1];
 
         }
 
-        // 二连
+    }
 
-        else if(line==2){
+}
 
-            score += 100;
+// ===== 棋型奖励 =====
 
-        }
+// 当前方向两边空间数量
+
+let open1 = 0;
+let open2 = 0;
+
+
+let nx=x+d[0];
+let ny=y+d[1];
+
+while(
+nx>=0 &&
+nx<15 &&
+ny>=0 &&
+ny<15 &&
+board[nx][ny]==0
+){
+
+open1++;
+
+nx+=d[0];
+ny+=d[1];
+
+}
+
+
+nx=x-d[0];
+ny=y-d[1];
+
+while(
+nx>=0 &&
+nx<15 &&
+ny>=0 &&
+ny<15 &&
+board[nx][ny]==0
+){
+
+open2++;
+
+nx-=d[0];
+ny-=d[1];
+
+}
+
+
+// 活三
+
+if(line==3 && open1>0 && open2>0){
+
+    score += 5000;
+
+}
+
+
+// 活四
+
+if(line==4 && open1>0 && open2>0){
+
+    score += 50000;
+
+}
+
+
+// 冲四
+
+if(line==4 && (open1>0 || open2>0)){
+
+    score += 10000;
+
+}
 
     }
 
@@ -696,33 +823,71 @@ function evaluatePoint(x,y,player){
 
 }
 
-// ===== Minimax一层搜索 =====
+// ===== AI搜索未来一步 =====
 
 function minimaxScore(x,y){
 
 
-    // AI尝试落子
+    // AI落子
 
     board[x][y]=2;
+
+
+    // 如果AI直接赢
+
+    if(checkWin(x,y,2)){
+
+        board[x][y]=0;
+
+        return 999999;
+
+    }
+
 
 
     let worst=999999;
 
 
-    // 模拟玩家下一步
 
-    for(let i=0;i<15;i++){
+    // 搜索玩家可能的反击
 
-        for(let j=0;j<15;j++){
+    for(let i=x-2;i<=x+2;i++){
+
+        for(let j=y-2;j<=y+2;j++){
 
 
-            if(board[i][j]==0){
+            if(
 
+            i>=0 &&
+
+            i<15 &&
+
+            j>=0 &&
+
+            j<15 &&
+
+            board[i][j]==0
+
+            ){
+
+
+                // 玩家落子
 
                 board[i][j]=1;
 
 
                 let score=evaluatePoint(i,j,1);
+
+
+
+                // 玩家能赢，危险
+
+                if(checkWin(i,j,1)){
+
+                    score=999999;
+
+                }
+
 
 
                 if(score<worst){
@@ -734,12 +899,13 @@ function minimaxScore(x,y){
 
                 board[i][j]=0;
 
-
             }
+
 
         }
 
     }
+
 
 
     // 恢复
@@ -748,7 +914,7 @@ function minimaxScore(x,y){
 
 
 
-    // 自己攻击价值 - 对方威胁
+    // 自己进攻 - 对手威胁
 
     return evaluatePoint(x,y,2)-worst;
 
