@@ -209,6 +209,13 @@ AI模式
 
 </button>
 
+<button onclick="toggleAIFirst()">
+
+AI先手：关闭
+
+</button>
+
+
 <p id="info">
 
 黑棋先手
@@ -238,7 +245,7 @@ let turn = 1; // 1黑棋 2白棋
 
 let mode = "player";
 
-let gameEnd = false;
+let aiFirst = false;
 
 let aiStartTime = 0;
 
@@ -434,6 +441,9 @@ aiStartTime = Date.now();
     let bestScore = -999999;
     let bestMove = null;
 
+    if(board[7][7]==0 && getCandidateMoves().length==1){
+    return [7,7];
+}
 
     for(let i=0;i<15;i++){
 
@@ -758,7 +768,6 @@ if(searchMove){
     play(searchMove[0],searchMove[1]);
 
     return;
-
 }
 
 // ===== 5. 评分选择最佳位置 =====
@@ -1518,8 +1527,57 @@ function countLine(x,y,dx,dy,p){
 
 }
 
+// ===== 切换AI先手 =====
+
+function toggleAIFirst(){
+
+    aiFirst = !aiFirst;
 
 
+    event.target.innerHTML =
+    aiFirst ?
+
+    "AI先手：开启"
+
+    :
+
+    "AI先手：关闭";
+  
+    restart();
+
+}
+
+// ===== AI先手模式 =====
+// 点击按钮后，让AI直接开始下第一步
+
+function startAIFirst(){
+
+    // 设置为普通AI模式
+    mode="ai";
+
+
+    // 修改顶部模式显示
+    document.getElementById("mode").innerHTML =
+    "当前模式：AI先手";
+
+
+    // 重新开始棋局
+    restart();
+
+
+    // 设置回合为AI（白棋）
+    turn=2;
+
+
+    // 显示AI思考提示
+    document.getElementById("info").innerHTML =
+    "🤖 AI思考中...";
+
+
+    // 延迟500毫秒，让玩家看到提示
+    setTimeout(aiMove,500);
+
+}
 
 // ===== 模式 =====
 
@@ -1558,19 +1616,44 @@ function setMode(m){
 
 function restart(){
 
-
     turn=1;
 
     gameEnd=false;
 
 
-    document.getElementById("info").innerHTML=
-
-    "黑棋先手";
-
-
     createBoard();
 
+
+    if(aiFirst && mode!="player"){
+
+        turn=2;
+
+
+        document.getElementById("info").innerHTML =
+        "🤖 AI先手思考中...";
+
+
+        if(mode=="ai"){
+
+            setTimeout(aiMove,500);
+
+        }
+
+
+        if(mode=="pro"){
+
+            setTimeout(proAIMove,500);
+
+        }
+
+
+    }
+    else{
+
+        document.getElementById("info").innerHTML =
+        "黑棋先手";
+
+    }
 
 }
 
