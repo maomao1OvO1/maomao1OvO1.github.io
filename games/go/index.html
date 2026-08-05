@@ -249,6 +249,10 @@ if(localStorage.getItem("theme") === "dark"){
 
 let board=document.querySelector(".board");
 
+let kataWorker = null;
+
+let aiThinking = false;
+
 
 // ===== 围棋数据 =====
 
@@ -261,6 +265,8 @@ let previousBoard=[];
 let boardHistory=[];
 
 let koPosition=null;
+
+let moveHistory=[];
 
 // 创建19×19空棋盘
 
@@ -307,35 +313,81 @@ for(let i=0;i<19*19;i++){
 
     else if(mode=="普通AI"){
 
-        playMove(x,y);
+    let before=copyBoard();
 
-        setTimeout(()=>{
+    playMove(x,y);
 
-            simpleAI();
 
-        },500);
+    // 检查玩家是否真的落子成功
+    if(sameBoard(before,boardData)){
+
+        return;
 
     }
+
+
+    aiThinking=true;
+
+
+    setTimeout(()=>{
+
+        simpleAI();
+
+        aiThinking=false;
+
+    },500);
+
+}
 
     else if(mode=="最强AI"){
 
-        playMove(x,y);
-
-        setTimeout(()=>{
-
-            askKataGo();
-
-        },500);
-
+    if(aiThinking){
+        return;
     }
+
+    playMove(x,y);
+
+    aiThinking=true;
+
+    setTimeout(()=>{
+
+        askKataGo();
+
+    },500);
+
+
+    setTimeout(()=>{
+
+        if(aiThinking){
+
+            aiThinking=false;
+
+            document.getElementById("status").innerHTML=
+            "⚠️ KataGo超时";
+
+        }
+
+    },8000);
+
+}
 
 };
 
+
+    cells.push(cell);
+
+    board.appendChild(cell);
+
+}
+
 function askKataGo(){
+
+document.getElementById("status").innerHTML="正在让KataGo思考...";
 
     kataWorker.postMessage({
 
         type:"katago:analyze",
+
         id:Date.now(),
 
         board:boardData.map(row=>
@@ -346,10 +398,9 @@ function askKataGo(){
             })
         ),
 
-        currentPlayer:
-            turn=="black"?"black":"white",
+        currentPlayer:"white",
 
-        moveHistory:[],
+        moveHistory:moveHistory,
 
         komi:7.5,
 
@@ -363,20 +414,12 @@ function askKataGo(){
         modelUrl:
         "/games/go/katago-test/models/katago-small.bin.gz",
 
-        visits:100,
-        maxTimeMs:3000
+        visits:1000,
+        maxTimeMs:5000
 
     });
 
 }
-
-    cells.push(cell);
-
-    board.appendChild(cell);
-
-}
-
-
 
 // 模式选择
 
@@ -388,15 +431,43 @@ let passCount=0;
 
 let confirmScore=false;
 
-let kataWorker = null;
+function aiPlayMove(x,y){
+
+    console.log("AI准备落子",x,y);
+
+    if(boardData[x][y]!=0){
+
+        document.getElementById("status").innerHTML =
+        "AI位置被占";
+
+        aiThinking=false;
+
+        return;
+    }
+
+
+    playMove(x,y);
+
+
+    aiThinking=false;
+
+
+    document.getElementById("status").innerHTML =
+    "黑棋回合";
+
+}
 
 function loadKataGo(){
 
     if(kataWorker){
+
         document.getElementById("status").innerHTML =
         "🔥 KataGo已加载";
+
         return;
+
     }
+
 
     kataWorker = new Worker(
         "/games/go/katago-test/assets/worker-DzsLrmAN.js",
@@ -406,14 +477,25 @@ function loadKataGo(){
 
     kataWorker.onmessage = function(e){
 
+
+        
+document.getElementById("status").innerHTML =
+        "收到消息：" + e.data.type;
+
+
+
+        // AI初始化完成
+
         if(e.data.type=="katago:init_result"){
+
 
             if(e.data.ok){
 
                 document.getElementById("status").innerHTML =
                 "🔥 KataGo就绪";
 
-            }else{
+            }
+            else{
 
                 document.getElementById("status").innerHTML =
                 "KataGo加载失败";
@@ -422,17 +504,45 @@ function loadKataGo(){
 
         }
 
+
+
+        // AI返回棋步
+
         if(e.data.type=="katago:analyze_result"){
 
-    let move=e.data.analysis.moves[0];
 
-    if(move){
-        playMove(move.x,move.y);
-    }
+            if(e.data.analysis){
 
-}
+
+                let move=e.data.analysis.moves[0];
+
+
+                if(move){
+
+
+                    aiThinking=false;
+
+
+                    document.getElementById("status").innerHTML =
+                    "AI落子："+move.x+","+move.y;
+
+
+                    aiPlayMove(
+                        move.y,
+                        move.x
+                    );
+
+
+                }
+
+            }
+
+
+        }
+
 
     };
+
 
 
     kataWorker.postMessage({
@@ -444,6 +554,7 @@ function loadKataGo(){
 
     });
 
+
 }
 
 function startGame(selectMode){
@@ -454,9 +565,10 @@ function startGame(selectMode){
     if(mode=="双人模式"){
 
         document.getElementById("status").innerHTML =
-"当前模式：双人模式，黑棋回合";
+        "当前模式：双人模式，黑棋回合";
 
-}
+    }
+
 
     else if(mode=="普通AI"){
 
@@ -468,13 +580,12 @@ function startGame(selectMode){
 
     else if(mode=="最强AI"){
 
-    document.getElementById("status").innerHTML =
-    "🔥 KataGo准备中...";
+        document.getElementById("status").innerHTML =
+        "🔥 KataGo准备中...";
 
+        loadKataGo();
 
-    loadKataGo();
-
-}
+    }
 
 }
 
@@ -579,6 +690,8 @@ previousBoard=[];
 backupBoard=[];
 
 boardHistory=[];
+
+moveHistory=[];
 
 drawBoard();
 
@@ -1464,6 +1577,8 @@ for(let d of directions){
 
 // ===== 完整劫判断 =====
 
+/*
+
 for(let oldBoard of boardHistory){
 
     if(sameBoard(boardData,oldBoard)){
@@ -1484,6 +1599,8 @@ for(let oldBoard of boardHistory){
     }
 
 }
+
+*/
 
 drawBoard();
 
@@ -1542,6 +1659,12 @@ if(!selfAlive){
      previousBoard=copyBoard();
 
 boardHistory.push(copyBoard());
+
+moveHistory.push({
+    x:x,
+    y:y,
+    color:color
+});
 
 }
 
