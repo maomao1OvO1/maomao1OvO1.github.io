@@ -328,6 +328,8 @@ for(let i=0;i<19*19;i++){
 
     aiThinking=true;
 
+     document.getElementById("status").innerHTML =
+"🤖 普通AI思考中...";
 
     setTimeout(()=>{
 
@@ -382,7 +384,7 @@ for(let i=0;i<19*19;i++){
 
 function askKataGo(){
 
-document.getElementById("status").innerHTML="正在让KataGo思考...";
+document.getElementById("status").innerHTML="🤖 KataGo AI思考中...";
 
     kataWorker.postMessage({
 
