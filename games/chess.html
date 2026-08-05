@@ -265,6 +265,10 @@ if(localStorage.getItem("theme") === "dark"){
 Stockfish AI
 </button>
 
+<button onclick="toggleAIFirst()">
+AI先手：关闭
+</button>
+
 <p id="info">
 
 白方回合
@@ -334,6 +338,10 @@ let turn = "white";
 
 let mode = "player";
 
+// AI先手
+
+let aiFirst = false;
+
 // ===== Stockfish AI =====
 
 let stockfish = null;
@@ -388,6 +396,8 @@ function setMode(m){
     "Stockfish AI模式";
 
     initStockfish();
+
+    aiFirst=false;
 
 }
 
@@ -488,6 +498,27 @@ const startBoard = [
 
 ];
 
+// ===== AI先手切换 =====
+
+function toggleAIFirst(){
+
+    aiFirst = !aiFirst;
+
+
+    event.target.innerHTML =
+    aiFirst ?
+
+    "AI先手：开启"
+
+    :
+
+    "AI先手：关闭";
+
+
+    restart();
+
+}
+
 // ===== 开始游戏 =====
 
 function restart(){
@@ -526,11 +557,37 @@ function restart(){
 
     document.getElementById("info").innerHTML=
 
-    "白方回合";
+"白方回合";
 
 
-    draw();
+draw();
 
+// ===== AI先手 =====
+
+if(aiFirst && mode!="player"){
+
+    document.getElementById("info").innerHTML =
+    "🤖 AI先手思考中...";
+
+
+    if(mode=="normal"){
+
+    turn="black";
+
+    setTimeout(aiMove,500);
+
+}
+
+
+    if(mode=="stockfish"){
+
+        turn="black";
+
+        setTimeout(stockfishMove,500);
+
+    }
+
+}
 
 }
 
@@ -793,6 +850,8 @@ if(turn=="black"){
 
 
     if(mode=="normal"){
+
+     console.log("AI启动 当前回合:",turn);
 
      document.getElementById("info").innerHTML =
     "🤖 普通AI思考中...";
@@ -2462,7 +2521,6 @@ function stockfishMove(){
 
 }
 
-
 // ===== 简单AI =====
 
 function aiMove(){
@@ -2527,9 +2585,9 @@ function aiMove(){
 
     console.log("AI没有找到走法");
 
-        return;
+    return;
 
-    }
+}
 
 
 
