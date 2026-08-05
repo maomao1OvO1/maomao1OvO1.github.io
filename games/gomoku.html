@@ -356,12 +356,17 @@ function play(x,y){
 
     if(mode=="ai" && turn==2){
 
+     document.getElementById("info").innerHTML =
+    "🤖 普通AI思考中...";
 
         setTimeout(aiMove,500);
 
 
     }
    if(mode=="pro" && turn==2){
+
+    document.getElementById("info").innerHTML =
+    "🔥 职业AI思考中...";
 
     setTimeout(proAIMove,500);
 
