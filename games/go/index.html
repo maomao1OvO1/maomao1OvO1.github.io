@@ -234,6 +234,10 @@ if(localStorage.getItem("theme") === "dark"){
 🔥 最强AI
 </button>
 
+<button onclick="toggleAIFirst()">
+AI先手：关闭
+</button>
+
 </div>
 
 <button onclick="restartGame()">
@@ -384,7 +388,17 @@ for(let i=0;i<19*19;i++){
 
 function askKataGo(){
 
-document.getElementById("status").innerHTML="🤖 KataGo AI思考中...";
+    if(!kataWorker){
+
+        document.getElementById("status").innerHTML =
+        "KataGo还未加载";
+
+        return;
+
+    }
+
+    document.getElementById("status").innerHTML =
+    "🤖 KataGo AI思考中...";
 
     kataWorker.postMessage({
 
@@ -400,7 +414,7 @@ document.getElementById("status").innerHTML="🤖 KataGo AI思考中...";
             })
         ),
 
-        currentPlayer:"white",
+        currentPlayer:"black",
 
         moveHistory:moveHistory,
 
@@ -426,6 +440,9 @@ document.getElementById("status").innerHTML="🤖 KataGo AI思考中...";
 // 模式选择
 
 let mode="";
+
+// AI先手
+let aiFirst=false;
 
 let gameOver=false;
 
@@ -455,7 +472,7 @@ function aiPlayMove(x,y){
 
 
     document.getElementById("status").innerHTML =
-    "黑棋回合";
+    "白棋回合";
 
 }
 
@@ -556,6 +573,25 @@ document.getElementById("status").innerHTML =
 
     });
 
+
+}
+
+function toggleAIFirst(){
+
+    aiFirst = !aiFirst;
+
+
+    event.target.innerHTML =
+    aiFirst ?
+
+    "AI先手：开启"
+
+    :
+
+    "AI先手：关闭";
+
+
+    restartGame();
 
 }
 
@@ -701,11 +737,50 @@ drawBoard();
     document.getElementById("status").innerHTML=
     "等待开始";
 
+
+// ===== AI先手 =====
+
+if(aiFirst && mode!="双人模式"){
+
+    document.getElementById("status").innerHTML =
+    "🤖 AI先手思考中...";
+
+
+    setTimeout(()=>{
+
+        if(mode=="普通AI"){
+
+            simpleAI();
+
+        }
+
+
+        if(mode=="最强AI"){
+
+    if(kataWorker){
+
+        askKataGo();
+
+    }
+    else{
+
+        loadKataGo();
+
+        setTimeout(()=>{
+
+            askKataGo();
+
+        },1500);
+
+    }
+
 }
 
+    },500);
 
+}
 
-    
+}    
 
 function hasLiberty(x,y){
 
