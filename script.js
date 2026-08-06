@@ -29,6 +29,81 @@ let songNames = [
 
 let index = 0;
 
+// ===== 生成歌曲列表 =====
+
+function createPlaylist(){
+
+    let playlist =
+    document.getElementById("playlist");
+
+
+    if(!playlist) return;
+
+
+    playlist.innerHTML = "";
+
+
+    songs.forEach(function(song, i){
+
+
+        let button =
+        document.createElement("button");
+
+
+        button.innerHTML =
+        (i + 1) + ". " + songNames[i];
+
+
+        button.onclick = function(){
+
+
+            index = i;
+
+            loadSong();
+
+            audio.play();
+
+
+        };
+
+
+        playlist.appendChild(button);
+
+
+    });
+
+}
+
+// ===== 打开/关闭歌曲列表弹窗 =====
+
+function togglePlaylist(){
+
+    let playlistWindow =
+    document.getElementById("playlist-window");
+
+    let mask =
+    document.getElementById("playlist-mask");
+
+
+    if(!playlistWindow || !mask) return;
+
+
+    if(playlistWindow.style.display == "block"){
+
+        playlistWindow.style.display = "none";
+
+        mask.style.display = "none";
+
+
+    }else{
+
+        playlistWindow.style.display = "block";
+
+        mask.style.display = "block";
+
+    }
+
+}
 
 // 创建播放器
 
@@ -483,12 +558,11 @@ if(volumeBar){
 
 
 
-
 // 初始化
 
 loadSong();
 
-
+createPlaylist();
 
 // ===== 深色模式 =====
 

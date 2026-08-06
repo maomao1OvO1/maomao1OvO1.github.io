@@ -7,7 +7,7 @@
 
 <title>毛毛的个人主页</title>
 
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 
 </head>
 
@@ -175,6 +175,26 @@ value="1"
 🔁
 </button>
 
+<button onclick="togglePlaylist()">
+🎵 歌曲列表
+</button>
+
+
+</div>
+
+<!-- 歌曲列表弹窗 -->
+
+<div id="playlist-mask"></div>
+
+<div id="playlist-window">
+
+    <h3>🎵 歌曲列表</h3>
+
+    <div id="playlist"></div>
+
+    <button onclick="togglePlaylist()">
+        关闭
+    </button>
 
 </div>
 
@@ -303,7 +323,7 @@ updateTime();
 
 <!-- ===== 功能脚本 ===== -->  
   
-<script src="./script.js?v=2"></script>  
+<script src="./script.js?v=4"></script>  
 
 </body>
 
