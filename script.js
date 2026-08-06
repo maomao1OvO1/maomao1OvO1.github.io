@@ -1,27 +1,27 @@
 // ===== 音乐文件列表 =====
 
 let songs = [
-    "music/暧昧游戏.mp3",
+    "music/所有③分熟的地球煎蛋.mp3",
     "music/dw.mp3",
-    "music/所有③分熟的地球煎蛋.mp3"
+    "music/暧昧游戏.mp3"
 ];
 
 
 // ===== 音乐封面列表 =====
 
 let covers = [
-    "images/FLXE-001.jpg",
+    "images/xiongzi.jpg",
     "images/kg_1785435965413.jpg",
-    "images/xiongzi.jpg"
+    "images/FLXE-001.jpg"
 ];
 
 
 // ===== 歌曲名称列表 =====
 
 let songNames = [
-    "暧昧游戏",
+    "所有③分熟的地球煎蛋",
     "LLABB、小野道ono - D.W.U",
-    "所有③分熟的地球煎蛋"
+    "暧昧游戏"
 ];
 
 
