@@ -464,6 +464,8 @@ let cells=[];
 
 let turn="black";
 
+let playerColor = "black"; // 玩家执黑或白（非双人模式）
+
 let index=0;
 
 
@@ -480,6 +482,11 @@ for(let i=0;i<19*19;i++){
     cell.className="cell";
 
     cell.onclick=function(){
+
+    // ---- 新增：非双人模式下，只有玩家回合才能点击 ----
+    if (mode !== "双人模式" && turn !== playerColor) {
+        return;
+    }
 
     if(mode=="双人模式"){
 
@@ -911,6 +918,17 @@ function restartGame(){
 
     drawBoard();
 
+
+    // ---- 新增：设置玩家颜色 ----
+    if (mode !== "双人模式") {
+        if (aiFirst) {
+            playerColor = "white";  // AI先手黑，玩家白
+        } else {
+            playerColor = "black";  // 玩家先手黑
+        }
+    } else {
+        playerColor = null; // 双人模式不限
+    }
 
     document.getElementById("status").innerHTML=
     "等待开始";
@@ -1864,5 +1882,3 @@ startGame('双人模式');
 <script src="katago-ai.js"></script>
 
 </body>
-
-</html>
