@@ -154,6 +154,19 @@ body.dark-mode .cell{
 
 }
 
+/* ===== 统计显示 ===== */
+#stats{
+    margin:15px auto;
+    padding:10px;
+    font-size:18px;
+    background:rgba(255,255,255,0.1);
+    border-radius:10px;
+    display:inline-block;
+}
+.dark-mode #stats{
+    background:rgba(255,255,255,0.05);
+}
+
 /* ===== 国际象棋坐标 ===== */
 
 .letters{
@@ -265,7 +278,7 @@ if(localStorage.getItem("theme") === "dark"){
 Stockfish AI
 </button>
 
-<button onclick="toggleAIFirst()">
+<button onclick="toggleAIFirst(this)">
 AI先手：关闭
 </button>
 
@@ -275,6 +288,13 @@ AI先手：关闭
 
 </p>
 
+<!-- 胜利统计显示区域 -->
+<div id="stats"></div>
+
+<!-- 重置统计按钮 -->
+<button onclick="resetStats()" style="background:#ffcccb;color:#a00;">
+🔄 重置统计
+</button>
 
 <div class="chess-wrapper">
 
@@ -317,7 +337,8 @@ AI先手：关闭
 
 </button>
 
-<script src="stockfish/stockfish-18.js"></script>
+<!-- 暂时注释掉 Stockfish，避免外部加载失败影响棋盘 -->
+<!-- <script src="stockfish/stockfish-18.js"></script> -->
 
 <script>
 
@@ -409,6 +430,76 @@ function setMode(m){
 
     }
 
+// 切换模式时更新统计显示
+updateStatsDisplay();
+
+}
+
+// =====================================================
+// ===== 胜场统计功能 =====
+// =====================================================
+
+const STATS_KEY = 'chess_stats';
+
+function defaultStats() {
+    return {
+        player: { whiteWins: 0, blackWins: 0 },
+        normal: { whiteWins: 0, blackWins: 0 },
+        stockfish: { whiteWins: 0, blackWins: 0 }
+    };
+}
+
+function loadStats() {
+    let data = localStorage.getItem(STATS_KEY);
+    if (data) {
+        try {
+            let parsed = JSON.parse(data);
+            let def = defaultStats();
+            for (let mode in def) {
+                if (!parsed[mode]) parsed[mode] = def[mode];
+                if (typeof parsed[mode].whiteWins !== 'number') parsed[mode].whiteWins = 0;
+                if (typeof parsed[mode].blackWins !== 'number') parsed[mode].blackWins = 0;
+            }
+            return parsed;
+        } catch(e) {
+            return defaultStats();
+        }
+    }
+    return defaultStats();
+}
+
+function saveStats(stats) {
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
+
+function recordWin(winner) {
+    let stats = loadStats();
+    if (stats[mode]) {
+        if (winner === 'white') stats[mode].whiteWins++;
+        else if (winner === 'black') stats[mode].blackWins++;
+        saveStats(stats);
+    }
+}
+
+function updateStatsDisplay() {
+    let stats = loadStats();
+    let modeStats = stats[mode] || { whiteWins: 0, blackWins: 0 };
+    let total = modeStats.whiteWins + modeStats.blackWins;
+    let modeName = {
+        'player': '双人模式',
+        'normal': '普通AI',
+        'stockfish': '高级AI'
+    }[mode] || mode;
+    document.getElementById('stats').innerHTML =
+        `${modeName}：白方 ${modeStats.whiteWins} 胜 &nbsp;|&nbsp; 黑方 ${modeStats.blackWins} 胜 &nbsp;|&nbsp; 总胜场 ${total}`;
+}
+
+function resetStats() {
+    if (confirm('确定要重置所有模式的胜场统计吗？')) {
+        saveStats(defaultStats());
+        updateStatsDisplay();
+        alert('统计已重置！');
+    }
 }
 
 // ===== Stockfish测试走棋 =====
@@ -500,20 +591,11 @@ const startBoard = [
 
 // ===== AI先手切换 =====
 
-function toggleAIFirst(){
+function toggleAIFirst(btn){
 
     aiFirst = !aiFirst;
 
-
-    event.target.innerHTML =
-    aiFirst ?
-
-    "AI先手：开启"
-
-    :
-
-    "AI先手：关闭";
-
+    btn.innerHTML = aiFirst ? "AI先手：开启" : "AI先手：关闭";
 
     restart();
 
@@ -588,6 +670,8 @@ if(aiFirst && mode!="player"){
     }
 
 }
+
+updateStatsDisplay();
 
 }
 
@@ -942,18 +1026,18 @@ if(check()){
         if(turn=="white"){
 
 
-            alert(
-            "♟ 黑棋胜利！\n白方被将死！"
-            );
+            alert("♟ 黑棋胜利！\n白方被将死！");
+            recordWin("black");
+            updateStatsDisplay();
 
 
         }
         else{
 
 
-            alert(
-            "♙ 白棋胜利！\n黑方被将死！"
-            );
+            alert("♙ 白棋胜利！\n黑方被将死！");
+            recordWin("white");
+            updateStatsDisplay();
 
 
         }
@@ -2634,6 +2718,7 @@ draw();
 
 }
 
+updateStatsDisplay();
 
 </script>
 
