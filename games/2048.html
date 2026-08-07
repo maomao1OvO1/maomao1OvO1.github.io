@@ -16,6 +16,8 @@ body {
 
     font-family: Arial;
 
+    user-select: none; /* 防止滑动时选中文字 */
+
 }
 
 
@@ -41,6 +43,8 @@ body {
 
     font-size: 16px;
 
+    z-index: 10;
+
 }
 
 
@@ -62,6 +66,8 @@ body {
     padding: 10px;
 
     border-radius: 20px;
+
+    touch-action: none; /* 禁止浏览器默认触摸行为 */
 
 }
 
@@ -86,6 +92,8 @@ body {
     align-items: center;
 
     font-weight: bold;
+
+    transition: background 0.1s;
 
 }
 
@@ -285,7 +293,6 @@ function checkWin() {
     for (let i=0;i<4;i++) {
         for (let j=0;j<4;j++) {
             if (board[i][j] === 2048) {
-                // 记录胜利次数
                 let stats = loadStats();
                 stats.winCount++;
                 saveStats(stats);
@@ -326,12 +333,31 @@ function startGame(){
 
 
     update();
-    updateStatsDisplay(); // 显示统计
+    updateStatsDisplay();
 
 }
 
-
-
+// ===== 数字颜色配置 =====
+function getCellStyle(value) {
+    // 背景色
+    const colors = {
+        2: '#eee4da',
+        4: '#ede0c8',
+        8: '#f2b179',
+        16: '#f59563',
+        32: '#f67c5f',
+        64: '#f65e3b',
+        128: '#edcf72',
+        256: '#edcc61',
+        512: '#edc850',
+        1024: '#edc53f',
+        2048: '#edc22e',
+    };
+    // 文字颜色（数值大于4用白色）
+    let textColor = (value > 4) ? 'white' : '#776e65';
+    let bg = colors[value] || '#3c3a32'; // 未知数值用深灰
+    return { background: bg, color: textColor };
+}
 
 // ===== 刷新画面 =====
 
@@ -359,14 +385,17 @@ function update(){
 
             cell.className="cell";
 
+            let val = board[i][j];
 
-
-            if(board[i][j]!=0){
-
-
-                cell.innerHTML=board[i][j];
-
-
+            if(val!=0){
+                cell.innerHTML=val;
+                // 应用颜色
+                let style = getCellStyle(val);
+                cell.style.backgroundColor = style.background;
+                cell.style.color = style.color;
+            } else {
+                cell.style.backgroundColor = '#cdc1b4'; // 空格颜色
+                cell.innerHTML = '';
             }
 
 
@@ -631,7 +660,6 @@ function moveDown(){
 function checkGameOver(){
 
     if(gameOver()){
-        // 更新最高分
         let stats = loadStats();
         if (score > stats.highScore) {
             stats.highScore = score;
@@ -684,6 +712,41 @@ document.addEventListener("keydown",function(e){
 
 });
 
+
+// ===== 触屏滑动控制（仅限游戏区域） =====
+const gameElement = document.getElementById('game');
+let touchStartX = 0, touchStartY = 0;
+
+gameElement.addEventListener('touchstart', function(e) {
+    let touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+}, { passive: true });
+
+gameElement.addEventListener('touchmove', function(e) {
+    e.preventDefault(); // 阻止页面滚动
+}, { passive: false });
+
+gameElement.addEventListener('touchend', function(e) {
+    if (touchStartX === 0 && touchStartY === 0) return;
+    let touchEnd = e.changedTouches[0];
+    let deltaX = touchEnd.clientX - touchStartX;
+    let deltaY = touchEnd.clientY - touchStartY;
+
+    // 至少滑动30px才触发
+    if (Math.abs(deltaX) < 30 && Math.abs(deltaY) < 30) return;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX > 0) moveRight();
+        else moveLeft();
+    } else {
+        if (deltaY > 0) moveDown();
+        else moveUp();
+    }
+
+    touchStartX = 0;
+    touchStartY = 0;
+}, { passive: true });
 
 
 
