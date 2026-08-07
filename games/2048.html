@@ -49,7 +49,7 @@ body {
 
     width: 320px;
 
-    margin: 40px auto;
+    margin: 20px auto;
 
     display: grid;
 
@@ -137,6 +137,19 @@ body.dark-mode{
 
 }
 
+/* ===== 统计显示 ===== */
+#stats{
+    margin:15px auto;
+    padding:10px;
+    font-size:18px;
+    background:rgba(255,255,255,0.1);
+    border-radius:10px;
+    display:inline-block;
+}
+.dark-mode #stats{
+    background:rgba(255,255,255,0.05);
+}
+
 </style>
 
 
@@ -174,7 +187,12 @@ if(localStorage.getItem("theme") === "dark"){
 
 </p>
 
-
+<!-- 统计显示区域 -->
+<div id="stats"></div>
+<!-- 重置统计按钮 -->
+<button onclick="resetStats()" style="background:#ffcccb;color:#a00;width:auto;height:auto;padding:8px 16px;font-size:14px;">
+🔄 重置统计
+</button>
 
 <div id="game"></div>
 
@@ -220,7 +238,65 @@ let board;
 
 let score;
 
+let gameEnd = false; // 用于防止重复触发结束
 
+// ===== 统计功能 =====
+const STATS_KEY = 'game2048_stats';
+
+function defaultStats() {
+    return { highScore: 0, winCount: 0 };
+}
+
+function loadStats() {
+    let data = localStorage.getItem(STATS_KEY);
+    if (data) {
+        try {
+            let parsed = JSON.parse(data);
+            if (typeof parsed.highScore !== 'number') parsed.highScore = 0;
+            if (typeof parsed.winCount !== 'number') parsed.winCount = 0;
+            return parsed;
+        } catch(e) {
+            return defaultStats();
+        }
+    }
+    return defaultStats();
+}
+
+function saveStats(stats) {
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
+
+function updateStatsDisplay() {
+    let stats = loadStats();
+    document.getElementById('stats').innerHTML =
+        `🏆 最高分：${stats.highScore} &nbsp;|&nbsp; 🎉 达到2048次数：${stats.winCount}`;
+}
+
+function resetStats() {
+    if (confirm('确定要重置2048的统计吗？')) {
+        saveStats(defaultStats());
+        updateStatsDisplay();
+        alert('统计已重置！');
+    }
+}
+
+// ===== 检查是否达到2048（胜利） =====
+function checkWin() {
+    for (let i=0;i<4;i++) {
+        for (let j=0;j<4;j++) {
+            if (board[i][j] === 2048) {
+                // 记录胜利次数
+                let stats = loadStats();
+                stats.winCount++;
+                saveStats(stats);
+                updateStatsDisplay();
+                alert('🎉 你赢了！已达到2048！');
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 // ===== 开始游戏 =====
 
@@ -241,6 +317,7 @@ function startGame(){
 
 
     score=0;
+    gameEnd = false;
 
 
     addNumber();
@@ -249,7 +326,7 @@ function startGame(){
 
 
     update();
-
+    updateStatsDisplay(); // 显示统计
 
 }
 
@@ -411,6 +488,8 @@ function move(row){
 
 function moveLeft(){
 
+    if (gameEnd) return;
+    let oldBoard = board.map(row => [...row]);
     for(let i=0;i<4;i++){
 
         board[i]=move(board[i]);
@@ -421,8 +500,9 @@ function moveLeft(){
     addNumber();
 
     update();
-
-    checkGameOver();
+    if (!checkWin()) {
+        checkGameOver();
+    }
 
 }
 
@@ -433,6 +513,8 @@ function moveLeft(){
 
 function moveRight(){
 
+    if (gameEnd) return;
+    let oldBoard = board.map(row => [...row]);
     for(let i=0;i<4;i++){
 
         board[i].reverse();
@@ -447,8 +529,9 @@ function moveRight(){
     addNumber();
 
     update();
-
-    checkGameOver();
+    if (!checkWin()) {
+        checkGameOver();
+    }
 
 }
 
@@ -459,6 +542,8 @@ function moveRight(){
 
 function moveUp(){
 
+    if (gameEnd) return;
+    let oldBoard = board.map(row => [...row]);
     for(let j=0;j<4;j++){
 
         let column=[];
@@ -486,8 +571,9 @@ function moveUp(){
     addNumber();
 
     update();
-
-    checkGameOver();
+    if (!checkWin()) {
+        checkGameOver();
+    }
 
 }
 
@@ -498,6 +584,8 @@ function moveUp(){
 
 function moveDown(){
 
+    if (gameEnd) return;
+    let oldBoard = board.map(row => [...row]);
     for(let j=0;j<4;j++){
 
         let column=[];
@@ -529,8 +617,9 @@ function moveDown(){
     addNumber();
 
     update();
-
-    checkGameOver();
+    if (!checkWin()) {
+        checkGameOver();
+    }
 
 }
 
@@ -542,11 +631,18 @@ function moveDown(){
 function checkGameOver(){
 
     if(gameOver()){
-
-        alert("😢 游戏结束，重新开始！");
-
+        // 更新最高分
+        let stats = loadStats();
+        if (score > stats.highScore) {
+            stats.highScore = score;
+            saveStats(stats);
+            updateStatsDisplay();
+            alert(`🎯 新纪录！最高分：${score}`);
+        } else {
+            alert(`😢 游戏结束！当前分数：${score}`);
+        }
+        gameEnd = true;
         restart();
-
     }
 
 }
