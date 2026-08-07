@@ -1720,239 +1720,100 @@ function simpleAI(){
 }
 
 
-function playMove(x,y){
+// ===== 核心修复：无气落子严格检查 =====
 
-    if(gameOver){
+function playMove(x, y) {
 
+    // 游戏已结束或落子位置已有棋子
+    if (gameOver) return;
+    if (boardData[x][y] !== 0) return;
+
+    // 打劫检查
+    if (koPosition && koPosition[0] === x && koPosition[1] === y) {
+        document.getElementById("status").innerHTML = "❌ 打劫，不能立即回吃";
         return;
-
     }
 
+    // 备份棋盘
+    let backup = copyBoard();
+    let color = turn === "black" ? 1 : 2;
 
-    if(boardData[x][y]!=0){
+    // 落子
+    boardData[x][y] = color;
 
-        return;
+    // 提掉对方无气棋子
+    let enemy = color === 1 ? 2 : 1;
+    let dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    let captured = false;
 
-    }
-
-    if(
-    koPosition &&
-    koPosition[0]==x &&
-    koPosition[1]==y
-){
-
-    return;
-
-}
-
-// 新的一手开始，清除旧劫点
-
-koPosition=null;
-
-    // 检查打劫禁着点
-
-    if(koPosition && koPosition[0]==x && koPosition[1]==y){
-
-        document.getElementById("status").innerHTML=
-        "❌ 打劫，不能立即回吃";
-
-        return;
-
-    }
-
-     // 保存落子前棋盘
-
-backupBoard=copyBoard();
-
-    let color = turn=="black" ? 1 : 2;
-
-
-// 保存落子前棋盘
-
-backupBoard=copyBoard();
-
-
-boardData[x][y]=color;
-
-
-
-// 检查周围敌方棋子
-
-let enemy=color==1 ? 2 : 1;
-
-
-let directions=[
-
-    [1,0],
-    [-1,0],
-    [0,1],
-    [0,-1]
-
-];
-
-
-
-for(let d of directions){
-
-    let nx=x+d[0];
-
-    let ny=y+d[1];
-
-
-    if(nx>=0 && nx<19 && ny>=0 && ny<19){
-
-        if(boardData[nx][ny]==enemy){
-
-
-            let group=getGroup(nx,ny);
-
-
-            let alive=false;
-
-
-            for(let stone of group){
-
-                if(hasLiberty(stone[0],stone[1])){
-
-                    alive=true;
-
+    for (let d of dirs) {
+        let nx = x + d[0];
+        let ny = y + d[1];
+        if (nx >= 0 && nx < 19 && ny >= 0 && ny < 19) {
+            if (boardData[nx][ny] === enemy) {
+                let group = getGroup(nx, ny);
+                let alive = false;
+                for (let stone of group) {
+                    if (hasLiberty(stone[0], stone[1])) {
+                        alive = true;
+                        break;
+                    }
                 }
-
+                if (!alive) {
+                    removeGroup(group);
+                    captured = true;
+                }
             }
-
-
-            if(!alive){
-
-                removeGroup(group);
-
-            }
-
-
         }
-
     }
 
-}
+    // 检查自己是否有气（重点）
+    let selfGroup = getGroup(x, y);
+    let selfHasLiberty = false;
+    for (let stone of selfGroup) {
+        if (hasLiberty(stone[0], stone[1])) {
+            selfHasLiberty = true;
+            break;
+        }
+    }
 
-// ===== 完整劫判断 =====
-
-/*
-
-for(let oldBoard of boardHistory){
-
-    if(sameBoard(boardData,oldBoard)){
-
-
-        boardData=backupBoard;
-
-
+    // 如果自己无气，非法落子，恢复棋盘并返回（不切换回合）
+    if (!selfHasLiberty) {
+        boardData = backup;
         drawBoard();
-
-
-        document.getElementById("status").innerHTML=
-        "❌ 劫争，不能回到之前局面";
-
-
+        document.getElementById("status").innerHTML = "❌ 无气，不能落子";
         return;
-
     }
 
-}
-
-*/
-
-drawBoard();
-
-// 检查自己是否无气
-
-let selfGroup=getGroup(x,y);
-
-
-let selfAlive=false;
-
-
-for(let stone of selfGroup){
-
-    if(hasLiberty(stone[0],stone[1])){
-
-        selfAlive=true;
-
-    }
-
-}
-
-
-
-if(!selfAlive){
-
-    boardData=backupBoard;
-
-
+    // 合法落子，更新棋盘（已经放置）
     drawBoard();
 
-
-    document.getElementById("status").innerHTML=
-    "❌ 无气，不能落子";
-
-
-    return;
-
-}
-    if(turn=="black"){
-
-        turn="white";
-
-        document.getElementById("status").innerHTML=
-        "白棋回合";
-
-    }
-    else{
-
-        turn="black";
-
-        document.getElementById("status").innerHTML=
-        "黑棋回合";
-
+    // 切换回合
+    if (turn === "black") {
+        turn = "white";
+        document.getElementById("status").innerHTML = "白棋回合";
+    } else {
+        turn = "black";
+        document.getElementById("status").innerHTML = "黑棋回合";
     }
 
-     previousBoard=copyBoard();
+    // 记录历史（用于劫和全局同形，这里省略完整劫检查）
+    boardHistory.push(copyBoard());
+    moveHistory.push({ x: x, y: y, color: color });
 
-boardHistory.push(copyBoard());
-
-moveHistory.push({
-    x:x,
-    y:y,
-    color:color
-});
-
+    // 如果提子产生了劫点（单颗提子），记录
+    // 但劫点已经在 removeGroup 中设置，但我们的 removeGroup 可能在提子时设置，这里不再额外处理
 }
 
-function removeGroup(group){
-
-    for(let stone of group){
-
-        let x=stone[0];
-
-        let y=stone[1];
-
-
-        boardData[x][y]=0;
-
+function removeGroup(group) {
+    for (let stone of group) {
+        let x = stone[0];
+        let y = stone[1];
+        boardData[x][y] = 0;
     }
-
-
-
-    // 单颗提子，记录劫点
-
-    if(group.length==1){
-
-        koPosition=[
-            group[0][0],
-            group[0][1]
-        ];
-
+    if (group.length === 1) {
+        koPosition = [group[0][0], group[0][1]];
     }
-
 }
 
 
