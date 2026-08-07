@@ -16,6 +16,8 @@ body {
 
     font-family: Arial;
 
+    user-select: none;
+
 }
 
 
@@ -42,31 +44,87 @@ body {
 
     font-size: 16px;
 
+    z-index: 10;
+
+}
+
+
+
+/* ===== 棋盘容器 ===== */
+
+#board-wrapper {
+
+    display: inline-block;
+
+    background: #deb887;
+
+    border-radius: 15px;
+
+    padding: 15px;
+
+    margin: 20px auto;
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+
 }
 
 
 
 #board {
 
-    width:360px;
+    width: 360px;
 
-    height:360px;
+    height: 360px;
 
-    box-sizing:border-box;
+    display: grid;
 
-    margin:30px auto;
+    grid-template-columns: repeat(15, 1fr);
 
-    display:grid;
+    grid-template-rows: repeat(15, 1fr);
 
-    grid-template-columns:repeat(15,1fr);
+    background-color: #deb887; /* 棋盘底色 */
 
-    grid-template-rows:repeat(15,1fr);
+    /* 使用背景渐变绘制网格线，不添加额外边框 */
 
-    background:#deb887;
+    background-image:
 
-    border-radius:15px;
+        /* 竖线：从0到360px，每隔24px一条，线宽1px */
 
-    padding:5px;
+        repeating-linear-gradient(
+
+            to right,
+
+            #5a3d2b 0px,
+
+            #5a3d2b 1px,
+
+            transparent 1px,
+
+            transparent 24px
+
+        ),
+
+        /* 横线：同理 */
+
+        repeating-linear-gradient(
+
+            to bottom,
+
+            #5a3d2b 0px,
+
+            #5a3d2b 1px,
+
+            transparent 1px,
+
+            transparent 24px
+
+        );
+
+    background-size: 100% 100%;
+
+    background-repeat: no-repeat;
+
+    /* 因为每个格子宽24px，线正好在边界，包含边缘线，但不会额外多出边框 */
 
 }
 
@@ -74,43 +132,55 @@ body {
 
 .cell {
 
-    width:100%;
+    width: 100%;
 
-    height:100%;
+    height: 100%;
 
-    border:1px solid #555;
+    box-sizing: border-box;
 
-    box-sizing:border-box;
+    position: relative;
 
-    display:flex;
+    cursor: pointer;
 
-    justify-content:center;
+    display: flex;
 
-    align-items:center;
+    justify-content: center;
 
-    font-size:18px;
+    align-items: center;
 
-    cursor:pointer;
-
-    overflow:hidden;
+    /* 不需要边框，全部由背景绘制 */
 
 }
 
 
 
-.black {
+/* 棋子 */
 
-    color: black;
+.piece {
+
+    width: 80%;
+
+    height: 80%;
+
+    border-radius: 50%;
+
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+
+    pointer-events: none;
 
 }
 
 
 
-.white {
+.black-piece {
 
-    color: white;
+    background: radial-gradient(circle at 35% 35%, #666, #111);
 
-    text-shadow: 0 0 2px black;
+}
+
+.white-piece {
+
+    background: radial-gradient(circle at 35% 35%, #f0f0f0, #ccc);
 
 }
 
@@ -142,12 +212,37 @@ body.dark-mode{
 
 }
 
-
 .dark-mode button{
 
     background:#333;
 
     color:white;
+
+}
+
+/* ===== 统计显示（背景透明） ===== */
+
+#stats{
+
+    display: block;
+
+    width: 100%;
+
+    text-align: center;
+
+    clear: both;
+
+    margin: 15px auto;
+
+    padding: 10px;
+
+    font-size: 18px;
+
+    background: transparent;
+
+    border-radius: 10px;
+
+    box-sizing: border-box;
 
 }
 
@@ -182,70 +277,176 @@ if(localStorage.getItem("theme") === "dark"){
 <h1>⚫ 五子棋</h1>
 
 
-<p id="mode">
-
-当前模式：双人
-
-</p>
+<p id="mode">当前模式：双人</p>
 
 
 
-<button onclick="setMode('player')">
+<!-- 模式选择按钮 -->
 
-双人模式
+<button onclick="setMode('player')">双人模式</button>
 
-</button>
+<button onclick="setMode('ai')">普通AI</button>
+
+<button onclick="setMode('pro')">职业AI</button>
+
+<button onclick="toggleAIFirst(this)">AI先手：关闭</button>
 
 
-<button onclick="setMode('ai')">
+<p id="info">黑棋先手</p>
 
-AI模式
 
-</button>
+<!-- 统计显示区域 -->
 
-<button onclick="setMode('pro')">
+<div id="stats"></div>
 
-职业AI
+<!-- 重置统计按钮 -->
 
-</button>
+<button onclick="resetStats()" style="background:#ffcccb;color:#a00;width:auto;height:auto;padding:8px 16px;font-size:14px;">
 
-<button onclick="toggleAIFirst()">
-
-AI先手：关闭
+🔄 重置统计
 
 </button>
 
 
-<p id="info">
+<div id="board-wrapper">
 
-黑棋先手
+    <div id="board"></div>
 
-</p>
-
-
-
-<div id="board"></div>
+</div>
 
 
 
-<button onclick="restart()">
-
-重新开始
-
-</button>
+<button onclick="restart()">重新开始</button>
 
 <script src="proAI.js"></script>
 
 <script>
 
+// ============================================================
+
+// 五子棋完整逻辑（背景网格 + 按模式独立统计）
+
+// ============================================================
+
+// ----- 统计功能（按模式独立）-----
+
+const STATS_KEY = 'gomoku_stats_v2';
+
+function defaultStats() {
+
+    return {
+
+        player: { blackWins: 0, whiteWins: 0 },
+
+        ai:     { blackWins: 0, whiteWins: 0 },
+
+        pro:    { blackWins: 0, whiteWins: 0 }
+
+    };
+
+}
+
+function loadStats() {
+
+    let data = localStorage.getItem(STATS_KEY);
+
+    if (data) {
+
+        try {
+
+            let parsed = JSON.parse(data);
+
+            let def = defaultStats();
+
+            for (let m in def) {
+
+                if (!parsed[m]) parsed[m] = def[m];
+
+                if (typeof parsed[m].blackWins !== 'number') parsed[m].blackWins = 0;
+
+                if (typeof parsed[m].whiteWins !== 'number') parsed[m].whiteWins = 0;
+
+            }
+
+            return parsed;
+
+        } catch(e) {
+
+            return defaultStats();
+
+        }
+
+    }
+
+    return defaultStats();
+
+}
+
+function saveStats(stats) {
+
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+
+}
+
+function updateStatsDisplay() {
+
+    let stats = loadStats();
+
+    let modeKey = mode;
+
+    let m = stats[modeKey] || { blackWins: 0, whiteWins: 0 };
+
+    let modeName = { 'player':'双人', 'ai':'普通AI', 'pro':'职业AI' }[modeKey] || modeKey;
+
+    document.getElementById('stats').innerHTML =
+
+        `${modeName}模式：⚫黑胜 ${m.blackWins} &nbsp;|&nbsp; ⚪白胜 ${m.whiteWins}`;
+
+}
+
+function resetStats() {
+
+    if (confirm('确定重置五子棋所有模式的胜场统计吗？')) {
+
+        saveStats(defaultStats());
+
+        updateStatsDisplay();
+
+        alert('统计已重置！');
+
+    }
+
+}
+
+function recordWin(color) {
+
+    let stats = loadStats();
+
+    let modeKey = mode;
+
+    if (!stats[modeKey]) stats[modeKey] = { blackWins: 0, whiteWins: 0 };
+
+    if (color === 1) stats[modeKey].blackWins++;
+
+    else if (color === 2) stats[modeKey].whiteWins++;
+
+    saveStats(stats);
+
+    updateStatsDisplay();
+
+}
+
+// ----- 游戏数据 -----
 
 let board = [];
 
-let turn = 1; // 1黑棋 2白棋
+let turn = 1;
 
 let mode = "player";
 
 let aiFirst = false;
+
+let gameEnd = false;
 
 let aiStartTime = 0;
 
@@ -255,222 +456,241 @@ let aiTimeout = 10000;
 
 function createBoard(){
 
+    board = [];
 
-    board=[];
+    let box = document.getElementById("board");
 
+    box.innerHTML = "";
 
-    let box=document.getElementById("board");
+    for(let i=0; i<15; i++){
 
-    box.innerHTML="";
+        board[i] = [];
 
+        for(let j=0; j<15; j++){
 
-    for(let i=0;i<15;i++){
+            board[i][j] = 0;
 
-        board[i]=[];
+            let cell = document.createElement("div");
 
-        for(let j=0;j<15;j++){
+            cell.className = "cell";
 
+            cell.dataset.x = i;
 
-            board[i][j]=0;
+            cell.dataset.y = j;
 
-
-            let cell=document.createElement("div");
-
-
-            cell.className="cell";
-
-
-            cell.onclick=function(){
-
-                play(i,j);
-
-            };
-
+            cell.onclick = function(){ play(i, j); };
 
             box.appendChild(cell);
-
 
         }
 
     }
 
-
 }
-
-
-
 
 // ===== 下棋 =====
 
-function play(x,y){
-
+function play(x, y){
 
     if(gameEnd) return;
 
+    if(board[x][y] != 0) return;
 
-    if(board[x][y]!=0) return;
-
-
-
-    board[x][y]=turn;
-
+    board[x][y] = turn;
 
     update();
 
+    if(checkWin(x, y, turn)){
 
+        recordWin(turn);
 
-    if(checkWin(x,y,turn)){
+        alert(turn==1 ? "⚫ 黑棋胜利！" : "⚪ 白棋胜利！");
 
-
-        alert(
-
-            turn==1 ?
-
-            "⚫ 黑棋胜利！"
-
-            :
-
-            "⚪ 白棋胜利！"
-
-        );
-
-
-        gameEnd=true;
+        gameEnd = true;
 
         return;
 
     }
 
+    turn = turn==1 ? 2 : 1;
 
-
-    turn=turn==1?2:1;
-
-
-
-    document.getElementById("info").innerHTML=
-
-    turn==1 ?
-
-    "轮到黑棋"
-
-    :
-
-    "轮到白棋";
-
-
-
-    // AI回合
+    document.getElementById("info").innerHTML = turn==1 ? "轮到黑棋" : "轮到白棋";
 
     if(mode=="ai" && turn==2){
 
-     document.getElementById("info").innerHTML =
-    "🤖 普通AI思考中...";
+        document.getElementById("info").innerHTML = "🤖 普通AI思考中...";
 
-        setTimeout(aiMove,500);
-
+        setTimeout(aiMove, 500);
 
     }
-   if(mode=="pro" && turn==2){
 
-    document.getElementById("info").innerHTML =
-    "🔥 职业AI思考中...";
+    if(mode=="pro" && turn==2){
 
-    setTimeout(proAIMove,500);
+        document.getElementById("info").innerHTML = "🔥 职业AI思考中...";
+
+        if(typeof proAIMove === 'function'){
+
+            setTimeout(proAIMove, 500);
+
+        } else {
+
+            alert('职业AI未加载，降级为普通AI');
+
+            setTimeout(aiMove, 500);
+
+        }
+
+    }
 
 }
-
-}
-
-
-
 
 // ===== 刷新棋盘 =====
 
 function update(){
 
+    let cells = document.querySelectorAll(".cell");
 
-    let cells=document.querySelectorAll(".cell");
+    let idx = 0;
 
+    for(let i=0; i<15; i++){
 
-    let index=0;
+        for(let j=0; j<15; j++){
 
+            let cell = cells[idx];
 
+            cell.innerHTML = "";
 
-    for(let i=0;i<15;i++){
+            if(board[i][j] == 1){
 
-        for(let j=0;j<15;j++){
+                let div = document.createElement("div");
 
+                div.className = "piece black-piece";
 
-            cells[index].innerHTML="";
+                cell.appendChild(div);
 
+            } else if(board[i][j] == 2){
 
-            if(board[i][j]==1){
+                let div = document.createElement("div");
 
-                cells[index].innerHTML="●";
+                div.className = "piece white-piece";
 
-                cells[index].className="cell black";
-
-            }
-
-
-            if(board[i][j]==2){
-
-                cells[index].innerHTML="○";
-
-                cells[index].className="cell white";
+                cell.appendChild(div);
 
             }
 
-
-            index++;
-
+            idx++;
 
         }
 
     }
 
+}
+
+// ===== 切换AI先手 =====
+
+function toggleAIFirst(btn){
+
+    aiFirst = !aiFirst;
+
+    btn.innerHTML = aiFirst ? "AI先手：开启" : "AI先手：关闭";
+
+    restart();
 
 }
 
-// ===== Minimax搜索 =====
+// ===== 模式切换 =====
 
-function searchBestMove(){
+function setMode(m){
 
-aiStartTime = Date.now();
+    mode = m;
 
-    let bestScore = -999999;
-    let bestMove = null;
+    let text = "当前模式：双人";
 
-    if(board[7][7]==0 && getCandidateMoves().length==1){
-    return [7,7];
+    if(mode=="ai") text = "当前模式：普通AI";
+
+    if(mode=="pro") text = "当前模式：职业AI";
+
+    document.getElementById("mode").innerHTML = text;
+
+    restart();
+
 }
 
-    for(let i=0;i<15;i++){
+// ===== 重新开始 =====
 
-    for(let j=0;j<15;j++){
+function restart(){
 
+    turn = 1;
 
-        if(Date.now()-aiStartTime > aiTimeout){
+    gameEnd = false;
 
-            return bestMove;
+    createBoard();
+
+    update();
+
+    updateStatsDisplay();
+
+    if(aiFirst && mode!="player"){
+
+        turn = 2;
+
+        document.getElementById("info").innerHTML = "🤖 AI先手思考中...";
+
+        if(mode=="ai") setTimeout(aiMove, 500);
+
+        if(mode=="pro"){
+
+            if(typeof proAIMove === 'function') setTimeout(proAIMove, 500);
+
+            else setTimeout(aiMove, 500);
 
         }
 
+    } else {
 
-        if(board[i][j]==0 && nearChess(i,j)){
+        document.getElementById("info").innerHTML = "黑棋先手";
 
+    }
 
-                // 模拟AI下棋
+}
+
+// ============================================================
+
+// 以下为 AI 函数（Minimax 搜索 + 评估等）
+
+// ============================================================
+
+function searchBestMove(){
+
+    aiStartTime = Date.now();
+
+    let bestScore = -999999;
+
+    let bestMove = null;
+
+    if(board[7][7]==0 && getCandidateMoves().length==1){
+
+        return [7,7];
+
+    }
+
+    for(let i=0;i<15;i++){
+
+        for(let j=0;j<15;j++){
+
+            if(Date.now()-aiStartTime > aiTimeout){
+
+                return bestMove;
+
+            }
+
+            if(board[i][j]==0 && nearChess(i,j)){
+
                 board[i][j]=2;
-
 
                 let score = minimax(5,false,-999999,999999);
 
-
-                // 恢复
                 board[i][j]=0;
-
-
 
                 if(score > bestScore){
 
@@ -486,12 +706,9 @@ aiStartTime = Date.now();
 
     }
 
-
     return bestMove;
 
 }
-
-// ===== 获取搜索候选点 =====
 
 function getCandidateMoves(){
 
@@ -511,58 +728,31 @@ function getCandidateMoves(){
 
     }
 
-
-    // 开局没有棋子
-
-    if(moves.length==0){
-
-        return [[7,7]];
-
-    }
-
+    if(moves.length==0) return [[7,7]];
 
     return moves;
 
 }
 
-// ===== 深度搜索 =====
-
 function minimax(depth,isAI,alpha,beta){
 
-    if(Date.now()-aiStartTime > aiTimeout){
+    if(Date.now()-aiStartTime > aiTimeout) return evaluateBoard();
 
-        return evaluateBoard();
-
-    }
-
-
-    if(depth==0){
-
-        return evaluateBoard();
-
-    }
-
+    if(depth==0) return evaluateBoard();
 
     let best = isAI ? -999999 : 999999;
 
-
     let moves=getCandidateMoves();
-
 
     for(let m of moves){
 
-        let i=m[0];
-        let j=m[1];
-
+        let i=m[0], j=m[1];
 
         board[i][j]=isAI?2:1;
 
-
         let score=minimax(depth-1,!isAI,alpha,beta);
 
-
         board[i][j]=0;
-
 
         if(isAI){
 
@@ -570,8 +760,7 @@ function minimax(depth,isAI,alpha,beta){
 
             alpha=Math.max(alpha,best);
 
-        }
-        else{
+        } else {
 
             best=Math.min(best,score);
 
@@ -579,58 +768,33 @@ function minimax(depth,isAI,alpha,beta){
 
         }
 
-
-        // ===== 剪枝 =====
-
-        if(beta<=alpha){
-
-            break;
-
-        }
+        if(beta<=alpha) break;
 
     }
-
 
     return best;
 
 }
 
-// ===== 评估整个棋盘 =====
-
 function evaluateBoard(){
 
     let score=0;
-
 
     for(let i=0;i<15;i++){
 
         for(let j=0;j<15;j++){
 
+            if(board[i][j]==2) score+=evaluatePoint(i,j,2);
 
-            if(board[i][j]==2){
-
-                score+=evaluatePoint(i,j,2);
-
-            }
-
-
-            if(board[i][j]==1){
-
-                score-=evaluatePoint(i,j,1);
-
-            }
-
+            if(board[i][j]==1) score-=evaluatePoint(i,j,1);
 
         }
 
     }
 
-
     return score;
 
 }
-
-// ===== 寻找强制进攻点 =====
 
 function findThreatSearch(){
 
@@ -644,501 +808,207 @@ function findThreatSearch(){
 
                 board[i][j]=2;
 
-
                 let score=evaluatePoint(i,j,2);
-
 
                 board[i][j]=0;
 
-
-                if(score>=10000){
-
-                    best=[i,j];
-
-                }
+                if(score>=10000) best=[i,j];
 
             }
 
         }
 
     }
-
 
     return best;
 
 }
 
-// ===== AI =====
-
 function aiMove(){
 
     if(gameEnd)return;
 
-
-    // ===== 1. AI可以赢，直接赢 =====
-
     let move=findBestMove(2);
 
+    if(move){ play(move[0],move[1]); return; }
 
-    if(move){
+    let threatMove=findThreatSearch();
 
-        play(move[0],move[1]);
-
-        return;
-
-    }
-
-// ===== AI威胁搜索 =====
-
-let threatMove=findThreatSearch();
-
-if(threatMove){
-
-    play(threatMove[0],threatMove[1]);
-
-    return;
-
-}
-
-    // ===== 2. 玩家要赢，优先堵住 =====
+    if(threatMove){ play(threatMove[0],threatMove[1]); return; }
 
     move=findBestMove(1);
 
+    if(move){ play(move[0],move[1]); return; }
 
-    if(move){
+    move=findDoubleThreatMove(1);
 
-        play(move[0],move[1]);
+    if(move){ play(move[0],move[1]); return; }
 
-        return;
+    move=findThreatMove(1);
 
-    }
+    if(move){ play(move[0],move[1]); return; }
 
-// ===== 防止玩家双三 =====
+    let moves=[];
 
-move=findDoubleThreatMove(1);
+    for(let i=0;i<15;i++){
 
-if(move){
+        for(let j=0;j<15;j++){
 
-    play(move[0],move[1]);
-
-    return;
-
-}
-
-// ===== 防止玩家活四 =====
-
-move=findThreatMove(1);
-
-if(move){
-
-    play(move[0],move[1]);
-
-    return;
-
-}
-
-    // ===== 4. 没有危险，选择附近位置 =====
-
-let moves=[];
-
-
-for(let i=0;i<15;i++){
-
-    for(let j=0;j<15;j++){
-
-
-        if(board[i][j]==0 && nearChess(i,j)){
-
-
-            moves.push([i,j]);
-
+            if(board[i][j]==0 && nearChess(i,j)) moves.push([i,j]);
 
         }
 
     }
 
-}
+    let searchMove = searchBestMove();
 
-// ===== 搜索选择 =====
+    if(searchMove){ play(searchMove[0],searchMove[1]); return; }
 
-let searchMove = searchBestMove();
+    let bestScore = -1, bestMove = null;
 
-if(searchMove){
+    for(let m of moves){
 
-    play(searchMove[0],searchMove[1]);
+        let i=m[0], j=m[1];
 
-    return;
-}
+        let attack = evaluatePoint(i,j,2);
 
-// ===== 5. 评分选择最佳位置 =====
+        let defense = evaluatePoint(i,j,1);
 
-let bestScore = -1;
+        let search = minimaxScore(i,j);
 
-let bestMove = null;
+        let score = attack + defense * 1.5 + search * 0.3 + Math.random()*5;
 
-
-for(let m of moves){
-
-
-    let i=m[0];
-
-    let j=m[1];
-
-
-    let attack = evaluatePoint(i,j,2);
-
-let defense = evaluatePoint(i,j,1);
-
-let search = minimaxScore(i,j);
-
-
-let score =
-attack +
-defense * 1.5 +
-search * 0.3;
-
-
-    score += Math.random()*5;
-
-
-    if(score > bestScore){
-
-        bestScore = score;
-
-        bestMove=[i,j];
+        if(score > bestScore){ bestScore=score; bestMove=[i,j]; }
 
     }
 
-}
-
-
-if(bestMove){
-
-    play(bestMove[0],bestMove[1]);
+    if(bestMove) play(bestMove[0],bestMove[1]);
 
 }
-
-}
-
-// ===== 判断附近有没有棋子 =====
 
 function nearChess(x,y){
-
 
     for(let i=-1;i<=1;i++){
 
         for(let j=-1;j<=1;j++){
 
+            let nx=x+i, ny=y+j;
 
-            let nx=x+i;
-
-            let ny=y+j;
-
-
-            if(
-
-            nx>=0 &&
-
-            nx<15 &&
-
-            ny>=0 &&
-
-            ny<15 &&
-
-            board[nx][ny]!=0
-
-            ){
-
-                return true;
-
-            }
-
+            if(nx>=0 && nx<15 && ny>=0 && ny<15 && board[nx][ny]!=0) return true;
 
         }
 
     }
-
 
     return false;
 
 }
 
-// ===== 最大连续棋子数量 =====
-
 function maxLine(x,y,p){
 
-    let dirs=[
-        [1,0],
-        [0,1],
-        [1,1],
-        [1,-1]
-    ];
-
+    let dirs=[[1,0],[0,1],[1,1],[1,-1]];
 
     let max=0;
-
 
     for(let d of dirs){
 
         let count=1;
 
+        count += countLine(x,y,d[0],d[1],p);
 
-        count += countLine(
-            x,
-            y,
-            d[0],
-            d[1],
-            p
-        );
+        count += countLine(x,y,-d[0],-d[1],p);
 
-
-        count += countLine(
-            x,
-            y,
-            -d[0],
-            -d[1],
-            p
-        );
-
-
-        if(count>max){
-
-            max=count;
-
-        }
+        if(count>max) max=count;
 
     }
-
 
     return max;
 
 }
 
-// ===== 新版棋型评分 =====
-
 function evaluatePoint(x,y,player){
 
-    let score=0;
-
-    let old=board[x][y];
+    let score=0, old=board[x][y];
 
     board[x][y]=player;
 
-
-    let dirs=[
-        [1,0],
-        [0,1],
-        [1,1],
-        [1,-1]
-    ];
-
+    let dirs=[[1,0],[0,1],[1,1],[1,-1]];
 
     for(let d of dirs){
 
         let count=1;
 
-        let left=countLine(
-            x,y,
-            d[0],
-            d[1],
-            player
-        );
+        let left=countLine(x,y,d[0],d[1],player);
 
-        let right=countLine(
-            x,y,
-            -d[0],
-            -d[1],
-            player
-        );
-
+        let right=countLine(x,y,-d[0],-d[1],player);
 
         count+=left+right;
 
-
         let open=0;
 
+        let x1=x+d[0]*(left+1), y1=y+d[1]*(left+1);
 
-        // 判断两端是否为空
+        let x2=x-d[0]*(right+1), y2=y-d[1]*(right+1);
 
-        let x1=x+d[0]*(left+1);
-        let y1=y+d[1]*(left+1);
+        if(x1>=0&&x1<15&&y1>=0&&y1<15&&board[x1][y1]==0) open++;
 
+        if(x2>=0&&x2<15&&y2>=0&&y2<15&&board[x2][y2]==0) open++;
 
-        let x2=x-d[0]*(right+1);
-        let y2=y-d[1]*(right+1);
+        if(count>=5) score+=1000000;
 
+        else if(count==4 && open==2) score+=500000;
 
-        if(
-            x1>=0&&x1<15&&
-            y1>=0&&y1<15&&
-            board[x1][y1]==0
-        ){
+        else if(count==4 && open==1) score+=100000;
 
-            open++;
+        else if(count==3 && open==2) score+=10000;
 
-        }
+        else if(count==3 && open==1) score+=1000;
 
-
-        if(
-            x2>=0&&x2<15&&
-            y2>=0&&y2<15&&
-            board[x2][y2]==0
-        ){
-
-            open++;
-
-        }
-
-
-
-        // ===== 棋型判断 =====
-
-
-        if(count>=5){
-
-            score+=1000000;
-
-        }
-
-        else if(count==4 && open==2){
-
-            score+=500000; // 活四
-
-        }
-
-        else if(count==4 && open==1){
-
-            score+=100000; // 冲四
-
-        }
-
-        else if(count==3 && open==2){
-
-            score+=10000; // 活三
-
-        }
-
-        else if(count==3 && open==1){
-
-            score+=1000;
-
-        }
-
-        else if(count==2 && open==2){
-
-            score+=500;
-
-        }
-
+        else if(count==2 && open==2) score+=500;
 
     }
 
-
     board[x][y]=old;
-
 
     return score;
 
 }
 
-// ===== AI搜索未来一步 =====
-
 function minimaxScore(x,y){
-
-
-    // AI落子
 
     board[x][y]=2;
 
-
-    // 如果AI直接赢
-
-    if(checkWin(x,y,2)){
-
-        board[x][y]=0;
-
-        return 999999;
-
-    }
-
-
+    if(checkWin(x,y,2)){ board[x][y]=0; return 999999; }
 
     let worst=999999;
-
-
-
-    // 搜索玩家可能的反击
 
     for(let i=x-2;i<=x+2;i++){
 
         for(let j=y-2;j<=y+2;j++){
 
-
-            if(
-
-            i>=0 &&
-
-            i<15 &&
-
-            j>=0 &&
-
-            j<15 &&
-
-            board[i][j]==0
-
-            ){
-
-
-                // 玩家落子
+            if(i>=0&&i<15&&j>=0&&j<15&&board[i][j]==0){
 
                 board[i][j]=1;
 
-
                 let score=evaluatePoint(i,j,1);
 
+                if(checkWin(i,j,1)) score=999999;
 
-
-                // 玩家能赢，危险
-
-                if(checkWin(i,j,1)){
-
-                    score=999999;
-
-                }
-
-
-
-                if(score<worst){
-
-                    worst=score;
-
-                }
-
+                if(score<worst) worst=score;
 
                 board[i][j]=0;
 
             }
 
-
         }
 
     }
 
-
-
-    // 恢复
-
     board[x][y]=0;
-
-
-
-    // 自己进攻 - 对手威胁
 
     return evaluatePoint(x,y,2)-worst;
 
 }
-
-// ===== 寻找必胜位置 =====
 
 function findBestMove(player){
 
@@ -1150,18 +1020,11 @@ function findBestMove(player){
 
                 board[i][j]=player;
 
-
                 let win=checkWin(i,j,player);
-
 
                 board[i][j]=0;
 
-
-                if(win){
-
-                    return [i,j];
-
-                }
+                if(win) return [i,j];
 
             }
 
@@ -1169,12 +1032,9 @@ function findBestMove(player){
 
     }
 
-
     return null;
 
 }
-
-// ===== 判断活三 =====
 
 function isOpenThree(x,y,player){
 
@@ -1182,88 +1042,41 @@ function isOpenThree(x,y,player){
 
     board[x][y]=player;
 
-
-    let dirs=[
-        [1,0],
-        [0,1],
-        [1,1],
-        [1,-1]
-    ];
-
+    let dirs=[[1,0],[0,1],[1,1],[1,-1]];
 
     let result=false;
 
-
     for(let d of dirs){
 
-        let left=countLine(
-            x,y,
-            d[0],
-            d[1],
-            player
-        );
+        let left=countLine(x,y,d[0],d[1],player);
 
-        let right=countLine(
-            x,y,
-            -d[0],
-            -d[1],
-            player
-        );
-
+        let right=countLine(x,y,-d[0],-d[1],player);
 
         let count=1+left+right;
-
 
         if(count==3){
 
             let open=0;
 
+            let x1=x+d[0]*(left+1), y1=y+d[1]*(left+1);
 
-            let x1=x+d[0]*(left+1);
-            let y1=y+d[1]*(left+1);
+            let x2=x-d[0]*(right+1), y2=y-d[1]*(right+1);
 
+            if(x1>=0&&x1<15&&y1>=0&&y1<15&&board[x1][y1]==0) open++;
 
-            let x2=x-d[0]*(right+1);
-            let y2=y-d[1]*(right+1);
+            if(x2>=0&&x2<15&&y2>=0&&y2<15&&board[x2][y2]==0) open++;
 
-
-            if(
-                x1>=0&&x1<15&&
-                y1>=0&&y1<15&&
-                board[x1][y1]==0
-            ){
-                open++;
-            }
-
-
-            if(
-                x2>=0&&x2<15&&
-                y2>=0&&y2<15&&
-                board[x2][y2]==0
-            ){
-                open++;
-            }
-
-
-            if(open==2){
-
-                result=true;
-
-            }
+            if(open==2) result=true;
 
         }
 
     }
 
-
-    board[x][y]=0;
-
+    board[x][y]=old;
 
     return result;
 
 }
-
-// ===== 寻找双三威胁位置 =====
 
 function findDoubleThreatMove(player){
 
@@ -1275,18 +1088,11 @@ function findDoubleThreatMove(player){
 
                 board[i][j]=player;
 
-
                 let threat=countOpenThree(i,j,player);
-
 
                 board[i][j]=0;
 
-
-                if(threat>=2){
-
-                    return [i,j];
-
-                }
+                if(threat>=2) return [i,j];
 
             }
 
@@ -1294,376 +1100,123 @@ function findDoubleThreatMove(player){
 
     }
 
-
     return null;
 
 }
 
-// ===== 计算一个落子产生几个活三 =====
-
 function countOpenThree(x,y,player){
 
-    let count=0;
-
-    // 保存原来的棋子
-    let old=board[x][y];
+    let count=0, old=board[x][y];
 
     board[x][y]=player;
 
-
-    let dirs=[
-        [1,0],
-        [0,1],
-        [1,1],
-        [1,-1]
-    ];
-
+    let dirs=[[1,0],[0,1],[1,1],[1,-1]];
 
     for(let d of dirs){
 
-        let left=countLine(
-            x,y,
-            d[0],
-            d[1],
-            player
-        );
+        let left=countLine(x,y,d[0],d[1],player);
 
-        let right=countLine(
-            x,y,
-            -d[0],
-            -d[1],
-            player
-        );
-
+        let right=countLine(x,y,-d[0],-d[1],player);
 
         let total=1+left+right;
-
 
         if(total==3){
 
             let open=0;
 
+            let x1=x+d[0]*(left+1), y1=y+d[1]*(left+1);
 
-            let x1=x+d[0]*(left+1);
-            let y1=y+d[1]*(left+1);
+            let x2=x-d[0]*(right+1), y2=y-d[1]*(right+1);
 
+            if(x1>=0&&x1<15&&y1>=0&&y1<15&&board[x1][y1]==0) open++;
 
-            let x2=x-d[0]*(right+1);
-            let y2=y-d[1]*(right+1);
+            if(x2>=0&&x2<15&&y2>=0&&y2<15&&board[x2][y2]==0) open++;
 
-
-            if(
-                x1>=0&&x1<15&&
-                y1>=0&&y1<15&&
-                board[x1][y1]==0
-            ){
-                open++;
-            }
-
-
-            if(
-                x2>=0&&x2<15&&
-                y2>=0&&y2<15&&
-                board[x2][y2]==0
-            ){
-                open++;
-            }
-
-
-            if(open==2){
-
-                count++;
-
-            }
+            if(open==2) count++;
 
         }
 
     }
 
-
-        // 恢复原棋盘
     board[x][y]=old;
-
 
     return count;
 
 }
 
-// ===== 寻找玩家威胁位置 =====
-
 function findThreatMove(player){
-
 
     for(let i=0;i<15;i++){
 
         for(let j=0;j<15;j++){
 
-
             if(board[i][j]==0){
-
 
                 board[i][j]=player;
 
-
                 let count=maxLine(i,j,player);
-
 
                 board[i][j]=0;
 
-
-
-                if(
-    count>=4 ||
-    isOpenThree(i,j,player)
-){
-
-    return [i,j];
-
-}
-
+                if(count>=4 || isOpenThree(i,j,player)) return [i,j];
 
             }
-
 
         }
 
     }
-
 
     return null;
 
 }
 
-// ===== 胜利判断 =====
-
 function checkWin(x,y,p){
 
-
-    let dirs=[
-
-        [1,0],
-
-        [0,1],
-
-        [1,1],
-
-        [1,-1]
-
-    ];
-
-
+    let dirs=[[1,0],[0,1],[1,1],[1,-1]];
 
     for(let d of dirs){
 
-
         let count=1;
-
 
         count+=countLine(x,y,d[0],d[1],p);
 
-
         count+=countLine(x,y,-d[0],-d[1],p);
 
-
-
-        if(count>=5){
-
-            return true;
-
-        }
-
+        if(count>=5) return true;
 
     }
-
 
     return false;
 
-
 }
-
-
-
 
 function countLine(x,y,dx,dy,p){
 
-
     let count=0;
 
+    x+=dx; y+=dy;
 
-    x+=dx;
+    while(x>=0 && x<15 && y>=0 && y<15 && board[x][y]==p){
 
-    y+=dy;
-
-
-
-    while(
-
-        x>=0 &&
-
-        x<15 &&
-
-        y>=0 &&
-
-        y<15 &&
-
-        board[x][y]==p
-
-    ){
-
-
-        count++;
-
-
-        x+=dx;
-
-        y+=dy;
-
+        count++; x+=dx; y+=dy;
 
     }
-
 
     return count;
 
-
 }
 
-// ===== 切换AI先手 =====
-
-function toggleAIFirst(){
-
-    aiFirst = !aiFirst;
-
-
-    event.target.innerHTML =
-    aiFirst ?
-
-    "AI先手：开启"
-
-    :
-
-    "AI先手：关闭";
-  
-    restart();
-
-}
-
-// ===== AI先手模式 =====
-// 点击按钮后，让AI直接开始下第一步
-
-function startAIFirst(){
-
-    // 设置为普通AI模式
-    mode="ai";
-
-
-    // 修改顶部模式显示
-    document.getElementById("mode").innerHTML =
-    "当前模式：AI先手";
-
-
-    // 重新开始棋局
-    restart();
-
-
-    // 设置回合为AI（白棋）
-    turn=2;
-
-
-    // 显示AI思考提示
-    document.getElementById("info").innerHTML =
-    "🤖 AI思考中...";
-
-
-    // 延迟500毫秒，让玩家看到提示
-    setTimeout(aiMove,500);
-
-}
-
-// ===== 模式 =====
-
-function setMode(m){
-
-    mode=m;
-
-
-    let text="当前模式：双人";
-
-
-    if(mode=="ai"){
-
-        text="当前模式：普通AI";
-
-    }
-
-
-    if(mode=="pro"){
-
-        text="当前模式：职业AI";
-
-    }
-
-
-    document.getElementById("mode").innerHTML=text;
-
-
-    restart();
-
-}
-
-
-
-// ===== 重开 =====
-
-function restart(){
-
-    turn=1;
-
-    gameEnd=false;
-
-
-    createBoard();
-
-
-    if(aiFirst && mode!="player"){
-
-        turn=2;
-
-
-        document.getElementById("info").innerHTML =
-        "🤖 AI先手思考中...";
-
-
-        if(mode=="ai"){
-
-            setTimeout(aiMove,500);
-
-        }
-
-
-        if(mode=="pro"){
-
-            setTimeout(proAIMove,500);
-
-        }
-
-
-    }
-    else{
-
-        document.getElementById("info").innerHTML =
-        "黑棋先手";
-
-    }
-
-}
-
-
+// ===== 启动游戏 =====
 
 createBoard();
 
+update();
+
+updateStatsDisplay();
+
+document.getElementById("info").innerHTML = "黑棋先手";
 
 </script>
-
 
 </body>
 
