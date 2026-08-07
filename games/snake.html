@@ -54,7 +54,7 @@ body {
 
     height: 320px;
 
-    margin: 40px auto;
+    margin: 20px auto;
 
     background: #222;
 
@@ -87,6 +87,32 @@ body {
 .snake {
 
     background: #7bdc6c;
+
+    border-radius: 5px;
+
+}
+
+/* 蛇头：用 outline 代替 border，不占格子空间，线就不会动 */
+
+.snake-head {
+
+    background: #5fdd3d;
+
+    border-radius: 5px;
+
+    outline: 2px solid #fff;
+
+    outline-offset: -1px;
+
+    box-shadow: 0 0 8px rgba(95, 221, 61, 0.8);
+
+}
+
+/* 蛇尾样式 */
+
+.snake-tail {
+
+    background: #5cb85c;
 
     border-radius: 5px;
 
@@ -151,6 +177,19 @@ body.dark-mode{
 
 }
 
+/* ===== 统计显示 ===== */
+#stats{
+    margin:15px auto;
+    padding:10px;
+    font-size:18px;
+    background:rgba(255,255,255,0.1);
+    border-radius:10px;
+    display:inline-block;
+}
+.dark-mode #stats{
+    background:rgba(255,255,255,0.05);
+}
+
 </style>
 
 </head>
@@ -184,17 +223,16 @@ if(localStorage.getItem("theme") === "dark"){
 
 <p>
 
-分数：
-
-<span id="score">
-
-0
-
-</span>
+分数：<span id="score">0</span>
 
 </p>
 
-
+<!-- 统计显示区域（最高分） -->
+<div id="stats"></div>
+<!-- 重置统计按钮 -->
+<button onclick="resetStats()" style="background:#ffcccb;color:#a00;width:auto;height:auto;padding:8px 16px;font-size:14px;">
+🔄 重置最高分
+</button>
 
 <div id="game"></div>
 
@@ -229,309 +267,185 @@ if(localStorage.getItem("theme") === "dark"){
 
 <script>
 
+// ============================================================
+// 贪吃蛇游戏逻辑（速度 250ms + 最高分 + 头尾区分 + 撞身死亡）
+// ============================================================
 
-let snake;
+// ----- 全局变量 -----
+let snake;          // 蛇身体坐标数组，索引0为头部
+let food;           // 食物坐标 {x, y}
+let direction;      // 当前移动方向
+let score;          // 当前得分
+let timer;          // 定时器句柄
+const SPEED = 250;  // 移动间隔（毫秒）
 
-let food;
+// ----- 最高分统计（localStorage）-----
+const HIGH_SCORE_KEY = 'snake_high_score';
 
-let direction;
-
-let score;
-
-let timer;
-
-
-
-function startGame(){
-
-
-    snake=[
-
-        {x:10,y:10}
-
-    ];
-
-
-    direction="right";
-
-
-    score=0;
-
-
-    createFood();
-
-
-    update();
-
-
-    clearInterval(timer);
-
-
-    timer=setInterval(move,150);
-
-
+function loadHighScore() {
+    let val = localStorage.getItem(HIGH_SCORE_KEY);
+    return val ? parseInt(val) : 0;
 }
 
+function saveHighScore(val) {
+    localStorage.setItem(HIGH_SCORE_KEY, String(val));
+}
 
+function updateStatsDisplay() {
+    let high = loadHighScore();
+    document.getElementById('stats').innerHTML = `🏆 最高分：${high}`;
+}
 
+function resetStats() {
+    if (confirm('确定要重置贪吃蛇的最高分吗？')) {
+        saveHighScore(0);
+        updateStatsDisplay();
+        alert('最高分已重置！');
+    }
+}
 
+// ----- 开始游戏（初始化） -----
+function startGame(){
+    snake = [{x:10, y:10}];
+    direction = "right";
+    score = 0;
+    createFood();
+    update();
+    updateStatsDisplay();
+    clearInterval(timer);
+    timer = setInterval(move, SPEED);
+}
+
+// ----- 绘制画面 -----
 function update(){
+    let game = document.getElementById("game");
+    game.innerHTML = "";
+    document.getElementById("score").innerHTML = score;
 
+    for(let y=0; y<20; y++){
+        for(let x=0; x<20; x++){
+            let div = document.createElement("div");
+            div.className = "cell";
 
-    let game=document.getElementById("game");
-
-
-    game.innerHTML="";
-
-
-    document.getElementById("score").innerHTML=score;
-
-
-
-    for(let y=0;y<20;y++){
-
-
-        for(let x=0;x<20;x++){
-
-
-            let div=document.createElement("div");
-
-
-            div.className="cell";
-
-
-
-            snake.forEach(part=>{
-
-                if(part.x==x && part.y==y){
-
-                    div.classList.add("snake");
-
+            let isSnake = false;
+            let isHead = false;
+            let isTail = false;
+            snake.forEach((part, index) => {
+                if(part.x == x && part.y == y){
+                    isSnake = true;
+                    if(index === 0) isHead = true;
+                    if(index === snake.length-1 && snake.length > 1) isTail = true;
                 }
-
             });
 
-
-
-            if(food.x==x && food.y==y){
-
-                div.classList.add("food");
-
+            if(isSnake){
+                if(isHead){
+                    div.classList.add("snake-head");
+                } else if(isTail){
+                    div.classList.add("snake-tail");
+                } else {
+                    div.classList.add("snake");
+                }
             }
 
+            if(food.x == x && food.y == y){
+                div.classList.add("food");
+            }
 
             game.appendChild(div);
-
-
         }
-
     }
-
 }
 
-
-
-
+// ----- 蛇移动 -----
 function move(){
-
-
-    let head={
-
-        x:snake[0].x,
-
-        y:snake[0].y
-
+    let head = {
+        x: snake[0].x,
+        y: snake[0].y
     };
 
+    if(direction == "up")    head.y--;
+    if(direction == "down")  head.y++;
+    if(direction == "left")  head.x--;
+    if(direction == "right") head.x++;
 
-
-    if(direction=="up"){
-
-        head.y--;
-
-    }
-
-
-    if(direction=="down"){
-
-        head.y++;
-
-    }
-
-
-    if(direction=="left"){
-
-        head.x--;
-
-    }
-
-
-    if(direction=="right"){
-
-        head.x++;
-
-    }
-
-
-
-    if(
-
-        head.x<0 ||
-
-        head.x>=20 ||
-
-        head.y<0 ||
-
-        head.y>=20
-
-    ){
-
+    // 撞墙
+    if(head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20){
         gameOver();
-
         return;
-
     }
 
-
+    // 撞自身（除去尾部）
+    let bodyWithoutTail = snake.slice(0, -1);
+    for(let i=0; i<bodyWithoutTail.length; i++){
+        let part = bodyWithoutTail[i];
+        if(part.x == head.x && part.y == head.y){
+            gameOver();
+            return;
+        }
+    }
 
     snake.unshift(head);
 
-
-
-    if(head.x==food.x && head.y==food.y){
-
-
+    if(head.x == food.x && head.y == food.y){
         score++;
-
-
         createFood();
-
-
-    }else{
-
-
+    } else {
         snake.pop();
-
-
     }
-
-
 
     update();
-
-
 }
 
-
-
-
+// ----- 生成食物 -----
 function createFood(){
-
-
-    food={
-
-        x:Math.floor(Math.random()*20),
-
-        y:Math.floor(Math.random()*20)
-
+    food = {
+        x: Math.floor(Math.random() * 20),
+        y: Math.floor(Math.random() * 20)
     };
-
-
 }
 
-
-
-
+// ----- 改变方向 -----
 function changeDir(dir){
-
-
     if(
-
-        dir=="up" && direction!="down" ||
-
-        dir=="down" && direction!="up" ||
-
-        dir=="left" && direction!="right" ||
-
-        dir=="right" && direction!="left"
-
+        (dir == "up"    && direction != "down")  ||
+        (dir == "down"  && direction != "up")    ||
+        (dir == "left"  && direction != "right") ||
+        (dir == "right" && direction != "left")
     ){
-
-        direction=dir;
-
+        direction = dir;
     }
-
-
 }
 
-
-
-
-document.addEventListener("keydown",function(e){
-
-
-    if(e.key=="ArrowUp"){
-
-        changeDir("up");
-
-    }
-
-
-    if(e.key=="ArrowDown"){
-
-        changeDir("down");
-
-    }
-
-
-    if(e.key=="ArrowLeft"){
-
-        changeDir("left");
-
-    }
-
-
-    if(e.key=="ArrowRight"){
-
-        changeDir("right");
-
-    }
-
-
+// ----- 键盘控制 -----
+document.addEventListener("keydown", function(e){
+    if(e.key == "ArrowUp")    changeDir("up");
+    if(e.key == "ArrowDown")  changeDir("down");
+    if(e.key == "ArrowLeft")  changeDir("left");
+    if(e.key == "ArrowRight") changeDir("right");
 });
 
-
-
-
+// ----- 游戏结束 -----
 function gameOver(){
-
-
-    alert("🐍 游戏结束！分数："+score);
-
-
+    let high = loadHighScore();
+    if (score > high) {
+        saveHighScore(score);
+        updateStatsDisplay();
+        alert(`🎉 新纪录！最高分：${score}`);
+    } else {
+        alert(`🐍 游戏结束！分数：${score}`);
+    }
     restart();
-
-
 }
 
-
-
-
+// ----- 重新开始 -----
 function restart(){
-
-
     clearInterval(timer);
-
-
     startGame();
-
-
 }
 
-
-
+// ----- 启动 -----
 startGame();
-
 
 </script>
 
