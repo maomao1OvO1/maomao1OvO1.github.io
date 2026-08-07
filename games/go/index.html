@@ -16,6 +16,8 @@ body {
 
     font-family: Arial;
 
+    user-select: none;
+
 }
 
 
@@ -41,6 +43,8 @@ body {
 
     font-size: 16px;
 
+    z-index: 10;
+
 }
 
 
@@ -64,6 +68,8 @@ body {
     grid-template-rows:repeat(19,1fr);
 
     padding:10px;
+
+    box-sizing: border-box;
 
 }
 
@@ -145,6 +151,34 @@ button {
 
 
 
+/* ===== 统计显示（透明） ===== */
+
+#stats{
+
+    display: block;
+
+    width: 100%;
+
+    text-align: center;
+
+    clear: both;
+
+    margin: 15px auto;
+
+    padding: 10px;
+
+    font-size: 18px;
+
+    background: transparent;
+
+    border-radius: 10px;
+
+    box-sizing: border-box;
+
+}
+
+
+
 /* ===== 深色模式 ===== */
 
 body.dark-mode{
@@ -204,19 +238,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 
 
-<div class="board">
-
-</div>
-
-
-
-<p id="status">
-
-等待开始
-
-</p>
-
-
+<!-- 模式选择按钮 -->
 
 <div class="mode-buttons">
 
@@ -234,11 +256,31 @@ if(localStorage.getItem("theme") === "dark"){
 🔥 最强AI
 </button>
 
-<button onclick="toggleAIFirst()">
+<button onclick="toggleAIFirst(this)">
 AI先手：关闭
 </button>
 
 </div>
+
+<p id="status">等待开始</p>
+
+
+<!-- 统计显示区域 -->
+
+<div id="stats"></div>
+
+<!-- 重置统计按钮 -->
+
+<button onclick="resetStats()" style="background:#ffcccb;color:#a00;width:auto;height:auto;padding:8px 16px;font-size:14px;">
+
+🔄 重置统计
+
+</button>
+
+
+<div class="board"></div>
+
+
 
 <button onclick="restartGame()">
 🔄 重新开始
@@ -258,7 +300,137 @@ let kataWorker = null;
 let aiThinking = false;
 
 
-// ===== 围棋数据 =====
+// ============================================================
+
+// 统计功能（按模式独立）
+
+// ============================================================
+
+const STATS_KEY = 'go_stats_v2';
+
+function defaultStats() {
+
+    return {
+
+        player: { blackWins: 0, whiteWins: 0 }, // 双人
+
+        ai:     { blackWins: 0, whiteWins: 0 }, // 普通AI
+
+        pro:    { blackWins: 0, whiteWins: 0 }  // 最强AI
+
+    };
+
+}
+
+function loadStats() {
+
+    let data = localStorage.getItem(STATS_KEY);
+
+    if (data) {
+
+        try {
+
+            let parsed = JSON.parse(data);
+
+            let def = defaultStats();
+
+            for (let m in def) {
+
+                if (!parsed[m]) parsed[m] = def[m];
+
+                if (typeof parsed[m].blackWins !== 'number') parsed[m].blackWins = 0;
+
+                if (typeof parsed[m].whiteWins !== 'number') parsed[m].whiteWins = 0;
+
+            }
+
+            return parsed;
+
+        } catch(e) {
+
+            return defaultStats();
+
+        }
+
+    }
+
+    return defaultStats();
+
+}
+
+function saveStats(stats) {
+
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+
+}
+
+function updateStatsDisplay() {
+
+    let stats = loadStats();
+
+    let modeKey = modeMap(mode);
+
+    let m = stats[modeKey] || { blackWins: 0, whiteWins: 0 };
+
+    let modeName = { '双人模式':'双人', '普通AI':'普通AI', '最强AI':'最强AI' }[mode] || mode;
+
+    document.getElementById('stats').innerHTML =
+
+        `${modeName}模式：⚫黑胜 ${m.blackWins} &nbsp;|&nbsp; ⚪白胜 ${m.whiteWins}`;
+
+}
+
+function modeMap(m) {
+
+    if (m === '双人模式') return 'player';
+
+    if (m === '普通AI') return 'ai';
+
+    if (m === '最强AI') return 'pro';
+
+    return 'player';
+
+}
+
+function resetStats() {
+
+    if (confirm('确定重置围棋所有模式的胜场统计吗？')) {
+
+        saveStats(defaultStats());
+
+        updateStatsDisplay();
+
+        alert('统计已重置！');
+
+    }
+
+}
+
+function recordWin(color) {
+
+    // color: 1=黑胜, 2=白胜
+
+    let stats = loadStats();
+
+    let modeKey = modeMap(mode);
+
+    if (!stats[modeKey]) stats[modeKey] = { blackWins: 0, whiteWins: 0 };
+
+    if (color === 1) stats[modeKey].blackWins++;
+
+    else if (color === 2) stats[modeKey].whiteWins++;
+
+    saveStats(stats);
+
+    updateStatsDisplay();
+
+}
+
+// ============================================================
+
+// 围棋核心数据
+
+// ============================================================
 
 let boardData=[];
 
@@ -439,7 +611,7 @@ function askKataGo(){
 
 // 模式选择
 
-let mode="";
+let mode="双人模式"; // 默认
 
 // AI先手
 let aiFirst=false;
@@ -462,6 +634,7 @@ function aiPlayMove(x,y){
         aiThinking=false;
 
         return;
+
     }
 
 
@@ -497,7 +670,7 @@ function loadKataGo(){
     kataWorker.onmessage = function(e){
 
 
-        
+
 document.getElementById("status").innerHTML =
         "收到消息：" + e.data.type;
 
@@ -576,20 +749,11 @@ document.getElementById("status").innerHTML =
 
 }
 
-function toggleAIFirst(){
+function toggleAIFirst(btn){
 
     aiFirst = !aiFirst;
 
-
-    event.target.innerHTML =
-    aiFirst ?
-
-    "AI先手：开启"
-
-    :
-
-    "AI先手：关闭";
-
+    btn.innerHTML = aiFirst ? "AI先手：开启" : "AI先手：关闭";
 
     restartGame();
 
@@ -625,6 +789,11 @@ function startGame(selectMode){
 
     }
 
+
+    updateStatsDisplay();
+
+    restartGame(); // 重置棋局
+
 }
 
 function endGame(){
@@ -643,7 +812,7 @@ function endGame(){
     }
 
     gameOver=true;
-    
+
     // 清除死棋
 
 let deadGroups=findDeadGroups();
@@ -660,13 +829,17 @@ for(let group of deadGroups){
 
     let result="";
 
+    let winner = null; // 1=黑, 2=白
+
 
     if(score.black>score.white){
 
         result=
-        "⚫ 黑胜 " + 
+        "⚫ 黑胜 " +
         (score.black-score.white).toFixed(1) +
         " 目";
+
+        winner = 1;
 
     }
 
@@ -676,6 +849,8 @@ for(let group of deadGroups){
         "⚪ 白胜 " +
         (score.white-score.black).toFixed(1) +
         " 目";
+
+        winner = 2;
 
     }
 
@@ -695,6 +870,12 @@ for(let group of deadGroups){
     result;
 
 
+    if (winner) {
+
+        recordWin(winner);
+
+    }
+
 }
 
 function restartGame(){
@@ -712,75 +893,76 @@ function restartGame(){
 
     turn="black";
 
-passCount=0;
+    passCount=0;
 
-gameOver=false;
+    gameOver=false;
 
-confirmScore=false;
+    confirmScore=false;
 
+    koPosition=null;
 
-// 清空围棋状态
+    previousBoard=[];
 
-koPosition=null;
+    backupBoard=[];
 
-previousBoard=[];
+    boardHistory=[];
 
-backupBoard=[];
+    moveHistory=[];
 
-boardHistory=[];
-
-moveHistory=[];
-
-drawBoard();
+    drawBoard();
 
 
     document.getElementById("status").innerHTML=
     "等待开始";
 
 
-// ===== AI先手 =====
-
-if(aiFirst && mode!="双人模式"){
-
-    document.getElementById("status").innerHTML =
-    "🤖 AI先手思考中...";
+    updateStatsDisplay();
 
 
-    setTimeout(()=>{
+    // ===== AI先手 =====
 
-        if(mode=="普通AI"){
+    if(aiFirst && mode!="双人模式"){
 
-            simpleAI();
+        document.getElementById("status").innerHTML =
+        "🤖 AI先手思考中...";
 
-        }
-
-
-        if(mode=="最强AI"){
-
-    if(kataWorker){
-
-        askKataGo();
-
-    }
-    else{
-
-        loadKataGo();
 
         setTimeout(()=>{
 
-            askKataGo();
+            if(mode=="普通AI"){
 
-        },1500);
+                simpleAI();
+
+            }
+
+
+            if(mode=="最强AI"){
+
+                if(kataWorker){
+
+                    askKataGo();
+
+                }
+
+                else{
+
+                    loadKataGo();
+
+                    setTimeout(()=>{
+
+                        askKataGo();
+
+                    },1500);
+
+                }
+
+            }
+
+        },500);
 
     }
 
 }
-
-    },500);
-
-}
-
-}    
 
 function hasLiberty(x,y){
 
@@ -1552,7 +1734,7 @@ function playMove(x,y){
         return;
 
     }
-    
+
     if(
     koPosition &&
     koPosition[0]==x &&
@@ -1811,6 +1993,10 @@ function drawBoard(){
     }
 
 }
+
+// ===== 启动时默认双人模式并显示统计 =====
+
+startGame('双人模式');
 
 </script>
 
