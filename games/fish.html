@@ -14,7 +14,6 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* ===== 返回按钮 - 浅紫底深紫字（深色模式同样） ===== */
         .back-home {
             position: fixed;
             top: 20px;
@@ -26,10 +25,8 @@
             text-decoration: none;
             font-size: 16px;
             z-index: 10;
-            transition: background 0.3s, color 0.3s;
         }
 
-        /* 深色模式下不改变，保持紫色 */
         body.dark-mode .back-home {
             background: #e5dcff;
             color: #6543a5;
@@ -68,7 +65,7 @@
             color: white;
         }
         body.dark-mode canvas {
-            background: #2a4a5a;
+            background: #1a3a4a;
         }
         body.dark-mode button {
             background: #333;
@@ -108,7 +105,7 @@
 
 <script>
     // ============================================================
-    // 大鱼吃小鱼 - 速度适中 + 深色按钮保持紫色
+    // 大鱼吃小鱼 - 简笔画，大尾巴，深蓝水，星星装饰
     // ============================================================
 
     const canvas = document.getElementById('gameCanvas');
@@ -150,8 +147,9 @@
     let targetX = W / 2,
         targetY = W / 2;
     let animId = null;
+    let frame = 0;
 
-    // ----- 生成鱼（不变）-----
+    // ----- 生成鱼（尾巴相位）-----
     function createFish() {
         let minR = 8;
         let maxR = Math.max(25, player.r * 1.5);
@@ -171,7 +169,6 @@
         let angle = Math.random() * Math.PI * 2;
         let speed = 0.6 + Math.random() * 1.5;
         let turnSpeed = 0.02 + Math.random() * 0.05;
-
         let hue;
         if (radius < 15) hue = 160 + Math.random() * 80;
         else if (radius < 25) hue = 30 + Math.random() * 50;
@@ -179,7 +176,8 @@
         hue += (Math.random() - 0.5) * 30;
         hue = ((hue % 360) + 360) % 360;
         let color = `hsl(${hue}, 80%, 55%)`;
-        return { x, y, r: radius, angle, speed, color, turnSpeed };
+        let tailPhase = Math.random() * Math.PI * 2;
+        return { x, y, r: radius, angle, speed, color, turnSpeed, tailPhase };
     }
 
     function initFishes(count) {
@@ -202,11 +200,13 @@
         document.getElementById('score').textContent = '0';
         initFishes(15);
         updateStatsDisplay();
+        frame = 0;
         loop();
     }
 
     function loop() {
         if (gameOver) return;
+        frame++;
         update();
         draw();
         animId = requestAnimationFrame(loop);
@@ -282,82 +282,121 @@
         while (fishes.length > 22) fishes.splice(Math.floor(Math.random() * fishes.length), 1);
     }
 
-    // ----- 绘制（危险鱼白色发光）-----
-    function drawFish(x, y, r, color, angle, isPlayer = false, edible = false, dangerous = false) {
+    // ----- 绘制（简笔，大尾巴）-----
+    function drawFish(x, y, r, color, angle, tailPhase, isPlayer = false, edible = false, dangerous = false) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle);
 
-        if (!isPlayer) {
-            if (edible) {
-                ctx.shadowColor = 'rgba(0,255,0,0.6)';
-                ctx.shadowBlur = 20;
-            } else if (dangerous) {
-                ctx.shadowColor = 'rgba(255,255,255,0.9)';
-                ctx.shadowBlur = 30;
-            }
-        }
-
+        // 纯色
+        ctx.fillStyle = isPlayer ? '#00e5ff' : color;
+        // 鱼身
         ctx.beginPath();
         ctx.ellipse(0, 0, r * 1.4, r, 0, 0, Math.PI * 2);
-        ctx.fillStyle = color;
         ctx.fill();
-        if (isPlayer) {
-            ctx.shadowColor = 'rgba(0, 229, 255, 0.8)';
-            ctx.shadowBlur = 25;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = 'white';
-            ctx.font = `${r * 0.6}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('⭐', 0, -r * 0.1);
-        } else {
-            ctx.shadowBlur = 0;
-        }
-        ctx.strokeStyle = isPlayer ? '#00e5ff' : 'rgba(0,0,0,0.2)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // 眼睛
-        let eyeX = r * 0.5;
+        // 微弱提示发光
+        if (!isPlayer) {
+            if (edible) {
+                ctx.shadowColor = 'rgba(0,255,0,0.2)';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            } else if (dangerous) {
+                ctx.shadowColor = 'rgba(255,255,255,0.25)';
+                ctx.shadowBlur = 12;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // ---- 尾巴（加大） ----
+        let tailAngle = Math.sin(frame * 0.06 + tailPhase) * 0.3;
+        let baseX = -r * 1.2;
+        let tailLen = r * 1.0;
+        let tailWid = r * 0.8;
+        let tip1X = baseX - tailLen * Math.cos(tailAngle);
+        let tip1Y = -tailWid * Math.sin(tailAngle + 0.2);
+        let tip2X = baseX - tailLen * Math.cos(tailAngle);
+        let tip2Y = tailWid * Math.sin(tailAngle - 0.2);
+        ctx.beginPath();
+        ctx.moveTo(baseX, 0);
+        ctx.quadraticCurveTo(baseX - tailLen * 0.5, tip1Y * 0.7, tip1X, tip1Y);
+        ctx.quadraticCurveTo(baseX - tailLen * 0.3, 0, tip2X, tip2Y);
+        ctx.quadraticCurveTo(baseX - tailLen * 0.5, tip2Y * 0.7, baseX, 0);
+        ctx.closePath();
+        ctx.fillStyle = isPlayer ? '#00e5ff' : color;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.stroke();
+
+        // ---- 眼睛 ----
+        let eyeX = r * 0.45;
         let eyeY = -r * 0.2;
         ctx.beginPath();
         ctx.arc(eyeX, eyeY, r * 0.25, 0, Math.PI * 2);
         ctx.fillStyle = 'white';
         ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.stroke();
         ctx.beginPath();
-        ctx.arc(eyeX + r * 0.1, eyeY - r * 0.05, r * 0.12, 0, Math.PI * 2);
-        ctx.fillStyle = 'black';
+        ctx.arc(eyeX + r * 0.08, eyeY - r * 0.05, r * 0.12, 0, Math.PI * 2);
+        ctx.fillStyle = '#222';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(eyeX + r * 0.13, eyeY - r * 0.1, r * 0.05, 0, Math.PI * 2);
+        ctx.fillStyle = 'white';
         ctx.fill();
 
-        // 尾巴
-        ctx.beginPath();
-        ctx.moveTo(-r * 1.2, -r * 0.5);
-        ctx.lineTo(-r * 1.8, -r * 0.9);
-        ctx.lineTo(-r * 1.8, r * 0.9);
-        ctx.lineTo(-r * 1.2, r * 0.5);
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.stroke();
+        // ---- 玩家星标（装饰在鱼身中央） ----
+        if (isPlayer) {
+            let starSize = r * 0.4;
+            ctx.save();
+            ctx.translate(0, 0);
+            ctx.fillStyle = 'white';
+            ctx.shadowColor = 'rgba(255,255,255,0.3)';
+            ctx.shadowBlur = 8;
+            drawStar(ctx, 0, 0, 5, starSize, starSize * 0.4);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
 
         ctx.restore();
     }
 
+    // 画五角星
+    function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+        let rot = -Math.PI / 2;
+        let step = Math.PI / spikes;
+        ctx.beginPath();
+        for (let i = 0; i < spikes * 2; i++) {
+            let r = (i % 2 === 0) ? outerRadius : innerRadius;
+            let x = cx + Math.cos(rot + i * step) * r;
+            let y = cy + Math.sin(rot + i * step) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
+
     function draw() {
         ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#2a4a5a' : '#7ec8e3';
+        let bgColor = document.body.classList.contains('dark-mode') ? '#1a3a4a' : '#7ec8e3';
+        ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, W, H);
 
         for (let f of fishes) {
             let edible = (player.r > f.r * 1.2);
             let dangerous = (f.r > player.r * 1.2);
-            drawFish(f.x, f.y, f.r, f.color, f.angle, false, edible, dangerous);
+            drawFish(f.x, f.y, f.r, f.color, f.angle, f.tailPhase, false, edible, dangerous);
         }
-        drawFish(player.x, player.y, player.r, '#00e5ff', player.angle, true);
+        drawFish(player.x, player.y, player.r, '#00e5ff', player.angle, 0, true);
 
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.font = '18px Arial';
         ctx.fillText(`体型: ${Math.round(player.r)}  鱼群: ${fishes.length}`, 10, 30);
         ctx.fillText('🟢可吃  ⚪危险(白边)', 10, 58);
