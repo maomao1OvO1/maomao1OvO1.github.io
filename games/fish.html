@@ -105,7 +105,7 @@
 
 <script>
     // ============================================================
-    // 大鱼吃小鱼 - 大尾巴 + 圆点装饰
+    // 大鱼吃小鱼 - 追逃AI + 速度体型相关
     // ============================================================
 
     const canvas = document.getElementById('gameCanvas');
@@ -167,8 +167,10 @@
             y = Math.random() * H;
         }
         let angle = Math.random() * Math.PI * 2;
-        let speed = 0.6 + Math.random() * 1.5;
-        let turnSpeed = 0.02 + Math.random() * 0.05;
+        // 速度与体型成反比：小鱼快，大鱼慢
+        let speed = Math.max(0.8, 3.0 - radius / 12);
+        speed = Math.min(speed, 2.5);
+        let turnSpeed = 0.02 + Math.random() * 0.04;
         let hue;
         if (radius < 15) hue = 160 + Math.random() * 80;
         else if (radius < 25) hue = 30 + Math.random() * 50;
@@ -212,8 +214,9 @@
         animId = requestAnimationFrame(loop);
     }
 
-    // ----- 更新（速度适中）-----
+    // ----- 更新（带追逃AI）-----
     function update() {
+        // 1. 玩家移动（鼠标控制）
         let dx = targetX - player.x;
         let dy = targetY - player.y;
         let dist = Math.hypot(dx, dy);
@@ -226,24 +229,92 @@
         player.x = Math.max(player.r, Math.min(W - player.r, player.x));
         player.y = Math.max(player.r, Math.min(H - player.r, player.y));
 
+        // 2. 鱼群AI（追逃）
+        const VIEW_DIST = 200; // 视野范围
         for (let f of fishes) {
-            if (Math.random() < 0.02) {
-                f.turnSpeed = (Math.random() < 0.5 ? 1 : -1) * (0.02 + Math.random() * 0.05);
+            // 先假设无目标，使用随机转向（原有逻辑）
+            let targetAngle = null;
+            let threatDist = Infinity;
+            let preyDist = Infinity;
+
+            // 检查所有其他鱼（包括玩家）作为威胁或猎物
+            let allFish = [...fishes, player];
+            for (let other of allFish) {
+                if (other === f) continue;
+                let d = Math.hypot(f.x - other.x, f.y - other.y);
+                if (d > VIEW_DIST) continue;
+
+                if (other.r > f.r * 1.1) {
+                    // 比自己大，视为威胁
+                    if (d < threatDist) {
+                        threatDist = d;
+                        // 目标方向：远离威胁（反方向）
+                        let angleAway = Math.atan2(f.y - other.y, f.x - other.x);
+                        targetAngle = angleAway;
+                    }
+                } else if (f.r > other.r * 1.1) {
+                    // 比自己小，视为猎物
+                    if (d < preyDist) {
+                        preyDist = d;
+                        // 目标方向：向猎物游去
+                        let angleToward = Math.atan2(other.y - f.y, other.x - f.x);
+                        // 如果没有威胁，则设为追逐目标
+                        if (targetAngle === null) {
+                            targetAngle = angleToward;
+                        }
+                    }
+                }
             }
-            f.angle += f.turnSpeed;
-            if (Math.random() < 0.01) {
-                f.speed = 0.6 + Math.random() * 1.5;
+
+            // 如果有威胁，优先逃跑（覆盖追逐）
+            if (threatDist < VIEW_DIST) {
+                // 已经设置 targetAngle 为逃跑方向
+                // 加速逃跑（速度略增）
+                f.speed = Math.min(f.speed * 1.2, 2.8);
+            } else if (preyDist < VIEW_DIST && targetAngle !== null) {
+                // 追逐猎物，速度略增
+                f.speed = Math.min(f.speed * 1.1, 2.8);
+            } else {
+                // 没有追逃目标，随机游走（恢复基础速度，随机转向）
+                if (Math.random() < 0.02) {
+                    f.turnSpeed = (Math.random() < 0.5 ? 1 : -1) * (0.02 + Math.random() * 0.04);
+                }
+                // 恢复基础速度（与体型相关）
+                let baseSpeed = Math.max(0.8, 3.0 - f.r / 12);
+                f.speed += (baseSpeed - f.speed) * 0.02;
             }
+
+            // 转向目标方向（平滑）
+            if (targetAngle !== null) {
+                let diff = targetAngle - f.angle;
+                // 归一化角度差
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                let maxTurn = f.turnSpeed * 1.5; // 转向速度
+                if (Math.abs(diff) > maxTurn) {
+                    f.angle += Math.sign(diff) * maxTurn;
+                } else {
+                    f.angle = targetAngle;
+                }
+            } else {
+                // 随机转向
+                f.angle += f.turnSpeed;
+            }
+
+            // 应用速度移动
             let vx = Math.cos(f.angle) * f.speed;
             let vy = Math.sin(f.angle) * f.speed;
             f.x += vx;
             f.y += vy;
+
+            // 穿越边界
             if (f.x < -f.r) f.x = W + f.r;
             else if (f.x > W + f.r) f.x = -f.r;
             if (f.y < -f.r) f.y = H + f.r;
             else if (f.y > H + f.r) f.y = -f.r;
         }
 
+        // 3. 碰撞检测（玩家吃鱼 / 被吃）
         for (let i = fishes.length - 1; i >= 0; i--) {
             let f = fishes[i];
             let d = Math.hypot(player.x - f.x, player.y - f.y);
@@ -270,6 +341,7 @@
                     cancelAnimationFrame(animId);
                     return;
                 } else {
+                    // 大小相近，弹开
                     let angle = Math.atan2(f.y - player.y, f.x - player.x);
                     let push = 2;
                     f.x += Math.cos(angle) * push;
@@ -278,19 +350,19 @@
                 }
             }
         }
+
+        // 保持鱼群数量
         while (fishes.length < 15) fishes.push(createFish());
         while (fishes.length > 22) fishes.splice(Math.floor(Math.random() * fishes.length), 1);
     }
 
-    // ----- 绘制（大尾巴 + 圆点装饰）-----
+    // ----- 绘制（简笔 + 大尾巴 + 圆点装饰）-----
     function drawFish(x, y, r, color, angle, tailPhase, isPlayer = false, edible = false, dangerous = false) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle);
 
-        // 纯色
         ctx.fillStyle = isPlayer ? '#00e5ff' : color;
-        // 鱼身
         ctx.beginPath();
         ctx.ellipse(0, 0, r * 1.4, r, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -298,7 +370,6 @@
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // 微弱提示发光
         if (!isPlayer) {
             if (edible) {
                 ctx.shadowColor = 'rgba(0,255,0,0.2)';
@@ -313,11 +384,11 @@
             }
         }
 
-        // ---- 尾巴（加大，比例协调） ----
+        // 尾巴（大）
         let tailAngle = Math.sin(frame * 0.06 + tailPhase) * 0.3;
         let baseX = -r * 1.2;
-        let tailLen = r * 1.4;   // 长度加大
-        let tailWid = r * 1.0;   // 宽度加大
+        let tailLen = r * 1.4;
+        let tailWid = r * 1.0;
         let tip1X = baseX - tailLen * Math.cos(tailAngle);
         let tip1Y = -tailWid * Math.sin(tailAngle + 0.2);
         let tip2X = baseX - tailLen * Math.cos(tailAngle);
@@ -333,7 +404,7 @@
         ctx.strokeStyle = 'rgba(0,0,0,0.2)';
         ctx.stroke();
 
-        // ---- 眼睛 ----
+        // 眼睛
         let eyeX = r * 0.45;
         let eyeY = -r * 0.2;
         ctx.beginPath();
@@ -351,7 +422,7 @@
         ctx.fillStyle = 'white';
         ctx.fill();
 
-        // ---- 玩家装饰：简洁圆点（代替星星） ----
+        // 玩家圆点装饰
         if (isPlayer) {
             let dotR = r * 0.2;
             ctx.beginPath();
@@ -361,7 +432,6 @@
             ctx.shadowBlur = 12;
             ctx.fill();
             ctx.shadowBlur = 0;
-            // 描边（可选）
             ctx.strokeStyle = 'rgba(255,255,255,0.3)';
             ctx.lineWidth = 1;
             ctx.stroke();
