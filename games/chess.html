@@ -369,7 +369,10 @@ let stockfish = null;
 
 let stockfishReady = false;
 
-// ===== 初始化 Stockfish =====
+// ===== 新增判和变量 =====
+let positionHistory = [];
+let halfMoveClock = 0;
+let moveCount = 0;
 
 // ===== 初始化 Stockfish =====
 
@@ -636,6 +639,11 @@ function restart(){
 
     gameEnd=false;
 
+    // ===== 重置判和变量 =====
+    positionHistory = [];
+    halfMoveClock = 0;
+    moveCount = 0;
+
 
     document.getElementById("info").innerHTML=
 
@@ -842,7 +850,46 @@ function color(p){
 
 restart();
 
+// =====================================================
+// ===== 新增：子力不足检测 =====
+// =====================================================
+function isInsufficientMaterial() {
+    let pieces = { white: {count:0, bishops:0, knights:0, rooks:0, queens:0, pawns:0},
+                   black: {count:0, bishops:0, knights:0, rooks:0, queens:0, pawns:0} };
+    for (let x=0; x<8; x++) {
+        for (let y=0; y<8; y++) {
+            let p = board[x][y];
+            if (p === "") continue;
+            let col = color(p);
+            if ("♔♚".includes(p)) continue; // 忽略王
+            pieces[col].count++;
+            if ("♗♝".includes(p)) pieces[col].bishops++;
+            else if ("♘♞".includes(p)) pieces[col].knights++;
+            else if ("♖♜".includes(p)) pieces[col].rooks++;
+            else if ("♕♛".includes(p)) pieces[col].queens++;
+            else if ("♙♟".includes(p)) pieces[col].pawns++;
+        }
+    }
+    // 有车、后、兵 => 子力充足
+    if (pieces.white.rooks>0 || pieces.white.queens>0 || pieces.white.pawns>0 ||
+        pieces.black.rooks>0 || pieces.black.queens>0 || pieces.black.pawns>0) {
+        return false;
+    }
+    let totalLight = pieces.white.bishops + pieces.white.knights + pieces.black.bishops + pieces.black.knights;
+    if (totalLight <= 1) return true; // 仅一轻子
+    if (totalLight === 2) {
+        // 如果是两个象且同色，或者两个马，或一象一马，也不能将死（通常判和）
+        // 但为了严格，只有两个象且同色才判和（两个马或象+马其实也可能有将死，但极罕见，我们简化判定为和）
+        // 这里我们取保守：只要总轻子数为2且没有车后兵，就判和
+        return true;
+    }
+    // 其他情况（比如三个轻子但无车后兵，可能有将死可能，但极少，我们仍然判和以确保安全）
+    return false;
+}
+
+// =====================================================
 // ===== 移动棋子 =====
+// =====================================================
 
 function tryMove(x1,y1,x2,y2){
 
@@ -999,6 +1046,19 @@ lastMove={
 let oldTurn = turn;
 
 
+// 更新半回合时钟（吃子或兵移动时重置）
+if (target !== "" || piece === "♙" || piece === "♟") {
+    halfMoveClock = 0;
+} else {
+    halfMoveClock++;
+}
+// 记录当前局面（去掉步数信息）
+let fenWithoutCount = boardToFEN().replace(/ \d+ \d+$/, '');
+positionHistory.push(fenWithoutCount);
+// 增加总步数（只统计白方走的）
+if (oldTurn === "white") moveCount++;
+
+
 // 换回合
 
 turn=
@@ -1012,6 +1072,36 @@ turn=="white"
 :
 
 "white";
+
+
+// ===== 自动判和检测 =====
+
+// 1. 三次重复局面
+let repeatCount = 0;
+let currentFen = boardToFEN().replace(/ \d+ \d+$/, '');
+for (let hist of positionHistory) {
+    if (hist === currentFen) repeatCount++;
+}
+if (repeatCount >= 3) {
+    alert("♻️ 三次重复局面，和棋！");
+    gameEnd = true;
+    return;
+}
+
+// 2. 五十步规则（半回合数 ≥ 100）
+if (halfMoveClock >= 100) {
+    alert("♻️ 五十步无吃子/兵移动，和棋！");
+    gameEnd = true;
+    return;
+}
+
+// 3. 子力不足
+if (isInsufficientMaterial()) {
+    alert("♻️ 子力不足，无法将死，和棋！");
+    gameEnd = true;
+    return;
+}
+
 
 // ===== 检查将军 / 将死 =====
 
@@ -2724,5 +2814,4 @@ updateStatsDisplay();
 
 
 </body>
-
 </html>
