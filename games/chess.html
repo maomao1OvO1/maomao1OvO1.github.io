@@ -85,6 +85,8 @@ cursor:pointer;
 
 box-sizing:border-box;
 
+position:relative;  /* 新增：用于伪元素定位 */
+
 }
 
 
@@ -108,6 +110,72 @@ background:#b58863;
 .select{
 
 outline:4px solid #6543a5;
+
+}
+
+
+
+/* ===== 新增：移动提示灰色圆点 ===== */
+
+.cell.move-hint::after {
+
+    content: '';
+
+    position: absolute;
+
+    top: 50%;
+
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    width: 18px;
+
+    height: 18px;
+
+    border-radius: 50%;
+
+    background: rgba(0, 0, 0, 0.35);
+
+    pointer-events: none;
+
+    z-index: 1;
+
+}
+
+
+
+/* ===== 新增：上一步高亮 ===== */
+
+.cell.last-from {
+
+    background-color: #aaffaa !important; /* 浅绿 */
+
+}
+
+.cell.last-to {
+
+    background-color: #66dd66 !important; /* 深绿 */
+
+}
+
+
+
+/* ===== 新增：被将军时王高亮 ===== */
+
+.cell.in-check {
+
+    background-color: #ff6666 !important; /* 红色 */
+
+    animation: blink 0.8s infinite alternate;
+
+}
+
+@keyframes blink {
+
+    from { background-color: #ff6666; }
+
+    to { background-color: #ff0000; }
 
 }
 
@@ -369,10 +437,16 @@ let stockfish = null;
 
 let stockfishReady = false;
 
-// ===== 新增判和变量 =====
+// ===== 判和变量 =====
 let positionHistory = [];
 let halfMoveClock = 0;
 let moveCount = 0;
+
+// ===== 高亮记录 =====
+let lastFrom = null;      // [row, col]
+let lastTo = null;
+let inCheckKingPos = null; // [row, col] 被将军的王位置
+let selected = null;      // 当前选中的棋子 [row, col]
 
 // ===== 初始化 Stockfish =====
 
@@ -543,11 +617,6 @@ stockfish.postMessage(
 
 }
 
-// 选择的棋子
-
-let selected = null;
-
-
 // 游戏结束
 
 let gameEnd = false;
@@ -644,6 +713,11 @@ function restart(){
     halfMoveClock = 0;
     moveCount = 0;
 
+    // ===== 重置高亮 =====
+    lastFrom = null;
+    lastTo = null;
+    inCheckKingPos = null;
+
 
     document.getElementById("info").innerHTML=
 
@@ -683,79 +757,72 @@ updateStatsDisplay();
 
 }
 
-// ===== 绘制棋盘 =====
+// ===== 绘制棋盘（包含所有高亮和提示） =====
 
 function draw(){
 
-
     let box=document.getElementById("board");
-
 
     box.innerHTML="";
 
-
-
-    for(let x=0;x<8;x++){
-
-
-        for(let y=0;y<8;y++){
-
-
-            let cell=document.createElement("div");
-
-
-            cell.className=
-
-            "cell "
-
-            +
-
-            ((x+y)%2==0?
-
-            "light":
-
-            "dark");
-
-
-
-            cell.innerHTML=board[x][y];
-
-if("♙♖♘♗♕♔".includes(board[x][y])){
-
-    cell.style.color="white";
-
-    cell.style.textShadow="0 0 2px black";
-
-}
-
-
-if("♟♜♞♝♛♚".includes(board[x][y])){
-
-    cell.style.color="black";
-
-    cell.style.textShadow="none";
-
-}
-
-            cell.onclick=function(){
-
-
-                clickCell(x,y);
-
-
-            };
-
-
-
-            box.appendChild(cell);
-
-
+    // 计算选中棋子的合法走法（用于灰色圆点）
+    let legalMoves = [];
+    if (selected && !gameEnd) {
+        let piece = board[selected[0]][selected[1]];
+        if (piece && color(piece) === turn) {
+            let moves = getMoves(selected[0], selected[1]);
+            for (let m of moves) {
+                if (isLegalMove(selected[0], selected[1], m[0], m[1])) {
+                    legalMoves.push(m);
+                }
+            }
         }
-
-
     }
 
+    for(let x=0; x<8; x++){
+        for(let y=0; y<8; y++){
+            let cell=document.createElement("div");
+            cell.className = "cell " + ((x+y)%2==0 ? "light" : "dark");
 
+            // 设置棋子文本
+            cell.innerHTML = board[x][y];
+            if("♙♖♘♗♕♔".includes(board[x][y])){
+                cell.style.color="white";
+                cell.style.textShadow="0 0 2px black";
+            }
+            if("♟♜♞♝♛♚".includes(board[x][y])){
+                cell.style.color="black";
+                cell.style.textShadow="none";
+            }
+
+            // ---- 添加高亮类 ----
+            // 上一步起点（浅绿）
+            if (lastFrom && lastFrom[0]===x && lastFrom[1]===y) {
+                cell.classList.add('last-from');
+            }
+            // 上一步终点（深绿）
+            if (lastTo && lastTo[0]===x && lastTo[1]===y) {
+                cell.classList.add('last-to');
+            }
+            // 被将军的王（红色闪烁）
+            if (inCheckKingPos && inCheckKingPos[0]===x && inCheckKingPos[1]===y) {
+                cell.classList.add('in-check');
+            }
+            // 灰色圆点提示（合法走法）
+            for (let m of legalMoves) {
+                if (m[0]===x && m[1]===y) {
+                    cell.classList.add('move-hint');
+                    break;
+                }
+            }
+
+            cell.onclick = function(){
+                clickCell(x,y);
+            };
+
+            box.appendChild(cell);
+        }
+    }
 }
 
 
@@ -786,6 +853,7 @@ function clickCell(x,y){
 
 
             selected=[x,y];
+            draw(); // 刷新显示，显示灰色圆点
 
 
         }
@@ -876,19 +944,15 @@ function isInsufficientMaterial() {
         return false;
     }
     let totalLight = pieces.white.bishops + pieces.white.knights + pieces.black.bishops + pieces.black.knights;
-    if (totalLight <= 1) return true; // 仅一轻子
+    if (totalLight <= 1) return true;
     if (totalLight === 2) {
-        // 如果是两个象且同色，或者两个马，或一象一马，也不能将死（通常判和）
-        // 但为了严格，只有两个象且同色才判和（两个马或象+马其实也可能有将死，但极罕见，我们简化判定为和）
-        // 这里我们取保守：只要总轻子数为2且没有车后兵，就判和
-        return true;
+        return true; // 简化：只要无兵车后，2轻子也判和
     }
-    // 其他情况（比如三个轻子但无车后兵，可能有将死可能，但极少，我们仍然判和以确保安全）
     return false;
 }
 
 // =====================================================
-// ===== 移动棋子 =====
+// ===== 移动棋子（含高亮记录） =====
 // =====================================================
 
 function tryMove(x1,y1,x2,y2){
@@ -1107,6 +1171,13 @@ if (isInsufficientMaterial()) {
 
 if(check()){
 
+    // 记录被将军的王的位置（用于高亮）
+    let kingPos = findKing(turn);
+    if (kingPos) {
+        inCheckKingPos = kingPos;
+    } else {
+        inCheckKingPos = null;
+    }
 
     // 检查有没有合法移动
 
@@ -1163,9 +1234,19 @@ if(check()){
 
     }
 
-
+} else {
+    // 没有将军，清除高亮
+    inCheckKingPos = null;
 }
 
+
+// 记录上一步高亮（只有在合法移动后才设置，且不是王车易位分支）
+if (!gameEnd) {
+    lastFrom = [x1, y1];
+    lastTo = [x2, y2];
+} else {
+    // 游戏结束，不清除高亮，保留最后一步
+}
 
 
 // ===== 判断是否还有合法走法 =====
