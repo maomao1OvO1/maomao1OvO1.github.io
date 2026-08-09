@@ -56,7 +56,7 @@ body.dark-mode .cell{color:#000;}
 <button onclick="restart()">重新开始</button>
 <script>
 // ============================================================
-// 完整国际象棋引擎（含动画、高亮、判和、统计）
+// 完整国际象棋引擎 - 修复王车易位（simulateMove不再修改moved）
 // ============================================================
 let board=[], turn="white", mode="player", aiFirst=false, stockfish=null;
 let positionHistory=[], halfMoveClock=0, moveCount=0;
@@ -148,34 +148,175 @@ if(!gameEnd && turn=="black" && mode!="player"){if(mode=="normal"){document.getE
 draw();
 }
 function clickCell(x,y){if(gameEnd||animating)return;if(selected==null){let p=board[x][y];if(p!=""&&color(p)==turn){selected=[x,y];draw();}}else{tryMove(selected[0],selected[1],x,y);selected=null;draw();}}
+
+// ===== tryMove：优先处理王车易位 =====
 function tryMove(x1,y1,x2,y2){
-if(gameEnd||animating)return;let piece=board[x1][y1],target=board[x2][y2];if(piece=="")return;
-if(target=="♖"){if(x2==7&&y2==0)moved.whiteLeftRook=true;if(x2==7&&y2==7)moved.whiteRightRook=true;}
-if(target=="♜"){if(x2==0&&y2==0)moved.blackLeftRook=true;if(x2==0&&y2==7)moved.blackRightRook=true;}
-if(castleMove(x1,y1,x2,y2,piece)){if(piece=="♔")moved.whiteKing=true;if(piece=="♚")moved.blackKing=true;draw();turn=(turn=="white")?"black":"white";document.getElementById("info").innerHTML=(turn=="white")?"白方回合":"黑方回合";if(turn=="black"&&mode!="player"){if(mode=="normal"){document.getElementById("info").innerHTML="🤖 普通AI思考中...";setTimeout(aiMove,500);}else if(mode=="stockfish"){setTimeout(stockfishMove,500);}}return;}
-if(!isLegalMove(x1,y1,x2,y2))return;
+if(gameEnd||animating)return;
+let piece=board[x1][y1];
+if(piece=="")return;
+
+// 检查王车易位
+if((piece=="♔"||piece=="♚") && isCastlingMove(x1,y1,x2,y2,piece)){
+    let row = x1;
+    let kingTarget = [row, y2];
+    let rookStart, rookTarget;
+    if(y2 == 6){
+        rookStart = [row, 7];
+        rookTarget = [row, 5];
+    } else if(y2 == 2){
+        rookStart = [row, 0];
+        rookTarget = [row, 3];
+    } else return;
+    // 移动王
+    board[kingTarget[0]][kingTarget[1]] = piece;
+    board[x1][4] = "";
+    // 移动车
+    board[rookTarget[0]][rookTarget[1]] = board[rookStart[0]][rookStart[1]];
+    board[rookStart[0]][rookStart[1]] = "";
+    // 更新易位状态
+    if(piece=="♔"){moved.whiteKing=true; moved.whiteRightRook=true; moved.whiteLeftRook=true;}
+    else {moved.blackKing=true; moved.blackRightRook=true; moved.blackLeftRook=true;}
+    // 记录
+    lastFrom=[x1,4];
+    lastTo=[x2,y2];
+    lastMove={piece:piece,from:[x1,4],to:[x2,y2],doublePawn:false};
+    halfMoveClock++;
+    // 换回合
+    turn=(turn=="white")?"black":"white";
+    // 判和检测（简化）
+    let fen=boardToFEN().replace(/ \d+ \d+$/,''); positionHistory.push(fen);
+    // 将军检测
+    if(check()){
+        let kp=findKing(turn);
+        if(kp) inCheckKingPos=kp;
+        if(noLegalMove(turn)){
+            if(turn=="white"){alert("♟ 黑棋胜利！\n白方被将死！");recordWin("black");updateStatsDisplay();}
+            else{alert("♙ 白棋胜利！\n黑方被将死！");recordWin("white");updateStatsDisplay();}
+            gameEnd=true;
+        }else{
+            alert((turn=="white")?"♟ 黑棋将军！":"♙ 白棋将军！");
+        }
+    }else{inCheckKingPos=null;}
+    document.getElementById("info").innerHTML=(turn=="white")?"白方回合":"黑方回合";
+    if(!gameEnd && turn=="black" && mode!="player"){if(mode=="normal"){document.getElementById("info").innerHTML="🤖 普通AI思考中...";setTimeout(aiMove,500);}else if(mode=="stockfish"){setTimeout(stockfishMove,500);}}
+    draw();
+    return;
+}
+
+// 普通移动
+let target=board[x2][y2];
+if(target=="♖"){if(x2==7&&y2==0)moved.whiteLeftRook=true; if(x2==7&&y2==7)moved.whiteRightRook=true;}
+if(target=="♜"){if(x2==0&&y2==0)moved.blackLeftRook=true; if(x2==0&&y2==7)moved.blackRightRook=true;}
+if(!isLegalMove(x1,y1,x2,y2)) return;
 let captured=board[x2][y2];
-animating=true;animFrom=[x1,y1];animTo=[x2,y2];animPiece=piece;animCaptured=captured;animStartTime=Date.now();
-lastFrom=[x1,y1];lastTo=[x2,y2];
+animating=true; animFrom=[x1,y1]; animTo=[x2,y2]; animPiece=piece; animCaptured=captured; animStartTime=Date.now();
+lastFrom=[x1,y1]; lastTo=[x2,y2];
 draw();
 }
-// ----- 规则函数 -----
-function getMoves(x,y){let p=board[x][y],r=[];if(p=="♔"||p=="♚"){let d=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];for(let dir of d)addMove(r,x+dir[0],y+dir[1],p);}
+
+// ===== 易位条件检查 =====
+function isCastlingMove(x1,y1,x2,y2,piece){
+    if(piece=="♔"){
+        if(moved.whiteKing) return false;
+        if(x1!=7 || y1!=4) return false;
+        if(y2==6){
+            if(board[7][7]!="♖" || moved.whiteRightRook) return false;
+            if(board[7][5]!="" || board[7][6]!="") return false;
+            if(isAttacked(7,4,"white")||isAttacked(7,5,"white")||isAttacked(7,6,"white")) return false;
+            return true;
+        } else if(y2==2){
+            if(board[7][0]!="♖" || moved.whiteLeftRook) return false;
+            if(board[7][1]!="" || board[7][2]!="" || board[7][3]!="") return false;
+            if(isAttacked(7,4,"white")||isAttacked(7,3,"white")||isAttacked(7,2,"white")) return false;
+            return true;
+        }
+    }
+    if(piece=="♚"){
+        if(moved.blackKing) return false;
+        if(x1!=0 || y1!=4) return false;
+        if(y2==6){
+            if(board[0][7]!="♜" || moved.blackRightRook) return false;
+            if(board[0][5]!="" || board[0][6]!="") return false;
+            if(isAttacked(0,4,"black")||isAttacked(0,5,"black")||isAttacked(0,6,"black")) return false;
+            return true;
+        } else if(y2==2){
+            if(board[0][0]!="♜" || moved.blackLeftRook) return false;
+            if(board[0][1]!="" || board[0][2]!="" || board[0][3]!="") return false;
+            if(isAttacked(0,4,"black")||isAttacked(0,3,"black")||isAttacked(0,2,"black")) return false;
+            return true;
+        }
+    }
+    return false;
+}
+
+// ===== getMoves 添加易位目标 =====
+function getMoves(x,y){
+let p=board[x][y],r=[];
+if(p=="♔"||p=="♚"){
+let dir=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+for(let d of dir)addMove(r,x+d[0],y+d[1],p);
+// 王车易位目标
+if(p=="♔" && !moved.whiteKing && x==7 && y==4){
+    if(!moved.whiteRightRook && board[7][7]=="♖" && board[7][5]=="" && board[7][6]==""){
+        if(!isAttacked(7,4,"white") && !isAttacked(7,5,"white") && !isAttacked(7,6,"white")){
+            r.push([7,6]);
+        }
+    }
+    if(!moved.whiteLeftRook && board[7][0]=="♖" && board[7][1]=="" && board[7][2]=="" && board[7][3]==""){
+        if(!isAttacked(7,4,"white") && !isAttacked(7,3,"white") && !isAttacked(7,2,"white")){
+            r.push([7,2]);
+        }
+    }
+}
+if(p=="♚" && !moved.blackKing && x==0 && y==4){
+    if(!moved.blackRightRook && board[0][7]=="♜" && board[0][5]=="" && board[0][6]==""){
+        if(!isAttacked(0,4,"black") && !isAttacked(0,5,"black") && !isAttacked(0,6,"black")){
+            r.push([0,6]);
+        }
+    }
+    if(!moved.blackLeftRook && board[0][0]=="♜" && board[0][1]=="" && board[0][2]=="" && board[0][3]==""){
+        if(!isAttacked(0,4,"black") && !isAttacked(0,3,"black") && !isAttacked(0,2,"black")){
+            r.push([0,2]);
+        }
+    }
+}
+}
 if(p=="♘"||p=="♞"){let h=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];for(let hh of h)addMove(r,x+hh[0],y+hh[1],p);}
 if(p=="♖"||p=="♜")lineMove(r,x,y,[[-1,0],[1,0],[0,-1],[0,1]]);
 if(p=="♗"||p=="♝")lineMove(r,x,y,[[-1,-1],[-1,1],[1,-1],[1,1]]);
 if(p=="♕"||p=="♛")lineMove(r,x,y,[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]);
-pawnMove(r,x,y,p);return r;}
+pawnMove(r,x,y,p);
+return r;
+}
+
 function addMove(arr,x,y,p){if(x<0||x>7||y<0||y>7)return;if(board[x][y]==""||color(board[x][y])!=color(p))arr.push([x,y]);}
 function lineMove(arr,x,y,dirs){for(let d of dirs){let nx=x+d[0],ny=y+d[1];while(nx>=0&&nx<8&&ny>=0&&ny<8){if(board[nx][ny]==""){arr.push([nx,ny]);}else{if(color(board[nx][ny])!=color(board[x][y]))arr.push([nx,ny]);break;}nx+=d[0];ny+=d[1];}}}
 function pawnMove(arr,x,y,p){if(p!="♙"&&p!="♟")return;let dir=(p=="♙")?-1:1;if(board[x+dir]&&board[x+dir][y]=="")arr.push([x+dir,y]);if((p=="♙"&&x==6)||(p=="♟"&&x==1)){if(board[x+dir][y]==""&&board[x+dir*2][y]=="")arr.push([x+dir*2,y]);}for(let dy of[-1,1]){let nx=x+dir,ny=y+dy;if(board[nx]&&board[nx][ny]&&board[nx][ny]!=""&&color(board[nx][ny])!=color(p))arr.push([nx,ny]);}if(lastMove){let lx=lastMove.to[0],ly=lastMove.to[1];if(p=="♙"&&lastMove.piece=="♟"&&lastMove.doublePawn&&x==3&&Math.abs(y-ly)==1&&lx==3)arr.push([x-1,ly]);if(p=="♟"&&lastMove.piece=="♙"&&lastMove.doublePawn&&x==4&&Math.abs(y-ly)==1&&lx==4)arr.push([x+1,ly]);}}
-function castleMove(x1,y1,x2,y2,p){if(p=="♔"&&!moved.whiteKing&&x1==7&&y1==4){if(x2==7&&y2==6&&board[7][7]=="♖"&&board[7][5]==""&&board[7][6]==""){board[7][6]=board[7][4];board[7][4]="";board[7][5]=board[7][7];board[7][7]="";return true;}if(x2==7&&y2==2&&board[7][0]=="♖"&&board[7][1]==""&&board[7][2]==""&&board[7][3]==""){board[7][2]=board[7][4];board[7][4]="";board[7][3]=board[7][0];board[7][0]="";return true;}}if(p=="♚"&&!moved.blackKing&&x1==0&&y1==4){if(x2==0&&y2==6&&board[0][7]=="♜"&&board[0][5]==""&&board[0][6]==""){board[0][6]=board[0][4];board[0][4]="";board[0][5]=board[0][7];board[0][7]="";return true;}if(x2==0&&y2==2&&board[0][0]=="♜"&&board[0][1]==""&&board[0][2]==""&&board[0][3]==""){board[0][2]=board[0][4];board[0][4]="";board[0][3]=board[0][0];board[0][0]="";return true;}}return false;}
 function findKing(side){let k=side=="white"?"♔":"♚";for(let x=0;x<8;x++)for(let y=0;y<8;y++)if(board[x][y]==k)return[x,y];return null;}
 function isAttacked(x,y,side){for(let i=0;i<8;i++)for(let j=0;j<8;j++){let p=board[i][j];if(p==""||color(p)==side)continue;if(p=="♘"||p=="♞"){let h=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];for(let hh of h)if(i+hh[0]==x&&j+hh[1]==y)return true;}if(p=="♔"||p=="♚"){if(Math.abs(i-x)<=1&&Math.abs(j-y)<=1)return true;}if(p=="♙"){if(i-1==x&&Math.abs(j-y)==1)return true;}if(p=="♟"){if(i+1==x&&Math.abs(j-y)==1)return true;}let dx=x-i,dy=y-j;if(dx==0||dy==0){if(p=="♖"||p=="♜"||p=="♕"||p=="♛"){if(clearPath(i,j,x,y))return true;}}if(Math.abs(dx)==Math.abs(dy)){if(p=="♗"||p=="♝"||p=="♕"||p=="♛"){if(clearPath(i,j,x,y))return true;}}}return false;}
 function clearPath(x1,y1,x2,y2){let dx=Math.sign(x2-x1),dy=Math.sign(y2-y1);let x=x1+dx,y=y1+dy;while(x!=x2||y!=y2){if(board[x][y]!="")return false;x+=dx;y+=dy;}return true;}
 function check(){let kp=findKing(turn);if(!kp)return true;return isAttacked(kp[0],kp[1],turn);}
-function simulateMove(x1,y1,x2,y2){let old=board[x2][y2],piece=board[x1][y1];if(piece=="♙"&&x1==3&&x2==2&&y1!=y2&&board[x2][y2]=="")board[x1][y2]="";if(piece=="♟"&&x1==4&&x2==5&&y1!=y2&&board[x2][y2]=="")board[x1][y2]="";if(piece=="♔")moved.whiteKing=true;if(piece=="♚")moved.blackKing=true;if(piece=="♖"){if(x1==7&&y1==0)moved.whiteLeftRook=true;if(x1==7&&y1==7)moved.whiteRightRook=true;}if(piece=="♜"){if(x1==0&&y1==0)moved.blackLeftRook=true;if(x1==0&&y1==7)moved.blackRightRook=true;}board[x2][y2]=piece;board[x1][y1]="";let result=check();board[x1][y1]=piece;board[x2][y2]=old;return result;}
-function isLegalMove(x1,y1,x2,y2){let piece=board[x1][y1];if(color(piece)!=turn)return false;let moves=getMoves(x1,y1);let can=false;for(let m of moves)if(m[0]==x2&&m[1]==y2)can=true;if(!can)return false;if(simulateMove(x1,y1,x2,y2))return false;return true;}
+function simulateMove(x1,y1,x2,y2){
+let old=board[x2][y2], piece=board[x1][y1];
+// 吃过路兵
+if(piece=="♙"&&x1==3&&x2==2&&y1!=y2&&board[x2][y2]=="") board[x1][y2]="";
+if(piece=="♟"&&x1==4&&x2==5&&y1!=y2&&board[x2][y2]=="") board[x1][y2]="";
+// 注意：不修改moved，避免污染
+board[x2][y2]=piece; board[x1][y1]="";
+let result=check();
+board[x1][y1]=piece; board[x2][y2]=old;
+return result;
+}
+function isLegalMove(x1,y1,x2,y2){
+let piece=board[x1][y1];
+if(color(piece)!=turn)return false;
+let moves=getMoves(x1,y1);
+let can=false;
+for(let m of moves)if(m[0]==x2&&m[1]==y2)can=true;
+if(!can)return false;
+if(simulateMove(x1,y1,x2,y2))return false;
+return true;
+}
 function noLegalMove(side){for(let x=0;x<8;x++)for(let y=0;y<8;y++){let p=board[x][y];if(p!=""&&color(p)==side){let mvs=getMoves(x,y);for(let m of mvs)if(isLegalMove(x,y,m[0],m[1]))return false;}}return true;}
 function isInsufficientMaterial(){let pc={white:{count:0,bishops:0,knights:0,rooks:0,queens:0,pawns:0},black:{count:0,bishops:0,knights:0,rooks:0,queens:0,pawns:0}};for(let x=0;x<8;x++)for(let y=0;y<8;y++){let p=board[x][y];if(p=="")continue;let c=color(p);if("♔♚".includes(p))continue;pc[c].count++;if("♗♝".includes(p))pc[c].bishops++;else if("♘♞".includes(p))pc[c].knights++;else if("♖♜".includes(p))pc[c].rooks++;else if("♕♛".includes(p))pc[c].queens++;else if("♙♟".includes(p))pc[c].pawns++;}if(pc.white.rooks>0||pc.white.queens>0||pc.white.pawns>0||pc.black.rooks>0||pc.black.queens>0||pc.black.pawns>0)return false;let total=pc.white.bishops+pc.white.knights+pc.black.bishops+pc.black.knights;return total<=2;}
 function boardToFEN(){let fen="";for(let x=0;x<8;x++){let empty=0;for(let y=0;y<8;y++){let p=board[x][y];if(p==""){empty++;}else{if(empty>0){fen+=empty;empty=0;}let map={"♙":"P","♖":"R","♘":"N","♗":"B","♕":"Q","♔":"K","♟":"p","♜":"r","♞":"n","♝":"b","♛":"q","♚":"k"};fen+=map[p];}}if(empty>0)fen+=empty;if(x!=7)fen+="/";}fen+=(turn=="white")?" w ":" b ";let castle="";if(!moved.whiteKing&&!moved.whiteRightRook)castle+="K";if(!moved.whiteKing&&!moved.whiteLeftRook)castle+="Q";if(!moved.blackKing&&!moved.blackRightRook)castle+="k";if(!moved.blackKing&&!moved.blackLeftRook)castle+="q";if(castle=="")castle="-";fen+=castle;let enPassant="-";if(lastMove&&lastMove.doublePawn){if(lastMove.piece=="♟"){let x=lastMove.to[0],y=lastMove.to[1];enPassant=String.fromCharCode(97+y)+(8-x+1);}if(lastMove.piece=="♙"){let x=lastMove.to[0],y=lastMove.to[1];enPassant=String.fromCharCode(97+y)+(8-x-1);}}fen+=" "+enPassant+" 0 1";return fen;}
