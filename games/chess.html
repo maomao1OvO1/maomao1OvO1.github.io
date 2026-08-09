@@ -382,7 +382,7 @@ function stockfishMove(){
         }
     };
     stockfish.postMessage("position fen "+boardToFEN());
-    stockfish.postMessage("go depth 16");
+    stockfish.postMessage("go depth 20 movetime 5000");
 }
 
 restart();
