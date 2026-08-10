@@ -729,3 +729,34 @@ if(quote){
 }
 
 
+// ===== 玩家昵称系统 =====
+
+function saveNickname(){
+
+    let name = document.getElementById("nickname").value.trim();
+
+    if(name){
+
+        localStorage.setItem(
+            "playerName",
+            name
+        );
+
+        document.getElementById("nicknameShow").innerHTML =
+        "当前玩家：" + name;
+
+    }
+
+}
+
+
+// 自动读取昵称
+
+let playerName = localStorage.getItem("playerName");
+
+if(playerName){
+
+    document.getElementById("nicknameShow").innerHTML =
+    "当前玩家：" + playerName;
+
+}

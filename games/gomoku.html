@@ -452,6 +452,28 @@ let aiStartTime = 0;
 
 let aiTimeout = 10000;
 
+function uploadScore(color){
+
+    fetch("https://maomao-server.onrender.com/win",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+            name:localStorage.getItem("playerName") || "游客",
+
+            game:"五子棋"
+
+        })
+
+    });
+
+}
+
 // ===== 创建棋盘 =====
 
 function createBoard(){
@@ -502,15 +524,22 @@ function play(x, y){
 
     if(checkWin(x, y, turn)){
 
-        recordWin(turn);
+    recordWin(turn);
 
-        alert(turn==1 ? "⚫ 黑棋胜利！" : "⚪ 白棋胜利！");
+    // 黑棋胜利（玩家）时提交积分
+    if(turn == 1){
 
-        gameEnd = true;
-
-        return;
+        addScore();
 
     }
+
+    alert(turn==1 ? "⚫ 黑棋胜利！" : "⚪ 白棋胜利！");
+
+    gameEnd = true;
+
+    return;
+
+}
 
     turn = turn==1 ? 2 : 1;
 
@@ -1167,6 +1196,41 @@ function findThreatMove(player){
     }
 
     return null;
+
+}
+
+// 胜利后发送积分到服务器
+// 胜利后发送积分到服务器
+function addScore(){
+
+    fetch("http://localhost:3000/win",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+    name:localStorage.getItem("playerName") || "游客",
+
+    game:"五子棋"
+
+})
+
+    })
+    .then(res=>res.json())
+    .then(data=>{
+
+        console.log(data);
+
+    })
+    .catch(err=>{
+
+        alert("提交失败："+err);
+
+    });
 
 }
 
