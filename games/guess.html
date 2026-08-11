@@ -203,11 +203,41 @@ function checkGuess(){
     if(num === answer){
 
 
-        result.innerHTML = 
-        "🎉 猜中了！用了 " + count + " 次";
+    result.innerHTML =
+    "🎉 猜中了！用了 " + count + " 次";
 
 
-    }else if(num > answer){
+    fetch("https://maomao-server.onrender.com/win",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+            name:localStorage.getItem("playerName") || "游客",
+
+            game:"猜数字",
+
+            score:count
+
+        })
+
+        })
+    .then(res=>res.json())
+    .then(data=>{
+        console.log("排行榜上传:",data);
+    })
+    .catch(err=>{
+        console.log("上传失败:",err);
+    });
+
+
+}    
+
+else if(num > answer){
 
 
         result.innerHTML = "⬇️ 太大了";
