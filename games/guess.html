@@ -228,11 +228,11 @@ function checkGuess(){
         })
     .then(res=>res.json())
     .then(data=>{
-        console.log("排行榜上传:",data);
-    })
-    .catch(err=>{
-        console.log("上传失败:",err);
-    });
+    alert("排行榜上传成功:\n" + JSON.stringify(data));
+})
+.catch(err=>{
+    alert("上传失败:\n" + err);
+});
 
 
 }    
