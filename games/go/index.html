@@ -422,7 +422,27 @@ function recordWin(color) {
 
     saveStats(stats);
 
-    updateStatsDisplay();
+updateStatsDisplay();
+
+
+fetch("https://maomao-server.onrender.com/win",{
+
+    method:"POST",
+
+    headers:{
+        "Content-Type":"application/json"
+    },
+
+    body:JSON.stringify({
+
+        name:localStorage.getItem("playerName") || "游客",
+
+        game:"围棋"
+
+    })
+
+});
+
 
 }
 
