@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>ℹ️ 设备信息</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:20px 10px;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    color:#222;
+}
+
+h1{
+    margin:15px 0 8px;
+}
+
+.desc{
+    color:#777;
+    margin-bottom:20px;
+}
+
+.card{
+    width:100%;
+    max-width:700px;
+    margin:15px auto;
+    padding:20px;
+    background:white;
+    border-radius:22px;
+    box-shadow:0 5px 20px #0002;
+    text-align:left;
+}
+
+.card h2{
+    margin:0 0 15px;
+    text-align:center;
+    font-size:20px;
+}
+
+.item{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:15px;
+    padding:12px 5px;
+    border-bottom:1px solid #0001;
+}
+
+.item:last-child{
+    border-bottom:none;
+}
+
+.label{
+    color:#777;
+    min-width:120px;
+}
+
+.value{
+    font-weight:bold;
+    text-align:right;
+    word-break:break-all;
+}
+
+.ok{
+    color:#27ae60;
+}
+
+.no{
+    color:#e74c3c;
+}
+
+.warn{
+    color:#f39c12;
+}
+
+button{
+    width:90%;
+    max-width:350px;
+    padding:14px 20px;
+    margin:9px;
+    border:none;
+    border-radius:15px;
+    background:white;
+    color:#6543a4;
+    box-shadow:0 4px 12px #0002;
+    font-size:17px;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .desc{
+    color:#aaa;
+}
+
+body.dark-mode .card{
+    background:#1e1e1e;
+}
+
+body.dark-mode .item{
+    border-color:#fff2;
+}
+
+body.dark-mode .label{
+    color:#aaa;
+}
+
+body.dark-mode button{
+    background:#333;
+    color:#fff;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<h1>ℹ️ 设备信息</h1>
+
+<p class="desc">
+查看浏览器能够获取的设备与系统信息
+</p>
+
+
+<!-- ============================ -->
+<!-- 基本信息 -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>📱 基本信息</h2>
+
+<div class="item">
+<div class="label">设备平台</div>
+<div id="platform" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">浏览器</div>
+<div id="browser" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">语言</div>
+<div id="language" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">时区</div>
+<div id="timezone" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">在线状态</div>
+<div id="online" class="value">检测中…</div>
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- 屏幕 -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>🖥️ 屏幕信息</h2>
+
+<div class="item">
+<div class="label">CSS 分辨率</div>
+<div id="screenSize" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">设备像素比 DPR</div>
+<div id="dpr" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">设备像素估算</div>
+<div id="physicalEstimate" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">窗口尺寸</div>
+<div id="windowSize" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">颜色深度</div>
+<div id="colorDepth" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">屏幕方向</div>
+<div id="orientation" class="value">检测中…</div>
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- 性能 -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>⚡ 性能信息</h2>
+
+<div class="item">
+<div class="label">CPU 逻辑核心</div>
+<div id="cores" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">设备内存</div>
+<div id="memory" class="value">检测中…</div>
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- API 支持 -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>🧩 API 支持</h2>
+
+<div class="item">
+<div class="label">摄像头</div>
+<div id="camera" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">麦克风</div>
+<div id="microphone" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">手柄</div>
+<div id="gamepad" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">振动</div>
+<div id="vibration" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">触摸</div>
+<div id="touch" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">地理定位</div>
+<div id="geolocation" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">电池 API</div>
+<div id="batteryAPI" class="value">检测中…</div>
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- 存储 -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>💾 浏览器能力</h2>
+
+<div class="item">
+<div class="label">LocalStorage</div>
+<div id="localStorage" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">SessionStorage</div>
+<div id="sessionStorage" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">Cookie</div>
+<div id="cookie" class="value">检测中…</div>
+</div>
+
+<div class="item">
+<div class="label">Service Worker</div>
+<div id="serviceWorker" class="value">检测中…</div>
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- User Agent -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>🔎 User Agent</h2>
+
+<div
+id="userAgent"
+style="
+font-size:13px;
+line-height:1.6;
+word-break:break-all;
+color:#777;
+">
+检测中…
+</div>
+
+</div>
+
+
+<button onclick="location.reload()">
+🔄 刷新设备信息
+</button>
+
+<br>
+
+<button onclick="location.href='../index.html'">
+← 返回硬件测试大厅
+</button>
+
+
+<script>
+
+// ============================
+// 深色模式
+// ============================
+
+if(
+    localStorage.getItem("theme")
+    === "dark"
+){
+
+    document.body.classList.add(
+        "dark-mode"
+    );
+
+}
+
+
+// ============================
+// 工具
+// ============================
+
+function set(
+    id,
+    text,
+    type=""
+){
+
+    const el =
+        document.getElementById(id);
+
+    el.textContent =
+        text;
+
+    el.className =
+        "value " + type;
+
+}
+
+
+function yesNo(
+    condition
+){
+
+    return condition
+        ? ["可用","ok"]
+        : ["不可用","no"];
+
+}
+
+
+// ============================
+// 基本信息
+// ============================
+
+set(
+    "platform",
+    navigator.platform ||
+    "不可用"
+);
+
+
+function detectBrowser(){
+
+    const ua =
+        navigator.userAgent;
+
+
+    if(
+        ua.includes("Edg/")
+    ){
+
+        return "Microsoft Edge";
+
+    }
+
+    if(
+        ua.includes("Chrome/")
+    ){
+
+        return "Google Chrome";
+
+    }
+
+    if(
+        ua.includes("Firefox/")
+    ){
+
+        return "Mozilla Firefox";
+
+    }
+
+    if(
+        ua.includes("Safari/")
+        &&
+        !ua.includes("Chrome/")
+    ){
+
+        return "Safari";
+
+    }
+
+    return "未知浏览器";
+
+}
+
+
+set(
+    "browser",
+    detectBrowser()
+);
+
+
+set(
+    "language",
+    navigator.language ||
+    "不可用"
+);
+
+
+try{
+
+    set(
+        "timezone",
+        Intl.DateTimeFormat()
+        .resolvedOptions()
+        .timeZone ||
+        "不可用"
+    );
+
+}catch{
+
+    set(
+        "timezone",
+        "不可用"
+    );
+
+}
+
+
+set(
+    "online",
+    navigator.onLine
+        ? "🟢 在线"
+        : "🔴 离线",
+    navigator.onLine
+        ? "ok"
+        : "no"
+);
+
+
+// ============================
+// 屏幕
+// ============================
+
+set(
+    "screenSize",
+    screen.width +
+    " × " +
+    screen.height +
+    " px"
+);
+
+
+
+set(
+    "dpr",
+    window.devicePixelRatio ||
+    "不可用"
+);
+
+if(window.devicePixelRatio){
+
+    set(
+        "physicalEstimate",
+        Math.round(
+            screen.width *
+            window.devicePixelRatio
+        ) +
+        " × " +
+        Math.round(
+            screen.height *
+            window.devicePixelRatio
+        ) +
+        " px"
+    );
+
+}else{
+
+    set(
+        "physicalEstimate",
+        "无法估算",
+        "warn"
+    );
+
+}
+
+
+set(
+    "windowSize",
+    window.innerWidth +
+    " × " +
+    window.innerHeight +
+    " px"
+);
+
+
+set(
+    "colorDepth",
+    screen.colorDepth +
+    " bit"
+);
+
+
+try{
+
+    set(
+        "orientation",
+        screen.orientation.type
+    );
+
+}catch{
+
+    set(
+        "orientation",
+        "不可用"
+    );
+
+}
+
+
+// ============================
+// 性能
+// ============================
+
+set(
+    "cores",
+    navigator.hardwareConcurrency
+        ? navigator.hardwareConcurrency +
+          " 核心"
+        : "不可用"
+);
+
+
+set(
+    "memory",
+    navigator.deviceMemory
+        ? navigator.deviceMemory +
+          " GB"
+        : "浏览器不提供"
+);
+
+
+// ============================
+// API 支持
+// ============================
+
+
+
+
+const gamepad =
+    "getGamepads" in navigator;
+
+
+const vibration =
+    "vibrate" in navigator;
+
+
+const touch =
+    "ontouchstart" in window ||
+    navigator.maxTouchPoints > 0;
+
+
+const geolocation =
+    "geolocation" in navigator;
+
+
+const batteryAPI =
+    "getBattery" in navigator;
+
+
+let result;
+
+
+
+
+
+result =
+    yesNo(gamepad);
+
+set(
+    "gamepad",
+    result[0],
+    result[1]
+);
+
+
+result =
+    yesNo(vibration);
+
+set(
+    "vibration",
+    result[0],
+    result[1]
+);
+
+
+result =
+    yesNo(touch);
+
+set(
+    "touch",
+    result[0],
+    result[1]
+);
+
+
+result =
+    yesNo(geolocation);
+
+set(
+    "geolocation",
+    result[0],
+    result[1]
+);
+
+
+result =
+    yesNo(batteryAPI);
+
+set(
+    "batteryAPI",
+    result[0],
+    result[1]
+);
+
+
+
+// ============================
+// 摄像头 / 麦克风权限
+// ============================
+
+async function checkPermission(
+    name,
+    element
+){
+
+    if(!navigator.permissions){
+
+        set(
+            element,
+            "浏览器不提供权限状态",
+            "warn"
+        );
+
+        return;
+
+    }
+
+    try{
+
+        const result =
+            await navigator.permissions.query({
+                name:name
+            });
+
+        function update(){
+
+            if(
+                result.state === "granted"
+            ){
+
+                set(
+                    element,
+                    "🟢 已允许",
+                    "ok"
+                );
+
+            }else if(
+                result.state === "denied"
+            ){
+
+                set(
+                    element,
+                    "🔴 已拒绝",
+                    "no"
+                );
+
+            }else{
+
+                set(
+                    element,
+                    "🟡 未询问",
+                    "warn"
+                );
+
+            }
+
+        }
+
+        update();
+
+        result.onchange =
+            update;
+
+    }catch{
+
+        set(
+            element,
+            "无法获取权限状态",
+            "warn"
+        );
+
+    }
+
+}
+
+
+checkPermission(
+    "camera",
+    "camera"
+);
+
+
+checkPermission(
+    "microphone",
+    "microphone"
+);
+
+// ============================
+// 存储
+// ============================
+
+function testStorage(type){
+
+    try{
+
+        const storage =
+            window[type];
+
+        const key =
+            "__device_test__";
+
+        storage.setItem(
+            key,
+            "1"
+        );
+
+        storage.removeItem(
+            key
+        );
+
+        return true;
+
+    }catch{
+
+        return false;
+
+    }
+
+}
+
+
+result =
+    yesNo(
+        testStorage(
+            "localStorage"
+        )
+    );
+
+set(
+    "localStorage",
+    result[0],
+    result[1]
+);
+
+
+result =
+    yesNo(
+        testStorage(
+            "sessionStorage"
+        )
+    );
+
+set(
+    "sessionStorage",
+    result[0],
+    result[1]
+);
+
+
+set(
+    "cookie",
+    navigator.cookieEnabled
+        ? "可用"
+        : "不可用",
+    navigator.cookieEnabled
+        ? "ok"
+        : "no"
+);
+
+
+set(
+    "serviceWorker",
+    "serviceWorker" in navigator
+        ? "可用"
+        : "不可用",
+    "serviceWorker" in navigator
+        ? "ok"
+        : "no"
+);
+
+
+// ============================
+// User Agent
+// ============================
+
+document.getElementById(
+    "userAgent"
+).textContent =
+    navigator.userAgent;
+
+
+// ============================
+// 电池
+// ============================
+
+if(
+    batteryAPI
+){
+
+    navigator.getBattery()
+    .then(
+        battery => {
+
+            function updateBattery(){
+
+                let text =
+                    Math.round(
+                        battery.level * 100
+                    ) +
+                    "%";
+
+
+                if(
+                    battery.charging
+                ){
+
+                    text +=
+                        " ⚡ 充电中";
+
+                }else{
+
+                    text +=
+                        " 🔋 放电中";
+
+                }
+
+
+                set(
+                    "batteryAPI",
+                    text,
+                    "ok"
+                );
+
+            }
+
+
+            updateBattery();
+
+
+            battery.addEventListener(
+                "chargingchange",
+                updateBattery
+            );
+
+
+            battery.addEventListener(
+                "levelchange",
+                updateBattery
+            );
+
+        }
+    )
+    .catch(
+        () => {
+
+            set(
+                "batteryAPI",
+                "支持但无法读取",
+                "warn"
+            );
+
+        }
+    );
+
+}
+
+
+// ============================
+// 网络变化
+// ============================
+
+window.addEventListener(
+    "online",
+    () => {
+
+        set(
+            "online",
+            "🟢 在线",
+            "ok"
+        );
+
+    }
+);
+
+
+window.addEventListener(
+    "offline",
+    () => {
+
+        set(
+            "online",
+            "🔴 离线",
+            "no"
+        );
+
+    }
+);
+
+
+// ============================
+// 屏幕旋转
+// ============================
+
+if(
+    screen.orientation
+){
+
+    screen.orientation.addEventListener(
+        "change",
+        () => {
+
+            set(
+                "orientation",
+                screen.orientation.type
+            );
+
+        }
+    );
+
+}
+
+</script>
+
+</body>
+
+</html>
