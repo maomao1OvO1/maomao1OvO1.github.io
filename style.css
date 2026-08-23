@@ -1732,3 +1732,17 @@ body.hardware-dark input{
     border:1px solid #555;
 }
 
+
+/* ===== 硬件测试入口：深色模式 ===== */
+
+body.dark-mode .hardware-test-box{
+    background:#252525;
+    color:#eee;
+}
+
+body.dark-mode .hardware-test-button{
+    background:#333;
+    color:#fff;
+    box-shadow:0 4px 15px #0006;
+}
+
