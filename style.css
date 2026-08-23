@@ -1099,3 +1099,362 @@ body.dark-mode #playlist-window > button{
     color:#ffffff;
 
 }
+
+
+
+/* ===== 彩蛋灵动弹窗 ===== */
+
+#easter-egg {
+    position: fixed;
+    top: 30px;
+    left: 50%;
+
+    width: 300px;
+    height: 80px;
+
+    transform: translateX(-50%) scale(0.8);
+
+    background: rgba(122, 198, 255, 0.35);
+    border-radius: 40px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    opacity: 0;
+
+    overflow: hidden;
+
+    z-index: 9999;
+}
+
+
+/* ===== 弹出 ===== */
+
+@keyframes easterPop {
+
+    0% {
+        transform: translateX(-50%) scale(0.8);
+        opacity: 0;
+        clip-path: inset(0 50% 0 50% round 40px);
+    }
+
+    60% {
+        transform: translateX(-50%) scale(1.02);
+        opacity: 1;
+        clip-path: inset(0 0 0 0 round 40px);
+    }
+
+    75% {
+        transform: translateX(-50%) scale(0.99);
+    }
+
+    100% {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+        clip-path: inset(0 0 0 0 round 40px);
+    }
+
+}
+
+
+/* ===== 向上消失 ===== */
+
+@keyframes easterHide {
+
+    0% {
+        transform: translateX(-50%) scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(-50%) scale(1) translateY(-50px);
+        opacity: 0;
+    }
+
+}
+
+
+/* ===== 金色扫光 ===== */
+
+#easter-egg::after {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: -100px;
+
+    width: 100px;
+    height: 100%;
+
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 220, 150, 0.8),
+        transparent
+    );
+
+    transform: skewX(-20deg);
+}
+
+
+#easter-egg.shine::after {
+    animation: easterShine 0.3s ease-out;
+}
+
+
+@keyframes easterShine {
+
+    0% {
+        left: -100px;
+    }
+
+    100% {
+        left: 320px;
+    }
+
+}
+
+
+/* ===== 大圈 ===== */
+
+#easter-egg .big-circle {
+
+    position: absolute;
+
+    width: 75px;
+    height: 75px;
+
+    right: 30px;
+    top: 50%;
+
+    transform: translateY(-50%) scale(0.2);
+
+    border: 1px solid rgba(255, 220, 120, 0.9);
+    border-radius: 50%;
+
+    box-sizing: border-box;
+
+    z-index: 2;
+}
+
+
+#easter-egg.circle-show .big-circle {
+    animation: easterBigCircle 0.6s ease-out forwards;
+}
+
+
+@keyframes easterBigCircle {
+
+    0% {
+        transform: translateY(-50%) scale(0.2);
+        border-width: 1px;
+    }
+
+    70% {
+        transform: translateY(-50%) scale(1.05);
+        border-width: 2px;
+    }
+
+    100% {
+        transform: translateY(-50%) scale(1);
+        border-width: 2px;
+    }
+
+}
+
+
+/* ===== 小圈 ===== */
+
+#easter-egg .small-circle {
+    position: absolute;
+
+    width: 40px;
+    height: 40px;
+
+    right: 10px;
+    top: 50%;
+
+    transform: translateY(-50%) scale(0.2);
+
+    border: 2px solid rgba(255, 220, 120, 0.9);
+    border-radius: 50%;
+
+    box-sizing: border-box;
+
+    opacity: 0;
+
+    z-index: 3;
+}
+
+/* ===== 彩蛋动画 ===== */
+
+#easter-egg {
+    position: fixed;
+    top: 30px;
+    left: 50%;
+
+    width: 300px;
+    height: 80px;
+
+    transform: translateX(-50%) scale(0.8);
+
+    background: rgba(122, 198, 255, 0.35);
+    border-radius: 40px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    opacity: 0;
+
+    overflow: hidden;
+
+    z-index: 9999;
+}
+
+@keyframes easterPop {
+    0% {
+        transform: translateX(-50%) scale(0.8);
+        opacity: 0;
+        clip-path: inset(0 50% 0 50% round 40px);
+    }
+
+    60% {
+        transform: translateX(-50%) scale(1.02);
+        opacity: 1;
+        clip-path: inset(0 0 0 0 round 40px);
+    }
+
+    75% {
+        transform: translateX(-50%) scale(0.99);
+    }
+
+    100% {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+        clip-path: inset(0 0 0 0 round 40px);
+    }
+}
+
+@keyframes easterHide {
+    0% {
+        transform: translateX(-50%) scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(-50%) scale(1) translateY(-50px);
+        opacity: 0;
+    }
+}
+
+#easter-egg::after {
+    content: "";
+
+    position: absolute;
+    top: 0;
+    left: -100px;
+
+    width: 100px;
+    height: 100%;
+
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 220, 150, 0.8),
+        transparent
+    );
+
+    transform: skewX(-20deg);
+}
+
+#easter-egg.shine::after {
+    animation: easterShine 0.3s ease-out;
+}
+
+@keyframes easterShine {
+    0% {
+        left: -100px;
+    }
+
+    100% {
+        left: 320px;
+    }
+}
+
+#easter-egg .big-circle {
+    position: absolute;
+
+    width: 75px;
+    height: 75px;
+
+    right: 30px;
+    top: 50%;
+
+    transform: translateY(-50%) scale(0.2);
+
+    border: 2px solid rgba(255, 220, 120, 0.9);
+    border-radius: 50%;
+
+    box-sizing: border-box;
+    z-index: 2;
+}
+
+#easter-egg.circle-show .big-circle {
+    animation: easterBigCircle 0.6s ease-out forwards;
+}
+
+@keyframes easterBigCircle {
+    0% {
+        transform: translateY(-50%) scale(0.2);
+        border-width: 1px;
+    }
+
+    70% {
+        transform: translateY(-50%) scale(1.05);
+        border-width: 3px;
+    }
+
+    100% {
+        transform: translateY(-50%) scale(1);
+        border-width: 3px;
+    }
+}
+
+#easter-egg .small-circle {
+    position: absolute;
+
+    width: 40px;
+    height: 40px;
+
+    right: 10px;
+    top: 50%;
+
+    transform: translateY(-50%) scale(0.2);
+
+    border: 2px solid rgba(255, 220, 120, 0.9);
+    border-radius: 50%;
+
+    box-sizing: border-box;
+
+    opacity: 1;
+}
+
+#easter-egg.small-circle-show .small-circle {
+    animation: easterSmallCircle 0.6s ease-out forwards;
+}
+
+@keyframes easterSmallCircle {
+    0% {
+        transform: translateY(-50%) scale(0.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-50%) scale(1);
+        opacity: 0;
+    }
+}
+

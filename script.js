@@ -628,11 +628,58 @@ if(avatar){
 
         if(avatarClicks >= 10){
 
-            alert("彩蛋");
+    const egg = document.getElementById("easter-egg");
 
-            avatarClicks = 0;
+    if(egg){
 
-        }
+        // 清除上一轮状态
+        egg.classList.remove("shine");
+        egg.classList.remove("circle-show");
+        egg.classList.remove("small-circle-show");
+
+        egg.style.animation = "none";
+
+        // 强制重绘，保证连续触发也能重新播放
+        void egg.offsetWidth;
+
+        // 弹窗展开
+        egg.style.animation = "easterPop 0.8s ease-out forwards";
+
+        // 弹窗展开完成后出现圆圈
+        setTimeout(function(){
+
+    egg.classList.add("circle-show");
+
+    egg.classList.remove("small-circle-show");
+
+    void egg.offsetWidth;
+
+    egg.classList.add("small-circle-show");
+
+}, 800);
+
+        // 扫光
+        setTimeout(function(){
+
+            egg.classList.remove("shine");
+
+            void egg.offsetWidth;
+
+            egg.classList.add("shine");
+
+        }, 1000);
+
+        // 向上消失
+        setTimeout(function(){
+
+            egg.style.animation = "easterHide 0.8s ease-out forwards";
+
+        }, 1800);
+
+    }
+
+    avatarClicks = 0;
+}
 
     };
 
@@ -758,5 +805,63 @@ if(playerName){
 
     document.getElementById("nicknameShow").innerHTML =
     "当前玩家：" + playerName;
+
+}
+
+// ===== 彩蛋动画 =====
+const easterEgg = document.getElementById("easter-egg");
+const easterAvatar = document.getElementById("avatar");
+
+let easterShineTimer;
+let easterHideTimer;
+let easterClicks = 0;
+
+if (easterEgg && easterAvatar) {
+
+    easterAvatar.addEventListener("click", function () {
+
+        easterClicks++;
+
+        if (easterClicks < 10) return;
+
+        easterClicks = 0;
+
+        clearTimeout(easterShineTimer);
+        clearTimeout(easterHideTimer);
+
+        easterEgg.classList.remove("shine");
+        easterEgg.classList.remove("circle-show");
+        easterEgg.classList.remove("small-circle-show");
+
+        easterEgg.style.animation = "none";
+
+        void easterEgg.offsetWidth;
+
+        easterEgg.style.animation =
+            "easterPop 0.8s ease-out forwards";
+
+        setTimeout(function () {
+            easterEgg.classList.add("circle-show");
+            easterEgg.classList.add("small-circle-show");
+        }, 800);
+
+        easterShineTimer = setTimeout(function () {
+
+            easterEgg.classList.remove("shine");
+
+            void easterEgg.offsetWidth;
+
+            easterEgg.classList.add("shine");
+
+        }, 1000);
+
+        easterHideTimer = setTimeout(function () {
+
+            easterEgg.style.animation =
+                "easterHide 0.8s ease-out forwards";
+
+        }, 1800);
+
+    });
 
 }
