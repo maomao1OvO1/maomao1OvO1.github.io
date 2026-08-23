@@ -71,6 +71,12 @@ button:active{
     transform:scale(.97);
 }
 
+
+
+
+
+body.dark-mode 
+
 #refreshTest{
     margin-top:10px;
 }
@@ -102,7 +108,7 @@ body.dark-mode #fpsText{
     color:#aaa;
 }
 
-body.dark-mode button{
+body.dark-mode button:not(.hardware-back){
     background:#333;
     color:#fff;
     box-shadow:0 4px 12px #0006;
@@ -122,6 +128,10 @@ body.dark-mode #fullscreenBox{
     background:#292929;
 }
 
+
+
+
+
 </style>
 
 
@@ -131,11 +141,60 @@ body.dark-mode #fullscreenBox{
 
 
 <link rel="stylesheet" href="../hardware.css">
+<style>
+/* ===== 本页返回按钮 ===== */
+
+body > .hardware-back{
+    position:fixed !important;
+    top:20px !important;
+    right:20px !important;
+    left:auto !important;
+    bottom:auto !important;
+
+    z-index:99999 !important;
+
+    width:auto !important;
+    max-width:none !important;
+
+    margin:0 !important;
+    padding:10px 16px !important;
+
+    border:none !important;
+    border-radius:14px !important;
+
+    font-size:15px !important;
+
+    background:rgb(228,219,254) !important;
+    color:rgb(124,92,191) !important;
+
+    box-shadow:0 4px 15px #0002 !important;
+    cursor:pointer;
+}
+
+body.dark-mode > .hardware-back{
+    background:rgb(101,67,164) !important;
+    color:#fff !important;
+    box-shadow:0 4px 15px #0006 !important;
+}
+
+body > .hardware-back:active{
+    transform:scale(.95) !important;
+}
+</style>
+
 
 </head>
 
 
 <body>
+
+<button
+    class="hardware-back"
+    onclick="location.href='../index.html'">
+
+    ← 返回硬件大厅
+
+</button>
 
 <h1>🖥️ 屏幕 / 全屏测试</h1>
 
@@ -265,11 +324,7 @@ onclick="startFPSTest()">
 </div>
 
 
-<!-- ===== 返回 ===== -->
 
-<button onclick="location.href='../index.html'" class="hardware-back">
-← 返回硬件大厅
-</button>
 
 
 <script>

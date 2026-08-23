@@ -43,12 +43,12 @@
     padding:10px 16px !important;
 
     border:none !important;
-    border-radius:14px !important;
+    border-radius:20px !important;
 
-    font-size:15px !important;
+    font-size:16px !important;
 
-    background:rgb(228,219,254) !important;
-    color:rgb(124,92,191) !important;
+    background:#e5dcff !important;
+    color:#6543a4 !important;
 
     box-shadow:0 4px 15px #0002;
 
@@ -122,9 +122,9 @@ body.dark-mode #hardware-theme-toggle{
 /* ===== 深色模式返回按钮 ===== */
 
 body.dark-mode .hardware-back{
-    background:rgb(101,67,164) !important;
-    color:#fff !important;
-    box-shadow:0 4px 15px #0006;
+    background:#e5dcff !important;
+    color:#6543a4 !important;
+    box-shadow:none !important;
 }
 
 
@@ -177,6 +177,7 @@ body.hardware-dark #hardware-theme-toggle{
 }
 
 body.hardware-dark .hardware-back{
-    background:rgb(101,67,164) !important;
-    color:#fff !important;
+    background:#e5dcff !important;
+    color:#6543a4 !important;
+    box-shadow:none !important;
 }
