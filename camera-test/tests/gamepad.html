@@ -10,6 +10,8 @@ content="width=device-width, initial-scale=1.0">
 
 <title>🎮 手柄测试</title>
 
+<link rel="stylesheet" href="../hardware.css">
+
 <style>
 
 body{
@@ -117,9 +119,53 @@ button{
     font-size:16px;
 }
 
+input{
+    padding:8px;
+    width:70px;
+}
+
+
+/* 深色 */
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .controller{
+    background:#1e1e1e;
+}
+
+body.dark-mode .key{
+    background:#333;
+    color:#eee;
+}
+
+body.dark-mode .stick{
+    background:#333;
+}
+
+body.dark-mode .stick-dot{
+    background:#aaa;
+}
+
+body.dark-mode .trigger{
+    background:#333;
+}
+
+body.dark-mode .value,
+body.dark-mode #device{
+    color:#aaa;
+}
+
+body.dark-mode input{
+    background:#292929;
+    color:white;
+    border:1px solid #555;
+}
+
 </style>
 
-    <link rel="stylesheet" href="../hardware.css">
 </head>
 
 <body>
@@ -137,143 +183,147 @@ button{
 
 <h2>📳 手柄震动</h2>
 
-<div style="margin:20px;">
+<p>
 
-    <p>
-        左/强震动时间：
-        <input
-            id="strongTime"
-            type="number"
-            min="0.1"
-            step="0.1"
-            value="1"
-            style="width:70px;padding:8px;"
-        >
-        秒
-    </p>
+左 / 强震动：
 
-    <p>
-        右/弱震动时间：
-        <input
-            id="weakTime"
-            type="number"
-            min="0.1"
-            step="0.1"
-            value="1"
-            style="width:70px;padding:8px;"
-        >
-        秒
-    </p>
+<input
+id="strongTime"
+type="number"
+min="0.1"
+step="0.1"
+value="1">
 
-    <button onclick="vibrateStrong()">
-        左振动
-    </button>
+秒
 
-    <button onclick="vibrateWeak()">
-        右振动
-    </button>
+</p>
 
-    <br>
+<p>
 
-    <button onclick="vibrateBoth()">
-        左右同时振动
-    </button>
+右 / 弱震动：
 
-    <button onclick="stopGamepadVibration()">
-        停止
-    </button>
+<input
+id="weakTime"
+type="number"
+min="0.1"
+step="0.1"
+value="1">
 
-</div>
+秒
 
-<!-- 肩键 -->
+</p>
 
-<div class="row">
+<button onclick="vibrateStrong()">
+左振动
+</button>
 
-<div>
-    <b>LB</b>
-    <div id="b4" class="key">LB</div>
-</div>
+<button onclick="vibrateWeak()">
+右振动
+</button>
 
-<div>
-    <b>RB</b>
-    <div id="b5" class="key">RB</div>
-</div>
+<br>
+
+<button onclick="vibrateBoth()">
+左右同时振动
+</button>
+
+<button onclick="stopGamepadVibration()">
+停止
+</button>
 
 </div>
 
-
-<!-- 扳机 -->
 
 <div class="row">
 
 <div>
 
-    <b>LT</b>
+<b>LB</b>
 
-    <div class="trigger">
-        <div id="lt"
-             class="trigger-fill"></div>
-    </div>
-
-    <div id="ltValue"
-         class="value">
-         0%
-    </div>
+<div id="b4" class="key">
+LB
+</div>
 
 </div>
 
 
 <div>
 
-    <b>RT</b>
+<b>RB</b>
 
-    <div class="trigger">
-        <div id="rt"
-             class="trigger-fill"></div>
-    </div>
-
-    <div id="rtValue"
-         class="value">
-         0%
-    </div>
+<div id="b5" class="key">
+RB
+</div>
 
 </div>
 
 </div>
 
-
-<!-- ABXY -->
 
 <div class="row">
 
 <div>
 
-<div id="b2" class="key">X</div>
+<b>LT</b>
+
+<div class="trigger">
+
+<div id="lt"
+class="trigger-fill">
+</div>
 
 </div>
+
+<div id="ltValue"
+class="value">
+0%
+</div>
+
+</div>
+
 
 <div>
 
-<div id="b3" class="key">Y</div>
+<b>RT</b>
 
-</div>
+<div class="trigger">
 
-<div>
-
-<div id="b1" class="key">B</div>
-
-</div>
-
-<div>
-
-<div id="b0" class="key">A</div>
-
+<div id="rt"
+class="trigger-fill">
 </div>
 
 </div>
 
+<div id="rtValue"
+class="value">
+0%
+</div>
 
-<!-- 摇杆 -->
+</div>
+
+</div>
+
+
+<div class="row">
+
+<div id="b2" class="key">
+X
+</div>
+
+<div id="b3" class="key">
+Y
+</div>
+
+<div id="b1" class="key">
+B
+</div>
+
+<div id="b0" class="key">
+A
+</div>
+
+</div>
+
 
 <div class="row">
 
@@ -284,15 +334,17 @@ button{
 <div class="stick">
 
 <div id="leftDot"
-     class="stick-dot">
+class="stick-dot">
 </div>
 
 </div>
 
 <div id="leftValue"
-     class="value">
+class="value">
+
 X 0.00<br>
 Y 0.00
+
 </div>
 
 </div>
@@ -305,73 +357,96 @@ Y 0.00
 <div class="stick">
 
 <div id="rightDot"
-     class="stick-dot">
+class="stick-dot">
 </div>
 
 </div>
 
 <div id="rightValue"
-     class="value">
+class="value">
+
 X 0.00<br>
 Y 0.00
-</div>
 
 </div>
 
 </div>
 
+</div>
 
-<!-- 十字键 -->
 
 <h3>十字键</h3>
 
 <div class="row">
 
-<div id="b12" class="key">↑</div>
+<div id="b12" class="key">
+↑
+</div>
 
 </div>
 
 <div class="row">
 
-<div id="b14" class="key">←</div>
+<div id="b14" class="key">
+←
+</div>
 
-<div id="b13" class="key">↓</div>
+<div id="b13" class="key">
+↓
+</div>
 
-<div id="b15" class="key">→</div>
+<div id="b15" class="key">
+→
+</div>
 
 </div>
 
-
-<!-- Start Select -->
 
 <div class="row">
 
-<div id="b8" class="key">☰</div>
+<div id="b8" class="key">
+☰
+</div>
 
-<div id="b9" class="key">≡</div>
-
+<div id="b9" class="key">
+≡
 </div>
 
 </div>
-<button onclick="location.href='../index.html'">
-← 返回大厅
+
+
+<button
+class="hardware-back"
+onclick="location.href='../index.html'">
+
+← 返回硬件测试大厅
+
 </button>
 
 
 <script>
 
+/* ============================
+   主站深色模式
+============================ */
 
+if(localStorage.getItem("theme") === "dark"){
+
+    document.body.classList.add("dark-mode");
+
+}
+
+
+/* ============================
+   手柄
+============================ */
 
 let gamepad = null;
 
 
-// ============================
-// 手柄连接
-// ============================
-
 window.addEventListener(
     "gamepadconnected",
-    event => {
+    function(event){
 
         gamepad = event.gamepad;
 
@@ -389,15 +464,18 @@ window.addEventListener(
 );
 
 
-// ============================
-// 手柄断开
-// ============================
-
 window.addEventListener(
     "gamepaddisconnected",
-    () => {
+    function(event){
 
-        gamepad = null;
+        if(
+            gamepad &&
+            event.gamepad.index === gamepad.index
+        ){
+
+            gamepad = null;
+
+        }
 
         document.getElementById(
             "status"
@@ -412,29 +490,86 @@ window.addEventListener(
 );
 
 
-// ============================
-// 手柄震动
-// ============================
+/* ============================
+   获取当前手柄
+============================ */
 
-function getVibrationActuator(){
+function getCurrentGamepad(){
 
-    if(!gamepad) return null;
+    const pads =
+        navigator.getGamepads();
 
-    const pads = navigator.getGamepads();
-    const pad = pads[gamepad.index];
+    if(
+        gamepad &&
+        pads[gamepad.index]
+    ){
 
-    if(!pad) return null;
+        return pads[gamepad.index];
 
-    if(!pad.vibrationActuator){
-        alert("这个手柄不支持网页震动");
-        return null;
     }
 
-    return pad.vibrationActuator;
+
+    for(
+        const pad of pads
+    ){
+
+        if(pad){
+
+            gamepad = pad;
+
+            document.getElementById(
+                "status"
+            ).textContent =
+                "🎮 手柄已连接";
+
+            document.getElementById(
+                "device"
+            ).textContent =
+                pad.id;
+
+            return pad;
+
+        }
+
+    }
+
+    return null;
+
 }
 
 
-// 左 / 强震动
+/* ============================
+   震动
+============================ */
+
+function getVibrationActuator(){
+
+    const pad =
+        getCurrentGamepad();
+
+    if(!pad){
+
+        alert("请先连接手柄");
+
+        return null;
+
+    }
+
+    if(!pad.vibrationActuator){
+
+        alert(
+            "这个手柄没有提供网页震动接口"
+        );
+
+        return null;
+
+    }
+
+    return pad.vibrationActuator;
+
+}
+
+
 function vibrateStrong(){
 
     const actuator =
@@ -452,19 +587,21 @@ function vibrateStrong(){
     actuator.playEffect(
         "dual-rumble",
         {
-            duration: seconds * 1000,
+            duration:
+                seconds * 1000,
 
-            startDelay: 0,
+            startDelay:0,
 
-            strongMagnitude: 1.0,
+            strongMagnitude:1,
 
-            weakMagnitude: 0
+            weakMagnitude:0
+
         }
     );
+
 }
 
 
-// 右 / 弱震动
 function vibrateWeak(){
 
     const actuator =
@@ -482,19 +619,21 @@ function vibrateWeak(){
     actuator.playEffect(
         "dual-rumble",
         {
-            duration: seconds * 1000,
+            duration:
+                seconds * 1000,
 
-            startDelay: 0,
+            startDelay:0,
 
-            strongMagnitude: 0,
+            strongMagnitude:0,
 
-            weakMagnitude: 1.0
+            weakMagnitude:1
+
         }
     );
+
 }
 
 
-// 左右同时震
 function vibrateBoth(){
 
     const actuator =
@@ -516,28 +655,27 @@ function vibrateBoth(){
             ).value
         );
 
-    const duration =
-        Math.max(
-            strong,
-            weak
-        ) * 1000;
-
     actuator.playEffect(
         "dual-rumble",
         {
-            duration: duration,
+            duration:
+                Math.max(
+                    strong,
+                    weak
+                ) * 1000,
 
-            startDelay: 0,
+            startDelay:0,
 
-            strongMagnitude: 1.0,
+            strongMagnitude:1,
 
-            weakMagnitude: 1.0
+            weakMagnitude:1
+
         }
     );
+
 }
 
 
-// 停止
 function stopGamepadVibration(){
 
     const actuator =
@@ -545,26 +683,25 @@ function stopGamepadVibration(){
 
     if(!actuator) return;
 
-    actuator.reset();
+    if(
+        actuator.reset
+    ){
+
+        actuator.reset();
+
+    }
 
 }
 
 
-// ============================
-// 按钮更新
-// ============================
+/* ============================
+   按钮
+============================ */
 
-function updateButton(index){
-
-    const pads =
-        navigator.getGamepads();
-
-    if(!gamepad) return;
-
-    const pad =
-        pads[gamepad.index];
-
-    if(!pad) return;
+function updateButton(
+    index,
+    pad
+){
 
     const element =
         document.getElementById(
@@ -573,7 +710,13 @@ function updateButton(index){
 
     if(!element) return;
 
-    if(pad.buttons[index]?.pressed){
+    const button =
+        pad.buttons[index];
+
+    if(
+        button &&
+        button.pressed
+    ){
 
         element.classList.add(
             "pressed"
@@ -590,26 +733,17 @@ function updateButton(index){
 }
 
 
-// ============================
-// 摇杆
-// ============================
+/* ============================
+   摇杆
+============================ */
 
 function updateStick(
+    pad,
     x,
     y,
     dotId,
     valueId
 ){
-
-    const pads =
-        navigator.getGamepads();
-
-    if(!gamepad) return;
-
-    const pad =
-        pads[gamepad.index];
-
-    if(!pad) return;
 
     let px =
         pad.axes[x] || 0;
@@ -623,6 +757,7 @@ function updateStick(
             dotId
         );
 
+
     dot.style.left =
         (47 + px * 45) + "px";
 
@@ -633,41 +768,33 @@ function updateStick(
     document.getElementById(
         valueId
     ).innerHTML =
-        "X " + px.toFixed(2) +
-        "<br>Y " + py.toFixed(2);
+        "X " +
+        px.toFixed(2) +
+        "<br>Y " +
+        py.toFixed(2);
 
 }
 
 
-// ============================
-// 扳机
-// ============================
+/* ============================
+   扳机
+============================ */
 
 function updateTrigger(
+    pad,
     index,
     fillId,
     valueId
 ){
 
-    const pads =
-        navigator.getGamepads();
-
-    if(!gamepad) return;
-
-    const pad =
-        pads[gamepad.index];
-
-    if(!pad) return;
-
-
-    let value =
+    const value =
         pad.buttons[index]?.value || 0;
 
 
     document.getElementById(
         fillId
     ).style.width =
-        (value * 100) + "%";
+        value * 100 + "%";
 
 
     document.getElementById(
@@ -678,33 +805,45 @@ function updateTrigger(
         ) + "%";
 
 }
-// ============================
-// 主循环
-// ============================
+
+
+/* ============================
+   主循环
+============================ */
 
 function update(){
 
-    if(gamepad){
+    const pad =
+        getCurrentGamepad();
 
-        // 普通按钮
 
-        for(let i = 0; i < 16; i++){
+    if(pad){
 
-            updateButton(i);
+        for(
+            let i = 0;
+            i < pad.buttons.length;
+            i++
+        ){
+
+            updateButton(
+                i,
+                pad
+            );
 
         }
 
 
-        // 摇杆
-
         updateStick(
+            pad,
             0,
             1,
             "leftDot",
             "leftValue"
         );
 
+
         updateStick(
+            pad,
             2,
             3,
             "rightDot",
@@ -712,15 +851,16 @@ function update(){
         );
 
 
-        // 扳机
-
         updateTrigger(
+            pad,
             6,
             "lt",
             "ltValue"
         );
 
+
         updateTrigger(
+            pad,
             7,
             "rt",
             "rtValue"
@@ -728,57 +868,15 @@ function update(){
 
     }
 
-    }
 
-
-    requestAnimationFrame(update);
-
-}
-
-update();
-
-</script>
-
-
-
-
-
-
-
-
-
-
-
-<button
-    class="hardware-back"
-    onclick="location.href='../index.html'">
-    ← 返回硬件测试大厅
-</button>
-
-
-<script>
-
-function applyMainTheme(){
-
-    /*
-     * 读取主站保存的主题
-     *
-     * 这里同时兼容常见的 darkMode
-     * 和 theme 两种保存方式
-     */
-
-    const dark =
-        localStorage.getItem("darkMode") === "1" ||
-        localStorage.getItem("theme") === "dark";
-
-    document.body.classList.toggle(
-        "dark-mode",
-        dark
+    requestAnimationFrame(
+        update
     );
 
 }
 
-applyMainTheme();
+
+update();
 
 </script>
 
