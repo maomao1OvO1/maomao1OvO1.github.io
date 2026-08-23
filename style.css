@@ -1458,3 +1458,91 @@ body.dark-mode #playlist-window > button{
     }
 }
 
+
+
+/* ===== 柔光星尘 ===== */
+
+#floating-particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    opacity: 0;
+    animation: starFloat linear infinite;
+}
+
+/* 浅色模式：紫 + 粉 + 桃 */
+
+body:not(.dark-mode) .particle:nth-child(3n) {
+    background: #b78cff;
+    box-shadow: 0 0 6px #b78cff, 0 0 14px #b78cff;
+}
+
+body:not(.dark-mode) .particle:nth-child(3n + 1) {
+    background: #ff9fc5;
+    box-shadow: 0 0 6px #ff9fc5, 0 0 14px #ff9fc5;
+}
+
+body:not(.dark-mode) .particle:nth-child(3n + 2) {
+    background: #e6a6ff;
+    box-shadow: 0 0 6px #e6a6ff, 0 0 14px #e6a6ff;
+}
+
+/* 深色模式：紫 + 粉 */
+
+body.dark-mode .particle:nth-child(3n) {
+    background: #a98cff;
+    box-shadow: 0 0 6px #a98cff, 0 0 14px #a98cff;
+}
+
+body.dark-mode .particle:nth-child(3n + 1) {
+    background: #ff91c8;
+    box-shadow: 0 0 6px #ff91c8, 0 0 14px #ff91c8;
+}
+
+body.dark-mode .particle:nth-child(3n + 2) {
+    background: #d7a0ff;
+    box-shadow: 0 0 6px #d7a0ff, 0 0 14px #d7a0ff;
+}
+
+@keyframes starFloat {
+
+    0% {
+        transform: translate3d(0, 30px, 0) scale(0.5);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.45;
+    }
+
+    50% {
+        transform: translate3d(20px, -40px, 0) scale(1);
+        opacity: 0.65;
+    }
+
+    80% {
+        opacity: 0.35;
+    }
+
+    100% {
+        transform: translate3d(-15px, -120px, 0) scale(0.6);
+        opacity: 0;
+    }
+
+}
+
+
+
+
+
+
+
