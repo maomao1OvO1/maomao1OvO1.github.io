@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>⌨️ 输入设备测试</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:20px 10px;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    color:#222;
+    user-select:none;
+    -webkit-user-select:none;
+}
+
+h1{
+    margin:15px 0 8px;
+}
+
+.desc{
+    color:#777;
+    margin-bottom:18px;
+}
+
+.card{
+    width:100%;
+    max-width:700px;
+    margin:15px auto;
+    padding:20px;
+    background:white;
+    border-radius:22px;
+    box-shadow:0 5px 20px #0002;
+}
+
+.section{
+    margin:15px 0;
+    padding:18px;
+    background:#eee;
+    border-radius:18px;
+}
+
+.section h2{
+    margin:0 0 12px;
+    font-size:20px;
+}
+
+.status{
+    font-size:18px;
+    font-weight:bold;
+    margin:8px 0;
+}
+
+.value{
+    font-size:17px;
+    font-weight:bold;
+    word-break:break-word;
+}
+
+.event-box{
+    min-height:90px;
+    padding:15px;
+    background:white;
+    border-radius:14px;
+    margin-top:12px;
+}
+
+.event-title{
+    font-size:14px;
+    color:#777;
+}
+
+.event-value{
+    margin-top:7px;
+    font-size:24px;
+    font-weight:bold;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:12px;
+}
+
+.stat{
+    padding:12px;
+    background:white;
+    border-radius:13px;
+}
+
+.small{
+    color:#777;
+    font-size:13px;
+    line-height:1.6;
+}
+
+.log-title{
+    margin-top:25px;
+    font-size:20px;
+    font-weight:bold;
+}
+
+#eventLog{
+    max-height:320px;
+    overflow-y:auto;
+    margin-top:12px;
+    text-align:left;
+}
+
+.log{
+    padding:10px 12px;
+    margin:7px 0;
+    background:#eee;
+    border-radius:12px;
+    font-size:14px;
+    line-height:1.5;
+    word-break:break-word;
+}
+
+.log-time{
+    color:#888;
+    font-size:12px;
+}
+
+.log-keyboard{
+    border-left:4px solid #6543a4;
+}
+
+.log-mouse{
+    border-left:4px solid #3498db;
+}
+
+.log-touch{
+    border-left:4px solid #e84393;
+}
+
+.log-gamepad{
+    border-left:4px solid #27ae60;
+}
+
+button{
+    width:90%;
+    max-width:350px;
+    padding:14px 20px;
+    margin:9px;
+    border:none;
+    border-radius:15px;
+    background:white;
+    color:#6543a4;
+    box-shadow:0 4px 12px #0002;
+    font-size:17px;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .card{
+    background:#1e1e1e;
+}
+
+body.dark-mode .desc,
+body.dark-mode .small,
+body.dark-mode .event-title{
+    color:#aaa;
+}
+
+body.dark-mode .section{
+    background:#292929;
+}
+
+body.dark-mode .event-box,
+body.dark-mode .stat,
+body.dark-mode .log{
+    background:#333;
+}
+
+body.dark-mode button{
+    background:#333;
+    color:#fff;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<h1>⌨️ 输入设备测试</h1>
+
+<p class="desc">
+分别测试键盘、鼠标、触摸与手柄
+</p>
+
+
+<div class="card">
+
+
+<!-- ========================= -->
+<!-- 键盘 -->
+<!-- ========================= -->
+
+<div class="section">
+
+<h2>⌨️ 键盘</h2>
+
+<div
+id="keyboardStatus"
+class="status">
+等待键盘输入
+</div>
+
+<div class="event-box">
+
+<div class="event-title">
+最近按键
+</div>
+
+<div
+id="keyValue"
+class="event-value">
+--
+</div>
+
+</div>
+
+<div class="stats">
+
+<div class="stat">
+
+<div class="small">
+按下次数
+</div>
+
+<div
+id="keyDownCount"
+class="value">
+0
+</div>
+
+</div>
+
+<div class="stat">
+
+<div class="small">
+释放次数
+</div>
+
+<div
+id="keyUpCount"
+class="value">
+0
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- 鼠标 -->
+<!-- ========================= -->
+
+<div class="section">
+
+<h2>🖱️ 鼠标</h2>
+
+<div
+id="mouseStatus"
+class="status">
+等待鼠标输入
+</div>
+
+<div class="event-box">
+
+<div class="event-title">
+鼠标位置
+</div>
+
+<div
+id="mouseValue"
+class="event-value">
+--
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- 触摸 -->
+<!-- ========================= -->
+
+<div class="section">
+
+<h2>👆 触摸</h2>
+
+<div
+id="touchStatus"
+class="status">
+等待触摸
+</div>
+
+<div class="event-box">
+
+<div class="event-title">
+当前触摸点
+</div>
+
+<div
+id="touchValue"
+class="event-value">
+0
+</div>
+
+</div>
+
+<div class="stats">
+
+<div class="stat">
+
+<div class="small">
+触摸开始
+</div>
+
+<div
+id="touchStartCount"
+class="value">
+0
+</div>
+
+</div>
+
+<div class="stat">
+
+<div class="small">
+最大同时触摸
+</div>
+
+<div
+id="maxTouch"
+class="value">
+0
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- 手柄 -->
+<!-- ========================= -->
+
+<div class="section">
+
+<h2>🎮 手柄</h2>
+
+<div
+id="gamepadStatus"
+class="status">
+未检测到手柄
+</div>
+
+<div class="event-box">
+
+<div class="event-title">
+手柄信息
+</div>
+
+<div
+id="gamepadValue"
+class="event-value">
+--
+</div>
+
+</div>
+
+<div class="stats">
+
+<div class="stat">
+
+<div class="small">
+按钮数量
+</div>
+
+<div
+id="buttonCount"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="stat">
+
+<div class="small">
+摇杆数量
+</div>
+
+<div
+id="axisCount"
+class="value">
+--
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- 事件日志 -->
+<!-- ========================= -->
+
+<div class="log-title">
+📋 事件记录
+</div>
+
+<div id="eventLog"></div>
+
+
+</div>
+
+
+<button onclick="resetAll()">
+🧹 清除统计与记录
+</button>
+
+<br>
+
+<button onclick="location.href='../index.html'">
+← 返回硬件测试大厅
+</button>
+
+
+<script>
+
+// ============================
+// 深色模式
+// ============================
+
+if(
+    localStorage.getItem("theme")
+    === "dark"
+){
+
+    document.body.classList.add(
+        "dark-mode"
+    );
+
+}
+
+
+// ============================
+// 数据
+// ============================
+
+let keyDownCount=0;
+let keyUpCount=0;
+
+let touchStartCount=0;
+let maxTouch=0;
+
+let activeGamepad=null;
+
+let previousButtons=[];
+
+let previousAxes=[];
+
+
+// ============================
+// 事件记录
+// ============================
+
+function addLog(
+    type,
+    text,
+    className
+){
+
+    const log =
+        document.getElementById(
+            "eventLog"
+        );
+
+
+    const item =
+        document.createElement(
+            "div"
+        );
+
+
+    item.className =
+        "log " +
+        className;
+
+
+    const now =
+        new Date();
+
+
+    const time =
+        now.toLocaleTimeString();
+
+
+    item.innerHTML =
+        '<div class="log-time">' +
+        time +
+        '</div>' +
+        '<b>' +
+        type +
+        '</b>　' +
+        text;
+
+
+    log.prepend(
+        item
+    );
+
+
+    while(
+        log.children.length > 50
+    ){
+
+        log.removeChild(
+            log.lastChild
+        );
+
+    }
+
+}
+
+
+// ============================
+// 键盘
+// ============================
+
+window.addEventListener(
+    "keydown",
+    function(event){
+
+        keyDownCount++;
+
+
+        document.getElementById(
+            "keyDownCount"
+        ).textContent =
+            keyDownCount;
+
+
+        document.getElementById(
+            "keyValue"
+        ).textContent =
+            event.key;
+
+
+        document.getElementById(
+            "keyboardStatus"
+        ).textContent =
+            "🟢 检测到键盘输入";
+
+
+        addLog(
+            "⌨️ 键盘按下",
+            event.key,
+            "log-keyboard"
+        );
+
+    }
+);
+
+
+window.addEventListener(
+    "keyup",
+    function(event){
+
+        keyUpCount++;
+
+
+        document.getElementById(
+            "keyUpCount"
+        ).textContent =
+            keyUpCount;
+
+
+        addLog(
+            "⌨️ 键盘释放",
+            event.key,
+            "log-keyboard"
+        );
+
+    }
+);
+
+
+// ============================
+// 鼠标
+// ============================
+
+window.addEventListener(
+    "pointermove",
+    function(event){
+
+        if(
+            event.pointerType !==
+            "mouse"
+        ){
+
+            return;
+
+        }
+
+
+        document.getElementById(
+            "mouseValue"
+        ).textContent =
+            Math.round(
+                event.clientX
+            ) +
+            " , " +
+            Math.round(
+                event.clientY
+            );
+
+
+        document.getElementById(
+            "mouseStatus"
+        ).textContent =
+            "🟢 检测到鼠标";
+
+    }
+);
+
+
+window.addEventListener(
+    "pointerdown",
+    function(event){
+
+        if(
+            event.pointerType !==
+            "mouse"
+        ){
+
+            return;
+
+        }
+
+
+        document.getElementById(
+            "mouseStatus"
+        ).textContent =
+            "🟢 鼠标按下";
+
+
+        addLog(
+            "🖱️ 鼠标按下",
+            "按钮 " +
+            event.button,
+            "log-mouse"
+        );
+
+    }
+);
+
+
+window.addEventListener(
+    "pointerup",
+    function(event){
+
+        if(
+            event.pointerType !==
+            "mouse"
+        ){
+
+            return;
+
+        }
+
+
+        addLog(
+            "🖱️ 鼠标释放",
+            "按钮 " +
+            event.button,
+            "log-mouse"
+        );
+
+    }
+);
+
+
+window.addEventListener(
+    "wheel",
+    function(event){
+
+        addLog(
+            "🖱️ 鼠标滚轮",
+            event.deltaY > 0
+            ? "向下"
+            : "向上",
+            "log-mouse"
+        );
+
+    }
+);
+
+
+// ============================
+// 触摸
+// ============================
+
+window.addEventListener(
+    "touchstart",
+    function(event){
+
+        const count =
+            event.touches.length;
+
+
+        touchStartCount++;
+
+
+        document.getElementById(
+            "touchStartCount"
+        ).textContent =
+            touchStartCount;
+
+
+        document.getElementById(
+            "touchValue"
+        ).textContent =
+            count;
+
+
+        if(
+            count > maxTouch
+        ){
+
+            maxTouch =
+                count;
+
+
+            document.getElementById(
+                "maxTouch"
+            ).textContent =
+                maxTouch;
+
+        }
+
+
+        document.getElementById(
+            "touchStatus"
+        ).textContent =
+            "🟢 检测到触摸";
+
+
+        addLog(
+            "👆 触摸开始",
+            count +
+            " 个触摸点",
+            "log-touch"
+        );
+
+    },
+    {
+        passive:true
+    }
+);
+
+
+window.addEventListener(
+    "touchmove",
+    function(event){
+
+        const count =
+            event.touches.length;
+
+
+        document.getElementById(
+            "touchValue"
+        ).textContent =
+            count;
+
+
+        /*
+         * 移动事件可能非常频繁，
+         * 所以不把每一帧都塞进日志。
+         */
+
+    },
+    {
+        passive:true
+    }
+);
+
+
+window.addEventListener(
+    "touchend",
+    function(event){
+
+        const count =
+            event.touches.length;
+
+
+        document.getElementById(
+            "touchValue"
+        ).textContent =
+            count;
+
+
+        addLog(
+            "👆 触摸结束",
+            "剩余 " +
+            count +
+            " 个触摸点",
+            "log-touch"
+        );
+
+    },
+    {
+        passive:true
+    }
+);
+
+
+// ============================
+// 手柄连接
+// ============================
+
+window.addEventListener(
+    "gamepadconnected",
+    function(event){
+
+        activeGamepad =
+            event.gamepad;
+
+
+        previousButtons =
+            [];
+
+
+        previousAxes =
+            [];
+
+
+        document.getElementById(
+            "gamepadStatus"
+        ).textContent =
+            "🟢 手柄已连接";
+
+
+        addLog(
+            "🎮 手柄连接",
+            event.gamepad.id,
+            "log-gamepad"
+        );
+
+
+        updateGamepadInfo();
+
+    }
+);
+
+
+window.addEventListener(
+    "gamepaddisconnected",
+    function(event){
+
+        if(
+            activeGamepad &&
+            activeGamepad.index ===
+            event.gamepad.index
+        ){
+
+            activeGamepad =
+                null;
+
+        }
+
+
+        document.getElementById(
+            "gamepadStatus"
+        ).textContent =
+            "未检测到手柄";
+
+
+        document.getElementById(
+            "gamepadValue"
+        ).textContent =
+            "--";
+
+
+        document.getElementById(
+            "buttonCount"
+        ).textContent =
+            "--";
+
+
+        document.getElementById(
+            "axisCount"
+        ).textContent =
+            "--";
+
+
+        addLog(
+            "🎮 手柄断开",
+            event.gamepad.id,
+            "log-gamepad"
+        );
+
+    }
+);
+
+
+// ============================
+// 手柄轮询
+// ============================
+
+function updateGamepadInfo(){
+
+    const pads =
+        navigator.getGamepads
+        ? navigator.getGamepads()
+        : [];
+
+
+    let pad=null;
+
+
+    if(activeGamepad){
+
+        pad =
+            pads[
+                activeGamepad.index
+            ];
+
+    }
+
+
+    if(!pad){
+
+        for(
+            const p of pads
+        ){
+
+            if(p){
+
+                pad=p;
+
+                activeGamepad=p;
+
+                break;
+
+            }
+
+        }
+
+    }
+
+
+    if(!pad){
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "gamepadStatus"
+    ).textContent =
+        "🟢 手柄已连接";
+
+
+    document.getElementById(
+        "gamepadValue"
+    ).textContent =
+        pad.id;
+
+
+    document.getElementById(
+        "buttonCount"
+    ).textContent =
+        pad.buttons.length;
+
+
+    document.getElementById(
+        "axisCount"
+    ).textContent =
+        Math.floor(
+            pad.axes.length / 2
+        );
+
+
+    // ========================
+    // 手柄按钮变化
+    // ========================
+
+    for(
+        let i=0;
+        i<pad.buttons.length;
+        i++
+    ){
+
+        const pressed =
+            pad.buttons[i].pressed;
+
+
+        const old =
+            previousButtons[i] ||
+            false;
+
+
+        if(
+            pressed !== old
+        ){
+
+            addLog(
+                "🎮 手柄按钮",
+                "按钮 " +
+                (i+1) +
+                (pressed
+                    ? " 按下"
+                    : " 释放"),
+                "log-gamepad"
+            );
+
+        }
+
+
+        previousButtons[i]=pressed;
+
+    }
+
+
+    // ========================
+    // 摇杆变化
+    // ========================
+
+    for(
+        let i=0;
+        i<pad.axes.length;
+        i++
+    ){
+
+        const value =
+            pad.axes[i];
+
+
+        const old =
+            previousAxes[i] ||
+            0;
+
+
+        /*
+         * 只有变化超过 0.15
+         * 才记录，避免摇杆微小抖动
+         * 刷爆日志。
+         */
+
+        if(
+            Math.abs(
+                value-old
+            ) > 0.15
+        ){
+
+            addLog(
+                "🎮 手柄摇杆",
+                "轴 " +
+                i +
+                " = " +
+                value.toFixed(2),
+                "log-gamepad"
+            );
+
+        }
+
+
+        previousAxes[i]=value;
+
+    }
+
+}
+
+
+function gamepadLoop(){
+
+    updateGamepadInfo();
+
+    requestAnimationFrame(
+        gamepadLoop
+    );
+
+}
+
+
+gamepadLoop();
+
+
+// ============================
+// 清除
+// ============================
+
+function resetAll(){
+
+    keyDownCount=0;
+    keyUpCount=0;
+
+    touchStartCount=0;
+    maxTouch=0;
+
+    previousButtons=[];
+    previousAxes=[];
+
+
+    document.getElementById(
+        "keyDownCount"
+    ).textContent="0";
+
+
+    document.getElementById(
+        "keyUpCount"
+    ).textContent="0";
+
+
+    document.getElementById(
+        "keyValue"
+    ).textContent="--";
+
+
+    document.getElementById(
+        "keyboardStatus"
+    ).textContent=
+        "等待键盘输入";
+
+
+    document.getElementById(
+        "touchStartCount"
+    ).textContent="0";
+
+
+    document.getElementById(
+        "maxTouch"
+    ).textContent="0";
+
+
+    document.getElementById(
+        "touchValue"
+    ).textContent="0";
+
+
+    document.getElementById(
+        "touchStatus"
+    ).textContent=
+        "等待触摸";
+
+
+    document.getElementById(
+        "mouseValue"
+    ).textContent="--";
+
+
+    document.getElementById(
+        "mouseStatus"
+    ).textContent=
+        "等待鼠标输入";
+
+
+    document.getElementById(
+        "eventLog"
+    ).innerHTML="";
+
+}
+
+</script>
+
+</body>
+
+</html>
