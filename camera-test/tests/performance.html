@@ -1,0 +1,2338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>⚡ 专业性能测试</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:20px 10px 40px;
+    font-family:Arial,sans-serif;
+    text-align:center;
+    background:#f5f5f5;
+    color:#222;
+}
+
+h1{
+    margin:15px 0 8px;
+}
+
+.desc{
+    color:#777;
+    line-height:1.6;
+    margin:0 auto 22px;
+    max-width:600px;
+}
+
+.card{
+    width:100%;
+    max-width:760px;
+    margin:15px auto;
+    padding:20px;
+    background:white;
+    border-radius:22px;
+    box-shadow:0 5px 20px #0002;
+    text-align:left;
+}
+
+.card h2{
+    margin:0 0 7px;
+    text-align:center;
+}
+
+.explain{
+    color:#777;
+    font-size:13px;
+    line-height:1.7;
+    text-align:center;
+    margin-bottom:18px;
+}
+
+.result{
+    text-align:center;
+    font-size:30px;
+    font-weight:bold;
+    margin:12px 0;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:
+        repeat(3,1fr);
+    gap:10px;
+}
+
+.item{
+    padding:14px 6px;
+    border-radius:15px;
+    background:#eee;
+    text-align:center;
+}
+
+.label{
+    color:#777;
+    font-size:13px;
+    margin-bottom:6px;
+}
+
+.value{
+    font-size:19px;
+    font-weight:bold;
+    word-break:break-word;
+}
+
+.status{
+    text-align:center;
+    color:#777;
+    font-size:14px;
+    line-height:1.6;
+    margin-top:12px;
+}
+
+.progress{
+    width:100%;
+    height:9px;
+    background:#ddd;
+    border-radius:10px;
+    overflow:hidden;
+    margin-top:15px;
+}
+
+.progressBar{
+    width:0%;
+    height:100%;
+    background:#6543a4;
+    transition:width .15s;
+}
+
+.info{
+    margin-top:15px;
+    padding:12px;
+    border-radius:14px;
+    background:#f0f0f0;
+    font-size:13px;
+    line-height:1.7;
+    word-break:break-word;
+}
+
+button{
+    width:90%;
+    max-width:360px;
+    padding:14px 20px;
+    margin:9px;
+    border:0;
+    border-radius:15px;
+    background:white;
+    color:#6543a4;
+    box-shadow:0 4px 12px #0002;
+    font-size:17px;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+button:disabled{
+    opacity:.5;
+}
+
+#report{
+    text-align:left;
+    line-height:1.8;
+}
+
+.good{
+    color:#159447;
+}
+
+.warn{
+    color:#d88b00;
+}
+
+.bad{
+    color:#d33;
+}
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .desc,
+body.dark-mode .explain,
+body.dark-mode .label,
+body.dark-mode .status{
+    color:#aaa;
+}
+
+body.dark-mode .card{
+    background:#1e1e1e;
+}
+
+body.dark-mode .item,
+body.dark-mode .info{
+    background:#292929;
+}
+
+body.dark-mode .progress{
+    background:#444;
+}
+
+body.dark-mode button{
+    background:#333;
+    color:#fff;
+}
+
+@media(max-width:450px){
+
+    .grid{
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<h1>⚡ 专业性能测试</h1>
+
+<p class="desc">
+测试浏览器环境下的 CPU、GPU、Canvas、
+FPS、Worker 与 JavaScript 内存能力。
+</p>
+
+
+<!-- ============================ -->
+<!-- 环境 -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>📱 测试环境</h2>
+
+<div class="grid">
+
+<div class="item">
+
+<div class="label">
+逻辑处理器
+</div>
+
+<div
+id="cores"
+class="value">
+检测中…
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+DPR
+</div>
+
+<div
+id="dpr"
+class="value">
+检测中…
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+CSS 分辨率
+</div>
+
+<div
+id="resolution"
+class="value">
+检测中…
+</div>
+
+</div>
+
+</div>
+
+<div
+id="environmentInfo"
+class="info">
+检测中…
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- CPU -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>🧠 CPU / JavaScript</h2>
+
+<div class="explain">
+
+固定工作量的 JavaScript 数值运算。<br>
+
+结果表示浏览器单线程完成该任务所需时间。<br>
+
+<strong>耗时越低越快。</strong>
+
+</div>
+
+<div
+id="cpuResult"
+class="result">
+等待测试
+</div>
+
+<div class="grid">
+
+<div class="item">
+
+<div class="label">
+中位耗时
+</div>
+
+<div
+id="cpuMedian"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+最快
+</div>
+
+<div
+id="cpuBest"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+最慢
+</div>
+
+<div
+id="cpuWorst"
+class="value">
+--
+</div>
+
+</div>
+
+</div>
+
+<div
+id="cpuStatus"
+class="status">
+等待测试
+</div>
+
+<div class="progress">
+
+<div
+id="cpuProgress"
+class="progressBar">
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- GPU -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>🎮 GPU / WebGL</h2>
+
+<div class="explain">
+
+通过 WebGL 执行实际图形渲染任务。<br>
+
+结果反映当前浏览器 WebGL 渲染性能，<br>
+
+<strong>不是专业 GPU 跑分，也不代表显卡游戏性能。</strong>
+
+</div>
+
+<div
+id="gpuResult"
+class="result">
+等待测试
+</div>
+
+<div class="grid">
+
+<div class="item">
+
+<div class="label">
+渲染时间
+</div>
+
+<div
+id="gpuTime"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+绘制帧数
+</div>
+
+<div
+id="gpuFrames"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+WebGL
+</div>
+
+<div
+id="webglVersion"
+class="value">
+--
+</div>
+
+</div>
+
+</div>
+
+<div
+id="gpuStatus"
+class="status">
+等待测试
+</div>
+
+<div
+id="gpuInfo"
+class="info">
+GPU 信息等待检测
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- Canvas -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>🎨 Canvas 2D</h2>
+
+<div class="explain">
+
+在 Canvas 2D 中重复绘制大量几何图形。<br>
+
+用于观察浏览器 2D 绘图管线的处理能力。
+
+</div>
+
+<div
+id="canvasResult"
+class="result">
+等待测试
+</div>
+
+<div class="grid">
+
+<div class="item">
+
+<div class="label">
+绘制耗时
+</div>
+
+<div
+id="canvasTime"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+绘制次数
+</div>
+
+<div
+id="canvasCount"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+状态
+</div>
+
+<div
+id="canvasState"
+class="value">
+--
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- FPS -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>🎞️ 实际 FPS</h2>
+
+<div class="explain">
+
+统计浏览器 requestAnimationFrame 的实际执行频率。<br>
+
+<strong>FPS 不等于屏幕物理刷新率。</strong>
+
+</div>
+
+<div
+id="fpsResult"
+class="result">
+等待测试
+</div>
+
+<div class="grid">
+
+<div class="item">
+
+<div class="label">
+平均 FPS
+</div>
+
+<div
+id="fpsAverage"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+最低 FPS
+</div>
+
+<div
+id="fpsMin"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+最高 FPS
+</div>
+
+<div
+id="fpsMax"
+class="value">
+--
+</div>
+
+</div>
+
+</div>
+
+<div
+id="fpsStatus"
+class="status">
+测试持续 5 秒
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- Worker -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>🧵 Web Worker</h2>
+
+<div class="explain">
+
+将计算任务放入后台 Worker 线程执行。<br>
+
+用于测试浏览器是否支持 Worker，以及后台计算能力。
+
+</div>
+
+<div
+id="workerResult"
+class="result">
+等待测试
+</div>
+
+<div class="grid">
+
+<div class="item">
+
+<div class="label">
+耗时
+</div>
+
+<div
+id="workerTime"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+Worker
+</div>
+
+<div
+id="workerSupport"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+任务状态
+</div>
+
+<div
+id="workerState"
+class="value">
+--
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- Memory -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>💾 JavaScript Heap</h2>
+
+<div class="explain">
+
+这里只能读取浏览器公开的 JavaScript Heap 信息。<br>
+
+<strong>这不是手机系统 RAM 使用量。</strong>
+
+</div>
+
+<div
+id="memoryResult"
+class="result">
+检测中…
+</div>
+
+<div
+id="memoryInfo"
+class="status">
+检测中…
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- Storage -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>💽 LocalStorage</h2>
+
+<div class="explain">
+
+实际进行写入与读取测试。<br>
+
+结果只代表当前浏览器存储 API 的性能。
+
+</div>
+
+<div
+id="storageResult"
+class="result">
+等待测试
+</div>
+
+<div class="grid">
+
+<div class="item">
+
+<div class="label">
+写入
+</div>
+
+<div
+id="storageWrite"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+读取
+</div>
+
+<div
+id="storageRead"
+class="value">
+--
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+状态
+</div>
+
+<div
+id="storageState"
+class="value">
+--
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ============================ -->
+<!-- Report -->
+<!-- ============================ -->
+
+<div class="card">
+
+<h2>📊 测试报告</h2>
+
+<div
+id="report">
+完成测试后生成报告。
+</div>
+
+</div>
+
+
+<button
+id="startButton"
+onclick="startTest()">
+
+🚀 开始完整测试
+
+</button>
+
+<br>
+
+<button onclick="location.href='../index.html'">
+
+← 返回硬件测试大厅
+
+</button>
+
+
+<script>
+
+
+// ============================
+// 主题
+// ============================
+
+if(
+    localStorage.getItem("theme")
+    === "dark"
+){
+
+    document.body.classList.add(
+        "dark-mode"
+    );
+
+}
+
+
+// ============================
+// 工具
+// ============================
+
+function text(id,value){
+
+    document.getElementById(id)
+        .textContent=value;
+
+}
+
+
+function median(values){
+
+    const a =
+        [...values].sort(
+            (x,y)=>x-y
+        );
+
+    const mid =
+        Math.floor(
+            a.length/2
+        );
+
+    if(a.length%2){
+
+        return a[mid];
+
+    }
+
+    return (
+        a[mid-1]+a[mid]
+    )/2;
+
+}
+
+
+function sleep(ms){
+
+    return new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                ms
+            )
+    );
+
+}
+
+
+// ============================
+// 环境
+// ============================
+
+function detectEnvironment(){
+
+    const cores =
+        navigator.hardwareConcurrency;
+
+
+    text(
+        "cores",
+        cores
+            ? cores + " "
+            : "浏览器未提供"
+    );
+
+
+    text(
+        "dpr",
+        window.devicePixelRatio ||
+        "未知"
+    );
+
+
+    text(
+        "resolution",
+        screen.width +
+        " × " +
+        screen.height
+    );
+
+
+    let info=[];
+
+
+    info.push(
+        "User Agent: " +
+        navigator.userAgent
+    );
+
+
+    if(
+        navigator.platform
+    ){
+
+        info.push(
+            "Platform: " +
+            navigator.platform
+        );
+
+    }
+
+
+    text(
+        "environmentInfo",
+        info.join("\n")
+    );
+
+}
+
+
+// ============================
+// CPU
+// ============================
+
+async function cpuBenchmark(){
+
+    const results=[];
+
+    const rounds=5;
+
+
+    text(
+        "cpuStatus",
+        "预热中…"
+    );
+
+
+    /*
+     * 预热 JIT。
+     */
+
+    for(
+        let i=0;
+        i<1;
+        i++
+    ){
+
+        let x=0;
+
+        for(
+            let j=0;
+            j<1000000;
+            j++
+        ){
+
+            x +=
+                Math.sqrt(j);
+
+        }
+
+    }
+
+
+    await sleep(50);
+
+
+    for(
+        let r=0;
+        r<rounds;
+        r++
+    ){
+
+        text(
+            "cpuStatus",
+            "测试第 " +
+            (r+1) +
+            " / " +
+            rounds +
+            " 轮…"
+        );
+
+
+        const start =
+            performance.now();
+
+
+        let x=0;
+
+
+        /*
+         * 固定工作量。
+         */
+
+        for(
+            let i=1;
+            i<=8000000;
+            i++
+        ){
+
+            x +=
+                Math.sqrt(i) *
+                Math.sin(i) *
+                Math.cos(i);
+
+        }
+
+
+        /*
+         * 防止极端优化。
+         */
+
+        if(
+            x === Infinity
+        ){
+
+            console.log(x);
+
+        }
+
+
+        const end =
+            performance.now();
+
+
+        results.push(
+            end-start
+        );
+
+
+        text(
+            "cpuProgress",
+            ""
+        );
+
+
+        document.getElementById(
+            "cpuProgress"
+        ).style.width =
+            (
+                (r+1) /
+                rounds *
+                100
+            ) + "%";
+
+
+        await sleep(50);
+
+    }
+
+
+    const med =
+        median(results);
+
+
+    const best =
+        Math.min(
+            ...results
+        );
+
+
+    const worst =
+        Math.max(
+            ...results
+        );
+
+
+    text(
+        "cpuMedian",
+        med.toFixed(1) +
+        " ms"
+    );
+
+
+    text(
+        "cpuBest",
+        best.toFixed(1) +
+        " ms"
+    );
+
+
+    text(
+        "cpuWorst",
+        worst.toFixed(1) +
+        " ms"
+    );
+
+
+    text(
+        "cpuResult",
+        med.toFixed(1) +
+        " ms"
+    );
+
+
+    text(
+        "cpuStatus",
+        "5 次固定工作量测试的中位数"
+    );
+
+
+    return med;
+
+}
+
+
+// ============================
+// GPU WebGL
+// ============================
+
+function gpuBenchmark(){
+
+    return new Promise(
+        resolve => {
+
+            const canvas =
+                document.createElement(
+                    "canvas"
+                );
+
+
+            canvas.width=720;
+
+            canvas.height=720;
+
+
+            const gl =
+                canvas.getContext(
+                    "webgl",
+                    {
+                        antialias:false,
+                        powerPreference:
+                            "high-performance"
+                    }
+                );
+
+
+            if(!gl){
+
+                text(
+                    "gpuResult",
+                    "不可用"
+                );
+
+                text(
+                    "gpuStatus",
+                    "当前浏览器没有 WebGL"
+                );
+
+                text(
+                    "webglVersion",
+                    "不可用"
+                );
+
+                resolve(null);
+
+                return;
+
+            }
+
+
+            text(
+                "webglVersion",
+                "WebGL 1"
+            );
+
+
+            let renderer="浏览器隐藏";
+
+
+            try{
+
+                const debug =
+                    gl.getExtension(
+                        "WEBGL_debug_renderer_info"
+                    );
+
+
+                if(debug){
+
+                    renderer =
+                        gl.getParameter(
+                            debug.UNMASKED_RENDERER_WEBGL
+                        );
+
+                }
+
+            }catch{
+
+                renderer =
+                    "浏览器隐藏";
+
+            }
+
+
+            text(
+                "gpuInfo",
+                "Renderer: " +
+                renderer
+            );
+
+
+            /*
+             * 简单顶点 + 片元着色器。
+             */
+
+            const vertexSource=`
+                attribute vec2 position;
+                void main(){
+                    gl_Position=
+                        vec4(position,0.0,1.0);
+                }
+            `;
+
+
+            const fragmentSource=`
+                precision mediump float;
+
+                void main(){
+
+                    vec2 p =
+                        gl_FragCoord.xy /
+                        720.0;
+
+                    float r =
+                        sin(p.x*40.0) *
+                        cos(p.y*35.0);
+
+                    float g =
+                        sin(p.y*50.0) *
+                        cos(p.x*30.0);
+
+                    float b =
+                        sin(
+                            (p.x+p.y)*60.0
+                        );
+
+                    gl_FragColor =
+                        vec4(
+                            abs(r),
+                            abs(g),
+                            abs(b),
+                            1.0
+                        );
+                }
+            `;
+
+
+            function shader(
+                type,
+                source
+            ){
+
+                const s =
+                    gl.createShader(
+                        type
+                    );
+
+                gl.shaderSource(
+                    s,
+                    source
+                );
+
+                gl.compileShader(
+                    s
+                );
+
+                return s;
+
+            }
+
+
+            const vs =
+                shader(
+                    gl.VERTEX_SHADER,
+                    vertexSource
+                );
+
+
+            const fs =
+                shader(
+                    gl.FRAGMENT_SHADER,
+                    fragmentSource
+                );
+
+
+            const program =
+                gl.createProgram();
+
+
+            gl.attachShader(
+                program,
+                vs
+            );
+
+
+            gl.attachShader(
+                program,
+                fs
+            );
+
+
+            gl.linkProgram(
+                program
+            );
+
+
+            gl.useProgram(
+                program
+            );
+
+
+            const buffer =
+                gl.createBuffer();
+
+
+            gl.bindBuffer(
+                gl.ARRAY_BUFFER,
+                buffer
+            );
+
+
+            gl.bufferData(
+                gl.ARRAY_BUFFER,
+                new Float32Array([
+                    -1,-1,
+                     1,-1,
+                    -1, 1,
+                    -1, 1,
+                     1,-1,
+                     1, 1
+                ]),
+                gl.STATIC_DRAW
+            );
+
+
+            const loc =
+                gl.getAttribLocation(
+                    program,
+                    "position"
+                );
+
+
+            gl.enableVertexAttribArray(
+                loc
+            );
+
+
+            gl.vertexAttribPointer(
+                loc,
+                2,
+                gl.FLOAT,
+                false,
+                0,
+                0
+            );
+
+
+            const frames=180;
+
+            const start =
+                performance.now();
+
+
+            for(
+                let i=0;
+                i<frames;
+                i++
+            ){
+
+                gl.drawArrays(
+                    gl.TRIANGLES,
+                    0,
+                    6
+                );
+
+                /*
+                 * 强制等待 GPU 完成。
+                 */
+
+                gl.finish();
+
+            }
+
+
+            const end =
+                performance.now();
+
+
+            const time =
+                end-start;
+
+
+            const fps =
+                frames /
+                (time/1000);
+
+
+            text(
+                "gpuTime",
+                time.toFixed(1) +
+                " ms"
+            );
+
+
+            text(
+                "gpuFrames",
+                frames
+            );
+
+
+            text(
+                "gpuResult",
+                fps.toFixed(1) +
+                " FPS"
+            );
+
+
+            text(
+                "gpuStatus",
+                "WebGL 实际渲染测试完成"
+            );
+
+
+            resolve({
+                time,
+                fps
+            });
+
+        }
+    );
+
+}
+
+
+// ============================
+// Canvas 2D
+// ============================
+
+function canvasBenchmark(){
+
+    const canvas =
+        document.createElement(
+            "canvas"
+        );
+
+
+    canvas.width=1000;
+
+    canvas.height=700;
+
+
+    const ctx =
+        canvas.getContext(
+            "2d"
+        );
+
+
+    if(!ctx){
+
+        text(
+            "canvasResult",
+            "不可用"
+        );
+
+        text(
+            "canvasState",
+            "不支持 Canvas 2D"
+        );
+
+        return null;
+
+    }
+
+
+    const count=100000;
+
+
+    const start =
+        performance.now();
+
+
+    for(
+        let i=0;
+        i<count;
+        i++
+    ){
+
+        const x =
+            (i*37)%1000;
+
+        const y =
+            (i*71)%700;
+
+        const size =
+            2+(i%15);
+
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            y,
+            size,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+    }
+
+
+    const end =
+        performance.now();
+
+
+    const time =
+        end-start;
+
+
+    text(
+        "canvasTime",
+        time.toFixed(1) +
+        " ms"
+    );
+
+
+    text(
+        "canvasCount",
+        count.toLocaleString()
+    );
+
+
+    text(
+        "canvasState",
+        "完成"
+    );
+
+
+    text(
+        "canvasResult",
+        time.toFixed(1) +
+        " ms"
+    );
+
+
+    return time;
+
+}
+
+
+// ============================
+// FPS
+// ============================
+
+function fpsBenchmark(){
+
+    return new Promise(
+        resolve => {
+
+            const samples=[];
+
+            let last=
+                performance.now();
+
+            const start=
+                last;
+
+
+            function frame(now){
+
+                const delta=
+                    now-last;
+
+
+                if(
+                    delta>0 &&
+                    delta<250
+                ){
+
+                    samples.push(
+                        1000/delta
+                    );
+
+                }
+
+
+                last=now;
+
+
+                if(
+                    now-start<5000
+                ){
+
+                    requestAnimationFrame(
+                        frame
+                    );
+
+                }else{
+
+                    finish();
+
+                }
+
+            }
+
+
+            function finish(){
+
+                if(
+                    !samples.length
+                ){
+
+                    resolve(null);
+
+                    return;
+
+                }
+
+
+                const average=
+                    samples.reduce(
+                        (a,b)=>a+b,
+                        0
+                    )/
+                    samples.length;
+
+
+                const min=
+                    Math.min(
+                        ...samples
+                    );
+
+
+                const max=
+                    Math.max(
+                        ...samples
+                    );
+
+
+                text(
+                    "fpsResult",
+                    average.toFixed(1) +
+                    " FPS"
+                );
+
+
+                text(
+                    "fpsAverage",
+                    average.toFixed(1)
+                );
+
+
+                text(
+                    "fpsMin",
+                    min.toFixed(1)
+                );
+
+
+                text(
+                    "fpsMax",
+                    max.toFixed(1)
+                );
+
+
+                if(
+                    average>=110
+                ){
+
+                    text(
+                        "fpsStatus",
+                        "🟢 平均帧率较高"
+                    );
+
+                }else if(
+                    average>=58
+                ){
+
+                    text(
+                        "fpsStatus",
+                        "🟢 平均帧率接近 60 FPS"
+                    );
+
+                }else if(
+                    average>=30
+                ){
+
+                    text(
+                        "fpsStatus",
+                        "🟡 平均帧率低于 60 FPS"
+                    );
+
+                }else{
+
+                    text(
+                        "fpsStatus",
+                        "🔴 平均帧率较低"
+                    );
+
+                }
+
+
+                resolve({
+                    average,
+                    min,
+                    max
+                });
+
+            }
+
+
+            requestAnimationFrame(
+                frame
+            );
+
+        }
+    );
+
+}
+
+
+// ============================
+// Worker
+// ============================
+
+function workerBenchmark(){
+
+    return new Promise(
+        resolve => {
+
+            if(
+                !window.Worker
+            ){
+
+                text(
+                    "workerResult",
+                    "不可用"
+                );
+
+                text(
+                    "workerSupport",
+                    "不支持"
+                );
+
+                text(
+                    "workerState",
+                    "失败"
+                );
+
+                resolve(null);
+
+                return;
+
+            }
+
+
+            text(
+                "workerSupport",
+                "支持"
+            );
+
+
+            const code=`
+
+                self.onmessage =
+                    function(e){
+
+                        let x=0;
+
+                        const start=
+                            performance.now();
+
+                        for(
+                            let i=1;
+                            i<=8000000;
+                            i++
+                        ){
+
+                            x +=
+                                Math.sqrt(i) *
+                                Math.sin(i);
+
+                        }
+
+                        const end=
+                            performance.now();
+
+                        self.postMessage({
+                            time:
+                                end-start
+                        });
+
+                    };
+
+            `;
+
+
+            const blob=
+                new Blob(
+                    [code],
+                    {
+                        type:
+                            "application/javascript"
+                    }
+                );
+
+
+            const url=
+                URL.createObjectURL(
+                    blob
+                );
+
+
+            const worker=
+                new Worker(
+                    url
+                );
+
+
+            const start=
+                performance.now();
+
+
+            worker.onmessage =
+                function(e){
+
+                    const total=
+                        performance.now()
+                        -start;
+
+
+                    text(
+                        "workerTime",
+                        total.toFixed(1) +
+                        " ms"
+                    );
+
+
+                    text(
+                        "workerResult",
+                        total.toFixed(1) +
+                        " ms"
+                    );
+
+
+                    text(
+                        "workerState",
+                        "完成"
+                    );
+
+
+                    worker.terminate();
+
+                    URL.revokeObjectURL(
+                        url
+                    );
+
+
+                    resolve(total);
+
+                };
+
+
+            worker.onerror =
+                function(){
+
+                    text(
+                        "workerResult",
+                        "失败"
+                    );
+
+
+                    text(
+                        "workerState",
+                        "执行错误"
+                    );
+
+
+                    worker.terminate();
+
+                    URL.revokeObjectURL(
+                        url
+                    );
+
+
+                    resolve(null);
+
+                };
+
+
+            worker.postMessage(
+                "start"
+            );
+
+        }
+    );
+
+}
+
+
+// ============================
+// Storage
+// ============================
+
+function storageBenchmark(){
+
+    return new Promise(
+        resolve => {
+
+            try{
+
+                const key=
+                    "__performance_test__";
+
+
+                const data=
+                    "x".repeat(
+                        10000
+                    );
+
+
+                const rounds=100;
+
+
+                let start=
+                    performance.now();
+
+
+                for(
+                    let i=0;
+                    i<rounds;
+                    i++
+                ){
+
+                    localStorage.setItem(
+                        key+i,
+                        data
+                    );
+
+                }
+
+
+                let write=
+                    performance.now()
+                    -start;
+
+
+                start=
+                    performance.now();
+
+
+                let length=0;
+
+
+                for(
+                    let i=0;
+                    i<rounds;
+                    i++
+                ){
+
+                    length +=
+                        localStorage
+                        .getItem(
+                            key+i
+                        ).length;
+
+                }
+
+
+                let read=
+                    performance.now()
+                    -start;
+
+
+                for(
+                    let i=0;
+                    i<rounds;
+                    i++
+                ){
+
+                    localStorage.removeItem(
+                        key+i
+                    );
+
+                }
+
+
+                text(
+                    "storageWrite",
+                    write.toFixed(1) +
+                    " ms"
+                );
+
+
+                text(
+                    "storageRead",
+                    read.toFixed(1) +
+                    " ms"
+                );
+
+
+                text(
+                    "storageState",
+                    "完成"
+                );
+
+
+                text(
+                    "storageResult",
+                    "测试完成"
+                );
+
+
+                resolve({
+                    write,
+                    read
+                });
+
+            }catch{
+
+                text(
+                    "storageResult",
+                    "不可用"
+                );
+
+
+                text(
+                    "storageState",
+                    "浏览器限制"
+                );
+
+
+                resolve(null);
+
+            }
+
+        }
+    );
+
+}
+
+
+// ============================
+// JS Heap
+// ============================
+
+function memoryBenchmark(){
+
+    if(
+        !performance.memory
+    ){
+
+        text(
+            "memoryResult",
+            "不可用"
+        );
+
+
+        text(
+            "memoryInfo",
+            "当前浏览器没有公开 JS Heap API"
+        );
+
+
+        return null;
+
+    }
+
+
+    const used=
+        performance.memory
+        .usedJSHeapSize;
+
+
+    const total=
+        performance.memory
+        .totalJSHeapSize;
+
+
+    const limit=
+        performance.memory
+        .jsHeapSizeLimit;
+
+
+    const usedMB=
+        used/1024/1024;
+
+
+    const totalMB=
+        total/1024/1024;
+
+
+    const limitMB=
+        limit/1024/1024;
+
+
+    text(
+        "memoryResult",
+        usedMB.toFixed(1) +
+        " MB"
+    );
+
+
+    text(
+        "memoryInfo",
+        "当前 JS Heap：" +
+        usedMB.toFixed(1) +
+        " MB；" +
+        "已分配：" +
+        totalMB.toFixed(1) +
+        " MB；" +
+        "上限约：" +
+        limitMB.toFixed(0) +
+        " MB"
+    );
+
+
+    return {
+        usedMB,
+        totalMB,
+        limitMB
+    };
+
+}
+
+
+// ============================
+// 报告
+// ============================
+
+function makeReport(
+    cpu,
+    gpu,
+    canvas,
+    fps,
+    worker,
+    storage
+){
+
+    let html="";
+
+
+    html +=
+        "<strong>测试说明</strong><br>" +
+        "本报告不会把不同类型的测试强行合并成一个“总分”。" +
+        "<br><br>";
+
+
+    if(cpu){
+
+        html +=
+            "🧠 CPU：完成固定 JS 工作量。" +
+            "耗时越低表示本次单线程运算越快。" +
+            "<br>";
+
+    }
+
+
+    if(gpu){
+
+        html +=
+            "🎮 GPU：完成 WebGL 实际渲染。" +
+            "结果只用于当前浏览器 WebGL 环境比较。" +
+            "<br>";
+
+    }
+
+
+    if(canvas){
+
+        html +=
+            "🎨 Canvas：完成固定数量 2D 图形绘制。" +
+            "<br>";
+
+    }
+
+
+    if(fps){
+
+        html +=
+            "🎞️ FPS：5 秒实际帧统计。" +
+            "它不是手机面板刷新率。" +
+            "<br>";
+
+    }
+
+
+    if(worker){
+
+        html +=
+            "🧵 Worker：后台线程计算正常完成。" +
+            "<br>";
+
+    }
+
+
+    if(storage){
+
+        html +=
+            "💽 Storage：浏览器 LocalStorage" +
+            "读写测试完成。" +
+            "<br>";
+
+    }
+
+
+    html +=
+        "<br><strong>⚠️ 注意：</strong>" +
+        "浏览器会限制硬件信息、GPU 信息、" +
+        "线程数量和内存信息。" +
+        "因此“不可用”不代表手机没有对应硬件。";
+
+
+    document.getElementById(
+        "report"
+    ).innerHTML=html;
+
+}
+
+
+// ============================
+// 总测试
+// ============================
+
+async function startTest(){
+
+    const button=
+        document.getElementById(
+            "startButton"
+        );
+
+
+    button.disabled=true;
+
+    button.textContent=
+        "⏳ 完整测试进行中…";
+
+
+    detectEnvironment();
+
+
+    /*
+     * 让页面先完成渲染，
+     * 再开始压力测试。
+     */
+
+    await sleep(300);
+
+
+    const cpu=
+        await cpuBenchmark();
+
+
+    await sleep(150);
+
+
+    const gpu=
+        await gpuBenchmark();
+
+
+    await sleep(150);
+
+
+    const canvas=
+        canvasBenchmark();
+
+
+    await sleep(150);
+
+
+    const fps=
+        await fpsBenchmark();
+
+
+    await sleep(150);
+
+
+    const worker=
+        await workerBenchmark();
+
+
+    await sleep(150);
+
+
+    const storage=
+        await storageBenchmark();
+
+
+    const memory=
+        memoryBenchmark();
+
+
+    makeReport(
+        cpu,
+        gpu,
+        canvas,
+        fps,
+        worker,
+        storage
+    );
+
+
+    button.disabled=false;
+
+    button.textContent=
+        "🔄 重新测试";
+
+}
+
+</script>
+
+</body>
+
+</html>
