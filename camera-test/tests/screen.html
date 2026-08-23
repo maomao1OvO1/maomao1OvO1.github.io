@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>🖥️ 屏幕 / 全屏测试</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:25px 20px;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    color:#222;
+}
+
+h1{
+    margin:20px 0 25px;
+}
+
+.card{
+    max-width:460px;
+    margin:15px auto;
+    padding:22px;
+    background:white;
+    border-radius:22px;
+    box-shadow:0 5px 20px #0002;
+}
+
+.item{
+    margin:18px 0;
+}
+
+.label{
+    color:#777;
+    font-size:14px;
+    margin-bottom:6px;
+}
+
+.value{
+    font-size:23px;
+    font-weight:bold;
+}
+
+button{
+    width:90%;
+    max-width:350px;
+    padding:14px 20px;
+    margin:9px;
+    border:none;
+    border-radius:15px;
+    background:#ffffff;
+    color:#6543a4;
+    box-shadow:0 4px 12px #0002;
+    font-size:17px;
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+#refreshTest{
+    margin-top:10px;
+}
+
+#fpsBox{
+    font-size:35px;
+    font-weight:bold;
+}
+
+#fpsText{
+    color:#777;
+    margin-top:8px;
+}
+
+
+/* ===== 深色模式 ===== */
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .card{
+    background:#1e1e1e;
+}
+
+body.dark-mode .label,
+body.dark-mode #fpsText{
+    color:#aaa;
+}
+
+body.dark-mode button{
+    background:#333;
+    color:#fff;
+    box-shadow:0 4px 12px #0006;
+}
+
+
+/* ===== 全屏测试区域 ===== */
+
+#fullscreenBox{
+    padding:25px;
+    border-radius:18px;
+    background:#eee;
+    margin-top:15px;
+}
+
+body.dark-mode #fullscreenBox{
+    background:#292929;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<h1>🖥️ 屏幕 / 全屏测试</h1>
+
+
+<!-- ===== 屏幕信息 ===== -->
+
+<div class="card">
+
+<h2>📐 屏幕信息</h2>
+
+
+<div class="item">
+
+<div class="label">
+CSS 屏幕尺寸
+</div>
+
+<div id="screenResolution"
+class="value">
+检测中……
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+浏览器可视区域
+</div>
+
+<div id="windowSize"
+class="value">
+检测中……
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+设备像素比 DPR
+</div>
+
+<div id="dpr"
+class="value">
+检测中……
+</div>
+
+</div>
+
+<div class="item">
+
+<div class="label">
+理论物理像素
+</div>
+
+<div id="physicalResolution"
+class="value">
+检测中……
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+屏幕方向
+</div>
+
+<div id="orientation"
+class="value">
+检测中……
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ===== 刷新率 ===== -->
+
+<div class="card">
+
+<h2>🔄 刷新率测试</h2>
+
+<div id="fpsBox">
+检测中……
+</div>
+
+<div id="fpsText">
+正在采样，请稍等
+</div>
+
+<button id="refreshTest"
+onclick="startFPSTest()">
+重新测试刷新率
+</button>
+
+</div>
+
+
+<!-- ===== 全屏 ===== -->
+
+<div class="card">
+
+<h2>⛶ 全屏测试</h2>
+
+<div id="fullscreenBox">
+
+<p id="fullscreenStatus">
+当前不是全屏
+</p>
+
+<button onclick="enterFullscreen()">
+⛶ 进入全屏
+</button>
+
+<button onclick="exitFullscreen()">
+退出全屏
+</button>
+
+</div>
+
+</div>
+
+
+<!-- ===== 返回 ===== -->
+
+<button onclick="location.href='../index.html'">
+← 返回硬件测试大厅
+</button>
+
+
+<script>
+
+
+// ============================
+// 深色模式
+// ============================
+
+if(
+    localStorage.getItem("theme")
+    === "dark"
+){
+
+    document.body.classList.add(
+        "dark-mode"
+    );
+
+}
+
+
+// ============================
+// 屏幕信息
+// ============================
+
+function updateScreenInfo(){
+
+    document.getElementById(
+        "screenResolution"
+    ).textContent =
+        screen.width +
+        " × " +
+        screen.height;
+
+
+    document.getElementById(
+        "windowSize"
+    ).textContent =
+        window.innerWidth +
+        " × " +
+        window.innerHeight;
+
+
+    const dpr =
+        window.devicePixelRatio;
+
+    document.getElementById(
+        "dpr"
+    ).textContent =
+        dpr;
+
+    document.getElementById(
+        "physicalResolution"
+    ).textContent =
+        Math.round(screen.width * dpr) +
+        " × " +
+        Math.round(screen.height * dpr);
+
+
+    let orientation =
+        screen.orientation
+        ? screen.orientation.type
+        : "";
+
+
+    if(
+        orientation.includes(
+            "portrait"
+        )
+    ){
+
+        orientation =
+            "📱 竖屏";
+
+    }else if(
+        orientation.includes(
+            "landscape"
+        )
+    ){
+
+        orientation =
+            "🖥️ 横屏";
+
+    }else{
+
+        orientation =
+            "❓ 未知";
+
+    }
+
+
+    document.getElementById(
+        "orientation"
+    ).textContent =
+        orientation;
+
+}
+
+
+// ============================
+// 刷新率测试
+// ============================
+
+let fpsRunning = false;
+
+
+function startFPSTest(){
+
+    if(fpsRunning) return;
+
+    fpsRunning = true;
+
+
+    const fpsBox =
+        document.getElementById(
+            "fpsBox"
+        );
+
+    const fpsText =
+        document.getElementById(
+            "fpsText"
+        );
+
+
+    fpsBox.textContent =
+        "测试中…";
+
+    fpsText.textContent =
+        "正在采样 3 秒";
+
+
+    let frames = 0;
+
+    const start =
+        performance.now();
+
+
+    function frame(){
+
+        frames++;
+
+
+        const now =
+            performance.now();
+
+
+        if(
+            now - start <
+            3000
+        ){
+
+            requestAnimationFrame(
+                frame
+            );
+
+        }else{
+
+            const seconds =
+                (now - start) / 1000;
+
+
+            const fps =
+                frames / seconds;
+
+
+            fpsBox.textContent =
+                fps.toFixed(1) +
+                " FPS";
+
+
+            if(fps >= 110){
+
+                fpsText.textContent =
+                    "🔥 高刷新率屏幕";
+
+            }else if(fps >= 75){
+
+                fpsText.textContent =
+                    "🟢 流畅";
+
+            }else if(fps >= 50){
+
+                fpsText.textContent =
+                    "🟡 普通";
+
+            }else{
+
+                fpsText.textContent =
+                    "🔴 刷新率较低";
+
+            }
+
+
+            fpsRunning = false;
+
+        }
+
+    }
+
+
+    requestAnimationFrame(
+        frame
+    );
+
+}
+
+
+// ============================
+// 全屏
+// ============================
+
+async function enterFullscreen(){
+
+    try{
+
+        await document.documentElement
+            .requestFullscreen();
+
+    }catch(error){
+
+        alert(
+            "浏览器不允许进入全屏"
+        );
+
+    }
+
+}
+
+
+async function exitFullscreen(){
+
+    if(
+        document.fullscreenElement
+    ){
+
+        await document.exitFullscreen();
+
+    }
+
+}
+
+
+function updateFullscreen(){
+
+    const status =
+        document.getElementById(
+            "fullscreenStatus"
+        );
+
+
+    if(
+        document.fullscreenElement
+    ){
+
+        status.textContent =
+            "🟢 当前处于全屏模式";
+
+    }else{
+
+        status.textContent =
+            "当前不是全屏";
+
+    }
+
+}
+
+
+document.addEventListener(
+    "fullscreenchange",
+    updateFullscreen
+);
+
+
+// ============================
+// 屏幕旋转 / 窗口变化
+// ============================
+
+window.addEventListener(
+    "resize",
+    updateScreenInfo
+);
+
+
+if(screen.orientation){
+
+    screen.orientation.addEventListener(
+        "change",
+        updateScreenInfo
+    );
+
+}
+
+
+// ============================
+// 初始化
+// ============================
+
+updateScreenInfo();
+
+startFPSTest();
+
+</script>
+
+</body>
+
+</html>
