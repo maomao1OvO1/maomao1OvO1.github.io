@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>🎤 麦克风测试</title>
+
+<style>
+
+body{
+    text-align:center;
+    font-family:Arial,sans-serif;
+    padding:30px;
+}
+
+#level{
+    width:90%;
+    max-width:500px;
+    height:30px;
+    background:#ddd;
+    border-radius:20px;
+    overflow:hidden;
+    margin:30px auto;
+}
+
+#bar{
+    width:0%;
+    height:100%;
+    background:#555;
+    transition:width 0.05s;
+}
+
+#status{
+    font-size:20px;
+    margin:20px;
+}
+
+button{
+    padding:12px 20px;
+    margin:8px;
+    font-size:16px;
+    border:none;
+    border-radius:12px;
+}
+
+</style>
+
+    <link rel="stylesheet" href="../hardware.css">
+</head>
+
+<body>
+
+<h1>🎤 麦克风测试</h1>
+
+<p id="status">麦克风未开启</p>
+
+<div id="level">
+    <div id="bar"></div>
+</div>
+
+<button onclick="startMic()">
+打开麦克风
+</button>
+
+<button onclick="stopMic()">
+关闭麦克风
+</button>
+
+<br>
+
+<button onclick="location.href='../index.html'">
+← 返回大厅
+</button>
+
+
+<script>
+
+let stream = null;
+let audioContext = null;
+let analyser = null;
+let dataArray = null;
+let animation = null;
+
+
+// 打开麦克风
+async function startMic(){
+
+    try{
+
+        stream = await navigator.mediaDevices.getUserMedia({
+            audio:true
+        });
+
+        audioContext =
+            new (window.AudioContext ||
+            window.webkitAudioContext)();
+
+        const source =
+            audioContext.createMediaStreamSource(stream);
+
+        analyser =
+            audioContext.createAnalyser();
+
+        analyser.fftSize = 1024;
+
+        dataArray =
+            new Uint8Array(
+                analyser.fftSize
+            );
+
+        source.connect(analyser);
+
+        document.getElementById("status")
+            .textContent = "🎤 麦克风已开启";
+
+        detectSound();
+
+    }catch(error){
+
+        alert("无法打开麦克风：" + error);
+
+    }
+
+}
+
+
+// 实时检测声音
+function detectSound(){
+
+    analyser.getByteTimeDomainData(dataArray);
+
+    let sum = 0;
+
+    for(let i = 0; i < dataArray.length; i++){
+
+        const value =
+            (dataArray[i] - 128) / 128;
+
+        sum += value * value;
+
+    }
+
+    const rms =
+        Math.sqrt(sum / dataArray.length);
+
+    const volume =
+        Math.min(rms * 500, 100);
+
+    document.getElementById("bar")
+        .style.width = volume + "%";
+
+
+    // 真实声音达到一定强度才震动
+    if(volume > 15){
+
+        navigator.vibrate(50);
+
+    }
+
+
+    animation =
+        requestAnimationFrame(detectSound);
+
+}
+
+
+// 关闭麦克风
+function stopMic(){
+
+    if(animation){
+
+        cancelAnimationFrame(animation);
+        animation = null;
+
+    }
+
+    if(stream){
+
+        stream.getTracks().forEach(track => {
+            track.stop();
+        });
+
+        stream = null;
+
+    }
+
+    if(audioContext){
+
+        audioContext.close();
+        audioContext = null;
+
+    }
+
+    navigator.vibrate(0);
+
+    document.getElementById("bar")
+        .style.width = "0%";
+
+    document.getElementById("status")
+        .textContent = "麦克风未开启";
+
+}
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+<button
+    class="hardware-back"
+    onclick="location.href='../index.html'">
+    ← 返回硬件测试大厅
+</button>
+
+
+<script>
+
+function applyMainTheme(){
+
+    /*
+     * 读取主站保存的主题
+     *
+     * 这里同时兼容常见的 darkMode
+     * 和 theme 两种保存方式
+     */
+
+    const dark =
+        localStorage.getItem("darkMode") === "1" ||
+        localStorage.getItem("theme") === "dark";
+
+    document.body.classList.toggle(
+        "dark-mode",
+        dark
+    );
+
+}
+
+applyMainTheme();
+
+</script>
+
+</body>
+
+</html>
