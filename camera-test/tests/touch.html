@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>📱 触摸屏测试</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:20px 10px;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    color:#222;
+    user-select:none;
+    -webkit-user-select:none;
+}
+
+h1{
+    margin:15px 0 8px;
+}
+
+.desc{
+    color:#777;
+    margin-bottom:15px;
+}
+
+.card{
+    width:100%;
+    max-width:700px;
+    margin:15px auto;
+    padding:15px;
+    background:white;
+    border-radius:22px;
+    box-shadow:0 5px 20px #0002;
+}
+
+#touchArea{
+    width:100%;
+    height:600px;
+    background:#eee;
+    border:3px solid #6543a4;
+    border-radius:18px;
+    position:relative;
+    overflow:hidden;
+    touch-action:none;
+}
+
+canvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+}
+
+#trailCanvas{
+    z-index:1;
+}
+
+#pointCanvas{
+    z-index:2;
+}
+
+.info{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:15px;
+}
+
+.item{
+    padding:13px 8px;
+    background:#eee;
+    border-radius:15px;
+}
+
+.label{
+    color:#777;
+    font-size:13px;
+    margin-bottom:6px;
+}
+
+.value{
+    font-size:20px;
+    font-weight:bold;
+}
+
+.hint{
+    margin-top:15px;
+    color:#777;
+    font-size:14px;
+    line-height:1.6;
+}
+
+button{
+    width:90%;
+    max-width:350px;
+    padding:14px 20px;
+    margin:9px;
+    border:none;
+    border-radius:15px;
+    background:white;
+    color:#6543a4;
+    box-shadow:0 4px 12px #0002;
+    font-size:17px;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .card{
+    background:#1e1e1e;
+}
+
+body.dark-mode .desc,
+body.dark-mode .hint,
+body.dark-mode .label{
+    color:#aaa;
+}
+
+body.dark-mode #touchArea{
+    background:#181818;
+    border-color:#9875d6;
+}
+
+body.dark-mode .item{
+    background:#292929;
+}
+
+body.dark-mode button{
+    background:#333;
+    color:#fff;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<h1>📱 触摸屏测试</h1>
+
+<p class="desc">
+滑动手指测试触摸屏与多点触控
+</p>
+
+
+<div class="card">
+
+<div id="touchArea">
+
+<canvas id="trailCanvas"></canvas>
+
+<canvas id="pointCanvas"></canvas>
+
+</div>
+
+
+<div class="info">
+
+
+<div class="item">
+
+<div class="label">
+当前触摸点
+</div>
+
+<div id="points" class="value">
+0
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+最大同时触摸
+</div>
+
+<div id="maxPoints" class="value">
+0
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+触摸次数
+</div>
+
+<div id="touchCount" class="value">
+0
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+当前坐标
+</div>
+
+<div id="position" class="value">
+--
+</div>
+
+</div>
+
+
+</div>
+
+
+<p class="hint">
+
+👆 单指：紫色小点 + 细紫色轨迹<br>
+
+👆 多指：不同颜色数字触摸点，不记录轨迹<br>
+
+👆 第二次单指触摸时自动清除上一条轨迹
+
+</p>
+
+</div>
+
+
+<button onclick="clearCanvas()">
+🧹 清除轨迹
+</button>
+
+<br>
+
+<button onclick="location.href='../index.html'">
+← 返回硬件测试大厅
+</button>
+
+
+<script>
+
+
+// ============================
+// 深色模式
+// ============================
+
+if(
+    localStorage.getItem("theme")
+    === "dark"
+){
+
+    document.body.classList.add(
+        "dark-mode"
+    );
+
+}
+
+
+// ============================
+// Canvas
+// ============================
+
+const area =
+    document.getElementById(
+        "touchArea"
+    );
+
+const trailCanvas =
+    document.getElementById(
+        "trailCanvas"
+    );
+
+const pointCanvas =
+    document.getElementById(
+        "pointCanvas"
+    );
+
+const trail =
+    trailCanvas.getContext("2d");
+
+const point =
+    pointCanvas.getContext("2d");
+
+
+function resizeCanvas(){
+
+    trailCanvas.width =
+        area.clientWidth;
+
+    trailCanvas.height =
+        area.clientHeight;
+
+    pointCanvas.width =
+        area.clientWidth;
+
+    pointCanvas.height =
+        area.clientHeight;
+
+}
+
+
+resizeCanvas();
+
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+
+// ============================
+// 数据
+// ============================
+
+let maxPoints = 0;
+
+let touchCount = 0;
+
+let singleActive = false;
+
+let lastX = 0;
+
+let lastY = 0;
+
+
+// ============================
+// 多点颜色
+// ============================
+
+const colors = [
+
+    "#6543a4",
+    "#e74c3c",
+    "#3498db",
+    "#27ae60",
+    "#f39c12",
+    "#e84393",
+    "#00b894",
+    "#8e44ad"
+
+];
+
+
+// ============================
+// 坐标
+// ============================
+
+function getPosition(touch){
+
+    const rect =
+        area.getBoundingClientRect();
+
+    return {
+
+        x:
+            touch.clientX -
+            rect.left,
+
+        y:
+            touch.clientY -
+            rect.top
+
+    };
+
+}
+
+
+// ============================
+// 清除当前触摸点
+// ============================
+
+function clearPoints(){
+
+    point.clearRect(
+        0,
+        0,
+        pointCanvas.width,
+        pointCanvas.height
+    );
+
+}
+
+
+// ============================
+// 绘制当前触摸点
+// ============================
+
+function drawPoints(touches){
+
+    clearPoints();
+
+
+    const count =
+        touches.length;
+
+
+    if(count === 0){
+
+        return;
+
+    }
+
+
+    /*
+     * 单指：
+     * 只有一个小紫点
+     */
+
+    if(count === 1){
+
+        const pos =
+            getPosition(
+                touches[0]
+            );
+
+
+        point.beginPath();
+
+        point.arc(
+            pos.x,
+            pos.y,
+            7,
+            0,
+            Math.PI * 2
+        );
+
+
+        point.fillStyle =
+            "#6543a4";
+
+        point.fill();
+
+
+        return;
+
+    }
+
+
+    /*
+     * 多指：
+     * 不同颜色 + 数字
+     */
+
+    for(
+        let i = 0;
+        i < count;
+        i++
+    ){
+
+        const pos =
+            getPosition(
+                touches[i]
+            );
+
+
+        const color =
+            colors[
+                i % colors.length
+            ];
+
+
+        // 外圈
+
+        point.beginPath();
+
+        point.arc(
+            pos.x,
+            pos.y,
+            45,
+            0,
+            Math.PI * 2
+        );
+
+        point.fillStyle =
+            color + "33";
+
+        point.fill();
+
+
+        // 实心点
+
+        point.beginPath();
+
+        point.arc(
+            pos.x,
+            pos.y,
+            18,
+            0,
+            Math.PI * 2
+        );
+
+        point.fillStyle =
+            color;
+
+        point.fill();
+
+
+        // 数字
+
+        point.fillStyle =
+            "#fff";
+
+        point.font =
+            "bold 16px Arial";
+
+        point.textAlign =
+            "center";
+
+        point.textBaseline =
+            "middle";
+
+        point.fillText(
+            i + 1,
+            pos.x,
+            pos.y
+        );
+
+    }
+
+}
+
+
+// ============================
+// 开始触摸
+// ============================
+
+area.addEventListener(
+    "touchstart",
+    function(event){
+
+        event.preventDefault();
+
+
+        const count =
+            event.touches.length;
+
+
+        document.getElementById(
+            "points"
+        ).textContent =
+            count;
+
+
+        if(
+            count > maxPoints
+        ){
+
+            maxPoints =
+                count;
+
+
+            document.getElementById(
+                "maxPoints"
+            ).textContent =
+                maxPoints;
+
+        }
+
+
+        touchCount++;
+
+
+        document.getElementById(
+            "touchCount"
+        ).textContent =
+            touchCount;
+
+
+        /*
+         * 单指：
+         * 开始新一轮轨迹
+         */
+
+        if(count === 1){
+
+            trail.clearRect(
+                0,
+                0,
+                trailCanvas.width,
+                trailCanvas.height
+            );
+
+
+            const pos =
+                getPosition(
+                    event.touches[0]
+                );
+
+
+            lastX =
+                pos.x;
+
+            lastY =
+                pos.y;
+
+            singleActive =
+                true;
+
+
+            document.getElementById(
+                "position"
+            ).textContent =
+                Math.round(pos.x) +
+                " , " +
+                Math.round(pos.y);
+
+        }else{
+
+            /*
+             * ≥2 指：
+             * 禁止记录轨迹
+             */
+
+            singleActive =
+                false;
+
+        }
+
+
+        drawPoints(
+            event.touches
+        );
+
+    },
+    {
+        passive:false
+    }
+);
+
+
+// ============================
+// 移动
+// ============================
+
+area.addEventListener(
+    "touchmove",
+    function(event){
+
+        event.preventDefault();
+
+
+        const count =
+            event.touches.length;
+
+
+        document.getElementById(
+            "points"
+        ).textContent =
+            count;
+
+
+        /*
+         * ≥2 指：
+         * 只显示多点，不记录轨迹
+         */
+
+        if(count >= 2){
+
+            singleActive =
+                false;
+
+
+            drawPoints(
+                event.touches
+            );
+
+
+            return;
+
+        }
+
+
+        /*
+         * 单指：
+         * 记录细紫色轨迹
+         */
+
+        if(
+            count === 1 &&
+            singleActive
+        ){
+
+            const pos =
+                getPosition(
+                    event.touches[0]
+                );
+
+
+            trail.beginPath();
+
+            trail.moveTo(
+                lastX,
+                lastY
+            );
+
+            trail.lineTo(
+                pos.x,
+                pos.y
+            );
+
+
+            trail.strokeStyle =
+                "#6543a4";
+
+            trail.lineWidth =
+                2;
+
+            trail.lineCap =
+                "round";
+
+            trail.lineJoin =
+                "round";
+
+            trail.stroke();
+
+
+            lastX =
+                pos.x;
+
+            lastY =
+                pos.y;
+
+
+            document.getElementById(
+                "position"
+            ).textContent =
+                Math.round(pos.x) +
+                " , " +
+                Math.round(pos.y);
+
+        }
+
+
+        drawPoints(
+            event.touches
+        );
+
+    },
+    {
+        passive:false
+    }
+);
+
+
+// ============================
+// 抬手
+// ============================
+
+area.addEventListener(
+    "touchend",
+    function(event){
+
+        event.preventDefault();
+
+
+        const count =
+            event.touches.length;
+
+
+        document.getElementById(
+            "points"
+        ).textContent =
+            count;
+
+
+        if(count === 0){
+
+            singleActive =
+                false;
+
+
+            clearPoints();
+
+
+            document.getElementById(
+                "position"
+            ).textContent =
+                "--";
+
+        }else{
+
+            drawPoints(
+                event.touches
+            );
+
+        }
+
+    },
+    {
+        passive:false
+    }
+);
+
+
+// ============================
+// 取消
+// ============================
+
+area.addEventListener(
+    "touchcancel",
+    function(event){
+
+        event.preventDefault();
+
+
+        singleActive =
+            false;
+
+
+        clearPoints();
+
+
+        document.getElementById(
+            "points"
+        ).textContent =
+            event.touches.length;
+
+    },
+    {
+        passive:false
+    }
+);
+
+
+// ============================
+// 清除轨迹
+// ============================
+
+function clearCanvas(){
+
+    trail.clearRect(
+        0,
+        0,
+        trailCanvas.width,
+        trailCanvas.height
+    );
+
+
+    clearPoints();
+
+
+    maxPoints =
+        0;
+
+    touchCount =
+        0;
+
+    singleActive =
+        false;
+
+
+    document.getElementById(
+        "points"
+    ).textContent =
+        "0";
+
+
+    document.getElementById(
+        "maxPoints"
+    ).textContent =
+        "0";
+
+
+    document.getElementById(
+        "touchCount"
+    ).textContent =
+        "0";
+
+
+    document.getElementById(
+        "position"
+    ).textContent =
+        "--";
+
+}
+
+</script>
+
+</body>
+
+</html>
