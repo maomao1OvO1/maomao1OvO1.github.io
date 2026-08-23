@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>🧭 手机传感器测试</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:25px 20px;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    color:#222;
+}
+
+h1{
+    margin:20px 0 10px;
+}
+
+.desc{
+    color:#777;
+    margin-bottom:25px;
+}
+
+.card{
+    max-width:460px;
+    margin:15px auto;
+    padding:22px;
+    background:white;
+    border-radius:22px;
+    box-shadow:0 5px 20px #0002;
+}
+
+.sensor{
+    margin:22px 0;
+    padding-bottom:18px;
+    border-bottom:1px solid #ddd;
+}
+
+.sensor:last-child{
+    border-bottom:none;
+    padding-bottom:0;
+}
+
+.sensor h2{
+    margin:5px 0 15px;
+}
+
+.value{
+    font-size:22px;
+    font-weight:bold;
+    margin:8px;
+}
+
+.small{
+    font-size:14px;
+    color:#777;
+}
+
+button{
+    width:90%;
+    max-width:350px;
+    padding:14px 20px;
+    margin:9px;
+    border:none;
+    border-radius:15px;
+    background:white;
+    color:#6543a4;
+    box-shadow:0 4px 12px #0002;
+    font-size:17px;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+
+/* ===== 深色模式 ===== */
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .card{
+    background:#1e1e1e;
+}
+
+body.dark-mode .desc,
+body.dark-mode .small{
+    color:#aaa;
+}
+
+body.dark-mode .sensor{
+    border-color:#444;
+}
+
+body.dark-mode button{
+    background:#333;
+    color:#fff;
+    box-shadow:0 4px 12px #0006;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<h1>🧭 手机传感器测试</h1>
+
+<p class="desc">
+实时读取手机传感器数据
+</p>
+
+
+<div class="card">
+
+
+<!-- ===== 加速度 ===== -->
+
+<div class="sensor">
+
+<h2>📱 加速度计</h2>
+
+<div class="value">
+X：<span id="accX">0</span>
+</div>
+
+<div class="value">
+Y：<span id="accY">0</span>
+</div>
+
+<div class="value">
+Z：<span id="accZ">0</span>
+</div>
+
+<div id="accStatus"
+class="small">
+等待数据……
+</div>
+
+</div>
+
+
+<!-- ===== 陀螺仪 ===== -->
+
+<div class="sensor">
+
+<h2>🔄 陀螺仪</h2>
+
+<div class="value">
+Alpha：<span id="alpha">0</span>°
+</div>
+
+<div class="value">
+Beta：<span id="beta">0</span>°
+</div>
+
+<div class="value">
+Gamma：<span id="gamma">0</span>°
+</div>
+
+<div id="gyroStatus"
+class="small">
+等待数据……
+</div>
+
+</div>
+
+
+<!-- ===== 指南针 ===== -->
+
+<div class="sensor">
+
+<h2>🧭 指南针</h2>
+
+<div class="value">
+<span id="heading">
+--
+</span>°
+</div>
+
+<div id="compassDirection"
+class="small">
+等待方向数据……
+</div>
+
+</div>
+
+
+<!-- ===== 设备方向 ===== -->
+
+<div class="sensor">
+
+<h2>📐 设备方向</h2>
+
+<div class="value"
+id="orientation">
+检测中……
+</div>
+
+</div>
+
+
+<!-- ===== 权限 ===== -->
+
+<div class="sensor">
+
+<h2>🔐 传感器权限</h2>
+
+<div id="permission"
+class="small">
+检测中……
+</div>
+
+</div>
+
+</div>
+
+
+<button onclick="requestSensorPermission()">
+🔓 请求传感器权限
+</button>
+
+<br>
+
+<button onclick="location.href='../index.html'">
+← 返回硬件测试大厅
+</button>
+
+
+<script>
+
+
+// ============================
+// 深色模式
+// ============================
+
+if(
+    localStorage.getItem("theme")
+    === "dark"
+){
+
+    document.body.classList.add(
+        "dark-mode"
+    );
+
+}
+
+
+// ============================
+// 加速度
+// ============================
+
+function handleMotion(event){
+
+    const acc =
+        event.accelerationIncludingGravity;
+
+
+    if(!acc){
+
+        document.getElementById(
+            "accStatus"
+        ).textContent =
+            "❌ 浏览器没有提供加速度数据";
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "accX"
+    ).textContent =
+        format(acc.x);
+
+
+    document.getElementById(
+        "accY"
+    ).textContent =
+        format(acc.y);
+
+
+    document.getElementById(
+        "accZ"
+    ).textContent =
+        format(acc.z);
+
+
+    document.getElementById(
+        "accStatus"
+    ).textContent =
+        "🟢 加速度计正常";
+
+}
+
+
+// ============================
+// 陀螺仪 / 方向
+// ============================
+
+function handleOrientation(event){
+
+    document.getElementById(
+        "alpha"
+    ).textContent =
+        format(event.alpha);
+
+
+    document.getElementById(
+        "beta"
+    ).textContent =
+        format(event.beta);
+
+
+    document.getElementById(
+        "gamma"
+    ).textContent =
+        format(event.gamma);
+
+
+    document.getElementById(
+        "gyroStatus"
+    ).textContent =
+        "🟢 设备方向传感器正常";
+
+
+    // ========================
+    // 指南针
+    // ========================
+
+    let heading = null;
+
+
+    if(
+        typeof event.webkitCompassHeading
+        === "number"
+    ){
+
+        heading =
+            event.webkitCompassHeading;
+
+    }else if(
+        typeof event.alpha
+        === "number"
+    ){
+
+        heading =
+            360 - event.alpha;
+
+    }
+
+
+    if(
+        heading !== null
+    ){
+
+        heading =
+            (heading + 360) % 360;
+
+
+        document.getElementById(
+            "heading"
+        ).textContent =
+            heading.toFixed(1);
+
+
+        document.getElementById(
+            "compassDirection"
+        ).textContent =
+            getDirection(heading);
+
+    }
+
+}
+
+
+// ============================
+// 格式化
+// ============================
+
+function format(value){
+
+    if(
+        value === null ||
+        value === undefined ||
+        Number.isNaN(value)
+    ){
+
+        return "--";
+
+    }
+
+    return Number(value).toFixed(3);
+
+}
+
+
+// ============================
+// 指南针方向
+// ============================
+
+function getDirection(degree){
+
+    if(
+        degree >= 337.5 ||
+        degree < 22.5
+    ){
+
+        return "⬆️ 北";
+
+    }
+
+    if(
+        degree < 67.5
+    ){
+
+        return "↗️ 东北";
+
+    }
+
+    if(
+        degree < 112.5
+    ){
+
+        return "➡️ 东";
+
+    }
+
+    if(
+        degree < 157.5
+    ){
+
+        return "↘️ 东南";
+
+    }
+
+    if(
+        degree < 202.5
+    ){
+
+        return "⬇️ 南";
+
+    }
+
+    if(
+        degree < 247.5
+    ){
+
+        return "↙️ 西南";
+
+    }
+
+    if(
+        degree < 292.5
+    ){
+
+        return "⬅️ 西";
+
+    }
+
+    return "↖️ 西北";
+
+}
+
+
+// ============================
+// 屏幕方向
+// ============================
+
+function updateOrientation(){
+
+    const angle =
+        screen.orientation
+        ? screen.orientation.angle
+        : window.orientation || 0;
+
+
+    let text;
+
+
+    if(
+        angle === 0
+    ){
+
+        text =
+            "📱 竖屏";
+
+    }else if(
+        angle === 90
+    ){
+
+        text =
+            "🖥️ 横屏（向右）";
+
+    }else if(
+        angle === -90 ||
+        angle === 270
+    ){
+
+        text =
+            "🖥️ 横屏（向左）";
+
+    }else if(
+        angle === 180
+    ){
+
+        text =
+            "🔄 倒置";
+
+    }else{
+
+        text =
+            "❓ " + angle + "°";
+
+    }
+
+
+    document.getElementById(
+        "orientation"
+    ).textContent =
+        text;
+
+}
+
+
+// ============================
+// 权限
+// ============================
+
+async function requestSensorPermission(){
+
+    try{
+
+        if(
+            typeof DeviceMotionEvent
+                .requestPermission
+            === "function"
+        ){
+
+            const motion =
+                await DeviceMotionEvent
+                    .requestPermission();
+
+
+            if(
+                motion !== "granted"
+            ){
+
+                throw new Error(
+                    "motion permission denied"
+                );
+
+            }
+
+        }
+
+
+        if(
+            typeof DeviceOrientationEvent
+                .requestPermission
+            === "function"
+        ){
+
+            const orientation =
+                await DeviceOrientationEvent
+                    .requestPermission();
+
+
+            if(
+                orientation !== "granted"
+            ){
+
+                throw new Error(
+                    "orientation permission denied"
+                );
+
+            }
+
+        }
+
+
+        startSensors();
+
+
+    }catch(error){
+
+        document.getElementById(
+            "permission"
+        ).textContent =
+            "❌ 权限被拒绝或浏览器不支持";
+
+    }
+
+}
+
+
+// ============================
+// 启动传感器
+// ============================
+
+function startSensors(){
+
+    window.addEventListener(
+        "devicemotion",
+        handleMotion
+    );
+
+
+    window.addEventListener(
+        "deviceorientation",
+        handleOrientation
+    );
+
+
+    document.getElementById(
+        "permission"
+    ).textContent =
+        "🟢 传感器权限已开启";
+
+
+    document.getElementById(
+        "accStatus"
+    ).textContent =
+        "正在等待加速度数据……";
+
+
+    document.getElementById(
+        "gyroStatus"
+    ).textContent =
+        "正在等待方向数据……";
+
+}
+
+
+// ============================
+// 初始化
+// ============================
+
+updateOrientation();
+
+
+if(
+    "DeviceMotionEvent"
+    in window
+){
+
+    startSensors();
+
+}else{
+
+    document.getElementById(
+        "permission"
+    ).textContent =
+        "❌ 浏览器不支持 DeviceMotion";
+
+}
+
+
+window.addEventListener(
+    "resize",
+    updateOrientation
+);
+
+
+if(screen.orientation){
+
+    screen.orientation.addEventListener(
+        "change",
+        updateOrientation
+    );
+
+}
+
+</script>
+
+</body>
+
+</html>
