@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>📳 硬件测试</title>
+
+<style>
+body {
+    text-align: center;
+    font-family: Arial, sans-serif;
+    padding: 30px;
+}
+
+input {
+    width: 120px;
+    padding: 12px;
+    font-size: 18px;
+    text-align: center;
+}
+
+button {
+    padding: 12px 20px;
+    margin: 10px;
+    font-size: 16px;
+    border: none;
+    border-radius: 12px;
+}
+</style>
+    <link rel="stylesheet" href="../hardware.css">
+</head>
+
+<body>
+
+<h1>📳 手机震动测试</h1>
+
+<p>输入震动时间（秒）</p>
+
+<input id="time" type="number" min="0.1" step="0.1" value="1">
+
+<br>
+
+<button onclick="vibrate()">开始震动</button>
+
+<button onclick="stopVibrate()">停止震动</button>
+
+<br>
+
+<button onclick="location.href='../index.html'">
+← 返回大厅
+</button>
+
+<script>
+
+function vibrate() {
+
+    const seconds = Number(document.getElementById("time").value);
+
+    if (seconds <= 0) {
+        alert("请输入大于 0 的数字");
+        return;
+    }
+
+    const milliseconds = seconds * 1000;
+
+    if ("vibrate" in navigator) {
+
+        navigator.vibrate(milliseconds);
+
+    } else {
+
+        alert("你的浏览器不支持网页震动");
+
+    }
+}
+
+
+// 停止震动
+function stopVibrate() {
+
+    navigator.vibrate(0);
+
+}
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+<button
+    class="hardware-back"
+    onclick="location.href='../index.html'">
+    ← 返回硬件测试大厅
+</button>
+
+
+<script>
+
+function applyMainTheme(){
+
+    /*
+     * 读取主站保存的主题
+     *
+     * 这里同时兼容常见的 darkMode
+     * 和 theme 两种保存方式
+     */
+
+    const dark =
+        localStorage.getItem("darkMode") === "1" ||
+        localStorage.getItem("theme") === "dark";
+
+    document.body.classList.toggle(
+        "dark-mode",
+        dark
+    );
+
+}
+
+applyMainTheme();
+
+</script>
+
+</body>
+</html>

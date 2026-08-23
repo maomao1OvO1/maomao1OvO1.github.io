@@ -1546,3 +1546,189 @@ body.dark-mode .particle:nth-child(3n + 2) {
 
 
 
+
+
+/* ===== 硬件测试大厅入口 ===== */
+
+.hardware-test-box{
+    margin:25px auto;
+    padding:20px;
+    max-width:500px;
+    border-radius:22px;
+    background:#f5f5f5;
+    box-shadow:0 5px 20px #0002;
+}
+
+.hardware-test-button{
+    padding:14px 24px;
+    border:none;
+    border-radius:15px;
+    font-size:17px;
+    cursor:pointer;
+    background:#ffffff;
+    color:#333;
+    box-shadow:0 4px 12px #0002;
+    transition:0.2s;
+}
+
+.hardware-test-button:hover{
+    transform:translateY(-2px);
+}
+
+.hardware-test-button:active{
+    transform:scale(0.96);
+}
+
+
+/* ===== 深色模式 ===== */
+
+body.dark .hardware-test-box{
+    background:#252525;
+}
+
+body.dark .hardware-test-button{
+    background:#333;
+    color:#fff;
+    box-shadow:0 4px 15px #0006;
+}
+
+
+
+/* ===== 硬件测试大厅入口 ===== */
+
+.hardware-test-box{
+    margin:25px auto;
+    padding:20px;
+    max-width:500px;
+    border-radius:22px;
+    background:#f5f5f5;
+    box-shadow:0 5px 20px #0002;
+}
+
+.hardware-test-button{
+    padding:14px 24px;
+    border:none;
+    border-radius:15px;
+    font-size:17px;
+    cursor:pointer;
+    background:#ffffff;
+    color:#333;
+    box-shadow:0 4px 12px #0002;
+    transition:0.2s;
+}
+
+.hardware-test-button:hover{
+    transform:translateY(-2px);
+}
+
+.hardware-test-button:active{
+    transform:scale(0.96);
+}
+
+
+/* ===== 深色模式 ===== */
+
+body.dark .hardware-test-box{
+    background:#252525;
+}
+
+body.dark .hardware-test-button{
+    background:#333;
+    color:#fff;
+    box-shadow:0 4px 15px #0006;
+}
+
+
+/* ===== 硬件测试入口居中 ===== */
+
+.hardware-test-box{
+    text-align:center;
+}
+
+
+
+/* ===== 硬件测试页面 ===== */
+
+#hardware-theme-toggle{
+    position:fixed;
+    top:20px;
+    left:20px;
+    z-index:9999;
+    width:45px;
+    height:45px;
+    padding:0;
+    border:none;
+    border-radius:50%;
+    font-size:20px;
+    background:#fff;
+    color:#333;
+    box-shadow:0 4px 15px #0002;
+}
+
+
+/* ===== 硬件测试返回按钮 ===== */
+
+.hardware-back{
+    margin:25px auto;
+    padding:12px 22px;
+    border:none;
+    border-radius:15px;
+    font-size:16px;
+    cursor:pointer;
+    background:#fff;
+    color:#333;
+    box-shadow:0 4px 15px #0002;
+}
+
+
+/* ===== 硬件测试深色模式 ===== */
+
+body.hardware-dark{
+    background:#121212 !important;
+    color:#eee !important;
+}
+
+body.hardware-dark .controller,
+body.hardware-dark .card{
+    background:#1e1e1e !important;
+    color:#eee;
+}
+
+body.hardware-dark .key{
+    background:#333;
+    color:#eee;
+}
+
+body.hardware-dark .stick{
+    background:#333;
+}
+
+body.hardware-dark .stick-dot{
+    background:#aaa;
+}
+
+body.hardware-dark .trigger{
+    background:#333;
+}
+
+body.hardware-dark button{
+    background:#292929;
+    color:#eee;
+}
+
+body.hardware-dark #hardware-theme-toggle{
+    background:#292929;
+    color:#fff;
+}
+
+body.hardware-dark .hardware-back{
+    background:#292929;
+    color:#fff;
+}
+
+body.hardware-dark input{
+    background:#292929;
+    color:#fff;
+    border:1px solid #555;
+}
+

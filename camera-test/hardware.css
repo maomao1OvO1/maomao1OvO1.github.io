@@ -1,0 +1,215 @@
+
+/* ===== 硬件测试通用 ===== */
+
+#hardware-theme-toggle{
+    position:fixed;
+    top:20px;
+    left:20px;
+    z-index:9999;
+    width:45px;
+    height:45px;
+    padding:0;
+    border:none;
+    border-radius:50%;
+    font-size:20px;
+    background:#fff;
+    color:#333;
+    box-shadow:0 4px 15px #0002;
+}
+
+.hardware-back{
+    display:block;
+    margin:25px auto;
+    padding:12px 22px;
+    border:none;
+    border-radius:15px;
+    font-size:16px;
+    cursor:pointer;
+    background:#fff;
+    color:#333;
+    box-shadow:0 4px 15px #0002;
+}
+
+
+/* ===== 深色模式 ===== */
+
+body.hardware-dark{
+    background:#121212 !important;
+    color:#eee !important;
+}
+
+body.hardware-dark .controller,
+body.hardware-dark .card{
+    background:#1e1e1e !important;
+    color:#eee !important;
+}
+
+body.hardware-dark .key{
+    background:#333 !important;
+    color:#eee !important;
+}
+
+body.hardware-dark .stick{
+    background:#333 !important;
+}
+
+body.hardware-dark .stick-dot{
+    background:#aaa !important;
+}
+
+body.hardware-dark .trigger{
+    background:#333 !important;
+}
+
+body.hardware-dark button{
+    background:#292929 !important;
+    color:#eee !important;
+}
+
+body.hardware-dark input{
+    background:#292929 !important;
+    color:#fff !important;
+    border:1px solid #555;
+}
+
+body.hardware-dark #hardware-theme-toggle{
+    background:#292929 !important;
+    color:#fff !important;
+}
+
+body.hardware-dark .hardware-back{
+    background:#292929 !important;
+    color:#fff !important;
+}
+
+
+
+/* ===== 返回按钮：右上角 ===== */
+
+.hardware-back{
+    position:fixed;
+    top:20px;
+    right:20px;
+    z-index:9999;
+
+    margin:0;
+
+    padding:10px 16px;
+
+    border:none;
+    border-radius:14px;
+
+    font-size:15px;
+
+    background:#fff;
+    color:#333;
+
+    box-shadow:0 4px 15px #0002;
+
+    cursor:pointer;
+}
+
+body.hardware-dark .hardware-back{
+    background:#292929 !important;
+    color:#fff !important;
+}
+
+
+/* ===== 返回按钮 ===== */
+
+.hardware-back{
+    position:fixed;
+    top:20px;
+    right:20px;
+    z-index:9999;
+
+    margin:0;
+    padding:10px 16px;
+
+    border:none;
+    border-radius:14px;
+
+    font-size:15px;
+    cursor:pointer;
+
+    background:#e5dcff;
+    color:#6543a5;
+
+    box-shadow:0 4px 15px #0002;
+
+    transition:0.2s;
+}
+
+.hardware-back:active{
+    transform:scale(0.95);
+}
+
+
+/* ===== 跟随主站深色模式 ===== */
+
+body.dark-mode{
+    background:#121212 !important;
+    color:#eee !important;
+}
+
+body.dark-mode .controller,
+body.dark-mode .card{
+    background:#1e1e1e !important;
+    color:#eee !important;
+}
+
+body.dark-mode .key{
+    background:#333 !important;
+    color:#eee !important;
+}
+
+body.dark-mode .stick{
+    background:#333 !important;
+}
+
+body.dark-mode .stick-dot{
+    background:#aaa !important;
+}
+
+body.dark-mode .trigger{
+    background:#333 !important;
+}
+
+body.dark-mode button{
+    background:#292929 !important;
+    color:#eee !important;
+}
+
+body.dark-mode input{
+    background:#292929 !important;
+    color:#fff !important;
+    border:1px solid #555;
+}
+
+body.dark-mode .hardware-back{
+    background:#6543a5 !important;
+    color:#fff !important;
+}
+
+
+/* ===== 返回按钮：主站紫色 ===== */
+
+.hardware-back{
+    background:rgb(228,219,254) !important;
+    color:rgb(101,67,164) !important;
+}
+
+body.dark-mode .hardware-back{
+    background:rgb(101,67,164) !important;
+    color:#fff !important;
+}
+
+
+/* ===== 返回按钮：所有主题保持同样紫色 ===== */
+
+.hardware-back,
+body.dark-mode .hardware-back{
+    background:rgb(228,219,254) !important;
+    color:rgb(101,67,164) !important;
+}
+

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>📱 硬件测试大厅</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:30px 20px;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+}
+
+h1{
+    margin:20px 0 30px;
+}
+
+.test-list{
+    width:100%;
+    max-width:400px;
+    margin:auto;
+}
+
+.test-list button{
+    display:block;
+    width:100%;
+    padding:16px 20px;
+    margin:14px 0;
+    border:none;
+    border-radius:18px;
+    background:white;
+    box-shadow:0 4px 15px #0002;
+    font-size:18px;
+    cursor:pointer;
+}
+
+.test-list button:active{
+    transform:scale(0.97);
+}
+
+</style>
+
+    <link rel="stylesheet" href="hardware.css">
+</head>
+
+<body>
+
+<h1>📱 硬件测试大厅</h1>
+
+<div class="test-list">
+
+    <button onclick="location.href='tests/camera.html'">
+        📷 摄像头
+    </button>
+
+    <button onclick="location.href='tests/vibration.html'">
+        📳 震动
+    </button>
+
+    <button onclick="location.href='tests/microphone.html'">
+        🎤 麦克风
+    </button>
+
+    <button onclick="location.href='tests/gamepad.html'">
+        🎮 手柄
+    </button>
+
+    <button onclick="location.href='tests/sensors.html'">
+        🧭 手机传感器
+    </button>
+
+    <button onclick="location.href='tests/audio.html'">
+        🔊 音频分析
+    </button>
+
+    <button onclick="location.href='tests/screen.html'">
+        🖥️ 屏幕 / 全屏
+    </button>
+
+    <button onclick="location.href='tests/network.html'">
+        🌐 网络测试
+    </button>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+<button
+    class="hardware-back"
+    onclick="location.href='../index.html'">
+    🏠 返回主页
+</button>
+
+
+<script>
+
+function applyMainTheme(){
+
+    /*
+     * 读取主站保存的主题
+     *
+     * 这里同时兼容常见的 darkMode
+     * 和 theme 两种保存方式
+     */
+
+    const dark =
+        localStorage.getItem("darkMode") === "1" ||
+        localStorage.getItem("theme") === "dark";
+
+    document.body.classList.toggle(
+        "dark-mode",
+        dark
+    );
+
+}
+
+applyMainTheme();
+
+</script>
+
+</body>
+
+</html>
