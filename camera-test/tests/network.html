@@ -76,6 +76,14 @@ button:active{
 
 </style>
 
+
+
+
+
+
+
+<link rel="stylesheet" href="../hardware.css">
+
 </head>
 
 <body>
@@ -157,8 +165,8 @@ button:active{
 
 <br>
 
-<button onclick="location.href='../index.html'">
-← 返回大厅
+<button onclick="location.href='../index.html'" class="hardware-back">
+← 返回硬件大厅
 </button>
 
 
@@ -491,6 +499,22 @@ async function runTest(){
 
 
 updateNetworkInfo();
+
+
+// ============================
+// 主站深色模式
+// ============================
+
+if(
+    localStorage.getItem("theme")
+    === "dark"
+){
+
+    document.body.classList.add(
+        "dark-mode"
+    );
+
+}
 
 </script>
 

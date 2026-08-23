@@ -1,149 +1,224 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
 
 <title>摄像头测试</title>
 
+
 <style>
-body {
-    text-align: center;
-    font-family: Arial;
+
+body{
+    text-align:center;
+    font-family:Arial;
 }
 
-video {
-    width: 90%;
-    max-width: 500px;
-    margin-top: 20px;
-    border-radius: 15px;
-    display: none;
+video{
+    width:90%;
+    max-width:500px;
+    margin-top:20px;
+    border-radius:15px;
+    display:none;
 }
 
-button {
-    padding: 12px 20px;
-    margin: 8px;
-    font-size: 16px;
+button{
+    padding:12px 20px;
+    margin:8px;
+    font-size:16px;
+    border:none;
+    border-radius:15px;
+    background:white;
+    color:#6543a4;
+    box-shadow:0 4px 12px #0002;
+    cursor:pointer;
 }
+
+button:active{
+    transform:scale(.97);
+}
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode button:not(.hardware-back){
+    background:#333;
+    color:#fff;
+    box-shadow:0 4px 12px #0006;
+}
+
 </style>
-    <link rel="stylesheet" href="../hardware.css">
+
+
+<link rel="stylesheet" href="../hardware.css">
+
 </head>
+
 
 <body>
 
 <h1>📷 摄像头测试</h1>
 
-<button onclick="openCamera()">打开摄像头</button>
-<button onclick="switchCamera()">切换摄像头</button>
-<button onclick="closeCamera()">关闭摄像头</button>
-<button onclick="location.href='../index.html'">
-← 返回大厅
+
+<button onclick="openCamera()">
+打开摄像头
 </button>
+
+<button onclick="switchCamera()">
+切换摄像头
+</button>
+
+<button onclick="closeCamera()">
+关闭摄像头
+</button>
+
 
 <br>
 
-<video id="camera" autoplay playsinline></video>
+
+<video
+    id="camera"
+    autoplay
+    playsinline>
+</video>
+
 
 <script>
 
 let stream = null;
+
 let facingMode = "user";
 
+
+// ============================
 // 打开摄像头
-async function openCamera() {
+// ============================
+
+async function openCamera(){
 
     closeCamera();
 
-    try {
+    try{
 
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: facingMode
-            }
-        });
+        stream =
+            await navigator.mediaDevices.getUserMedia({
 
-        const video = document.getElementById("camera");
+                video:{
+                    facingMode:facingMode
+                }
 
-        video.srcObject = stream;
-        video.style.display = "block";
+            });
 
-    } catch (error) {
 
-        alert("无法打开摄像头：" + error);
+        const video =
+            document.getElementById("camera");
+
+
+        video.srcObject =
+            stream;
+
+
+        video.style.display =
+            "block";
+
+
+    }catch(error){
+
+        alert(
+            "无法打开摄像头：" +
+            error
+        );
 
     }
+
 }
 
 
-// 切换前后摄像头
-async function switchCamera() {
+// ============================
+// 切换摄像头
+// ============================
 
-    if (!stream) {
+async function switchCamera(){
+
+    if(!stream){
+
         alert("请先打开摄像头");
+
         return;
+
     }
 
-    if (facingMode === "user") {
-        facingMode = "environment";
-    } else {
-        facingMode = "user";
+
+    if(facingMode === "user"){
+
+        facingMode =
+            "environment";
+
+    }else{
+
+        facingMode =
+            "user";
+
     }
+
 
     await openCamera();
+
 }
 
 
+// ============================
 // 关闭摄像头
-function closeCamera() {
+// ============================
 
-    if (stream) {
+function closeCamera(){
 
-        stream.getTracks().forEach(track => {
-            track.stop();
-        });
+    if(stream){
+
+        stream
+            .getTracks()
+            .forEach(track => {
+
+                track.stop();
+
+            });
+
 
         stream = null;
+
     }
 
-    const video = document.getElementById("camera");
 
-    video.srcObject = null;
-    video.style.display = "none";
+    const video =
+        document.getElementById("camera");
+
+
+    video.srcObject =
+        null;
+
+
+    video.style.display =
+        "none";
+
 }
 
-</script>
 
-
-
-
-
-
-
-
-
-
-
-<button
-    class="hardware-back"
-    onclick="location.href='../index.html'">
-    ← 返回硬件测试大厅
-</button>
-
-
-<script>
+// ============================
+// 跟随主站深色模式
+// ============================
 
 function applyMainTheme(){
 
-    /*
-     * 读取主站保存的主题
-     *
-     * 这里同时兼容常见的 darkMode
-     * 和 theme 两种保存方式
-     */
-
     const dark =
-        localStorage.getItem("darkMode") === "1" ||
-        localStorage.getItem("theme") === "dark";
+        localStorage.getItem("theme")
+        === "dark";
+
 
     document.body.classList.toggle(
         "dark-mode",
@@ -152,9 +227,21 @@ function applyMainTheme(){
 
 }
 
+
 applyMainTheme();
 
 </script>
 
+
+<button
+    class="hardware-back"
+    onclick="location.href='../index.html'">
+
+    ← 返回硬件大厅
+
+</button>
+
+
 </body>
+
 </html>

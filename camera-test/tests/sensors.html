@@ -87,33 +87,26 @@ button:active{
 }
 
 
-/* ===== 深色模式 ===== */
 
-body.dark-mode{
-    background:#121212;
-    color:#eee;
-}
 
-body.dark-mode .card{
-    background:#1e1e1e;
-}
-
-body.dark-mode .desc,
-body.dark-mode .small{
-    color:#aaa;
-}
-
-body.dark-mode .sensor{
-    border-color:#444;
-}
-
-body.dark-mode button{
-    background:#333;
-    color:#fff;
-    box-shadow:0 4px 12px #0006;
-}
 
 </style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="../hardware.css">
 
 </head>
 
@@ -238,29 +231,32 @@ class="small">
 
 <br>
 
-<button onclick="location.href='../index.html'">
-← 返回硬件测试大厅
-</button>
+
+
+
+
+
+
+
+
+
 
 
 <script>
 
 
+
+
+
+
+
 // ============================
-// 深色模式
+// 主站深色模式
 // ============================
 
-if(
-    localStorage.getItem("theme")
-    === "dark"
-){
-
-    document.body.classList.add(
-        "dark-mode"
-    );
-
+if(localStorage.getItem("theme") === "dark"){
+    document.body.classList.add("dark-mode");
 }
-
 
 // ============================
 // 加速度
@@ -688,6 +684,19 @@ if(screen.orientation){
 }
 
 </script>
+
+
+
+
+
+
+
+
+<button
+class="hardware-back"
+onclick="location.href='../index.html'">
+← 返回硬件大厅
+</button>
 
 </body>
 
