@@ -114,10 +114,27 @@ button{
     color:#6543a4;
     box-shadow:0 4px 12px #0002;
     font-size:17px;
+    cursor:pointer;
 }
 
 button:active{
     transform:scale(.97);
+}
+
+.hardware-back{
+    position:fixed;
+    top:20px;
+    right:20px;
+    width:auto;
+    max-width:none;
+    margin:0;
+    padding:10px 15px;
+    border-radius:20px;
+    background:#e5dcff;
+    color:#6543a4;
+    box-shadow:none;
+    font-size:16px;
+    z-index:9999;
 }
 
 body.dark-mode{
@@ -144,12 +161,19 @@ body.dark-mode .item{
     background:#292929;
 }
 
-body.dark-mode button{
+body.dark-mode button:not(.hardware-back){
     background:#333;
     color:#fff;
+    box-shadow:0 4px 12px #0006;
 }
 
 </style>
+
+
+
+
+
+
 
 </head>
 
@@ -250,10 +274,6 @@ body.dark-mode button{
 </button>
 
 <br>
-
-<button onclick="location.href='../index.html'">
-← 返回硬件测试大厅
-</button>
 
 
 <script>
@@ -894,6 +914,15 @@ function clearCanvas(){
 }
 
 </script>
+
+
+<button
+    class="hardware-back"
+    onclick="location.href='../index.html'">
+
+    ← 返回硬件大厅
+
+</button>
 
 </body>
 

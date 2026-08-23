@@ -171,6 +171,14 @@ body.dark-mode button{
 
 </style>
 
+
+
+
+
+
+
+<link rel="stylesheet" href="../hardware.css">
+
 </head>
 
 
@@ -337,8 +345,8 @@ class="status">
 
 <br>
 
-<button onclick="location.href='../index.html'">
-← 返回硬件测试大厅
+<button onclick="location.href='../index.html'" class="hardware-back">
+← 返回硬件大厅
 </button>
 
 
@@ -349,15 +357,12 @@ class="status">
 // 深色模式
 // ============================
 
-if(
-    localStorage.getItem("theme")
-    === "dark"
-){
+const dark =
+    localStorage.getItem("darkMode") === "1" ||
+    localStorage.getItem("theme") === "dark";
 
-    document.body.classList.add(
-        "dark-mode"
-    );
-
+if(dark){
+    document.body.classList.add("dark-mode");
 }
 
 
@@ -374,27 +379,25 @@ let battery = null;
 
 function formatTime(seconds){
 
+    // 浏览器没有提供有效的预计时间
     if(
         !isFinite(seconds) ||
-        seconds <= 0
+        seconds <= 60
     ){
 
-        return "不可用";
+        return "系统未提供";
 
     }
-
 
     const hours =
         Math.floor(
             seconds / 3600
         );
 
-
     const minutes =
         Math.floor(
             (seconds % 3600) / 60
         );
-
 
     if(hours > 0){
 
@@ -406,7 +409,6 @@ function formatTime(seconds){
         );
 
     }
-
 
     return minutes + " 分钟";
 

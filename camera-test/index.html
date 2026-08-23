@@ -22,6 +22,7 @@ body{
     text-align:center;
     font-family:Arial,sans-serif;
     background:#f5f5f5;
+    color:#222;
 }
 
 h1{
@@ -42,18 +43,91 @@ h1{
     border:none;
     border-radius:18px;
     background:white;
+    color:#222;
     box-shadow:0 4px 15px #0002;
     font-size:18px;
     cursor:pointer;
+    transition:0.2s;
 }
 
 .test-list button:active{
     transform:scale(0.97);
 }
 
+
+/* ===== 深色模式 ===== */
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .test-list button{
+    background:#292929;
+    color:#eee;
+    box-shadow:0 4px 15px #0006;
+}
+
+
+/* ===== 返回主页 ===== */
+
+.hardware-back{
+    position:fixed;
+
+    top:20px;
+    right:20px;
+
+    left:auto;
+    bottom:auto;
+
+    z-index:99999;
+
+    width:auto;
+
+    margin:0;
+    padding:10px 16px;
+
+    border:none;
+    border-radius:14px;
+
+    font-size:15px;
+
+    background:rgb(228,219,254);
+    color:rgb(124,92,191);
+
+    box-shadow:0 4px 15px #0002;
+
+    cursor:pointer;
+
+    transition:0.2s;
+}
+
+.hardware-back:active{
+    transform:scale(0.95);
+}
+
+
+/* ===== 深色模式返回主页 ===== */
+
+
+
 </style>
 
-    <link rel="stylesheet" href="hardware.css">
+<link rel="stylesheet" href="hardware.css">
+
+
+
+
+<style id="index-back-final">
+
+/* ===== 返回主页按钮 ===== */
+
+body.dark-mode .hardware-back{
+    background:rgb(228,219,254) !important;
+    color:rgb(124,92,191) !important;
+}
+
+</style>
 </head>
 
 <body>
@@ -120,16 +194,6 @@ h1{
 
 </div>
 
-
-
-
-
-
-
-
-
-
-
 <button
     class="hardware-back"
     onclick="location.href='../index.html'">
@@ -141,15 +205,7 @@ h1{
 
 function applyMainTheme(){
 
-    /*
-     * 读取主站保存的主题
-     *
-     * 这里同时兼容常见的 darkMode
-     * 和 theme 两种保存方式
-     */
-
     const dark =
-        localStorage.getItem("darkMode") === "1" ||
         localStorage.getItem("theme") === "dark";
 
     document.body.classList.toggle(
