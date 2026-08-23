@@ -169,6 +169,30 @@ button:active{
     transform:scale(.97);
 }
 
+.hardware-back{
+    position:fixed;
+    top:20px;
+    right:20px;
+    width:auto;
+    max-width:none;
+    padding:10px 15px;
+    margin:0;
+    border-radius:20px;
+    background:#e5dcff;
+    color:#6543a4;
+    box-shadow:none;
+    font-size:16px;
+    z-index:9999;
+}
+
+body.dark-mode .hardware-back{
+    background:#e5dcff;
+    color:#6543a4;
+    box-shadow:none;
+}
+
+
+
 body.dark-mode{
     background:#121212;
     color:#eee;
@@ -194,9 +218,10 @@ body.dark-mode .log{
     background:#333;
 }
 
-body.dark-mode button{
+body.dark-mode button:not(.hardware-back){
     background:#333;
     color:#fff;
+    box-shadow:0 4px 12px #0006;
 }
 
 </style>
@@ -211,6 +236,14 @@ body.dark-mode button{
 
 
 <body>
+
+<button
+    class="hardware-back"
+    onclick="location.href='../index.html'">
+
+    ← 返回硬件大厅
+
+</button>
 
 <h1>⌨️ 输入设备测试</h1>
 
@@ -460,11 +493,7 @@ class="value">
 🧹 清除统计与记录
 </button>
 
-<br>
 
-<button onclick="location.href='../index.html'" class="hardware-back">
-← 返回硬件大厅
-</button>
 
 
 <script>
