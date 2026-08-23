@@ -865,3 +865,49 @@ if (easterEgg && easterAvatar) {
     });
 
 }
+
+
+/* ===== 柔光星尘 ===== */
+
+const particleBox = document.createElement("div");
+
+particleBox.id = "floating-particles";
+
+const particleCount = 12;
+
+for (let i = 0; i < particleCount; i++) {
+
+    const particle = document.createElement("div");
+
+    particle.className = "particle";
+
+    particle.style.left =
+        Math.random() * 100 + "%";
+
+    particle.style.top =
+        Math.random() * 100 + "%";
+
+    const size =
+        3 + Math.random() * 5;
+
+    particle.style.width =
+        size + "px";
+
+    particle.style.height =
+        size + "px";
+
+    particle.style.animationDuration =
+        (8 + Math.random() * 8) + "s";
+
+    particle.style.animationDelay =
+        (Math.random() * 8) + "s";
+
+    particleBox.appendChild(particle);
+}
+
+document.body.appendChild(particleBox);
+
+
+
+
+
