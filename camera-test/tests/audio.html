@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>🔊 音频分析</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:25px 20px;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    color:#222;
+}
+
+h1{
+    margin:20px 0 10px;
+}
+
+.desc{
+    color:#777;
+    margin-bottom:25px;
+}
+
+.card{
+    max-width:500px;
+    margin:15px auto;
+    padding:22px;
+    background:white;
+    border-radius:22px;
+    box-shadow:0 5px 20px #0002;
+}
+
+.value{
+    font-size:28px;
+    font-weight:bold;
+    margin:10px;
+}
+
+.label{
+    color:#777;
+    font-size:14px;
+    margin-bottom:8px;
+}
+
+button{
+    width:90%;
+    max-width:350px;
+    padding:14px 20px;
+    margin:9px;
+    border:none;
+    border-radius:15px;
+    background:white;
+    color:#6543a4;
+    box-shadow:0 4px 12px #0002;
+    font-size:17px;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+canvas{
+    width:100%;
+    height:160px;
+    border-radius:15px;
+    background:#111;
+    display:block;
+}
+
+.bar{
+    width:100%;
+    height:22px;
+    background:#ddd;
+    border-radius:20px;
+    overflow:hidden;
+    margin:15px 0;
+}
+
+.bar-fill{
+    width:0%;
+    height:100%;
+    border-radius:20px;
+    background:#6543a4;
+    transition:width .05s linear;
+}
+
+.freq{
+    display:flex;
+    justify-content:space-around;
+    gap:8px;
+}
+
+.freq div{
+    flex:1;
+    padding:14px 5px;
+    border-radius:15px;
+    background:#eee;
+}
+
+.freq-value{
+    font-size:20px;
+    font-weight:bold;
+    margin-top:6px;
+}
+
+#status{
+    color:#777;
+    min-height:22px;
+}
+
+
+/* ===== 深色模式 ===== */
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .card{
+    background:#1e1e1e;
+}
+
+body.dark-mode .label,
+body.dark-mode .desc,
+body.dark-mode #status{
+    color:#aaa;
+}
+
+body.dark-mode button{
+    background:#333;
+    color:#fff;
+    box-shadow:0 4px 12px #0006;
+}
+
+body.dark-mode .bar{
+    background:#444;
+}
+
+body.dark-mode .freq div{
+    background:#292929;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<h1>🔊 音频分析</h1>
+
+<p class="desc">
+实时分析麦克风声音
+</p>
+
+
+<div class="card">
+
+<h2>🎤 实时音量</h2>
+
+<div class="value"
+id="volume">
+-- dB
+</div>
+
+<div class="bar">
+
+<div class="bar-fill"
+id="volumeBar">
+</div>
+
+</div>
+
+<div id="status">
+点击下面开始分析
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>📈 实时波形</h2>
+
+<canvas
+id="waveCanvas"
+width="600"
+height="200">
+</canvas>
+
+</div>
+
+
+<div class="card">
+
+<h2>🎵 频谱分析</h2>
+
+<canvas
+id="spectrumCanvas"
+width="600"
+height="200">
+</canvas>
+
+</div>
+
+
+<div class="card">
+
+<h2>🎚️ 频段能量</h2>
+
+<div class="freq">
+
+<div>
+
+<div class="label">
+低频
+</div>
+
+<div class="freq-value"
+id="low">
+--
+</div>
+
+</div>
+
+
+<div>
+
+<div class="label">
+中频
+</div>
+
+<div class="freq-value"
+id="mid">
+--
+</div>
+
+</div>
+
+
+<div>
+
+<div class="label">
+高频
+</div>
+
+<div class="freq-value"
+id="high">
+--
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>📊 音量统计</h2>
+
+<div class="label">
+当前峰值
+</div>
+
+<div class="value"
+id="peak">
+-- dB
+</div>
+
+<div class="label">
+平均音量
+</div>
+
+<div class="value"
+id="average">
+-- dB
+</div>
+
+</div>
+
+
+<button onclick="startAudio()">
+🎤 开始音频分析
+</button>
+
+<br>
+
+<button onclick="stopAudio()">
+⏹️ 停止分析
+</button>
+
+<br>
+
+<button onclick="location.href='../index.html'">
+← 返回硬件测试大厅
+</button>
+
+
+<script>
+
+
+// ============================
+// 深色模式
+// ============================
+
+if(
+    localStorage.getItem("theme")
+    === "dark"
+){
+
+    document.body.classList.add(
+        "dark-mode"
+    );
+
+}
+
+
+// ============================
+// 全局变量
+// ============================
+
+let audioContext = null;
+
+let analyser = null;
+
+let microphone = null;
+
+let stream = null;
+
+let animationId = null;
+
+let peakValue = -Infinity;
+
+let totalVolume = 0;
+
+let volumeSamples = 0;
+
+
+// ============================
+// Canvas
+// ============================
+
+const waveCanvas =
+    document.getElementById(
+        "waveCanvas"
+    );
+
+const waveCtx =
+    waveCanvas.getContext("2d");
+
+
+const spectrumCanvas =
+    document.getElementById(
+        "spectrumCanvas"
+    );
+
+const spectrumCtx =
+    spectrumCanvas.getContext("2d");
+
+
+// ============================
+// 开始
+// ============================
+
+async function startAudio(){
+
+    if(
+        audioContext
+    ){
+
+        if(
+            audioContext.state ===
+            "suspended"
+        ){
+
+            await audioContext.resume();
+
+        }
+
+        return;
+
+    }
+
+
+    try{
+
+        stream =
+            await navigator.mediaDevices
+                .getUserMedia({
+
+                    audio:true
+
+                });
+
+
+        audioContext =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
+
+
+        analyser =
+            audioContext.createAnalyser();
+
+
+        analyser.fftSize =
+            2048;
+
+
+        analyser.smoothingTimeConstant =
+            0.75;
+
+
+        microphone =
+            audioContext.createMediaStreamSource(
+                stream
+            );
+
+
+        microphone.connect(
+            analyser
+        );
+
+
+        peakValue =
+            -Infinity;
+
+        totalVolume =
+            0;
+
+        volumeSamples =
+            0;
+
+
+        document.getElementById(
+            "status"
+        ).textContent =
+            "🟢 麦克风已开启，正在分析";
+
+
+        draw();
+
+
+    }catch(error){
+
+        document.getElementById(
+            "status"
+        ).textContent =
+            "❌ 无法获取麦克风权限";
+
+        console.error(error);
+
+    }
+
+}
+
+
+// ============================
+// 停止
+// ============================
+
+function stopAudio(){
+
+    if(stream){
+
+        stream.getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+    }
+
+
+    if(
+        animationId
+    ){
+
+        cancelAnimationFrame(
+            animationId
+        );
+
+    }
+
+
+    stream =
+        null;
+
+    microphone =
+        null;
+
+    analyser =
+        null;
+
+
+    if(audioContext){
+
+        audioContext.close();
+
+    }
+
+
+    audioContext =
+        null;
+
+
+    document.getElementById(
+        "status"
+    ).textContent =
+        "⏹️ 音频分析已停止";
+
+}
+
+
+// ============================
+// 主循环
+// ============================
+
+function draw(){
+
+    if(!analyser) return;
+
+
+    animationId =
+        requestAnimationFrame(
+            draw
+        );
+
+
+    drawWave();
+
+    drawSpectrum();
+
+    updateVolume();
+
+}
+
+
+// ============================
+// 波形
+// ============================
+
+function drawWave(){
+
+    const data =
+        new Uint8Array(
+            analyser.fftSize
+        );
+
+
+    analyser.getByteTimeDomainData(
+        data
+    );
+
+
+    const width =
+        waveCanvas.width;
+
+    const height =
+        waveCanvas.height;
+
+
+    waveCtx.clearRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+
+    waveCtx.beginPath();
+
+
+    for(
+        let i = 0;
+        i < data.length;
+        i++
+    ){
+
+        const x =
+            i /
+            (data.length - 1) *
+            width;
+
+
+        const y =
+            data[i] /
+            255 *
+            height;
+
+
+        if(i === 0){
+
+            waveCtx.moveTo(
+                x,
+                y
+            );
+
+        }else{
+
+            waveCtx.lineTo(
+                x,
+                y
+            );
+
+        }
+
+    }
+
+
+    waveCtx.strokeStyle =
+        "#6543a4";
+
+    waveCtx.lineWidth =
+        2;
+
+    waveCtx.stroke();
+
+}
+
+
+// ============================
+// 频谱
+// ============================
+
+function drawSpectrum(){
+
+    const data =
+        new Uint8Array(
+            analyser.frequencyBinCount
+        );
+
+
+    analyser.getByteFrequencyData(
+        data
+    );
+
+
+    const width =
+        spectrumCanvas.width;
+
+    const height =
+        spectrumCanvas.height;
+
+
+    spectrumCtx.clearRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+
+    const barWidth =
+        width /
+        data.length;
+
+
+    for(
+        let i = 0;
+        i < data.length;
+        i++
+    ){
+
+        const value =
+            data[i] / 255;
+
+
+        const barHeight =
+            value * height;
+
+
+        spectrumCtx.fillStyle =
+            "#6543a4";
+
+
+        spectrumCtx.fillRect(
+
+            i * barWidth,
+
+            height - barHeight,
+
+            Math.max(
+                1,
+                barWidth
+            ),
+
+            barHeight
+
+        );
+
+    }
+
+}
+
+
+// ============================
+// 音量
+// ============================
+
+function updateVolume(){
+
+    const data =
+        new Uint8Array(
+            analyser.fftSize
+        );
+
+
+    analyser.getByteTimeDomainData(
+        data
+    );
+
+
+    let sum = 0;
+
+
+    for(
+        let i = 0;
+        i < data.length;
+        i++
+    ){
+
+        const value =
+            (data[i] - 128) /
+            128;
+
+
+        sum +=
+            value * value;
+
+    }
+
+
+    const rms =
+        Math.sqrt(
+            sum / data.length
+        );
+
+
+    let db;
+
+
+    if(rms > 0){
+
+        db =
+            20 *
+            Math.log10(
+                rms
+            );
+
+    }else{
+
+        db =
+            -100;
+
+    }
+
+
+    db =
+        Math.max(
+            -100,
+            Math.min(
+                0,
+                db
+            )
+        );
+
+
+    totalVolume += db;
+
+    volumeSamples++;
+
+
+    if(
+        db > peakValue
+    ){
+
+        peakValue =
+            db;
+
+    }
+
+
+    document.getElementById(
+        "volume"
+    ).textContent =
+        db.toFixed(1) +
+        " dB";
+
+
+    document.getElementById(
+        "peak"
+    ).textContent =
+        peakValue.toFixed(1) +
+        " dB";
+
+
+    document.getElementById(
+        "average"
+    ).textContent =
+        (
+            totalVolume /
+            volumeSamples
+        ).toFixed(1) +
+        " dB";
+
+
+    const percent =
+        Math.max(
+            0,
+            Math.min(
+                100,
+                (db + 60) /
+                60 *
+                100
+            )
+        );
+
+
+    document.getElementById(
+        "volumeBar"
+    ).style.width =
+        percent + "%";
+
+
+    updateFrequencyBands();
+
+}
+
+
+// ============================
+// 频段
+// ============================
+
+function updateFrequencyBands(){
+
+    const data =
+        new Uint8Array(
+            analyser.frequencyBinCount
+        );
+
+
+    analyser.getByteFrequencyData(
+        data
+    );
+
+
+    const sampleRate =
+        audioContext.sampleRate;
+
+
+    const nyquist =
+        sampleRate / 2;
+
+
+    let low = 0;
+
+    let mid = 0;
+
+    let high = 0;
+
+
+    let lowCount = 0;
+
+    let midCount = 0;
+
+    let highCount = 0;
+
+
+    for(
+        let i = 0;
+        i < data.length;
+        i++
+    ){
+
+        const freq =
+            i /
+            data.length *
+            nyquist;
+
+
+        const value =
+            data[i];
+
+
+        if(freq < 250){
+
+            low += value;
+
+            lowCount++;
+
+        }else if(
+            freq < 4000
+        ){
+
+            mid += value;
+
+            midCount++;
+
+        }else{
+
+            high += value;
+
+            highCount++;
+
+        }
+
+    }
+
+
+    low =
+        lowCount
+        ? low / lowCount
+        : 0;
+
+
+    mid =
+        midCount
+        ? mid / midCount
+        : 0;
+
+
+    high =
+        highCount
+        ? high / highCount
+        : 0;
+
+
+    document.getElementById(
+        "low"
+    ).textContent =
+        low.toFixed(0);
+
+
+    document.getElementById(
+        "mid"
+    ).textContent =
+        mid.toFixed(0);
+
+
+    document.getElementById(
+        "high"
+    ).textContent =
+        high.toFixed(0);
+
+}
+
+</script>
+
+</body>
+
+</html>
