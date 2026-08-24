@@ -209,6 +209,7 @@ body.dark-mode{
 <body>
 
 
+<script src="../report.js"></script>
 <script>
 
 // ===== 读取深色模式 =====
@@ -888,6 +889,8 @@ for(let group of deadGroups){
     }
 
 
+
+    reportScore("go", score.black);
 
     document.getElementById("status").innerHTML=
     "🏳️ 棋局结束<br>" +

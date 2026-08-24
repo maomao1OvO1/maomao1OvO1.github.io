@@ -103,6 +103,7 @@
 
 <canvas id="gameCanvas" width="800" height="800"></canvas>
 
+<script src="report.js"></script>
 <script>
     // ============================================================
     // 大鱼吃小鱼 - 速度适中版（鱼慢，玩家跟手）
@@ -321,6 +322,7 @@
                     } else {
                         alert(`😵 游戏结束！得分：${score}`);
                     }
+                    reportScore("fish", score);
                     cancelAnimationFrame(animId);
                     return;
                 } else {
