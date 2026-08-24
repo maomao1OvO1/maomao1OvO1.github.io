@@ -1,4 +1,0 @@
-# Cloudflare Worker 部署配置：AI 余额云端查询服务器
-name = "tokens-balance"
-main = "workers/tokens-balance.js"
-compatibility_date = "2024-11-01"

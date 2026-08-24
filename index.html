@@ -71,7 +71,7 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 
 <script src="weather.js" defer></script>
 
-<!-- ===== AI 余额盒子 ===== -->
+<!-- ===== AI 余额盒子（自助查询，每个访客用自己的 Key） ===== -->
 
 <div id="tokens-box">
 
@@ -79,21 +79,23 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
         🤖 AI 余额
     </div>
 
-    <div id="tokens-list">
-        加载中...
+    <div id="tokens-sub">
+        输入你自己的 Key，查询你的 AI 余额（Key 只在你浏览器里，不上传）
     </div>
 
-    <div id="tokens-status"></div>
+    <select id="tokens-provider">
+        <option value="DeepSeek">DeepSeek</option>
+        <option value="Moonshot/Kimi">Moonshot/Kimi</option>
+        <option value="OpenAI">OpenAI</option>
+    </select>
 
-    <button id="tokens-refresh" onclick="loadTokens(true)">
-        🔄 刷新
+    <input id="tokens-key" type="password" placeholder="粘贴你的 API Key">
+
+    <button id="tokens-check" onclick="checkBalance()">
+        🔍 查询我的余额
     </button>
 
-    <button id="tokens-settings" onclick="toggleTokensSettings()">
-        ⚙️ 设置 Key
-    </button>
-
-    <div id="tokens-settings-panel" style="display:none; margin-top:10px;"></div>
+    <div id="tokens-result"></div>
 
 </div>
 
