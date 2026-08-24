@@ -1746,3 +1746,245 @@ body.dark-mode .hardware-test-button{
     box-shadow:0 4px 15px #0006;
 }
 
+
+/* ===== AI 余额盒子 ===== */
+
+#tokens-box {
+
+    position: fixed;
+
+    top: 20px;
+
+    left: 20px;
+
+    z-index: 9999;
+
+    background: #ffffffcc;
+
+    backdrop-filter: blur(10px);
+
+    padding: 15px 20px;
+
+    border-radius: 20px;
+
+    box-shadow: 0 5px 20px #0002;
+
+    text-align: center;
+
+    min-width: 170px;
+
+    max-width: 240px;
+
+}
+
+#tokens-title {
+
+    font-size: 18px;
+
+    font-weight: bold;
+
+}
+
+#tokens-list {
+
+    margin-top: 8px;
+
+    font-size: 14px;
+
+}
+
+.tokens-item {
+
+    margin-top: 8px;
+
+    line-height: 1.5;
+
+}
+
+.tokens-item .tokens-value {
+
+    display: block;
+
+    font-size: 18px;
+
+    font-weight: bold;
+
+    color: #2e7d32;
+
+}
+
+.tokens-item .tokens-unit {
+
+    font-size: 12px;
+
+    color: #888;
+
+}
+
+.tokens-error .tokens-value {
+
+    color: #c62828;
+
+    font-size: 13px;
+
+}
+
+#tokens-status {
+
+    margin-top: 6px;
+
+    font-size: 12px;
+
+    color: #888;
+
+}
+
+#tokens-refresh {
+
+    margin-top: 10px;
+
+    padding: 8px 15px;
+
+    border: none;
+
+    border-radius: 20px;
+
+    cursor: pointer;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+}
+
+#tokens-refresh:hover {
+
+    background: #d3c4ff;
+
+}
+
+/* ===== 深色模式 ===== */
+
+body.dark-mode #tokens-box {
+
+    background: #222222dd;
+
+    color: #eeeeee;
+
+}
+
+body.dark-mode .tokens-item .tokens-value {
+
+    color: #7bd88a;
+
+}
+
+body.dark-mode .tokens-value {
+
+    color: #7bd88a;
+
+}
+
+body.dark-mode .tokens-error .tokens-value {
+
+    color: #ff7b7b;
+
+}
+
+body.dark-mode #tokens-status {
+
+    color: #aaa;
+
+}
+
+body.dark-mode #tokens-refresh {
+
+    background: #444;
+
+    color: #fff;
+
+}
+
+/* ===== 手机横屏：改为跟随页面流 ===== */
+
+@media (max-width:900px) and (orientation:landscape){
+
+    #tokens-box {
+
+        position: static;
+
+        margin: 10px auto;
+
+    }
+
+}
+
+@media (max-width:600px){
+
+    #tokens-box {
+
+        position: static;
+
+        margin: 10px auto;
+
+    }
+
+}
+
+/* ===== 设置 Key 按钮与面板 ===== */
+
+#tokens-settings {
+
+    margin-top: 10px;
+
+    margin-left: 6px;
+
+    padding: 8px 15px;
+
+    border: none;
+
+    border-radius: 20px;
+
+    cursor: pointer;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+}
+
+#tokens-settings:hover {
+
+    background: #d3c4ff;
+
+}
+
+#tokens-settings-panel {
+
+    text-align: left;
+
+}
+
+#tokens-settings-panel input {
+
+    color: #333;
+
+    background: #fff;
+
+}
+
+body.dark-mode #tokens-settings {
+
+    background: #444;
+
+    color: #fff;
+
+}
+
+body.dark-mode #tokens-settings-panel input {
+
+    color: #eee;
+
+    background: #333;
+
+}
