@@ -2128,3 +2128,39 @@ body.dark-mode .tokens-result.tokens-error {
     color: #ff7b7b;
 
 }
+
+/* ===== 清除按钮 ===== */
+
+#tokens-clear {
+
+    margin-top: 10px;
+
+    margin-left: 6px;
+
+    padding: 8px 15px;
+
+    border: none;
+
+    border-radius: 20px;
+
+    cursor: pointer;
+
+    background: #eee;
+
+    color: #555;
+
+}
+
+#tokens-clear:hover {
+
+    background: #ddd;
+
+}
+
+body.dark-mode #tokens-clear {
+
+    background: #444;
+
+    color: #eee;
+
+}

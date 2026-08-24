@@ -80,7 +80,7 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
     </div>
 
     <div id="tokens-sub">
-        输入你自己的 Key，查询你的 AI 余额（Key 只在你浏览器里，不上传）
+        输入你自己的 Key，查询你的 AI 余额（Key 只保存在你浏览器本地，不上传）
     </div>
 
     <select id="tokens-provider">
@@ -93,6 +93,10 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 
     <button id="tokens-check" onclick="checkBalance()">
         🔍 查询我的余额
+    </button>
+
+    <button id="tokens-clear" onclick="clearTokensState()">
+        🧹 清除
     </button>
 
     <div id="tokens-result"></div>
