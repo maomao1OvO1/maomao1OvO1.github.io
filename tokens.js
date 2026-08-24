@@ -1,5 +1,13 @@
 // ===== AI 余额 =====
-// 从 /api/tokens 读取各厂商余额并显示在主界面
+// 从线上源(Cloudflare Worker)或本地 /api/tokens 读取各厂商余额并显示在主界面
+
+// 线上源地址：Cloudflare Worker 部署后填入，例如 "https://tokens-balance.xxx.workers.dev"
+// 留空则使用本地 /api/tokens
+let TOKENS_WORKER_URL = "";
+
+function tokensEndpoint() {
+    return TOKENS_WORKER_URL || "/api/tokens";
+}
 
 let _tokensProviders = [];   // 记住有哪些厂商
 let _tokensLoaded = false;
@@ -14,7 +22,7 @@ function loadTokens(showMsg) {
     box.innerHTML = "加载中...";
     if(status) status.innerText = "";
 
-    fetch("/api/tokens")
+    fetch(tokensEndpoint())
 
     .then(response => response.json())
 
@@ -82,7 +90,7 @@ function toggleTokensSettings() {
 
         if(!_tokensLoaded){
             // 没加载过，先拉一次
-            fetch("/api/tokens")
+            fetch(tokensEndpoint())
             .then(r => r.json())
             .then(d => { _tokensProviders = (d.providers || []); buildTokensForm(panel); })
             .catch(() => { panel.innerHTML = "⚠️ 无法读取配置"; });
