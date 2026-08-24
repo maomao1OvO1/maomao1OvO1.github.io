@@ -1749,6 +1749,7 @@ async function gpuStress(){
     );
 
 
+    result.renderTime=renderTime;
     return result;
 }
 
@@ -2416,6 +2417,110 @@ function storageTest(){
    报告
 ========================= */
 
+
+
+function calculateScore(cpu,gpu,canvas,fps,worker){
+
+    let score=0;
+
+
+    if(cpu){
+
+        if(cpu.average>5000000)
+            score+=30;
+
+        else if(cpu.average>3000000)
+            score+=25;
+
+        else if(cpu.average>1500000)
+            score+=20;
+
+        else
+            score+=10;
+
+    }
+
+
+    if(gpu){
+
+        score+=10;
+
+
+        if(gpu.maxTexture>=8192)
+            score+=10;
+
+
+        if(gpu.renderTime<1)
+            score+=5;
+
+    }
+
+
+    if(fps){
+
+        if(fps.average>=120)
+            score+=25;
+
+        else if(fps.average>=90)
+            score+=20;
+
+        else if(fps.average>=60)
+            score+=15;
+
+        else
+            score+=5;
+
+    }
+
+
+    if(worker){
+
+        score+=10;
+
+    }
+
+
+    if(canvas){
+
+        if(canvas.time<1000)
+            score+=10;
+
+        else if(canvas.time<2000)
+            score+=8;
+
+        else
+            score+=5;
+
+    }
+
+
+    return score;
+
+}
+
+
+function getGrade(score){
+
+    if(score>=90)
+        return "S+ 旗舰级";
+
+    if(score>=80)
+        return "S 高性能";
+
+    if(score>=70)
+        return "A 流畅";
+
+    if(score>=60)
+        return "B 普通";
+
+    if(score>=40)
+        return "C 入门";
+
+    return "D 较弱";
+
+}
+
+
 function report(
     cpu,
     gpu,
@@ -2479,6 +2584,24 @@ function report(
 
         "⚠️ “高负载测试”表示网页尽可能持续制造计算/渲染工作，" +
         "不代表能够绕过系统调度，也不保证系统级 100% 占用。";
+
+
+    const score =
+        calculateScore(
+            cpu,
+            gpu,
+            canvas,
+            fps,
+            worker
+        );
+
+
+    html +=
+        "<br><br>" +
+        "🏆 浏览器综合性能评分<br><br>" +
+        score +
+        " / 100<br>" +
+        getGrade(score);
 
 
     document.getElementById(
