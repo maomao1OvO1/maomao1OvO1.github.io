@@ -405,7 +405,7 @@ class="result">
 <div class="item">
 
 <div class="label">
-平均 FPS
+WebGL版本
 </div>
 
 <div
@@ -419,7 +419,7 @@ class="value">
 <div class="item">
 
 <div class="label">
-最低 FPS
+最大纹理
 </div>
 
 <div
@@ -433,7 +433,7 @@ class="value">
 <div class="item">
 
 <div class="label">
-最高 FPS
+渲染耗时
 </div>
 
 <div
@@ -1654,14 +1654,14 @@ async function gpuStress(){
     text(
         "gpuMin",
         maxTexture
-            ? maxTexture.toLocaleString()
+            ? maxTexture.toLocaleString()+" px"
             : "--"
     );
 
 
     text(
         "gpuMax",
-        renderTime.toFixed(2)
+        renderTime.toFixed(2)+" ms"
     );
 
 
