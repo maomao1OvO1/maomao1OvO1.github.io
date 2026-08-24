@@ -7,6 +7,8 @@
 
 <link rel="manifest" href="manifest.json">
 
+<link rel="icon" type="image/png" href="icon.png">
+
 <title>毛毛的个人主页</title>
 
 <link rel="stylesheet" href="style.css?v=3">
@@ -67,7 +69,7 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 
 </div>
 
-<script src="weather.js"></script>
+<script src="weather.js" defer></script>
 
 <!-- ===== 加载动画 ===== -->
 
@@ -87,7 +89,7 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 <div class="card">
 
 <!-- ===== 彩蛋触发头像 ===== -->
-<img id="avatar" src="maomao.jpg" width="150">
+<img id="avatar" src="maomao.jpg" width="150" height="150" decoding="async">
 
 <div id="easter-egg">
     <span>彩蛋 😋</span>
@@ -138,7 +140,7 @@ showTime();
 
 <div class="music-player">
 
-<img src="images/FLXE-001.jpg" >
+<img src="images/FLXE-001.jpg" loading="lazy" decoding="async">
 
 <div id="songName">正在加载...</div>
 
@@ -359,7 +361,9 @@ updateTime();
 
 <!-- ===== 功能脚本 ===== -->  
   
-<script src="./script.js?v=4"></script>  
+<script src="./player.js?v=1"></script>
+
+<script src="./main.js?v=1"></script>
 
 </body>
 

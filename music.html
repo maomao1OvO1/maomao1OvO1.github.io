@@ -23,7 +23,12 @@
 持续更新中，敬请期待
 </p>
 
-<script src="script.js"></script>
+<script>
+// 深色模式跟随主页设置
+if(localStorage.getItem("theme") === "dark"){
+    document.body.classList.add("dark-mode");
+}
+</script>
 
 </body>
 
