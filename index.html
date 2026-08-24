@@ -71,6 +71,34 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 
 <script src="weather.js" defer></script>
 
+<!-- ===== AI 余额盒子 ===== -->
+
+<div id="tokens-box">
+
+    <div id="tokens-title">
+        🤖 AI 余额
+    </div>
+
+    <div id="tokens-list">
+        加载中...
+    </div>
+
+    <div id="tokens-status"></div>
+
+    <button id="tokens-refresh" onclick="loadTokens(true)">
+        🔄 刷新
+    </button>
+
+    <button id="tokens-settings" onclick="toggleTokensSettings()">
+        ⚙️ 设置 Key
+    </button>
+
+    <div id="tokens-settings-panel" style="display:none; margin-top:10px;"></div>
+
+</div>
+
+<script src="tokens.js" defer></script>
+
 <!-- ===== 加载动画 ===== -->
 
 <div id="loader">
