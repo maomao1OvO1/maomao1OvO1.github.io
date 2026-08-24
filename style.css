@@ -2164,3 +2164,41 @@ body.dark-mode #tokens-clear {
     color: #eee;
 
 }
+
+/* ===== 刷新按钮 ===== */
+
+#tokens-refresh {
+
+    margin-top: 10px;
+
+    margin-left: 6px;
+
+    padding: 8px 15px;
+
+    border: none;
+
+    border-radius: 20px;
+
+    cursor: pointer;
+
+    background: #e5dcff;
+
+    color: #6543a5;
+
+    font-weight: bold;
+
+}
+
+#tokens-refresh:hover {
+
+    background: #d3c4ff;
+
+}
+
+body.dark-mode #tokens-refresh {
+
+    background: #444;
+
+    color: #fff;
+
+}
