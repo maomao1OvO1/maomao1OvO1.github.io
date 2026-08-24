@@ -1,4 +1,4 @@
-const CACHE_NAME = "maomao-v3";
+const CACHE_NAME = "maomao-v4";
 
 const CORE_ASSETS = [
     "/",
@@ -6,6 +6,7 @@ const CORE_ASSETS = [
     "/style.css",
     "/player.js",
     "/main.js",
+    "/tokens.js",
     "/manifest.json",
     "/icon.png",
     "/maomao.jpg"
