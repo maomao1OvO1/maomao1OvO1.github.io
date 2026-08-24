@@ -52,9 +52,8 @@ function togglePlaylist(){
     }
 }
 
-// 创建播放器（首次点击播放时才真正下载音频）
+// 创建播放器
 let audio = new Audio();
-audio.preload = "none";
 
 // ===== 手机媒体卡片信息 =====
 function updateMediaSession(){
@@ -91,11 +90,13 @@ let loopBtn = document.getElementById("loopBtn");
 let progressBar = document.getElementById("progressBar");
 let volumeBar = document.getElementById("volumeBar");
 
-// ===== 加载歌曲（只切换地址，不预下载） =====
+// ===== 加载歌曲 =====
 function loadSong(){
     audio.pause();
     audio.currentTime = 0;
     audio.src = songs[index];
+    // 重新加载音频，让浏览器获取新的时长
+    audio.load();
     audio.volume = volumeBar ? volumeBar.value : 1;
     if(songName){
         songName.innerHTML = songNames[index];

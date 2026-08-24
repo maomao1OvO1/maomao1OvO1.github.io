@@ -120,16 +120,19 @@ if(playerName){
     document.getElementById("nicknameShow").innerHTML = "当前玩家：" + playerName;
 }
 
-// ===== 加载动画：尽快显示内容（不再等所有资源） =====
+// ===== 加载动画：保留进度条观感，但比原来快很多 =====
 function hideLoader(){
     let loader = document.getElementById("loader");
     if(!loader) return;
-    loader.style.opacity = "0";
+    // 进度条展示 1.2 秒后淡出，内容同时淡入
+    setTimeout(function(){
+        loader.style.opacity = "0";
+    }, 1200);
     setTimeout(function(){
         loader.style.display = "none";
         document.body.classList.remove("loading");
         document.body.classList.add("page-show");
-    }, 600);
+    }, 1600);
 }
 
 if(document.readyState === "loading"){

@@ -1,4 +1,4 @@
-const CACHE_NAME = "maomao-v2";
+const CACHE_NAME = "maomao-v3";
 
 const CORE_ASSETS = [
     "/",
@@ -39,6 +39,8 @@ self.addEventListener("fetch", event => {
     const url = new URL(req.url);
     // 只处理本站资源，第三方 API（天气/计数器）直接走网络
     if (url.origin !== location.origin) return;
+    // 音频与分段请求(Range)不进缓存，避免播放/拖动进度出问题
+    if (req.headers.has("Range") || /\/music\//.test(url.pathname)) return;
 
     // 页面：网络优先，离线时才回退缓存（保证更新及时可见）
     if (req.mode === "navigate") {
