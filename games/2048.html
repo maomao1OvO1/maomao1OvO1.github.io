@@ -237,6 +237,8 @@ if(localStorage.getItem("theme") === "dark"){
 
 
 
+<script src="report.js"></script>
+
 <script>
 
 
@@ -670,6 +672,7 @@ function checkGameOver(){
             alert(`😢 游戏结束！当前分数：${score}`);
         }
         gameEnd = true;
+        reportScore("2048", score);
         restart();
     }
 

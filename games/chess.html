@@ -53,6 +53,7 @@ body.dark-mode .cell{color:#000;}
 </div>
 </div>
 <button onclick="restart()">重新开始</button>
+<script src="report.js"></script>
 <script>
 // ============================================================
 // 完整国际象棋引擎 - 修复AI先手持续走棋
@@ -80,7 +81,7 @@ const STATS_KEY='chess_stats';
 function defaultStats(){return{player:{whiteWins:0,blackWins:0},normal:{whiteWins:0,blackWins:0},stockfish:{whiteWins:0,blackWins:0}};}
 function loadStats(){let d=localStorage.getItem(STATS_KEY);if(d){try{let p=JSON.parse(d);let def=defaultStats();for(let m in def){if(!p[m])p[m]=def[m];if(typeof p[m].whiteWins!=='number')p[m].whiteWins=0;if(typeof p[m].blackWins!=='number')p[m].blackWins=0;}return p;}catch(e){return defaultStats();}}return defaultStats();}
 function saveStats(s){localStorage.setItem(STATS_KEY,JSON.stringify(s));}
-function recordWin(w){let s=loadStats();if(s[mode]){if(w==='white')s[mode].whiteWins++;else if(w==='black')s[mode].blackWins++;saveStats(s);}fetch("https://maomao-server.onrender.com/win",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:localStorage.getItem("playerName")||"游客",game:"国际象棋"})});}
+function recordWin(w){let s=loadStats();if(s[mode]){if(w==='white')s[mode].whiteWins++;else if(w==='black')s[mode].blackWins++;saveStats(s);}let wins=0;for(let m in s){wins+=(s[m].whiteWins||0);}reportScore("chess",wins);}
 function updateStatsDisplay(){let s=loadStats();let ms=s[mode]||{whiteWins:0,blackWins:0};let total=ms.whiteWins+ms.blackWins;let mn={'player':'双人模式','normal':'普通AI','stockfish':'高级AI'}[mode]||mode;document.getElementById('stats').innerHTML=`${mn}：白方 ${ms.whiteWins} 胜 &nbsp;|&nbsp; 黑方 ${ms.blackWins} 胜 &nbsp;|&nbsp; 总胜场 ${total}`;}
 function resetStats(){if(confirm('确定要重置所有模式的胜场统计吗？')){saveStats(defaultStats());updateStatsDisplay();alert('统计已重置！');}}
 

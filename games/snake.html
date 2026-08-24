@@ -265,6 +265,8 @@ if(localStorage.getItem("theme") === "dark"){
 
 
 
+<script src="report.js"></script>
+
 <script>
 
 // ============================================================
@@ -435,6 +437,7 @@ function gameOver(){
     } else {
         alert(`🐍 游戏结束！分数：${score}`);
     }
+    reportScore("snake", score);
     restart();
 }
 

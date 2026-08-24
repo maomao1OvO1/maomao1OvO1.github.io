@@ -184,6 +184,8 @@ if(localStorage.getItem("theme") === "dark"){
 
 
 
+<script src="report.js"></script>
+
 <script>
 
 
@@ -233,6 +235,9 @@ function startTest(){
             document.getElementById("result").innerHTML =
 
             "🎉 完成！速度：" + speed + " 字/分钟";
+
+
+            reportScore("typing", speed);
 
 
         }

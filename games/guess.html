@@ -175,6 +175,8 @@ if(localStorage.getItem("theme") === "dark"){
 
 
 
+<script src="report.js"></script>
+
 <script>
 
 
@@ -207,25 +209,7 @@ function checkGuess(){
     "🎉 猜中了！用了 " + count + " 次";
 
 
-    fetch("https://maomao-server.onrender.com/win",{
-
-        method:"POST",
-
-        headers:{
-            "Content-Type":"application/json"
-        },
-
-        body:JSON.stringify({
-
-            name:localStorage.getItem("playerName") || "游客",
-
-            game:"猜数字",
-
-            score:count
-
-        })
-
-        })
+    reportScore("guess", count);
 
 
 }    

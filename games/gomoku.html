@@ -254,6 +254,8 @@ body.dark-mode{
 
 <body>
 
+<script src="report.js"></script>
+
 <script>
 
 // ===== 读取深色模式 =====
@@ -1203,34 +1205,11 @@ function findThreatMove(player){
 // 胜利后发送积分到服务器
 function addScore(){
 
-    fetch("https://maomao-server.onrender.com/win",{
-
-        method:"POST",
-
-        headers:{
-            "Content-Type":"application/json"
-        },
-
-        body:JSON.stringify({
-
-    name:localStorage.getItem("playerName") || "游客",
-
-    game:"五子棋"
-
-})
-
-    })
-    .then(res=>res.json())
-    .then(data=>{
-
-        console.log(data);
-
-    })
-    .catch(err=>{
-
-        alert("提交失败："+err);
-
-    });
+    // 上报玩家(执黑)累计胜场
+    let s = loadStats();
+    let wins = 0;
+    for (let m in s) { wins += (s[m].blackWins || 0); }
+    reportScore("gomoku", wins);
 
 }
 
