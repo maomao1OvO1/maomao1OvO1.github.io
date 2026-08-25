@@ -34,6 +34,13 @@ const server = http.createServer((req, res) => {
     res.end("forbidden");
     return;
   }
+  // 目录路径：自动找目录里的 index.html
+  try {
+    const stats = fs.statSync(filePath);
+    if (stats.isDirectory()) {
+      filePath = path.join(filePath, "index.html");
+    }
+  } catch (e) { /* 文件不存在则交给下面处理 */ }
   fs.readFile(filePath, (err, content) => {
     if (err) {
       res.writeHead(404);
