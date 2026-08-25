@@ -132,6 +132,8 @@ function hideLoader(){
         loader.style.display = "none";
         document.body.classList.remove("loading");
         document.body.classList.add("page-show");
+        // 加载条结束 → 弹出登录门(登录 / 不登录直接进)
+        if(window.showLoginGate) window.showLoginGate();
     }, 1600);
 }
 
