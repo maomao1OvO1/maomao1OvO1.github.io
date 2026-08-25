@@ -2553,3 +2553,148 @@ body.dark-mode .gate-main.guest{
     background:#333;
     color:#c9b6ff;
 }
+
+/* ===== 账号按钮 ===== */
+
+#accountBtn{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    z-index:9998;
+    display:none;
+    align-items:center;
+    gap:8px;
+    padding:6px 12px 6px 6px;
+    background:#fff;
+    border:none;
+    border-radius:26px;
+    box-shadow:0 4px 14px #0002;
+    cursor:pointer;
+    font-size:14px;
+    color:#333;
+}
+#accountBtn img{
+    display:inline-block;
+}
+#accCaret{
+    color:#999;
+    font-size:12px;
+}
+body.dark-mode #accountBtn{
+    background:#222;
+    color:#eee;
+}
+
+/* ===== 账号菜单 ===== */
+
+#accountMenu{
+    position:fixed;
+    bottom:76px;
+    right:20px;
+    z-index:9999;
+    width:260px;
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 8px 30px #0004;
+    padding:12px;
+    font-size:14px;
+    color:#333;
+}
+.acc-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding-bottom:10px;
+    border-bottom:1px solid #eee;
+    margin-bottom:8px;
+}
+.acc-header #menuName{
+    font-weight:bold;
+}
+.acc-header #menuEmail{
+    font-size:12px;
+    color:#999;
+}
+.acc-title{
+    font-size:12px;
+    color:#999;
+    margin:6px 0;
+}
+.acc-section{
+    margin:8px 0;
+}
+.acc-badge{
+    display:inline-block;
+    background:#e5dcff;
+    color:#6543a5;
+    border-radius:10px;
+    padding:5px 10px;
+    margin:3px;
+    font-size:13px;
+}
+.acc-small{
+    display:inline-block;
+    padding:6px 10px;
+    margin:3px;
+    border:none;
+    border-radius:10px;
+    background:#f0edf8;
+    color:#6543a5;
+    cursor:pointer;
+    font-size:13px;
+}
+.acc-small:hover{
+    background:#e5dcff;
+}
+.acc-small.danger{
+    background:#fdeaea;
+    color:#c0392b;
+}
+.acc-small.danger:hover{
+    background:#f8d7d7;
+}
+#bindEmailBox input{
+    display:block;
+    width:100%;
+    box-sizing:border-box;
+    padding:8px;
+    margin:5px 0;
+    border:1px solid #ddd;
+    border-radius:8px;
+    font-size:14px;
+}
+
+body.dark-mode #accountMenu{
+    background:#222;
+    color:#eee;
+}
+body.dark-mode .acc-header{
+    border-color:#333;
+}
+body.dark-mode .acc-badge{
+    background:#333;
+    color:#c9b6ff;
+}
+body.dark-mode .acc-small{
+    background:#333;
+    color:#c9b6ff;
+}
+body.dark-mode .acc-small.danger{
+    background:#3a2422;
+    color:#ff8a80;
+}
+body.dark-mode #bindEmailBox input{
+    background:#111;
+    color:#eee;
+    border-color:#444;
+}
+
+/* ===== 账号按钮/菜单 移到左下角,不挡右下角音乐播放器 ===== */
+#accountBtn{
+    right:auto;
+    left:20px;
+}
+#accountMenu{
+    right:auto;
+    left:20px;
+}
