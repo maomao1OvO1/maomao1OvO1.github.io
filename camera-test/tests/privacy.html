@@ -219,6 +219,24 @@ body.dark-mode .meter{
     margin-bottom:12px;
 }
 
+/* ===== 迷你按钮(单独重新定位等) ===== */
+
+button.mini{
+    width:auto;
+    max-width:100%;
+    padding:8px 14px;
+    font-size:13px;
+    margin:6px auto 12px;
+    display:inline-block;
+    background:#e5dcff;
+    color:#6543a4;
+}
+
+body.dark-mode button.mini{
+    background:#333;
+    color:#fff;
+}
+
 </style>
 
 </head>
@@ -304,10 +322,52 @@ body.dark-mode .meter{
 </div>
 
 
+<!-- 网络 & 连接 -->
+<div class="card">
+<h2>🌐 网络 &amp; 连接</h2>
+
+<div class="item"><div class="label">网络类型</div><div id="netType" class="value">检测中…</div></div>
+<div class="item"><div class="label">下行速度</div><div id="downlink" class="value">检测中…</div></div>
+<div class="item"><div class="label">延迟 RTT</div><div id="rtt" class="value">检测中…</div></div>
+<div class="item"><div class="label">省流模式</div><div id="saveData" class="value">检测中…</div></div>
+<div class="item"><div class="label">本机 IP(WebRTC)</div><div id="localIP" class="value">检测中…</div></div>
+</div>
+
+
+<!-- 性能时间 -->
+<div class="card">
+<h2>⏱️ 性能时间</h2>
+
+<div class="item"><div class="label">页面加载</div><div id="loadTime" class="value">检测中…</div></div>
+<div class="item"><div class="label">DNS 解析</div><div id="dnsTime" class="value">检测中…</div></div>
+<div class="item"><div class="label">首字节 TTFB</div><div id="ttfb" class="value">检测中…</div></div>
+<div class="item"><div class="label">DOM 就绪</div><div id="domTime" class="value">检测中…</div></div>
+</div>
+
+
+<!-- 更多能力(免授权探测) -->
+<div class="card">
+<h2>🧩 更多能力</h2>
+
+<div class="item"><div class="label">震动</div><div id="capVibrate" class="value">检测中…</div></div>
+<div class="item"><div class="label">全屏</div><div id="capFullscreen" class="value">检测中…</div></div>
+<div class="item"><div class="label">剪贴板 API</div><div id="capClipboard" class="value">检测中…</div></div>
+<div class="item"><div class="label">蓝牙</div><div id="capBluetooth" class="value">检测中…</div></div>
+<div class="item"><div class="label">USB</div><div id="capUsb" class="value">检测中…</div></div>
+<div class="item"><div class="label">串口</div><div id="capSerial" class="value">检测中…</div></div>
+<div class="item"><div class="label">NFC</div><div id="capNfc" class="value">检测中…</div></div>
+<div class="item"><div class="label">通知 API</div><div id="capNotif" class="value">检测中…</div></div>
+<div class="item"><div class="label">Service Worker</div><div id="capSW" class="value">检测中…</div></div>
+<div class="item"><div class="label">自动化检测(WebDriver)</div><div id="webdriver" class="value">检测中…</div></div>
+<div class="item"><div class="label">Do Not Track</div><div id="dnt" class="value">检测中…</div></div>
+<div class="item"><div class="label">历史记录条数</div><div id="histLen" class="value">检测中…</div></div>
+</div>
+
+
 <!-- ===== 危险提示 ===== -->
 <div class="warning">
-⚠️ <b>危险提示</b>：下面的"一键授权"会请求<b>摄像头、麦克风、地理位置、通知、剪贴板</b>等权限。<br>
-<b>一旦授权，网站就能看到你、听到你、知道你在哪、给你发通知、读你剪贴板</b> —— 这是真实且敏感的隐私风险。<br>
+⚠️ <b>危险提示</b>：下面的"一键授权"会请求<b>摄像头、麦克风、地理位置、通知、剪贴板、蓝牙、USB、串口、屏幕常亮</b>等权限。<br>
+<b>一旦授权，网站就能看到你、听到你、知道你在哪、给你发通知、读你剪贴板、访问你的硬件设备</b> —— 这是真实且敏感的隐私风险。<br>
 请在<b>你信任的网站</b>才执行；测试完点"🛑 停止"关闭摄像头/麦克风。
 </div>
 
@@ -328,11 +388,17 @@ body.dark-mode .meter{
 <div id="perm-status" class="value warn">尚未授权，点击上方"一键授权"开始</div>
 
 <div class="item"><div class="label">📍 地理位置</div><div id="geo" class="value">未请求</div></div>
+
 <div class="item"><div class="label">📷 摄像头</div><div id="camera" class="value">未请求</div></div>
 <div class="item"><div class="label">🎤 麦克风</div><div id="mic" class="value">未请求</div></div>
 <div class="item"><div class="label">🔔 通知</div><div id="notif" class="value">未请求</div></div>
 <div class="item"><div class="label">📋 剪贴板</div><div id="clipboard" class="value">未请求</div></div>
 <div class="item"><div class="label">🔋 电池</div><div id="battery" class="value">未请求</div></div>
+<div class="item"><div class="label">📶 蓝牙</div><div id="bt" class="value">未请求</div></div>
+<div class="item"><div class="label">🔌 USB</div><div id="usb" class="value">未请求</div></div>
+<div class="item"><div class="label">🔧 串口</div><div id="serial" class="value">未请求</div></div>
+<div class="item"><div class="label">🌙 屏幕常亮</div><div id="wake" class="value">未请求</div></div>
+<div class="item"><div class="label">🎹 MIDI</div><div id="midi" class="value">未请求</div></div>
 
 <video id="cameraVideo" autoplay playsinline muted></video>
 
@@ -536,6 +602,94 @@ set("reduceMotion", window.matchMedia("(prefers-reduced-motion: reduce)").matche
 
 
 // ============================
+// 网络 & 连接（免授权）
+// ============================
+
+if(navigator.connection){
+    set("netType", navigator.connection.effectiveType || "未知");
+    set("downlink", navigator.connection.downlink != null ? navigator.connection.downlink + " Mbps" : "不可用");
+    set("rtt", navigator.connection.rtt != null ? navigator.connection.rtt + " ms" : "不可用");
+    set("saveData", navigator.connection.saveData ? "开启" : "关闭");
+}else{
+    set("netType", "浏览器不提供", "warn");
+    set("downlink", "不可用", "warn");
+    set("rtt", "不可用", "warn");
+    set("saveData", "不可用", "warn");
+}
+
+// WebRTC 本机 IP（常见隐私泄露）
+function getLocalIP(){
+    if(!window.RTCPeerConnection){ set("localIP","浏览器不支持","no"); return; }
+    try{
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        const ips = [];
+        pc.createDataChannel("");
+        pc.createOffer().then(function(o){ pc.setLocalDescription(o); }).catch(function(){});
+        pc.onicecandidate = function(ev){
+            if(ev.candidate){
+                const m = /([0-9]{1,3}\.){3}[0-9]{1,3}/.exec(ev.candidate.candidate);
+                if(m && m[0] !== "0.0.0.0") ips.push(m[0]);
+            }
+        };
+        setTimeout(function(){
+            const u = Array.from(new Set(ips));
+            if(u.length) set("localIP", u.join(", "), "warn");
+            else set("localIP", "未发现(可能被防泄露/隐私浏览器阻断)", "warn");
+            pc.close();
+        }, 1500);
+    }catch(e){
+        set("localIP", "无法获取", "warn");
+    }
+}
+getLocalIP();
+
+
+// ============================
+// 性能时间（免授权）
+// ============================
+
+const navEntry = performance.getEntriesByType("navigation")[0] || {};
+if(navEntry && navEntry.startTime != null){
+    set("loadTime", Math.round(navEntry.loadEventEnd - navEntry.startTime) + " ms");
+    set("dnsTime", Math.round(navEntry.domainLookupEnd - navEntry.domainLookupStart) + " ms");
+    set("ttfb", Math.round(navEntry.responseStart - navEntry.requestStart) + " ms");
+    set("domTime", Math.round(navEntry.domContentLoadedEventEnd - navEntry.startTime) + " ms");
+}else{
+    ["loadTime","dnsTime","ttfb","domTime"].forEach(function(id){
+        const el = document.getElementById(id);
+        if(el){ el.textContent = "不可用"; el.className = "value warn"; }
+    });
+}
+
+
+// ============================
+// 更多能力（免授权探测"有没有这个能力"）
+// ============================
+
+function cap(id, cond){
+    set(id, cond ? "有" : "无", cond ? "ok" : "no");
+}
+cap("capVibrate", "vibrate" in navigator);
+cap("capFullscreen", "requestFullscreen" in document.documentElement);
+cap("capClipboard", "clipboard" in navigator);
+cap("capBluetooth", "bluetooth" in navigator);
+cap("capUsb", "usb" in navigator);
+cap("capSerial", "serial" in navigator);
+cap("capNfc", ("NDEFReader" in window) || ("nfc" in navigator));
+cap("capNotif", "Notification" in window);
+cap("capSW", "serviceWorker" in navigator);
+
+set("webdriver", navigator.webdriver ? "是(疑似自动化/爬虫)" : "否", navigator.webdriver ? "warn" : "ok");
+
+let dntVal = navigator.doNotTrack;
+if(dntVal == null) dntVal = "未设置";
+else if(dntVal === "1") dntVal = "已开启(1)";
+else if(dntVal === "0") dntVal = "已关闭(0)";
+set("dnt", dntVal);
+set("histLen", history.length + " 条");
+
+
+// ============================
 // 一键授权：能授权的全要
 // ============================
 
@@ -550,12 +704,28 @@ function authorizeAll(){
     grantNotif();
     grantClipboard();
     grantBattery();
+    grantBt();
+    grantUsb();
+    grantSerial();
+    grantWake();
+    grantMidi();
 }
 
 // 地理位置
-function grantGeo(){
+let geoWatcher = null;
+
+// high=true 用 GPS(卫星,不受梯子影响,需室外/清晰天空,较慢)
+// high=false 用网络/WIFI(快,但梯子会干扰)
+function grantGeo(high){
     if(!("geolocation" in navigator)){ set("geo","浏览器不支持","no"); return; }
-    navigator.geolocation.getCurrentPosition(
+    if(high){
+        set("geo", "⏳ 正在用GPS定位(不受梯子影响;需室外/清晰天空,可能较慢)…", "warn");
+    }else{
+        set("geo", "⏳ 正在用网络/WIFI定位(快,但梯子会干扰;建议关梯子或用GPS)…", "warn");
+    }
+    if(geoWatcher) navigator.geolocation.clearWatch(geoWatcher);
+    // watchPosition：持续尝试，比一次性 getCurrentPosition 更容易拿到位置
+    geoWatcher = navigator.geolocation.watchPosition(
         function(pos){
             set("geo", "📍 " + pos.coords.latitude.toFixed(5) + ", " + pos.coords.longitude.toFixed(5) +
                 " (±" + Math.round(pos.coords.accuracy) + "m)", "ok");
@@ -563,11 +733,11 @@ function grantGeo(){
         function(err){
             // err.code: 1=拒绝 2=定位不可用 3=超时
             if(err.code === 1) set("geo", "🔴 你拒绝了定位权限", "no");
-            else if(err.code === 2) set("geo", "🟡 定位不可用——请打开系统的位置服务", "warn");
-            else if(err.code === 3) set("geo", "🟡 定位超时——设备暂时拿不到位置(室内/未开定位)", "warn");
+            else if(err.code === 2) set("geo", "🟡 定位不可用——请在系统设置里打开「位置服务」", "warn");
+            else if(err.code === 3) set("geo", "🟡 定位超时——" + (high ? "GPS在室内/被遮挡拿不到,到室外试试" : "很可能是梯子干扰,建议关梯子或用GPS重试"), "warn");
             else set("geo", "🟡 定位失败:" + err.message, "warn");
         },
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        { enableHighAccuracy: !!high, timeout: 25000, maximumAge: 0 }
     );
 }
 
@@ -647,18 +817,75 @@ function grantBattery(){
     }).catch(function(){ set("battery","读取失败","warn"); });
 }
 
-// 停止：关闭摄像头/麦克风
+// 蓝牙
+async function grantBt(){
+    if(!("bluetooth" in navigator)){ set("bt","浏览器不支持","no"); return; }
+    try{
+        await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+        set("bt", "🟢 已授权(能访问附近蓝牙设备)", "ok");
+    }catch(e){
+        set("bt", "🔴 已取消/浏览器不支持", "no");
+    }
+}
+
+// USB
+async function grantUsb(){
+    if(!("usb" in navigator)){ set("usb","浏览器不支持","no"); return; }
+    try{
+        const dev = await navigator.usb.requestDevice({ filters: [] });
+        set("usb", "🟢 已授权(" + (dev.productName || "USB 设备") + ")", "ok");
+    }catch(e){
+        set("usb", "🔴 已取消/浏览器不支持", "no");
+    }
+}
+
+// 串口
+async function grantSerial(){
+    if(!("serial" in navigator)){ set("serial","浏览器不支持","no"); return; }
+    try{
+        await navigator.serial.requestPort();
+        set("serial", "🟢 已授权(可访问串口)", "ok");
+    }catch(e){
+        set("serial", "🔴 已取消/浏览器不支持", "no");
+    }
+}
+
+// 屏幕常亮
+async function grantWake(){
+    if(!("wakeLock" in navigator)){ set("wake","浏览器不支持","no"); return; }
+    try{
+        await navigator.wakeLock.request("screen");
+        set("wake", "🟢 已授权(屏幕保持常亮)", "ok");
+    }catch(e){
+        set("wake", "🔴 已取消/浏览器不支持", "no");
+    }
+}
+
+// MIDI
+async function grantMidi(){
+    if(!navigator.requestMIDIAccess){ set("midi","浏览器不支持","no"); return; }
+    try{
+        await navigator.requestMIDIAccess();
+        set("midi", "🟢 已授权(MIDI 设备)", "ok");
+    }catch(e){
+        set("midi", "🔴 已取消/浏览器不支持", "no");
+    }
+}
+
+// 停止：关闭摄像头/麦克风/定位
 function stopAll(){
     activeStreams.forEach(function(s){ s.getTracks().forEach(function(t){ t.stop(); }); });
     activeStreams = [];
     if(audioRAF) cancelAnimationFrame(audioRAF);
     if(audioCtx){ try{ audioCtx.close(); }catch(e){} audioCtx = null; }
+    if(geoWatcher){ navigator.geolocation.clearWatch(geoWatcher); geoWatcher = null; }
     const vid = document.getElementById("cameraVideo");
     if(vid){ vid.srcObject = null; vid.style.display = "none"; }
     document.getElementById("audioBar").style.width = "0%";
     document.getElementById("micHint").textContent = "";
     set("camera", "已停止", "warn");
     set("mic", "已停止", "warn");
+    set("geo", "已停止", "warn");
 }
 
 </script>
