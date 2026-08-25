@@ -3,18 +3,21 @@
 let songs = [
     "music/所有③分熟的地球煎蛋.mp3",
     "music/dw.mp3",
+    "music/Halzion.mp3",
     "music/暧昧游戏.mp3"
 ];
 
 let covers = [
     "images/xiongzi.jpg",
     "images/kg_1785435965413.webp",
+    "images/halzion.jpg",
     "images/FLXE-001.jpg"
 ];
 
 let songNames = [
     "所有③分熟的地球煎蛋",
     "LLABB、小野道ono - D.W.U",
+    "Halzion",
     "暧昧游戏"
 ];
 
