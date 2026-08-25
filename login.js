@@ -135,17 +135,51 @@ function updateAccountMenu(user){
 
     const linked = {};
     (user.providerData || []).forEach(function(p){ linked[p.providerId] = true; });
+    // 当前账号绑定的邮箱(展示)
+    if(emEl){
+        const emails = (user.providerData||[])
+            .filter(function(p){ return p.email; })
+            .map(function(p){ return p.email; });
+        emEl.textContent = (emails.length ? emails.join(" · ") : (user.email || ""));
+    }
+
     let html = "";
-    html += linked["google.com"]
-        ? '<span class="acc-badge">Google ✓</span>'
-        : '<button class="acc-small" onclick="bindProvider(\'google\')">绑定 Google</button>';
-    html += linked["github.com"]
-        ? '<span class="acc-badge">GitHub ✓</span>'
-        : '<button class="acc-small" onclick="bindProvider(\'github\')">绑定 GitHub</button>';
-    html += linked["password"]
-        ? '<span class="acc-badge">邮箱 ✓</span>'
-        : '<button class="acc-small" onclick="showBindEmail()">绑定邮箱</button>';
+    if(linked["google.com"]){
+        html += '<div class="acc-row"><span class="acc-badge">Google ✓</span><button class="acc-small danger" onclick="unlinkProvider(\'google.com\')">解绑</button></div>';
+    }else{
+        html += '<div class="acc-row"><button class="acc-small" onclick="bindProvider(\'google\')">绑定 Google</button></div>';
+    }
+    if(linked["github.com"]){
+        html += '<div class="acc-row"><span class="acc-badge">GitHub ✓</span><button class="acc-small danger" onclick="unlinkProvider(\'github.com\')">解绑</button></div>';
+    }else{
+        html += '<div class="acc-row"><button class="acc-small" onclick="bindProvider(\'github\')">绑定 GitHub</button></div>';
+    }
+    if(linked["password"]){
+        html += '<div class="acc-row"><span class="acc-badge">邮箱 ✓</span><button class="acc-small danger" onclick="unlinkProvider(\'password\')">解绑</button></div>';
+    }else{
+        html += '<div class="acc-row"><button class="acc-small" onclick="showBindEmail()">绑定邮箱</button></div>';
+    }
     if(list) list.innerHTML = html;
+}
+
+// ===================== 解绑(取消绑定)登录方式 =====================
+
+function unlinkProvider(providerId){
+    if(!auth || !auth.currentUser){ alert("请先登录"); return; }
+    const label = providerId === "google.com" ? "Google" : providerId === "github.com" ? "GitHub" : "邮箱";
+    if(!confirm("确定解除绑定的 " + label + " 吗?")) return;
+    auth.currentUser.unlink(providerId)
+    .then(function(){
+        alert("已解绑 " + label);
+        updateAccountMenu(auth.currentUser);
+    })
+    .catch(function(err){
+        if(err.code === "auth/requires-recent-login"){
+            alert("安全起见：请先退出登录，重新登录一次，再解绑（解绑需要近期登录）");
+        }else{
+            alert("解绑失败：" + (err.message || err));
+        }
+    });
 }
 
 // ===================== 绑定其他登录方式(账号关联) =====================

@@ -2714,3 +2714,12 @@ body.dark-mode .acc-hint{
     background:#2a2a3a;
     color:#aaa;
 }
+
+/* ===== 账号菜单 每行(已绑 徽章 + 解绑按钮) ===== */
+.acc-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin:4px 0;
+}
