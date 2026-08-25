@@ -11,7 +11,7 @@
 
 <title>毛毛的个人主页</title>
 
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 
 </head>
 
@@ -408,6 +408,42 @@ updateTime();
 <script src="./player.js?v=2"></script>
 
 <script src="./main.js?v=1"></script>
+
+<!-- ===== 登录门（加载条结束后弹出） ===== -->
+
+<div id="loginGate">
+    <div class="gate-card">
+        <div id="gateStep1" style="display:block;">
+            <h2>🌐 毛毛的网站</h2>
+            <p>登录后进入，或直接以游客身份浏览</p>
+            <button class="gate-main" onclick="gateLogin()">🔐 登录</button>
+            <button class="gate-main guest" onclick="gateGuest()">👤 不登录，直接进入</button>
+        </div>
+        <div id="gateStep2" style="display:none;">
+            <h3>选择登录方式</h3>
+            <button class="lg-btn google" onclick="loginProvider('google')">谷歌登录</button>
+            <button class="lg-btn github" onclick="loginProvider('github')">GitHub 登录</button>
+            <div class="lg-divider"><span>或</span></div>
+            <input id="lgEmail" type="email" placeholder="邮箱">
+            <input id="lgPass" type="password" placeholder="密码">
+            <button class="lg-btn email" onclick="emailLogin(document.getElementById('lgEmail').value, document.getElementById('lgPass').value, document.getElementById('emailMode').getAttribute('data-mode')==='signup')">邮箱登录</button>
+            <button id="emailMode" class="lg-link" data-mode="login" onclick="toggleEmailMode()">没有账号?注册</button>
+            <button class="gate-back" onclick="gateBack()">← 返回</button>
+        </div>
+    </div>
+</div>
+
+<div id="userBox" style="display:none;">
+    <img id="userPhoto" width="26" height="26" style="border-radius:50%;object-fit:cover;">
+    <span id="userName"></span>
+    <button onclick="logout()">退出</button>
+</div>
+
+<!-- ===== Firebase Auth SDK ===== -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="login.js" defer></script>
 
 </body>
 

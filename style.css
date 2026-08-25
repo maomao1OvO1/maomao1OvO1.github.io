@@ -2290,3 +2290,266 @@ body.dark-mode .vip-num{
     color:transparent;
     animation:vipGrad 3s linear infinite;
 }
+
+/* ===== 登录系统 ===== */
+
+#loginBtn{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    z-index:9998;
+    padding:10px 16px;
+    border:none;
+    border-radius:20px;
+    background:#7C5CBF;
+    color:#fff;
+    font-size:15px;
+    cursor:pointer;
+    box-shadow:0 4px 12px #7C5CBF44;
+}
+#loginBtn:hover{
+    background:#6543a5;
+}
+
+#userBox{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    z-index:9998;
+    align-items:center;
+    gap:8px;
+    padding:8px 12px;
+    background:#fff;
+    border-radius:20px;
+    box-shadow:0 4px 12px #0002;
+    font-size:14px;
+    color:#333;
+}
+#userBox button{
+    background:#e5dcff;
+    color:#6543a5;
+    border:none;
+    border-radius:12px;
+    padding:5px 10px;
+    cursor:pointer;
+    font-size:13px;
+}
+body.dark-mode #userBox{
+    background:#222;
+    color:#eee;
+}
+
+#loginModal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.5);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:10000;
+    padding:15px;
+}
+#loginModal.show{
+    display:flex;
+}
+
+.login-card{
+    width:100%;
+    max-width:320px;
+    background:#fff;
+    border-radius:20px;
+    padding:24px 20px;
+    text-align:center;
+    position:relative;
+    box-shadow:0 10px 40px #0003;
+}
+.login-card h3{
+    margin:0 0 16px;
+    color:#6543a5;
+}
+.login-close{
+    position:absolute;
+    top:12px;
+    right:14px;
+    border:none;
+    background:none;
+    font-size:18px;
+    cursor:pointer;
+    color:#999;
+}
+.lg-btn{
+    display:block;
+    width:100%;
+    padding:11px;
+    margin:8px 0;
+    border:none;
+    border-radius:12px;
+    font-size:15px;
+    cursor:pointer;
+    background:#f4f4f4;
+    color:#333;
+}
+.lg-btn.google{
+    background:#fff;
+    border:1px solid #ddd;
+    color:#4285F4;
+    font-weight:bold;
+}
+.lg-btn.github{
+    background:#24292f;
+    color:#fff;
+}
+.lg-btn.email{
+    background:#7C5CBF;
+    color:#fff;
+}
+.lg-btn.guest{
+    background:#eee;
+    color:#777;
+}
+.login-card input{
+    width:100%;
+    box-sizing:border-box;
+    padding:10px;
+    margin:8px 0;
+    border:1px solid #ddd;
+    border-radius:10px;
+    font-size:14px;
+}
+.lg-divider{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:6px 0;
+    color:#aaa;
+    font-size:13px;
+}
+.lg-divider:before,.lg-divider:after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:#eee;
+}
+.lg-link{
+    background:none;
+    border:none;
+    color:#7C5CBF;
+    cursor:pointer;
+    font-size:13px;
+    margin-top:2px;
+}
+
+body.dark-mode .login-card{
+    background:#222;
+    color:#eee;
+}
+body.dark-mode .login-card h3{
+    color:#c9b6ff;
+}
+body.dark-mode .lg-btn{
+    background:#333;
+    color:#eee;
+}
+body.dark-mode .lg-btn.google{
+    background:#333;
+    border-color:#555;
+    color:#8ab4f8;
+}
+body.dark-mode .lg-btn.guest{
+    background:#333;
+    color:#999;
+}
+body.dark-mode .login-card input{
+    background:#111;
+    color:#eee;
+    border-color:#444;
+}
+
+/* ===== 登录门（全屏，加载条后弹出） ===== */
+
+#loginGate{
+    position:fixed;
+    inset:0;
+    z-index:100000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background:linear-gradient(160deg,#7C5CBF,#5a4a9c,#3a356e);
+}
+#loginGate.show{
+    display:flex;
+}
+
+.gate-card{
+    width:100%;
+    max-width:350px;
+    background:#fff;
+    border-radius:24px;
+    padding:28px 22px;
+    box-shadow:0 20px 60px rgba(0,0,0,.4);
+    text-align:center;
+}
+.gate-card h2{
+    margin:0 0 6px;
+    color:#6543a5;
+}
+.gate-card h3{
+    margin:0 0 16px;
+    color:#6543a5;
+}
+.gate-card p{
+    color:#888;
+    font-size:14px;
+    margin:0 0 18px;
+}
+
+.gate-main{
+    display:block;
+    width:100%;
+    padding:14px;
+    margin:10px 0;
+    border:none;
+    border-radius:14px;
+    font-size:17px;
+    cursor:pointer;
+    background:#7C5CBF;
+    color:#fff;
+    box-shadow:0 4px 12px #7C5CBF44;
+}
+.gate-main:hover{
+    background:#6543a5;
+}
+.gate-main.guest{
+    background:#f0edf8;
+    color:#6543a5;
+    box-shadow:none;
+}
+.gate-main.guest:hover{
+    background:#e5dcff;
+}
+
+.gate-back{
+    background:none;
+    border:none;
+    color:#7C5CBF;
+    cursor:pointer;
+    margin-top:14px;
+    font-size:14px;
+}
+
+body.dark-mode .gate-card{
+    background:#222;
+    color:#eee;
+}
+body.dark-mode .gate-card h2,
+body.dark-mode .gate-card h3{
+    color:#c9b6ff;
+}
+body.dark-mode .gate-card p{
+    color:#aaa;
+}
+body.dark-mode .gate-main.guest{
+    background:#333;
+    color:#c9b6ff;
+}
