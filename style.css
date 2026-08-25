@@ -1288,7 +1288,7 @@ body.dark-mode #playlist-window > button{
     z-index: 3;
 }
 
-/* ===== 彩蛋动画 ===== */
+/* ===== 彩蛋动画（金色流光） ===== */
 
 #easter-egg {
     position: fixed;
@@ -1300,7 +1300,7 @@ body.dark-mode #playlist-window > button{
 
     transform: translateX(-50%) scale(0.8);
 
-    background: rgba(122, 198, 255, 0.35);
+    background: rgb(49,37,23);
     border-radius: 40px;
 
     display: flex;
@@ -1312,6 +1312,17 @@ body.dark-mode #playlist-window > button{
     overflow: hidden;
 
     z-index: 9999;
+
+    box-shadow: 0 0 22px rgba(79,61,37,.45);
+}
+
+#easter-egg > span {
+    position: relative;
+    z-index: 1;
+    color: #f3e3bd;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
 
 @keyframes easterPop {
@@ -1355,15 +1366,15 @@ body.dark-mode #playlist-window > button{
 
     position: absolute;
     top: 0;
-    left: -100px;
+    left: -120px;
 
-    width: 100px;
+    width: 140px;
     height: 100%;
 
     background: linear-gradient(
         90deg,
         transparent,
-        rgba(255, 220, 150, 0.8),
+        rgb(79, 61, 37),
         transparent
     );
 
