@@ -11,7 +11,7 @@
 
 <title>毛毛的个人主页</title>
 
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=15">
 
 </head>
 
@@ -433,17 +433,44 @@ updateTime();
     </div>
 </div>
 
-<div id="userBox" style="display:none;">
-    <img id="userPhoto" width="26" height="26" style="border-radius:50%;object-fit:cover;">
-    <span id="userName"></span>
-    <button onclick="logout()">退出</button>
+<!-- ===== 账号按钮 + 账号菜单 ===== -->
+
+<button id="accountBtn" style="display:none;" onclick="toggleAccountMenu(event)">
+    <img id="accPhoto" width="26" height="26" style="border-radius:50%;object-fit:cover;">
+    <span id="accName">游客</span>
+    <span id="accCaret">▾</span>
+</button>
+
+<div id="accountMenu" style="display:none;">
+    <div class="acc-header">
+        <img id="menuPhoto" width="42" height="42" style="border-radius:50%;object-fit:cover;">
+        <div>
+            <div id="menuName"></div>
+            <div id="menuEmail"></div>
+        </div>
+    </div>
+
+    <div class="acc-section">
+        <div class="acc-title">🎛️ 绑定其他登录方式</div>
+        <div id="bindList"></div>
+        <div id="bindEmailBox" style="display:none;">
+            <input id="bindEmail" type="email" placeholder="邮箱">
+            <input id="bindPass" type="password" placeholder="密码">
+            <button class="acc-small" onclick="linkEmail()">绑定邮箱</button>
+        </div>
+    </div>
+
+    <div class="acc-section">
+        <button class="acc-small" onclick="switchAccount()">切换账号</button>
+        <button class="acc-small danger" onclick="logout()">退出登录</button>
+    </div>
 </div>
 
 <!-- ===== Firebase Auth SDK ===== -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script src="login.js" defer></script>
+<script src="firebase-config.js?v=2"></script>
+<script src="login.js?v=3" defer></script>
 
 </body>
 

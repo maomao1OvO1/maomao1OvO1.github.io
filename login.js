@@ -1,4 +1,4 @@
-// ===== 登录系统（Firebase Auth：登录门流程 登录/游客 → 登录方式 → 进入主页） =====
+// ===== 登录系统（Firebase Auth + 账号菜单 + 绑定多个登录方式） =====
 
 let auth = null;
 
@@ -10,18 +10,16 @@ function initFirebase(){
     if(!isConfigReady() || !firebase) return;
     firebase.initializeApp(window.FIREBASE_CONFIG);
     auth = firebase.auth();
-    // 实时监听：登录成功后自动放行
     auth.onAuthStateChanged(function(user){
         if(user) showLoginState(user, true);
     });
 }
 
-// ===== 登录门 =====
+// ===================== 登录门 =====================
 
 function showLoginGate(){
     const g = document.getElementById("loginGate");
     if(!g) return;
-    // 已登录或已选游客 → 直接放行
     if(localStorage.getItem("guestMode")){ g.style.display = "none"; return; }
     if(localStorage.getItem("authUser")){
         g.style.display = "none";
@@ -58,7 +56,7 @@ function gateGuest(){
     showUserBox("游客", "");
 }
 
-// ===== 登录方式 =====
+// ===================== 登录方式(登录门第二步) =====================
 
 function loginProvider(providerName){
     if(!auth){ alert("登录需先在 firebase-config.js 填入你的 Firebase 配置"); return; }
@@ -66,7 +64,7 @@ function loginProvider(providerName){
         ? new firebase.auth.GoogleAuthProvider()
         : new firebase.auth.GithubAuthProvider();
     firebase.auth().signInWithPopup(p)
-    .then(function(){ /* onAuthStateChanged 处理放行 */ })
+    .then(function(){})
     .catch(function(err){ alert("登录失败：" + (err.message || err)); });
 }
 
@@ -75,11 +73,11 @@ function emailLogin(email, pass, isSignup){
     const f = isSignup
         ? firebase.auth().createUserWithEmailAndPassword(email, pass)
         : firebase.auth().signInWithEmailAndPassword(email, pass);
-    f.then(function(){ /* onAuthStateChanged 处理放行 */ })
+    f.then(function(){})
      .catch(function(err){ alert("邮箱登录失败：" + (err.message || err)); });
 }
 
-// ===== 登录状态 → 显示用户 + 放行 =====
+// ===================== 登录状态 =====================
 
 function showLoginState(user, loggedIn){
     if(loggedIn && user){
@@ -92,24 +90,131 @@ function showLoginState(user, loggedIn){
     hideLoginGate();
 }
 
+// ===================== 账号按钮 + 菜单 =====================
+
 function showUserBox(name, photo){
-    const box = document.getElementById("userBox");
-    if(!box) return;
-    box.style.display = "flex";
-    const n = document.getElementById("userName");
+    const btn = document.getElementById("accountBtn");
+    if(!btn) return;
+    btn.style.display = "inline-flex";
+    const n = document.getElementById("accName");
     if(n) n.textContent = name;
-    const img = document.getElementById("userPhoto");
+    const img = document.getElementById("accPhoto");
     if(img && photo) img.src = photo;
+}
+
+function toggleAccountMenu(event){
+    if(event) event.stopPropagation();
+    const m = document.getElementById("accountMenu");
+    if(!m) return;
+    const show = m.style.display !== "block";
+    m.style.display = show ? "block" : "none";
+    if(show) updateAccountMenu(auth && auth.currentUser);
+}
+
+function hideAccountMenu(){
+    const m = document.getElementById("accountMenu");
+    if(m) m.style.display = "none";
+}
+
+function updateAccountMenu(user){
+    const menu = document.getElementById("accountMenu");
+    if(!menu) return;
+    const nameEl = document.getElementById("menuName");
+    const emEl = document.getElementById("menuEmail");
+    const photoEl = document.getElementById("menuPhoto");
+    const list = document.getElementById("bindList");
+    if(!user){
+        if(nameEl) nameEl.textContent = "游客";
+        if(emEl) emEl.textContent = "未登录";
+        if(list) list.innerHTML = "游客暂未关联任何登录方式";
+        return;
+    }
+    if(nameEl) nameEl.textContent = user.displayName || user.email || "用户";
+    if(emEl) emEl.textContent = user.email || "";
+    if(photoEl && user.photoURL) photoEl.src = user.photoURL;
+
+    const linked = {};
+    (user.providerData || []).forEach(function(p){ linked[p.providerId] = true; });
+    let html = "";
+    html += linked["google.com"]
+        ? '<span class="acc-badge">Google ✓</span>'
+        : '<button class="acc-small" onclick="bindProvider(\'google\')">绑定 Google</button>';
+    html += linked["github.com"]
+        ? '<span class="acc-badge">GitHub ✓</span>'
+        : '<button class="acc-small" onclick="bindProvider(\'github\')">绑定 GitHub</button>';
+    html += linked["password"]
+        ? '<span class="acc-badge">邮箱 ✓</span>'
+        : '<button class="acc-small" onclick="showBindEmail()">绑定邮箱</button>';
+    if(list) list.innerHTML = html;
+}
+
+// ===================== 绑定其他登录方式(账号关联) =====================
+
+function bindProvider(providerName){
+    if(!auth || !auth.currentUser){ alert("请先登录"); return; }
+    let p = providerName === "google"
+        ? new firebase.auth.GoogleAuthProvider()
+        : new firebase.auth.GithubAuthProvider();
+    auth.currentUser.linkWithPopup(p)
+    .then(function(){ alert("已绑定 " + providerName); updateAccountMenu(auth.currentUser); })
+    .catch(function(err){
+        if(err.code === "auth/credential-already-in-use") alert("该登录方式已绑定到其他账号");
+        else alert("绑定失败：" + (err.message || err));
+    });
+}
+
+function showBindEmail(){
+    const box = document.getElementById("bindEmailBox");
+    if(box) box.style.display = "block";
+}
+
+function linkEmail(){
+    if(!auth || !auth.currentUser){ alert("请先登录"); return; }
+    const email = document.getElementById("bindEmail").value.trim();
+    const pass = document.getElementById("bindPass").value;
+    if(!email || !pass){ alert("请填邮箱和密码"); return; }
+    const cred = firebase.auth.EmailAuthProvider.credential(email, pass);
+    auth.currentUser.linkWithCredential(cred)
+    .then(function(){
+        // 发一封验证邮件到该邮箱，确认邮箱归属（防止乱绑）
+        auth.currentUser.sendEmailVerification()
+        .then(function(){
+            alert("已绑定该邮箱；已往 " + email + " 发送验证邮件，请到邮箱点链接确认，才算验证通过。");
+        })
+        .catch(function(){
+            alert("已绑定该邮箱，但验证邮件发送失败（可在 Firebase → 认证 → 电子邮件模板 配置发件域名）。");
+        });
+        updateAccountMenu(auth.currentUser);
+    })
+    .catch(function(err){
+        if(err.code === "auth/credential-already-in-use") alert("该邮箱已绑定到其他账号，无法再次绑定");
+        else alert("绑定失败：" + (err.message || err));
+    });
+}
+
+// ===================== 切换账号 / 退出 =====================
+
+function switchAccount(){
+    if(auth) auth.signOut();
+    localStorage.removeItem("authUser");
+    localStorage.removeItem("guestMode");
+    hideAccountMenu();
+    const btn = document.getElementById("accountBtn");
+    if(btn) btn.style.display = "none";
+    showLoginGate();
 }
 
 function logout(){
     if(auth) auth.signOut();
     localStorage.removeItem("authUser");
     localStorage.removeItem("guestMode");
-    const box = document.getElementById("userBox");
-    if(box) box.style.display = "none";
+    hideAccountMenu();
+    const btn = document.getElementById("accountBtn");
+    if(btn) btn.style.display = "none";
     showLoginGate();
 }
+
+// ===================== 邮箱表单切换(登录门) =====================
 
 function toggleEmailMode(){
     const t = document.getElementById("emailMode");
@@ -119,8 +224,17 @@ function toggleEmailMode(){
     t.textContent = isSignup ? "没有账号?注册" : "已有账号?登录";
 }
 
+// 点击菜单外关闭
+document.addEventListener("click", function(e){
+    const m = document.getElementById("accountMenu");
+    const b = document.getElementById("accountBtn");
+    if(!m || m.style.display !== "block") return;
+    if(!m.contains(e.target) && !(b && b.contains(e.target))){
+        m.style.display = "none";
+    }
+});
+
 document.addEventListener("DOMContentLoaded", function(){
     initFirebase();
-    // 若已有登录/游客状态,按需显示
     if(auth && auth.currentUser){ showLoginState(auth.currentUser, true); }
 });
