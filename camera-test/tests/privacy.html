@@ -366,8 +366,8 @@ body.dark-mode button.mini{
 
 <!-- ===== 危险提示 ===== -->
 <div class="warning">
-⚠️ <b>危险提示</b>：下面的"一键授权"会请求<b>摄像头、麦克风、地理位置、通知、剪贴板、蓝牙、USB、串口、屏幕常亮</b>等权限。<br>
-<b>一旦授权，网站就能看到你、听到你、知道你在哪、给你发通知、读你剪贴板、访问你的硬件设备</b> —— 这是真实且敏感的隐私风险。<br>
+⚠️ <b>危险提示</b>：下面的"一键授权"会请求<b>摄像头、麦克风、地理位置、通知、剪贴板、蓝牙、USB、串口、屏幕常亮、屏幕录制、本地文件、联系人、HID、分享、持久存储</b>等权限。<br>
+<b>一旦授权，网站就能看到你、听到你、知道你在哪、看/录你屏幕、读写你文件、读你通讯录、给你发通知、访问你硬件设备</b> —— 这是真实且敏感的隐私风险。<br>
 请在<b>你信任的网站</b>才执行；测试完点"🛑 停止"关闭摄像头/麦克风。
 </div>
 
@@ -399,6 +399,12 @@ body.dark-mode button.mini{
 <div class="item"><div class="label">🔧 串口</div><div id="serial" class="value">未请求</div></div>
 <div class="item"><div class="label">🌙 屏幕常亮</div><div id="wake" class="value">未请求</div></div>
 <div class="item"><div class="label">🎹 MIDI</div><div id="midi" class="value">未请求</div></div>
+<div class="item"><div class="label">📺 屏幕录制</div><div id="screen" class="value">未请求</div></div>
+<div class="item"><div class="label">📁 本地文件</div><div id="file" class="value">未请求</div></div>
+<div class="item"><div class="label">👥 联系人</div><div id="contacts" class="value">未请求</div></div>
+<div class="item"><div class="label">🖱️ HID设备</div><div id="hid" class="value">未请求</div></div>
+<div class="item"><div class="label">🔗 网页分享</div><div id="share" class="value">未请求</div></div>
+<div class="item"><div class="label">💾 持久存储</div><div id="persist" class="value">未请求</div></div>
 
 <video id="cameraVideo" autoplay playsinline muted></video>
 
@@ -696,49 +702,42 @@ set("histLen", history.length + " 条");
 let activeStreams = [];
 let audioCtx = null, audioRAF = null;
 
-function authorizeAll(){
-    set("perm-status", "⏳ 正在请求授权……", "warn");
-    grantGeo();
-    grantCamera();
-    grantMic();
-    grantNotif();
-    grantClipboard();
-    grantBattery();
-    grantBt();
-    grantUsb();
-    grantSerial();
-    grantWake();
-    grantMidi();
+async function authorizeAll(){
+    set("perm-status", "⏳ 正在逐个请求授权(一次一个,避免弹窗打架)…", "warn");
+    const grants = [grantGeo, grantCamera, grantMic, grantNotif, grantClipboard, grantBattery,
+                    grantBt, grantUsb, grantSerial, grantWake, grantMidi,
+                    grantScreen, grantFile, grantContacts, grantHid, grantShare, grantPersist];
+    for(let i=0;i<grants.length;i++){
+        try{ await grants[i](); }catch(e){ /* 单项失败/取消不影响后续 */ }
+    }
+    set("perm-status", "✅ 已逐个请求完", "ok");
 }
 
 // 地理位置
 let geoWatcher = null;
 
-// high=true 用 GPS(卫星,不受梯子影响,需室外/清晰天空,较慢)
-// high=false 用网络/WIFI(快,但梯子会干扰)
-function grantGeo(high){
-    if(!("geolocation" in navigator)){ set("geo","浏览器不支持","no"); return; }
-    if(high){
-        set("geo", "⏳ 正在用GPS定位(不受梯子影响;需室外/清晰天空,可能较慢)…", "warn");
-    }else{
-        set("geo", "⏳ 正在用网络/WIFI定位(快,但梯子会干扰;建议关梯子或用GPS)…", "warn");
-    }
-    if(geoWatcher) navigator.geolocation.clearWatch(geoWatcher);
-    // watchPosition：持续尝试，比一次性 getCurrentPosition 更容易拿到位置
-    geoWatcher = navigator.geolocation.watchPosition(
-        function(pos){
-            set("geo", "📍 " + pos.coords.latitude.toFixed(5) + ", " + pos.coords.longitude.toFixed(5) +
-                " (±" + Math.round(pos.coords.accuracy) + "m)", "ok");
-        },
-        function(err){
-            // err.code: 1=拒绝 2=定位不可用 3=超时
-            if(err.code === 1) set("geo", "🔴 你拒绝了定位权限", "no");
-            else if(err.code === 2) set("geo", "🟡 定位不可用——请在系统设置里打开「位置服务」", "warn");
-            else if(err.code === 3) set("geo", "🟡 定位超时——" + (high ? "GPS在室内/被遮挡拿不到,到室外试试" : "很可能是梯子干扰,建议关梯子或用GPS重试"), "warn");
-            else set("geo", "🟡 定位失败:" + err.message, "warn");
-        },
-        { enableHighAccuracy: !!high, timeout: 25000, maximumAge: 0 }
-    );
+// 系统定位(拿到/失败都会 resolve，方便顺序请求不卡住)
+function grantGeo(){
+    return new Promise(function(resolve){
+        if(!("geolocation" in navigator)){ set("geo","浏览器不支持","no"); return resolve(); }
+        set("geo", "⏳ 正在定位…", "warn");
+        navigator.geolocation.getCurrentPosition(
+            function(pos){
+                set("geo", "📍 " + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4) +
+                    " (±" + Math.round(pos.coords.accuracy) + "m)", "ok");
+                resolve();
+            },
+            function(err){
+                // err.code: 1=拒绝 2=不可用 3=超时
+                if(err.code === 1) set("geo", "🔴 你拒绝了定位权限", "no");
+                else if(err.code === 2) set("geo", "🟡 定位不可用——请在系统设置里打开「位置服务」", "warn");
+                else if(err.code === 3) set("geo", "🟡 定位超时(室内/梯子)", "warn");
+                else set("geo", "🟡 定位失败:" + err.message, "warn");
+                resolve();
+            },
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        );
+    });
 }
 
 // 摄像头
@@ -810,11 +809,12 @@ async function grantClipboard(){
 }
 
 // 电池
-function grantBattery(){
+async function grantBattery(){
     if(!("getBattery" in navigator)){ set("battery","浏览器不提供","no"); return; }
-    navigator.getBattery().then(function(b){
+    try{
+        const b = await navigator.getBattery();
         set("battery", "🔋 " + Math.round(b.level*100) + "% " + (b.charging ? "⚡充电中" : "🔋放电"), "ok");
-    }).catch(function(){ set("battery","读取失败","warn"); });
+    }catch(e){ set("battery","读取失败","warn"); }
 }
 
 // 蓝牙
@@ -869,6 +869,74 @@ async function grantMidi(){
         set("midi", "🟢 已授权(MIDI 设备)", "ok");
     }catch(e){
         set("midi", "🔴 已取消/浏览器不支持", "no");
+    }
+}
+
+// 屏幕录制/共享
+async function grantScreen(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){ set("screen","浏览器不支持","no"); return; }
+    try{
+        const s = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        // 拿到屏幕流，立刻停止(演示用)
+        s.getTracks().forEach(function(t){ t.stop(); });
+        set("screen", "🟢 已授权(可录制/共享你的屏幕)", "ok");
+    }catch(e){
+        set("screen", "🔴 已取消/不支持", "no");
+    }
+}
+
+// 本地文件访问
+async function grantFile(){
+    if(!window.showOpenFilePicker){ set("file","浏览器不支持(需桌面Chrome/Edge)","no"); return; }
+    try{
+        const fh = await window.showOpenFilePicker();
+        set("file", "🟢 已授权,可读文件: " + ((fh[0]&&fh[0].name)||"文件"), "ok");
+    }catch(e){
+        set("file", "🔴 已取消/不支持", "no");
+    }
+}
+
+// 联系人
+async function grantContacts(){
+    if(!navigator.contacts || !navigator.contacts.select){ set("contacts","浏览器不支持","no"); return; }
+    try{
+        const cs = await navigator.contacts.select(["name","email","tel"], { multiple: true });
+        set("contacts", "🟢 已授权,读到 " + (cs?cs.length:0) + " 位联系人", "ok");
+    }catch(e){
+        set("contacts", "🔴 已取消/不支持", "no");
+    }
+}
+
+// HID 设备
+async function grantHid(){
+    if(!navigator.hid || !navigator.hid.requestDevice){ set("hid","浏览器不支持(需桌面Chrome)","no"); return; }
+    try{
+        const dev = await navigator.hid.requestDevice({ filters: [] });
+        set("hid", "🟢 已授权(HID 设备)", "ok");
+    }catch(e){
+        set("hid", "🔴 已取消/不支持", "no");
+    }
+}
+
+// 网页分享
+async function grantShare(){
+    if(!navigator.share){ set("share","浏览器不支持","no"); return; }
+    try{
+        await navigator.share({ title:"分享测试", text:"测试网页分享能力" });
+        set("share", "🟢 已调起分享", "ok");
+    }catch(e){
+        set("share", "🔴 已取消/不支持", "no");
+    }
+}
+
+// 持久化存储
+async function grantPersist(){
+    if(!navigator.storage || !navigator.storage.persist){ set("persist","浏览器不支持","no"); return; }
+    try{
+        const granted = await navigator.storage.persist();
+        set("persist", granted ? "🟢 已持久化保存" : "🟡 未授予持久存储", granted ? "ok" : "warn");
+    }catch(e){
+        set("persist", "🔴 不支持", "no");
     }
 }
 
