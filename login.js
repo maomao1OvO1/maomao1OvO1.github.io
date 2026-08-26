@@ -79,20 +79,46 @@ function emailLogin(email, pass, isSignup){
 
 // ===================== 登录状态 =====================
 
+// ===================== 登录状态 =====================
+
+// 灰色默认头像（未登录/无头像时显示，通用软件风格：灰底+白色人形剪影）
+const DEFAULT_AVATAR = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">' +
+    '<circle cx="64" cy="64" r="64" fill="#c9c9c9"/>' +
+    '<circle cx="64" cy="48" r="22" fill="#ffffff"/>' +
+    '<path d="M64 76c-22 0-40 14-40 31v21h80v-21c0-17-18-31-40-31z" fill="#ffffff"/>' +
+    '</svg>');
+
+// 头像选择：Google 优先 → GitHub 其次 → 邮箱(无头像) → 灰色默认
+function pickAvatar(user){
+    try{
+        if(!user) return DEFAULT_AVATAR;
+        // 1) Google
+        const google = (user.providerData || []).find(function(p){ return p.providerId === "google.com"; });
+        if(google && google.photoURL) return google.photoURL;
+        // 2) GitHub
+        const github = (user.providerData || []).find(function(p){ return p.providerId === "github.com"; });
+        if(github && github.photoURL) return github.photoURL;
+        // 3) 当前 photoURL（邮箱绑定等）
+        if(user.photoURL) return user.photoURL;
+    }catch(e){}
+    return DEFAULT_AVATAR;
+}
+
 function showLoginState(user, loggedIn){
     if(loggedIn && user){
         const name = user.displayName || user.email;
-        const photo = user.photoURL || "";
+        const photo = pickAvatar(user);
         localStorage.setItem("authUser", JSON.stringify({name: name, email: user.email, photo: photo}));
         localStorage.removeItem("guestMode");
-        showUserBox(name, photo);
+        showUserBox(name, photo, user);
     }
     hideLoginGate();
 }
 
 // ===================== 账号按钮 + 菜单 =====================
 
-function showUserBox(name, photo){
+function showUserBox(name, photo, user){
     const btn = document.getElementById("accountBtn");
     if(!btn) return;
     btn.style.display = "inline-flex";
@@ -115,7 +141,15 @@ function showUserBox(name, photo){
         }
     }
     const img = document.getElementById("accPhoto");
-    if(img && photo) img.src = photo;
+    if(img){
+        img.classList.remove("avatar-default");
+        if(photo){
+            img.src = photo;
+        }else{
+            img.src = DEFAULT_AVATAR;
+            img.classList.add("avatar-default");
+        }
+    }
 }
 
 function toggleAccountMenu(event){
@@ -147,7 +181,16 @@ function updateAccountMenu(user){
     }
     if(nameEl) nameEl.textContent = user.displayName || user.email || "用户";
     if(emEl) emEl.textContent = user.email || "";
-    if(photoEl && user.photoURL) photoEl.src = user.photoURL;
+    if(photoEl){
+        const p = pickAvatar(user);
+        photoEl.classList.remove("avatar-default");
+        if(p){
+            photoEl.src = p;
+        }else{
+            photoEl.src = DEFAULT_AVATAR;
+            photoEl.classList.add("avatar-default");
+        }
+    }
 
     const linked = {};
     (user.providerData || []).forEach(function(p){ linked[p.providerId] = true; });

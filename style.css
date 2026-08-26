@@ -2576,6 +2576,15 @@ body.dark-mode .gate-main.guest{
 #accountBtn img{
     display:inline-block;
 }
+/* 灰色默认头像（未登录/无头像时显示）*/
+.avatar-default{
+    background:#d8d8d8 !important;
+    border-radius:50% !important;
+    object-fit:cover !important;
+}
+body.dark-mode .avatar-default{
+    background:#3a3a3a !important;
+}
 #accCaret{
     color:#999;
     font-size:12px;
