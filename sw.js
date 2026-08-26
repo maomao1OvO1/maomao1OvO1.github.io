@@ -1,4 +1,4 @@
-const CACHE_NAME = "maomao-v20";
+const CACHE_NAME = "maomao-v21";
 
 const CORE_ASSETS = [
     "/",
