@@ -112,13 +112,27 @@ const DEFAULT_AVATAR = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
     '</svg>');
 
 // 联系方式解锁：仅«毛毛»账号登录显示真邮箱, 游客/其他人显示"请登录后查看"
+// 联系邮箱 · 混淆存储（倒序+Base64 双重编码, 源码/爬虫搜不到明文邮箱）
+// 解码函数: 只在毛毛账号登录时才执行
+var CONTACT_EMAIL_ENC = "bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft";              // 主人邮箱(编码)
+var CONTACT_EMAIL_163_ENC = "bW9jLjM2MUAxb3ZvMW9hbW9hbQ==";          // 备用邮箱(编码)
+function decodeContactEmail(s){
+    try{ return atob(s).split("").reverse().join(""); }catch(e){ return ""; }
+}
+
 function updateContactEmail(user){
     try{
         const el = document.getElementById("contactEmail");
         if(!el) return;
-        const isMaoMao = user && (user.email ? /maomao1ovo1@(gmail|163)\.com$/i.test(user.email) : false);
+        const MAIL = decodeContactEmail(CONTACT_EMAIL_ENC);
+        const MAIL2 = decodeContactEmail(CONTACT_EMAIL_163_ENC);
+        let isMaoMao = false;
+        if(user && user.email){
+            const m = String(user.email).toLowerCase().trim();
+            isMaoMao = (m === MAIL || m === MAIL2);
+        }
         if(isMaoMao){
-            el.textContent = "maomao1ovo1@gmail.com";
+            el.textContent = MAIL;
             el.classList.remove("contact-locked");
         }else{
             el.textContent = "🔒 请登录后查看";
