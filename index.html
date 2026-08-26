@@ -424,9 +424,17 @@ updateTime();
             <button class="lg-btn google" onclick="loginProvider('google')">谷歌登录</button>
             <button class="lg-btn github" onclick="loginProvider('github')">GitHub 登录</button>
             <div class="lg-divider"><span>或</span></div>
-            <input id="lgEmail" type="email" placeholder="邮箱">
-            <input id="lgPass" type="password" placeholder="密码">
-            <button class="lg-btn email" onclick="emailLogin(document.getElementById('lgEmail').value, document.getElementById('lgPass').value, document.getElementById('emailMode').getAttribute('data-mode')==='signup')">邮箱登录</button>
+            <input id="lgEmail" class="lg-input" type="email" placeholder="邮箱">
+            <div class="lg-pass-wrap">
+                <input id="lgPass" class="lg-input" type="password" placeholder="密码">
+                <button type="button" class="lg-eye" onclick="togglePassEye('lgPass', this)" aria-label="显示/隐藏密码">👁</button>
+            </div>
+            <div class="lg-pass-wrap" id="lgPass2Wrap" style="display:none;">
+                <input id="lgPass2" class="lg-input" type="password" placeholder="确认密码" autocomplete="new-password">
+                <button type="button" class="lg-eye" onclick="togglePassEye('lgPass2', this)" aria-label="显示/隐藏密码">👁</button>
+            </div>
+            <div class="lg-pass-hint" id="lgPassHint" style="display:none;">🔒 密码至少 6 位，两遍输入需保持一致</div>
+            <button class="lg-btn email" id="lgSubmit" onclick="emailLogin(document.getElementById('lgEmail').value, document.getElementById('lgPass').value, document.getElementById('emailMode').getAttribute('data-mode')==='signup')">邮箱登录</button>
             <button id="emailMode" class="lg-link" data-mode="login" onclick="toggleEmailMode()">没有账号?注册</button>
             <button class="gate-back" onclick="gateBack()">← 返回</button>
         </div>
@@ -465,6 +473,30 @@ updateTime();
     </div>
 
     <div class="acc-section">
+        <div class="acc-title">🔐 账号安全</div>
+        <button class="acc-small" id="changePassBtn" onclick="showChangePassword()" style="display:none;">更改密码</button>
+        <div id="changePassBox" style="display:none;">
+            <div class="acc-row" style="margin-top:8px;">
+                <label class="acc-label">更改密码</label>
+            </div>
+            <div class="lg-pass-wrap">
+                <input id="changeOldPass" class="lg-input" type="password" placeholder="当前密码">
+                <button type="button" class="lg-eye" onclick="togglePassEye('changeOldPass', this)" aria-label="显示/隐藏密码">👁</button>
+            </div>
+            <div class="lg-pass-wrap">
+                <input id="changeNewPass" class="lg-input" type="password" placeholder="新密码（至少 6 位）">
+                <button type="button" class="lg-eye" onclick="togglePassEye('changeNewPass', this)" aria-label="显示/隐藏密码">👁</button>
+            </div>
+            <div class="lg-pass-wrap">
+                <input id="changeNewPass2" class="lg-input" type="password" placeholder="确认新密码">
+                <button type="button" class="lg-eye" onclick="togglePassEye('changeNewPass2', this)" aria-label="显示/隐藏密码">👁</button>
+            </div>
+            <button class="acc-small" onclick="changePassword()">确认修改</button>
+            <div class="acc-hint">⚠️ 需要输入当前密码验证身份</div>
+        </div>
+    </div>
+
+    <div class="acc-section">
         <button class="acc-small" onclick="switchAccount()">切换账号</button>
         <button class="acc-small danger" onclick="logout()">退出登录</button>
     </div>
@@ -474,7 +506,7 @@ updateTime();
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="firebase-config.js?v=2"></script>
-<script src="login.js?v=10" defer></script>
+<script src="login.js?v=12" defer></script>
 
 </body>
 

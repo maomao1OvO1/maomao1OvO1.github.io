@@ -2461,6 +2461,66 @@ body.dark-mode .lg-btn.guest{
     background:#333;
     color:#999;
 }
+
+/* ===== 登录/注册表单输入（2026-08-26 两遍确认版） ===== */
+.lg-input{
+    width:100%;
+    box-sizing:border-box;
+    padding:11px 12px;
+    margin:8px 0;
+    border:1px solid #ddd;
+    border-radius:12px;
+    font-size:14px;
+    background:#fff;
+    color:#333;
+    outline:none;
+}
+.lg-input:focus{
+    border-color:#7C5CBF;
+    box-shadow:0 0 0 3px #7C5CBF22;
+}
+.lg-pass-wrap{
+    position:relative;
+    margin:8px 0;
+}
+.lg-pass-wrap .lg-input{
+    margin:0;
+    padding-right:42px;
+}
+.lg-eye{
+    position:absolute;
+    right:6px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-size:15px;
+    opacity:.55;
+    padding:4px 6px;
+    line-height:1;
+}
+.lg-eye:hover{
+    opacity:.9;
+}
+.lg-pass-hint{
+    font-size:12px;
+    color:#999;
+    margin:2px 2px 8px;
+    text-align:left;
+}
+body.dark-mode .lg-input{
+    background:#2a2a2a;
+    border-color:#444;
+    color:#eee;
+}
+body.dark-mode .lg-input:focus{
+    border-color:#8d6fd6;
+    box-shadow:0 0 0 3px #8d6fd622;
+}
+body.dark-mode .lg-eye{
+    opacity:.65;
+}
 body.dark-mode .login-card input{
     background:#111;
     color:#eee;

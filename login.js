@@ -94,6 +94,15 @@ function loginProvider(providerName){
 
 function emailLogin(email, pass, isSignup){
     if(!auth){ alert("登录需先在 firebase-config.js 填入你的 Firebase 配置"); return; }
+    email = String(email||"").trim();
+    if(!email || !pass){ alert("请填写邮箱和密码"); return; }
+    if(isSignup){
+        // 注册：两遍输入确认（新网页软件通用样式）
+        const pass2 = document.getElementById("lgPass2");
+        const p2 = pass2 ? pass2.value : "";
+        if(pass.length < 6){ alert("密码太短啦：至少 6 位"); return; }
+        if(pass !== p2){ alert("两次输入的密码不一致，请重新确认"); return; }
+    }
     const f = isSignup
         ? firebase.auth().createUserWithEmailAndPassword(email, pass)
         : firebase.auth().signInWithEmailAndPassword(email, pass);
@@ -217,11 +226,21 @@ function toggleAccountMenu(event){
 function hideAccountMenu(){
     const m = document.getElementById("accountMenu");
     if(m) m.style.display = "none";
+    // 收起展开的表单（更改密码/绑定邮箱），避免下次打开残留
+    ["changePassBox","bindEmailBox"].forEach(function(id){
+        const box = document.getElementById(id);
+        if(box) box.style.display = "none";
+    });
 }
 
 function updateAccountMenu(user){
     const menu = document.getElementById("accountMenu");
     if(!menu) return;
+    // 每次刷新菜单（含重新打开）都先收起展开的表单，防止残留
+    ["changePassBox","bindEmailBox"].forEach(function(id){
+        const box = document.getElementById(id);
+        if(box) box.style.display = "none";
+    });
     const nameEl = document.getElementById("menuName");
     const emEl = document.getElementById("menuEmail");
     const photoEl = document.getElementById("menuPhoto");
@@ -270,8 +289,12 @@ function updateAccountMenu(user){
     }
     if(linked["password"]){
         html += '<div class="acc-row"><span class="acc-badge">邮箱 ✓</span><button class="acc-small danger" onclick="unlinkProvider(\'password\')">解绑</button></div>';
+        const cpBtn = document.getElementById("changePassBtn");
+        if(cpBtn) cpBtn.style.display = "inline-block";
     }else{
         html += '<div class="acc-row"><button class="acc-small" onclick="showBindEmail()">绑定邮箱</button></div>';
+        const cpBtn = document.getElementById("changePassBtn");
+        if(cpBtn) cpBtn.style.display = "none";
     }
     if(list) list.innerHTML = html;
 }
@@ -314,6 +337,52 @@ function bindProvider(providerName){
 function showBindEmail(){
     const box = document.getElementById("bindEmailBox");
     if(box) box.style.display = "block";
+}
+
+// ===================== 更改密码（邮箱密码账号） =====================
+
+function showChangePassword(){
+    const box = document.getElementById("changePassBox");
+    if(box) box.style.display = "block";
+}
+
+function changePassword(){
+    if(!auth || !auth.currentUser){ alert("请先登录"); return; }
+    const oldPass = document.getElementById("changeOldPass") ? document.getElementById("changeOldPass").value : "";
+    const newPass = document.getElementById("changeNewPass") ? document.getElementById("changeNewPass").value : "";
+    const newPass2 = document.getElementById("changeNewPass2") ? document.getElementById("changeNewPass2").value : "";
+    const email = auth.currentUser.email || "";
+    if(!email){ alert("当前账号没有绑定邮箱密码，无法修改密码"); return; }
+    if(!oldPass || !newPass){ alert("请填写当前密码和新密码"); return; }
+    if(newPass.length < 6){ alert("新密码至少 6 位"); return; }
+    if(newPass !== newPass2){ alert("两次输入的新密码不一致"); return; }
+    if(newPass === oldPass){ alert("新密码不能和当前密码相同"); return; }
+    // 先验证当前密码（防他人登录后改密），再更新
+    const cred = firebase.auth.EmailAuthProvider.credential(email, oldPass);
+    auth.currentUser.reauthenticateWithCredential(cred)
+    .then(function(){
+        return auth.currentUser.updatePassword(newPass);
+    })
+    .then(function(){
+        alert("🎉 密码修改成功！下次请用新密码登录");
+        ["changeOldPass","changeNewPass","changeNewPass2"].forEach(function(id){
+            const el = document.getElementById(id);
+            if(el){ el.value = ""; el.type = "password"; }
+        });
+        const box = document.getElementById("changePassBox");
+        if(box) box.style.display = "none";
+    })
+    .catch(function(err){
+        if(err.code === "auth/wrong-password" || err.code === "auth/invalid-credential"){
+            alert("当前密码不正确，请重新输入");
+        }else if(err.code === "auth/weak-password"){
+            alert("新密码太弱：至少 6 位，别用太简单的");
+        }else if(err.code === "auth/requires-recent-login"){
+            alert("安全起见：请退出后重新登录一次，再改密码");
+        }else{
+            alert("修改失败：" + (err.message || err));
+        }
+    });
 }
 
 function linkEmail(){
@@ -370,6 +439,22 @@ function toggleEmailMode(){
     const isSignup = t.getAttribute("data-mode") === "signup";
     t.setAttribute("data-mode", isSignup ? "login" : "signup");
     t.textContent = isSignup ? "没有账号?注册" : "已有账号?登录";
+    // 注册模式：显示「确认密码」框与提示，按钮文字同步
+    const wrap = document.getElementById("lgPass2Wrap");
+    const hint = document.getElementById("lgPassHint");
+    const submit = document.getElementById("lgSubmit");
+    if(submit) submit.textContent = isSignup ? "邮箱注册" : "邮箱登录";
+    if(wrap) wrap.style.display = isSignup ? "block" : "none";
+    if(hint) hint.style.display = isSignup ? "block" : "none";
+}
+
+// 密码显示/隐藏（👁 按钮，网上软件通用样式）
+function togglePassEye(inputId, btn){
+    const el = document.getElementById(inputId);
+    if(!el) return;
+    el.type = el.type === "password" ? "text" : "password";
+    const show = el.type === "text";
+    if(btn) btn.classList.toggle("on", show);
 }
 
 // 点击菜单外关闭
