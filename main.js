@@ -110,14 +110,15 @@ function saveNickname(){
     let name = document.getElementById("nickname").value.trim();
     if(name){
         localStorage.setItem("playerName", name);
-        document.getElementById("nicknameShow").innerHTML = "当前玩家：" + name;
+        // 用 textContent 防 XSS(昵称含 <img onerror> 等不会执行)
+        document.getElementById("nicknameShow").textContent = "当前玩家：" + name;
     }
 }
 
 // 自动读取昵称
 let playerName = localStorage.getItem("playerName");
 if(playerName){
-    document.getElementById("nicknameShow").innerHTML = "当前玩家：" + playerName;
+    document.getElementById("nicknameShow").textContent = "当前玩家：" + playerName;
 }
 
 // ===== 加载动画：真进度条(保底2秒) =====
