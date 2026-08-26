@@ -104,7 +104,7 @@
 
 <canvas id="gameCanvas" width="800" height="800"></canvas>
 
-<script src="report.js"></script>
+<script src="report.js?v=2"></script>
 <script>
     // ============================================================
     // 大鱼吃小鱼 - 速度适中版（鱼慢，玩家跟手）
@@ -136,7 +136,7 @@
         if (confirm('确定重置大鱼吃小鱼的最高分吗？')) {
             saveHighScore(0);
             updateStatsDisplay();
-            alert('统计已重置！');
+            showToast('统计已重置！');
         }
     }
     updateStatsDisplay();
@@ -319,9 +319,9 @@
                     if (score > high) {
                         saveHighScore(score);
                         updateStatsDisplay();
-                        alert(`🎉 新纪录！最高分：${score}`);
+                        showToast(`🎉 新纪录！最高分：${score}`);
                     } else {
-                        alert(`😵 游戏结束！得分：${score}`);
+                        showToast(`😵 游戏结束！得分：${score}`);
                     }
                     reportScore("fish", score);
                     cancelAnimationFrame(animId);
