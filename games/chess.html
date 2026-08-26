@@ -84,7 +84,7 @@ function loadStats(){let d=localStorage.getItem(STATS_KEY);if(d){try{let p=JSON.
 function saveStats(s){localStorage.setItem(STATS_KEY,JSON.stringify(s));}
 function recordWin(w){let s=loadStats();if(s[mode]){if(w==='white')s[mode].whiteWins++;else if(w==='black')s[mode].blackWins++;saveStats(s);}let wins=0;for(let m in s){wins+=(s[m].whiteWins||0);}reportScore("chess",wins);}
 function updateStatsDisplay(){let s=loadStats();let ms=s[mode]||{whiteWins:0,blackWins:0};let total=ms.whiteWins+ms.blackWins;let mn={'player':'双人模式','normal':'普通AI','stockfish':'高级AI'}[mode]||mode;document.getElementById('stats').innerHTML=`${mn}：白方 ${ms.whiteWins} 胜 &nbsp;|&nbsp; 黑方 ${ms.blackWins} 胜 &nbsp;|&nbsp; 总胜场 ${total}`;}
-function resetStats(){if(confirm('确定要重置所有模式的胜场统计吗？')){saveStats(defaultStats());updateStatsDisplay();showToast('统计已重置！');}}
+function resetStats(){if(confirm('确定要重置所有模式的胜场统计吗？')){saveStats(defaultStats());updateStatsDisplay();alert('统计已重置！');}}
 
 // ===== 工具 =====
 function color(p){if("♙♖♘♗♕♔".includes(p))return"white";return"black";}
@@ -147,11 +147,11 @@ let fen=boardToFEN().replace(/ \d+ \d+$/,'');positionHistory.push(fen);
 let oldTurn=turn;turn=(turn=="white")?"black":"white";
 // 判和
 let rep=0,cur=boardToFEN().replace(/ \d+ \d+$/,'');for(let h of positionHistory)if(h===cur)rep++;
-if(rep>=3){showToast("♻️ 三次重复局面，和棋！");gameEnd=true;animating=false;draw();return;}
-if(halfMoveClock>=100){showToast("♻️ 五十步无吃子/兵移动，和棋！");gameEnd=true;animating=false;draw();return;}
-if(isInsufficientMaterial()){showToast("♻️ 子力不足，无法将死，和棋！");gameEnd=true;animating=false;draw();return;}
+if(rep>=3){alert("♻️ 三次重复局面，和棋！");gameEnd=true;animating=false;draw();return;}
+if(halfMoveClock>=100){alert("♻️ 五十步无吃子/兵移动，和棋！");gameEnd=true;animating=false;draw();return;}
+if(isInsufficientMaterial()){alert("♻️ 子力不足，无法将死，和棋！");gameEnd=true;animating=false;draw();return;}
 // 将军
-if(check()){let kp=findKing(turn);if(kp)inCheckKingPos=kp;if(noLegalMove(turn)){if(turn=="white"){showToast("♟ 黑棋胜利！\n白方被将死！");recordWin("black");updateStatsDisplay();}else{showToast("♙ 白棋胜利！\n黑方被将死！");recordWin("white");updateStatsDisplay();}gameEnd=true;}else{showToast((turn=="white")?"♟ 黑棋将军！":"♙ 白棋将军！");}}else{inCheckKingPos=null;}
+if(check()){let kp=findKing(turn);if(kp)inCheckKingPos=kp;if(noLegalMove(turn)){if(turn=="white"){alert("♟ 黑棋胜利！\n白方被将死！");recordWin("black");updateStatsDisplay();}else{alert("♙ 白棋胜利！\n黑方被将死！");recordWin("white");updateStatsDisplay();}gameEnd=true;}else{alert((turn=="white")?"♟ 黑棋将军！":"♙ 白棋将军！");}}else{inCheckKingPos=null;}
 animating=false;animFrom=null;animTo=null;animPiece=null;animCaptured=null;
 document.getElementById("info").innerHTML=(turn=="white")?"白方回合":"黑方回合";
 // ===== 检查是否轮到AI =====
@@ -211,11 +211,11 @@ if((piece=="♔"||piece=="♚") && isCastlingMove(x1,y1,x2,y2,piece)){
         let kp=findKing(turn);
         if(kp) inCheckKingPos=kp;
         if(noLegalMove(turn)){
-            if(turn=="white"){showToast("♟ 黑棋胜利！\n白方被将死！");recordWin("black");updateStatsDisplay();}
-            else{showToast("♙ 白棋胜利！\n黑方被将死！");recordWin("white");updateStatsDisplay();}
+            if(turn=="white"){alert("♟ 黑棋胜利！\n白方被将死！");recordWin("black");updateStatsDisplay();}
+            else{alert("♙ 白棋胜利！\n黑方被将死！");recordWin("white");updateStatsDisplay();}
             gameEnd=true;
         }else{
-            showToast((turn=="white")?"♟ 黑棋将军！":"♙ 白棋将军！");
+            alert((turn=="white")?"♟ 黑棋将军！":"♙ 白棋将军！");
         }
     }else{inCheckKingPos=null;}
     document.getElementById("info").innerHTML=(turn=="white")?"白方回合":"黑方回合";
@@ -370,7 +370,7 @@ function aiMove(){
 }
 
 function stockfishMove(){
-    if(!stockfish){showToast("Stockfish未启动");return;}
+    if(!stockfish){alert("Stockfish未启动");return;}
     document.getElementById("info").innerHTML="🤖 Stockfish AI思考中...";
     stockfish.onmessage=function(e){
         let msg=e.data;
