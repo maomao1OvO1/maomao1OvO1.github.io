@@ -38,7 +38,7 @@
 ├── firebase-config.js    # Firebase 前端公开配置（Web API Key 可公开）
 ├── sw.js                 # Service Worker 缓存管理
 ├── games/                # 小游戏 + report.js（成绩上报 v3）+ ranking.html
-├── camera-test/          # 硬件测试大厅
+├── hardware-lab/          # 硬件测试大厅
 ├── music/ · photo.html   # 音乐 / 相册角落
 └── tokens-server.js      # 本地预览服务器
 ```
