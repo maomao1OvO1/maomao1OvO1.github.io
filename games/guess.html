@@ -7,7 +7,6 @@
 
 <title>猜数字小游戏</title>
 
-
 <style>
 
 body {
@@ -17,7 +16,6 @@ body {
     font-family: Arial;
 
 }
-
 
 .game-box {
 
@@ -33,7 +31,6 @@ body {
 
 }
 
-
 input {
 
     width: 100px;
@@ -45,7 +42,6 @@ input {
     border: 1px solid #ccc;
 
 }
-
 
 button {
 
@@ -95,13 +91,11 @@ body.dark-mode{
 
 }
 
-
 .dark-mode .game-box{
 
     background:#222;
 
 }
-
 
 .dark-mode input{
 
@@ -113,7 +107,6 @@ body.dark-mode{
 
 }
 
-
 .dark-mode button{
 
     background:#333;
@@ -124,9 +117,7 @@ body.dark-mode{
 
 </style>
 
-
 </head>
-
 
 <body>
 
@@ -148,18 +139,13 @@ if(localStorage.getItem("theme") === "dark"){
 
 <div class="game-box">
 
-
 <h1>🎯 猜数字</h1>
-
 
 <p>我已经想好了一个 1~100 的数字</p>
 
-
 <input id="guess" type="number">
 
-
 <br>
-
 
 <button onclick="checkGuess()">
 
@@ -167,73 +153,50 @@ if(localStorage.getItem("theme") === "dark"){
 
 </button>
 
-
 <p id="result"></p>
 
-
 </div>
-
-
 
 <script src="report.js"></script>
 
 <script>
 
-
 // ===== 游戏核心 =====
-
 
 let answer = Math.floor(Math.random() * 100) + 1;
 
-
 let count = 0;
-
-
 
 function checkGuess(){
 
-
     let num = Number(document.getElementById("guess").value);
-
 
     let result = document.getElementById("result");
 
-
     count++;
 
-
     if(num === answer){
-
 
     result.innerHTML =
     "🎉 猜中了！用了 " + count + " 次";
 
-
     reportScore("guess", count);
-
 
 }    
 
 else if(num > answer){
 
-
         result.innerHTML = "⬇️ 太大了";
-
 
     }else{
 
-
         result.innerHTML = "⬆️ 太小了";
-
 
     }
 
-
 }
 
-
 </script>
-
 
 </body>
 

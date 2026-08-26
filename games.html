@@ -12,23 +12,39 @@ body {
     font-family: Arial;
 }
 
-
-.game-card {
-    margin: 20px auto;
-    padding: 20px;
-    width: 250px;
-    border-radius: 20px;
-    background: #f2f2f2;
+.game-card h2{
+    margin: 0 0 12px;
+    font-size:20px;
 }
 
+.game-card p{
+    margin: 0 0 16px;
+    color:#666;
+    font-size:14px;
+}
+
+.game-card button{
+    margin-top: 2px;
+}
+
+.game-card {
+    margin: 28px 12px;
+    padding: 26px 18px;
+    width: min(280px, 42vw);
+    border-radius: 20px;
+    background: #f2f2f2;
+    display: inline-block;
+    vertical-align: top;
+    box-shadow: 0 4px 14px #0002;
+    text-align: center;
+}
 
 button {
-    padding: 10px 20px;
+    padding: 10px 26px;
     border-radius: 20px;
     border: none;
     cursor: pointer;
 }
-
 
 /* ===== 返回主页按钮 ===== */
 
@@ -62,13 +78,11 @@ body.dark-mode{
 
 }
 
-
 .dark-mode .game-card{
 
     background:#222;
 
 }
-
 
 .dark-mode button{
 
@@ -112,7 +126,6 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
-
 <a href="index.html" class="back-home">
 🏠 返回主页
 </a>
@@ -130,7 +143,6 @@ if(localStorage.getItem("theme") === "dark"){
 </a>
 
 </div>
-
 
 <div class="game-card">
 
@@ -201,8 +213,6 @@ if(localStorage.getItem("theme") === "dark"){
 </a>
 
 </div>
-
-
 
 <div class="game-card">
 

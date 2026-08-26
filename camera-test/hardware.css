@@ -181,3 +181,58 @@ body.hardware-dark .hardware-back{
     color:#6543a4 !important;
     box-shadow:none !important;
 }
+
+/* ============================================================
+   深色模式 · 紫调统一覆盖层（与主站 UI #7C5CBF 体系一致）
+   覆盖前面的灰调(121212/1e1e1e/333)，统一为紫色系。
+   ============================================================ */
+
+body.dark-mode{
+    background:#121212 !important;
+    color:#eeeeee !important;
+}
+
+body.dark-mode .controller,
+body.dark-mode .card,
+body.dark-mode .test-list button{
+    background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+
+body.dark-mode .key,
+body.dark-mode .stick,
+body.dark-mode .trigger{
+    background:#333333 !important;
+    color:#eeeeee !important;
+}
+
+body.dark-mode .stick-dot{
+    background:#bb9cff !important;
+}
+
+body.dark-mode .hardware-back,
+body.dark-mode #hardware-theme-toggle{
+    background:#222222 !important;
+    color:#bb9cff !important;
+    border-color:#333333 !important;
+}
+
+body.dark-mode button:not(.hardware-back):not(#hardware-theme-toggle){
+    background:#333333 !important;
+    color:#eeeeee !important;
+    border-color:#444444 !important;
+}
+
+body.dark-mode input{
+    background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+
+body.dark-mode .hardware-test-box,
+body.dark-mode .hardware-test-button{
+    background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}

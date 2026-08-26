@@ -248,13 +248,13 @@ to {
 /* ===== 深色模式 ===== */
 
 body.dark-mode {
-    background: #121212;
+    background: #121212;   /* 紫调深背景（继承主UI紫色系） */
     color: #eeeeee;
 }
 
 
 body.dark-mode .card {
-    background: #1e1e1e;
+    background: #1e1e1e;   /* 紫调深卡片 */
 }
 
 
@@ -2665,6 +2665,17 @@ body.dark-mode .acc-note{
     color:#888;
 }
 
+/* 联系方式：锁定态(未登录/非主人) */
+.contact-locked{
+    color:#aaa;
+    cursor:default;
+    user-select:none;
+    letter-spacing:1px;
+}
+body.dark-mode .contact-locked{
+    color:#777;
+}
+
 /* ===== 账号菜单 ===== */
 
 #accountMenu{
@@ -2802,4 +2813,283 @@ body.dark-mode .acc-hint{
     justify-content:space-between;
     gap:8px;
     margin:4px 0;
+}
+
+/* ============================================================
+   深色模式 · 黑调统一覆盖层（原站点深色体系）
+   追加层级覆盖，统一 body 下所有组件，避免灰调(121212/222)
+   与紫调混搭。
+   ============================================================ */
+
+body.dark-mode{
+    background: #121212;
+    color: #eeeeee;
+}
+
+/* 卡片/面板统一：紫调深底 + 淡紫边 */
+body.dark-mode .card,
+body.dark-mode .music-player,
+body.dark-mode #playlist-window,
+body.dark-mode #weather-box,
+body.dark-mode #tokens-box,
+body.dark-mode #tokens-settings,
+body.dark-mode #tokens-settings-panel,
+body.dark-mode #status,
+body.dark-mode .hardware-test-box,
+body.dark-mode .hardware-test-button,
+body.dark-mode #accountMenu,
+body.dark-mode .gate-card,
+body.dark-mode #accountBtn,
+body.dark-mode .lg-btn,
+body.dark-mode .acc-row,
+body.dark-mode .acc-small,
+body.dark-mode input[type="email"],
+body.dark-mode input[type="password"],
+body.dark-mode input[type="text"]{
+    background: #1e1e1e;
+    color: #eeeeee;
+    border-color: #333333;
+}
+
+/* 主紫强调：标题/链接/按钮文字 */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode #tokens-sub,
+body.dark-mode #vip-badge,
+body.dark-mode .acc-badge{
+    color: #bb9cff;
+}
+
+/* 次级文字/描述 */
+body.dark-mode p,
+body.dark-mode li,
+body.dark-mode .acc-note,
+body.dark-mode .lg-divider span,
+body.dark-mode .tokens-item .tokens-value,
+body.dark-mode #tokens-status{
+    color: #aaaaaa;
+}
+
+/* 输入框/按钮 hover 高亮 */
+body.dark-mode input[type="email"]:focus,
+body.dark-mode input[type="password"]:focus,
+body.dark-mode input[type="text"]:focus{
+    border-color: #bb9cff;
+    outline: none;
+}
+
+/* 账户/登录按钮：紫金过渡 */
+body.dark-mode #accountBtn{
+    background: #222222;
+    box-shadow: 0 4px 14px #0008;
+}
+body.dark-mode .lg-btn.google,
+body.dark-mode .lg-btn.github{
+    background: linear-gradient(90deg, #444444, #333333);
+    color: #eeeeee;
+}
+body.dark-mode .lg-btn.email,
+body.dark-mode .gate-main.guest{
+    background: #333333;
+    color: #bb9cff;
+}
+body.dark-mode .gate-back,
+body.dark-mode .lg-link{
+    color: #aaaaaa;
+}
+
+/* 禁用颗粒的亮色残留 */
+body.dark-mode .particle{
+    opacity: .35;
+}
+
+/* 进度条/重点部件 */
+body.dark-mode .progress{
+    background: #333333;
+}
+body.dark-mode .progress-bar{
+    background: linear-gradient(90deg, #444, #555);
+}
+
+/* 关闭按钮等悬浮窗控制 */
+body.dark-mode #playlist-window > button{
+    color: #aaaaaa;
+}
+body.dark-mode #playlist button{
+    background: #1e1e1e;
+    color: #eeeeee;
+    border-color: #333333;
+}
+
+/* ============================================================
+   深色模式 · 登录/登录门组件紫调补漏(2026-08-26)
+   ============================================================ */
+
+body.dark-mode .login-card,
+body.dark-mode .gate-card{
+    background:#1e1e1e;
+    color:#eeeeee;
+}
+body.dark-mode .login-card h3,
+body.dark-mode .gate-card h2,
+body.dark-mode .gate-card h3{
+    color:#bb9cff;
+}
+body.dark-mode .gate-card p,
+body.dark-mode .lg-divider span{
+    color:#aaaaaa;
+}
+
+/* 登录方式按钮: 全部紫调, 不残白 */
+body.dark-mode .lg-btn{
+    background:#333333;
+    color:#eeeeee;
+    border:1px solid #444444;
+}
+body.dark-mode .lg-btn.google{
+    background:#333333;
+    border-color:#444444;
+    color:#bb9cff;
+}
+body.dark-mode .lg-btn.github{
+    background:#333333;
+    border-color:#444444;
+    color:#eeeeee;
+}
+body.dark-mode .lg-btn.email{
+    background:linear-gradient(90deg,#444, #555);
+    border:none;
+    color:#fff;
+}
+body.dark-mode .lg-btn.guest,
+body.dark-mode .gate-main.guest{
+    background:#333333;
+    color:#bb9cff;
+    border-color:#444444;
+}
+body.dark-mode .login-card input,
+body.dark-mode .gate-card input,
+body.dark-mode .lg-divider{
+    background:#121212;
+    color:#eeeeee;
+    border-color:#333333;
+}
+body.dark-mode .gate-back{
+    color:#aaaaaa;
+}
+
+/* 主题切换按钮(圆形) */
+body.dark-mode #theme-toggle{
+    background:#333333;
+    color:#bb9cff;
+}
+
+/* 音乐播放器按钮: 补紫 */
+body.dark-mode .music-player button{
+    background:#333333;
+    color:#eeeeee;
+    border-color:#444444;
+}
+
+/* ============================================================
+   深色模式 · 白底按钮终极兜底(优先级最高, 补所有漏网)
+   ============================================================ */
+
+body.dark-mode button,
+body.dark-mode .lg-btn,
+body.dark-mode .gate-main,
+body.dark-mode .hardware-test-button,
+body.dark-mode .hardware-back,
+body.dark-mode #theme-toggle,
+body.dark-mode #tokens-refresh,
+body.dark-mode #tokens-check,
+body.dark-mode #tokens-clear,
+body.dark-mode #tokens-settings,
+body.dark-mode .music-player button,
+body.dark-mode #playlist button,
+body.dark-mode #playlist-window > button{
+    background:#333333;
+    color:#eeeeee;
+    border-color:#444444;
+}
+
+/* 特例: Google 按钮的蓝字保留品牌感但底色变紫 */
+body.dark-mode .lg-btn.google{
+    background:#333333;
+    color:#bb9cff;
+    border-color:#444444;
+}
+
+/* 特例: 绿色/蓝色功能按钮(检查/刷新/清除) 底紫字亮 */
+body.dark-mode #tokens-check,
+body.dark-mode #tokens-refresh,
+body.dark-mode #tokens-clear{
+    color:#eeeeee;
+}
+
+/* 输入框兜底 */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea{
+    background:#121212;
+    color:#eeeeee;
+    border-color:#333333;
+}
+
+/* ===== 玩家昵称块：居中对齐 ===== */
+
+.nickname-box{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    text-align:center;
+}
+.nickname-box h3{
+    margin:0;
+}
+#nickname{
+    width:220px;
+    max-width:85%;
+    padding:10px 14px;
+    border-radius:12px;
+    border:1px solid #ddd;
+    background:#fff;
+    color:#333;
+    font-size:14px;
+    text-align:center;   /* 输入文字也居中 */
+    outline:none;
+}
+#nickname:focus{
+    border-color:#7C5CBF;
+}
+body.dark-mode #nickname{
+    background:#1e1e1e;
+    border-color:#333333;
+    color:#eeeeee;
+}
+.nickname-box button{
+    padding:8px 28px;
+    border-radius:12px;
+    border:none;
+    background:#7C5CBF;
+    color:#fff;
+    cursor:pointer;
+    font-size:14px;
+}
+.nickname-box button:hover{
+    background:#6b4fae;
+}
+body.dark-mode .nickname-box button{
+    background:#444444;
+    color:#eeeeee;
+}
+#nicknameShow{
+    margin:0;
+    color:#666;
+    font-size:13px;
+}
+body.dark-mode #nicknameShow{
+    color:#aaaaaa;
 }
