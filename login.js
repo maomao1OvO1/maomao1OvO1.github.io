@@ -11,7 +11,26 @@ function initFirebase(){
     firebase.initializeApp(window.FIREBASE_CONFIG);
     auth = firebase.auth();
     auth.onAuthStateChanged(function(user){
-        if(user) showLoginState(user, true);
+        if(user){
+            showLoginState(user, true);
+        }else{
+            // 未登录/已退出：按本地缓存恢复账号按钮(游客或上次登录信息), 不清掉登录门逻辑
+            const guest = localStorage.getItem("guestMode");
+            if(guest){
+                showUserBox("游客", "", null);
+            }else{
+                const saved = localStorage.getItem("authUser");
+                if(saved){
+                    try{
+                        const u = JSON.parse(saved);
+                        showUserBox(u.name, u.photo, null);
+                    }catch(e){
+                        localStorage.removeItem("authUser");
+                        showLoginGate();
+                    }
+                }
+            }
+        }
     });
 }
 
@@ -20,11 +39,15 @@ function initFirebase(){
 function showLoginGate(){
     const g = document.getElementById("loginGate");
     if(!g) return;
-    if(localStorage.getItem("guestMode")){ g.style.display = "none"; return; }
+    if(localStorage.getItem("guestMode")){
+        g.style.display = "none";
+        showUserBox("游客", "", null);   // 游客模式也显示账号按钮(灰色头像+游客)
+        return;
+    }
     if(localStorage.getItem("authUser")){
         g.style.display = "none";
         const u = JSON.parse(localStorage.getItem("authUser"));
-        showUserBox(u.name, u.photo);
+        showUserBox(u.name, u.photo, null);
         return;
     }
     g.style.display = "flex";
@@ -176,7 +199,9 @@ function updateAccountMenu(user){
     if(!user){
         if(nameEl) nameEl.textContent = "游客";
         if(emEl) emEl.textContent = "未登录";
-        if(list) list.innerHTML = "游客暂未关联任何登录方式";
+        if(list) list.innerHTML =
+            '<div class="acc-row"><button class="acc-small" onclick="switchAccount()">登录 / 切换账号</button></div>' +
+            '<div class="acc-note">游客模式不关联任何登录方式</div>';
         return;
     }
     if(nameEl) nameEl.textContent = user.displayName || user.email || "用户";
@@ -328,6 +353,23 @@ document.addEventListener("click", function(e){
 });
 
 document.addEventListener("DOMContentLoaded", function(){
+    // 1) 先用本地缓存立即恢复界面(无网/慢网也能看到账号按钮或登录门)
+    const guest = localStorage.getItem("guestMode");
+    const saved = localStorage.getItem("authUser");
+    if(guest){
+        showUserBox("游客", "", null);
+    }else if(saved){
+        try{
+            const u = JSON.parse(saved);
+            showUserBox(u.name, u.photo, null);
+        }catch(e){
+            localStorage.removeItem("authUser");
+            showLoginGate();
+        }
+    }else{
+        showLoginGate();   // 首次访问/已退出: 显示登录门
+    }
+    // 2) Firebase 异步初始化, 有用户则刷新为真实登录态
     initFirebase();
     if(auth && auth.currentUser){ showLoginState(auth.currentUser, true); }
 });

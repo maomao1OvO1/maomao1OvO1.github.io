@@ -2613,12 +2613,11 @@ body.dark-mode #accountBtn{
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
-    animation: gold-flow 9s ease-in-out infinite;
+    animation: gold-flow 5s linear infinite;
     text-shadow: none;
 }
 @keyframes gold-flow{
     0%   { background-position: 130% 0; }
-    20%  { background-position: -130% 0; }
     100% { background-position: -130% 0; }
 }
 
@@ -2638,7 +2637,7 @@ body.dark-mode .gold-name{
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
-    animation: gold-flow 9s ease-in-out infinite;
+    animation: gold-flow 5s linear infinite;
 }
 
 /* 「开发者」小字：网站主题紫 #7C5CBF, 仅毛毛账号显示 */
@@ -2654,6 +2653,16 @@ body.dark-mode .gold-name{
 }
 body.dark-mode #accRole{
     color:#bb9cff;
+}
+
+/* 账号菜单小字说明 */
+.acc-note{
+    margin-top:6px;
+    font-size:11px;
+    color:#999;
+}
+body.dark-mode .acc-note{
+    color:#888;
 }
 
 /* ===== 账号菜单 ===== */
