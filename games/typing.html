@@ -7,7 +7,6 @@
 
 <title>打字测试</title>
 
-
 <style>
 
 body {
@@ -17,7 +16,6 @@ body {
     font-family: Arial;
 
 }
-
 
 /* ===== 返回小游戏按钮 ===== */
 
@@ -43,8 +41,6 @@ body {
 
 }
 
-
-
 .game-box {
 
     margin: 80px auto;
@@ -59,8 +55,6 @@ body {
 
 }
 
-
-
 textarea {
 
     width: 90%;
@@ -72,8 +66,6 @@ textarea {
     padding: 10px;
 
 }
-
-
 
 button {
 
@@ -99,7 +91,6 @@ body.dark-mode{
 
 }
 
-
 .dark-mode button{
 
     background:#333;
@@ -114,7 +105,6 @@ body.dark-mode{
 
 }
 
-
 .dark-mode textarea{
 
     background:#222;
@@ -127,9 +117,7 @@ body.dark-mode{
 
 </style>
 
-
 </head>
-
 
 <body>
 
@@ -149,13 +137,9 @@ if(localStorage.getItem("theme") === "dark"){
 🎮 返回小游戏
 </a>
 
-
-
 <div class="game-box">
 
-
 <h1>⌨️ 打字测试</h1>
-
 
 <p id="text">
 
@@ -163,12 +147,9 @@ if(localStorage.getItem("theme") === "dark"){
 
 </p>
 
-
 <textarea id="input" placeholder="开始输入上面的文字"></textarea>
 
-
 <br>
-
 
 <button onclick="startTest()">
 
@@ -176,82 +157,53 @@ if(localStorage.getItem("theme") === "dark"){
 
 </button>
 
-
 <p id="result"></p>
 
-
 </div>
-
-
 
 <script src="report.js"></script>
 
 <script>
 
-
 let words = "欢迎来到毛毛的个人网站，这是一个自制小游戏";
-
 
 let startTime = 0;
 
-
-
 document.getElementById("text").innerHTML = words;
-
-
 
 function startTest(){
 
-
     let input = document.getElementById("input");
-
 
     input.value = "";
 
-
     input.focus();
-
 
     startTime = new Date().getTime();
 
-
-
     input.oninput = function(){
-
 
         if(input.value === words){
 
-
             let endTime = new Date().getTime();
-
 
             let time = (endTime - startTime) / 1000;
 
-
             let speed = Math.floor(words.length / time * 60);
-
-
 
             document.getElementById("result").innerHTML =
 
             "🎉 完成！速度：" + speed + " 字/分钟";
 
-
             reportScore("typing", speed);
-
 
         }
 
-
     }
-
 
 }
 
-
-
 </script>
-
 
 </body>
 

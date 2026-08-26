@@ -7,7 +7,6 @@
 
 <title>2048小游戏</title>
 
-
 <style>
 
 body {
@@ -19,7 +18,6 @@ body {
     user-select: none; /* 防止滑动时选中文字 */
 
 }
-
 
 /* ===== 返回小游戏按钮 ===== */
 
@@ -47,8 +45,6 @@ body {
 
 }
 
-
-
 #game {
 
     width: 320px;
@@ -70,8 +66,6 @@ body {
     touch-action: none; /* 禁止浏览器默认触摸行为 */
 
 }
-
-
 
 .cell {
 
@@ -97,8 +91,6 @@ body {
 
 }
 
-
-
 button {
 
     width: 70px;
@@ -117,7 +109,6 @@ button {
 
 }
 
-
 .restart {
 
     width: 130px;
@@ -135,7 +126,6 @@ body.dark-mode{
     color:white;
 
 }
-
 
 .dark-mode button{
 
@@ -160,9 +150,7 @@ body.dark-mode{
 
 </style>
 
-
 </head>
-
 
 <body>
 
@@ -184,10 +172,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </a>
 
-
-
 <h1>🧩 2048</h1>
-
 
 <p>
 
@@ -204,29 +189,19 @@ if(localStorage.getItem("theme") === "dark"){
 
 <div id="game"></div>
 
-
-
 <div class="controls">
-
 
 <button onclick="moveUp()">⬆️</button>
 
-
 <br>
-
 
 <button onclick="moveLeft()">⬅️</button>
 
-
 <button onclick="moveDown()">⬇️</button>
-
 
 <button onclick="moveRight()">➡️</button>
 
-
 </div>
-
-
 
 <button class="restart" onclick="restart()">
 
@@ -234,13 +209,9 @@ if(localStorage.getItem("theme") === "dark"){
 
 </button>
 
-
-
-
 <script src="report.js"></script>
 
 <script>
-
 
 // ===== 游戏数据 =====
 
@@ -311,7 +282,6 @@ function checkWin() {
 
 function startGame(){
 
-
     board=[
 
         [0,0,0,0],
@@ -324,15 +294,12 @@ function startGame(){
 
     ];
 
-
     score=0;
     gameEnd = false;
 
-
     addNumber();
 
     addNumber();
-
 
     update();
     updateStatsDisplay();
@@ -365,25 +332,17 @@ function getCellStyle(value) {
 
 function update(){
 
-
     let game=document.getElementById("game");
-
 
     game.innerHTML="";
 
-
     document.getElementById("score").innerHTML=score;
-
-
 
     for(let i=0;i<4;i++){
 
-
         for(let j=0;j<4;j++){
 
-
             let cell=document.createElement("div");
-
 
             cell.className="cell";
 
@@ -400,120 +359,75 @@ function update(){
                 cell.innerHTML = '';
             }
 
-
             game.appendChild(cell);
-
 
         }
 
-
     }
 
-
 }
-
-
-
 
 // ===== 生成数字 =====
 
 function addNumber(){
 
-
     let empty=[];
-
-
 
     for(let i=0;i<4;i++){
 
-
         for(let j=0;j<4;j++){
-
 
             if(board[i][j]==0){
 
-
                 empty.push([i,j]);
-
 
             }
 
-
         }
 
-
     }
-
-
 
     if(empty.length>0){
 
-
         let place=empty[Math.floor(Math.random()*empty.length)];
-
 
         board[place[0]][place[1]]=2;
 
-
     }
 
-
 }
-
-
-
 
 // ===== 合并 =====
 
 function move(row){
 
-
     row=row.filter(x=>x!=0);
-
-
 
     for(let i=0;i<row.length-1;i++){
 
-
         if(row[i]==row[i+1]){
-
 
             row[i]*=2;
 
-
             score+=row[i];
-
 
             row[i+1]=0;
 
-
         }
 
-
     }
-
-
 
     row=row.filter(x=>x!=0);
 
-
-
     while(row.length<4){
-
 
         row.push(0);
 
-
     }
-
-
 
     return row;
 
-
 }
-
-
 
 // ===== 左 =====
 
@@ -527,7 +441,6 @@ function moveLeft(){
 
     }
 
-
     addNumber();
 
     update();
@@ -536,9 +449,6 @@ function moveLeft(){
     }
 
 }
-
-
-
 
 // ===== 右 =====
 
@@ -556,7 +466,6 @@ function moveRight(){
 
     }
 
-
     addNumber();
 
     update();
@@ -565,9 +474,6 @@ function moveRight(){
     }
 
 }
-
-
-
 
 // ===== 上 =====
 
@@ -579,16 +485,13 @@ function moveUp(){
 
         let column=[];
 
-
         for(let i=0;i<4;i++){
 
             column.push(board[i][j]);
 
         }
 
-
         column=move(column);
-
 
         for(let i=0;i<4;i++){
 
@@ -598,7 +501,6 @@ function moveUp(){
 
     }
 
-
     addNumber();
 
     update();
@@ -607,9 +509,6 @@ function moveUp(){
     }
 
 }
-
-
-
 
 // ===== 下 =====
 
@@ -621,20 +520,17 @@ function moveDown(){
 
         let column=[];
 
-
         for(let i=0;i<4;i++){
 
             column.push(board[i][j]);
 
         }
 
-
         column.reverse();
 
         column=move(column);
 
         column.reverse();
-
 
         for(let i=0;i<4;i++){
 
@@ -644,7 +540,6 @@ function moveDown(){
 
     }
 
-
     addNumber();
 
     update();
@@ -653,9 +548,6 @@ function moveDown(){
     }
 
 }
-
-
-
 
 // ===== 检查游戏结束 =====
 
@@ -678,12 +570,9 @@ function checkGameOver(){
 
 }
 
-
-
 // ===== 键盘控制 =====
 
 document.addEventListener("keydown",function(e){
-
 
     if(e.key=="ArrowLeft"){
 
@@ -691,13 +580,11 @@ document.addEventListener("keydown",function(e){
 
     }
 
-
     if(e.key=="ArrowRight"){
 
         moveRight();
 
     }
-
 
     if(e.key=="ArrowUp"){
 
@@ -705,16 +592,13 @@ document.addEventListener("keydown",function(e){
 
     }
 
-
     if(e.key=="ArrowDown"){
 
         moveDown();
 
     }
 
-
 });
-
 
 // ===== 触屏滑动控制（仅限游戏区域） =====
 const gameElement = document.getElementById('game');
@@ -751,8 +635,6 @@ gameElement.addEventListener('touchend', function(e) {
     touchStartY = 0;
 }, { passive: true });
 
-
-
 // ===== 重开 =====
 
 function restart(){
@@ -761,12 +643,9 @@ function restart(){
 
 }
 
-
-
 // ===== 判断游戏结束 =====
 
 function gameOver(){
-
 
     // 有空位，不结束
 
@@ -784,8 +663,6 @@ function gameOver(){
 
     }
 
-
-
     // 横向可以合并
 
     for(let i=0;i<4;i++){
@@ -801,8 +678,6 @@ function gameOver(){
         }
 
     }
-
-
 
     // 纵向可以合并
 
@@ -820,21 +695,15 @@ function gameOver(){
 
     }
 
-
     return true;
 
 }
-
-
 
 // ===== 启动 =====
 
 startGame();
 
-
-
 </script>
-
 
 </body>
 

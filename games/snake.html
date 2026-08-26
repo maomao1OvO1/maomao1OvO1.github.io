@@ -7,7 +7,6 @@
 
 <title>贪吃蛇小游戏</title>
 
-
 <style>
 
 body {
@@ -17,8 +16,6 @@ body {
     font-family: Arial;
 
 }
-
-
 
 /* ===== 返回小游戏按钮 ===== */
 
@@ -44,8 +41,6 @@ body {
 
 }
 
-
-
 /* ===== 游戏区域 ===== */
 
 #game {
@@ -68,8 +63,6 @@ body {
 
 }
 
-
-
 .cell {
 
     width: 100%;
@@ -81,8 +74,6 @@ body {
     box-sizing: border-box;
 
 }
-
-
 
 .snake {
 
@@ -118,8 +109,6 @@ body {
 
 }
 
-
-
 .food {
 
     background: #ff6b6b;
@@ -127,8 +116,6 @@ body {
     border-radius: 50%;
 
 }
-
-
 
 button {
 
@@ -148,8 +135,6 @@ button {
 
 }
 
-
-
 .restart {
 
     width: 130px;
@@ -167,7 +152,6 @@ body.dark-mode{
     color:white;
 
 }
-
 
 .dark-mode button{
 
@@ -194,8 +178,6 @@ body.dark-mode{
 
 </head>
 
-
-
 <body>
 
 <script>
@@ -216,10 +198,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </a>
 
-
-
 <h1>🐍 贪吃蛇</h1>
-
 
 <p>
 
@@ -236,10 +215,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 <div id="game"></div>
 
-
-
 <div>
-
 
 <button onclick="changeDir('up')">⬆️</button>
 
@@ -251,19 +227,13 @@ if(localStorage.getItem("theme") === "dark"){
 
 <button onclick="changeDir('right')">➡️</button>
 
-
 </div>
-
-
 
 <button class="restart" onclick="restart()">
 
 重新开始
 
 </button>
-
-
-
 
 <script src="report.js"></script>
 
@@ -451,7 +421,6 @@ function restart(){
 startGame();
 
 </script>
-
 
 </body>
 

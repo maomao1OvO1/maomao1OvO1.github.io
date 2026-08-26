@@ -76,7 +76,8 @@ function gateGuest(){
     localStorage.setItem("guestMode", "1");
     localStorage.removeItem("authUser");
     hideLoginGate();
-    showUserBox("游客", "");
+    showUserBox("游客", "", null);
+    updateContactEmail(null);
 }
 
 // ===================== 登录方式(登录门第二步) =====================
@@ -102,8 +103,6 @@ function emailLogin(email, pass, isSignup){
 
 // ===================== 登录状态 =====================
 
-// ===================== 登录状态 =====================
-
 // 灰色默认头像（未登录/无头像时显示，通用软件风格：灰底+白色人形剪影）
 const DEFAULT_AVATAR = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">' +
@@ -111,6 +110,22 @@ const DEFAULT_AVATAR = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
     '<circle cx="64" cy="48" r="22" fill="#ffffff"/>' +
     '<path d="M64 76c-22 0-40 14-40 31v21h80v-21c0-17-18-31-40-31z" fill="#ffffff"/>' +
     '</svg>');
+
+// 联系方式解锁：仅«毛毛»账号登录显示真邮箱, 游客/其他人显示"请登录后查看"
+function updateContactEmail(user){
+    try{
+        const el = document.getElementById("contactEmail");
+        if(!el) return;
+        const isMaoMao = user && (user.email ? /maomao1ovo1@(gmail|163)\.com$/i.test(user.email) : false);
+        if(isMaoMao){
+            el.textContent = "maomao1ovo1@gmail.com";
+            el.classList.remove("contact-locked");
+        }else{
+            el.textContent = "🔒 请登录后查看";
+            el.classList.add("contact-locked");
+        }
+    }catch(e){}
+}
 
 // 头像选择：Google 优先 → GitHub 其次 → 邮箱(无头像) → 灰色默认
 function pickAvatar(user){
@@ -135,6 +150,7 @@ function showLoginState(user, loggedIn){
         localStorage.setItem("authUser", JSON.stringify({name: name, email: user.email, photo: photo}));
         localStorage.removeItem("guestMode");
         showUserBox(name, photo, user);
+        updateContactEmail(user);
     }
     hideLoginGate();
 }
@@ -151,8 +167,8 @@ function showUserBox(name, photo, user){
         // 金色用户名：仅«毛毛»账号生效（名字/邮箱匹配；其他访客名字保持原样）
         const isMaoMao = /毛毛/i.test(String(name || ""))
             || /maomao1ovo1/i.test(String(name || ""))
-            || /@maomao1ovo1\.(gmail|163)\.com$/i.test(String(this?.user?.email || ""))
-            || /@maomao1ovo1\.(gmail|163)\.com$/i.test(String(localStorage.getItem("authUser") || ""));
+            || /maomao1ovo1@(gmail|163)\.com$/i.test(String(this?.user?.email || ""))
+            || /maomao1ovo1@(gmail|163)\.com$/i.test(String(localStorage.getItem("authUser") || ""));
         if(isMaoMao){
             n.classList.add("gold-name");
             const role = document.getElementById("accRole");
@@ -358,10 +374,12 @@ document.addEventListener("DOMContentLoaded", function(){
     const saved = localStorage.getItem("authUser");
     if(guest){
         showUserBox("游客", "", null);
+        updateContactEmail(null);
     }else if(saved){
         try{
             const u = JSON.parse(saved);
             showUserBox(u.name, u.photo, null);
+            updateContactEmail(u && u.email ? { email: u.email } : null);
         }catch(e){
             localStorage.removeItem("authUser");
             showLoginGate();
