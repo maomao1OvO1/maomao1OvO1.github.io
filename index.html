@@ -11,7 +11,7 @@
 
 <title>毛毛的个人主页</title>
 
-<link rel="stylesheet" href="style.css?v=17">
+<link rel="stylesheet" href="style.css?v=19">
 
 </head>
 
@@ -437,7 +437,10 @@ updateTime();
 
 <button id="accountBtn" style="display:none;" onclick="toggleAccountMenu(event)">
     <img id="accPhoto" width="26" height="26" style="border-radius:50%;object-fit:cover;">
-    <span id="accName">游客</span>
+    <span id="accLabelWrap" style="display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.2;">
+        <span id="accName">游客</span>
+        <span id="accRole">开发者</span>
+    </span>
     <span id="accCaret">▾</span>
 </button>
 
@@ -471,7 +474,7 @@ updateTime();
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="firebase-config.js?v=2"></script>
-<script src="login.js?v=4" defer></script>
+<script src="login.js?v=6" defer></script>
 
 </body>
 

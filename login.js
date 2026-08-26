@@ -97,7 +97,23 @@ function showUserBox(name, photo){
     if(!btn) return;
     btn.style.display = "inline-flex";
     const n = document.getElementById("accName");
-    if(n) n.textContent = name;
+    if(n){
+        n.textContent = name;
+        // 金色用户名：仅«毛毛»账号生效（名字/邮箱匹配；其他访客名字保持原样）
+        const isMaoMao = /毛毛/i.test(String(name || ""))
+            || /maomao1ovo1/i.test(String(name || ""))
+            || /@maomao1ovo1\.(gmail|163)\.com$/i.test(String(this?.user?.email || ""))
+            || /@maomao1ovo1\.(gmail|163)\.com$/i.test(String(localStorage.getItem("authUser") || ""));
+        if(isMaoMao){
+            n.classList.add("gold-name");
+            const role = document.getElementById("accRole");
+            if(role) role.style.display = "inline";
+        }else{
+            n.classList.remove("gold-name");
+            const role = document.getElementById("accRole");
+            if(role) role.style.display = "none";
+        }
+    }
     const img = document.getElementById("accPhoto");
     if(img && photo) img.src = photo;
 }

@@ -2585,6 +2585,68 @@ body.dark-mode #accountBtn{
     color:#eee;
 }
 
+/* ===== 金色流光用户名（仅毛毛账号）===== */
+
+/* 金色渐变+过光扫过：光带每 9 秒扫一次(1.8s 扫过 + 7.2s 静止), 不再连续闪 */
+.gold-name{
+    font-weight:700;
+    background: linear-gradient(90deg,
+        #b8860b 0%,
+        #f7d774 15%,
+        #fff3b0 30%,
+        #ffd700 45%,
+        #b8860b 60%,
+        #f7d774 75%,
+        #fff3b0 90%,
+        #b8860b 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: gold-flow 9s ease-in-out infinite;
+    text-shadow: none;
+}
+@keyframes gold-flow{
+    0%   { background-position: 130% 0; }
+    20%  { background-position: -130% 0; }
+    100% { background-position: -130% 0; }
+}
+
+/* 深色模式下让金色更亮（清一色白金高光带） */
+body.dark-mode .gold-name{
+    background: linear-gradient(90deg,
+        #c9962a 0%,
+        #ffe08a 15%,
+        #fff8d0 30%,
+        #ffd700 45%,
+        #c9962a 60%,
+        #ffe08a 75%,
+        #fff8d0 90%,
+        #c9962a 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: gold-flow 9s ease-in-out infinite;
+}
+
+/* 「开发者」小字：网站主题紫 #7C5CBF, 仅毛毛账号显示 */
+#accRole{
+    display:none;
+    font-size:10px;
+    line-height:1;
+    font-weight:600;
+    letter-spacing:2px;
+    color:#7C5CBF;
+    text-align:left;
+    margin-top:1px;
+}
+body.dark-mode #accRole{
+    color:#bb9cff;
+}
+
 /* ===== 账号菜单 ===== */
 
 #accountMenu{
