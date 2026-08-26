@@ -330,7 +330,7 @@ body.dark-mode #status {
 
     border-radius:20px;
 
-    animation: loading 1.5s forwards;
+    transition: width .25s ease;   /* 真进度: JS 控制, 平滑过渡 */
 
 }
 
@@ -372,6 +372,8 @@ body.dark-mode #status {
     align-items: center;
 
     flex-direction: column;
+
+    transition: opacity .3s ease;   /* 加载完成平滑淡出 */
 
 }
 
@@ -2909,7 +2911,7 @@ body.dark-mode .progress{
     background: #333333;
 }
 body.dark-mode .progress-bar{
-    background: linear-gradient(90deg, #444, #555);
+    background: #bb9cff;
 }
 
 /* 关闭按钮等悬浮窗控制 */
