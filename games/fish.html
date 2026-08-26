@@ -136,7 +136,7 @@
         if (confirm('确定重置大鱼吃小鱼的最高分吗？')) {
             saveHighScore(0);
             updateStatsDisplay();
-            showToast('统计已重置！');
+            alert('统计已重置！');
         }
     }
     updateStatsDisplay();
@@ -319,9 +319,9 @@
                     if (score > high) {
                         saveHighScore(score);
                         updateStatsDisplay();
-                        showToast(`🎉 新纪录！最高分：${score}`);
+                        alert(`🎉 新纪录！最高分：${score}`);
                     } else {
-                        showToast(`😵 游戏结束！得分：${score}`);
+                        alert(`😵 游戏结束！得分：${score}`);
                     }
                     reportScore("fish", score);
                     cancelAnimationFrame(animId);

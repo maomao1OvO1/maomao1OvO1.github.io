@@ -387,7 +387,7 @@ function resetStats() {
 
         updateStatsDisplay();
 
-        showToast('统计已重置！');
+        alert('统计已重置！');
 
     }
 
@@ -508,7 +508,7 @@ function play(x, y){
 
     }
 
-    showToast(turn==1 ? "⚫ 黑棋胜利！" : "⚪ 白棋胜利！");
+    alert(turn==1 ? "⚫ 黑棋胜利！" : "⚪ 白棋胜利！");
 
     gameEnd = true;
 
@@ -538,7 +538,7 @@ function play(x, y){
 
         } else {
 
-            showToast('职业AI未加载，降级为普通AI');
+            alert('职业AI未加载，降级为普通AI');
 
             setTimeout(aiMove, 500);
 

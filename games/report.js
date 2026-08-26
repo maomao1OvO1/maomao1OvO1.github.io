@@ -38,8 +38,11 @@ function flushQueue() {
     if (flushing) return;
     const q = loadQueue();
     if (q.length === 0) return;
+    const head = q[0];
+    // 网络重试已尽: 本次会话不再纠缠, 等下次打开页面(load 会清零)再补传
+    if ((head.fail || 0) >= MAX_RETRY) return;
     flushing = true;
-    const item = q[0];
+    const item = head;
 
     // 超时控制(AbortController)
     const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -52,30 +55,37 @@ function flushQueue() {
         keepalive: true,
         signal: ctrl ? ctrl.signal : undefined
     })
-    .then(r => {
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.json();
-    })
+    .then(r => r.json().catch(() => ({ ok: false, message: "响应解析失败 HTTP" + r.status })))
     .then(d => {
-        // 「操作太快」= 上一次已成功记录, 本队首视为已完成
-        // 其余失败(未知游戏/分数异常等)重试也没用, 直接丢弃
-        const done = d.ok || (d.message && d.message.indexOf("太快") >= 0);
-        if (!done) console.log("[排行榜] 该成绩不会被记录:", d.message);
-        finishQueue();
+        // 服务器明确答复(即使 400 也解析过 body)：
+        //   ok:true                → 已记录, 完成
+        //   ok:false + 太快         → 上一次已成功, 本次视为完成
+        //   ok:false + 其他         → 未知游戏/分数异常等, 重试无用, 丢弃
+        const tooFast = d && d.message && d.message.indexOf("太快") >= 0;
+        if (d && d.ok) {
+            console.log("[排行榜] 成绩已上传:", d);
+            finishQueue();
+        } else if (tooFast) {
+            console.log("[排行榜] 稍早提交已在排队(操作太快), 视为成功");
+            finishQueue();
+        } else {
+            console.log("[排行榜] 该成绩不会被记录:", d && d.message);
+            finishQueue();
+        }
     })
     .catch(e => {
+        // 只有网络层失败/超时才重试(服务器没答复)
         item.fail = (item.fail || 0) + 1;
-        if (item.fail < MAX_RETRY) {
-            console.log("[排行榜] 上传失败, " + RETRY_DELAY / 1000 + "秒后重试(" + item.fail + "/" + MAX_RETRY + "):", e.message);
-            setTimeout(() => { flushing = false; flushQueue(); }, RETRY_DELAY);
-            return; // 保留下一条
-        }
-        console.log("[排行榜] 上传失败已放弃(成绩保留在本地, 下次打开页面会再试):", e.message);
-        q.shift();
+        q[0].fail = item.fail;
         saveQueue(q);
-        showToast("⚠️ 成绩上传失败，稍后自动重试");
-        setTimeout(() => { flushing = false; flushQueue(); }, 500);
-        return;
+        console.log("[排行榜] 上传失败(" + item.fail + "/" + MAX_RETRY + "):", e.message);
+        if (item.fail < MAX_RETRY) {
+            setTimeout(() => { flushing = false; flushQueue(); }, RETRY_DELAY);
+        } else {
+            console.log("[排行榜] 网络重试已尽, 成绩保留本地, 下次打开页面再试");
+            showToast("⚠️ 成绩上传失败，稍后自动重试");
+            setTimeout(() => { flushing = false; flushQueue(); }, 500);
+        }
     })
     .finally(() => { if (timer) clearTimeout(timer); });
 
@@ -87,9 +97,14 @@ function flushQueue() {
     }
 }
 
-// 页面加载时自动补传上次没传出去的
+// 页面加载时自动补传上次没传出去的(同时清零上次的重试计数)
 if (typeof window !== "undefined" && window.addEventListener) {
-    window.addEventListener("load", () => setTimeout(flushQueue, 800));
+    window.addEventListener("load", () => {
+        const q = loadQueue();
+        q.forEach(it => { it.fail = 0; });
+        saveQueue(q);
+        setTimeout(flushQueue, 800);
+    });
 }
 
 // ===== 右上角轻提示(不阻塞游戏) =====

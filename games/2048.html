@@ -257,7 +257,7 @@ function resetStats() {
     if (confirm('确定要重置2048的统计吗？')) {
         saveStats(defaultStats());
         updateStatsDisplay();
-        showToast('统计已重置！');
+        alert('统计已重置！');
     }
 }
 
@@ -270,7 +270,7 @@ function checkWin() {
                 stats.winCount++;
                 saveStats(stats);
                 updateStatsDisplay();
-                showToast('🎉 你赢了！已达到2048！');
+                alert('🎉 你赢了！已达到2048！');
                 return true;
             }
         }
@@ -559,9 +559,9 @@ function checkGameOver(){
             stats.highScore = score;
             saveStats(stats);
             updateStatsDisplay();
-            showToast(`🎯 新纪录！最高分：${score}`);
+            alert(`🎯 新纪录！最高分：${score}`);
         } else {
-            showToast(`😢 游戏结束！当前分数：${score}`);
+            alert(`😢 游戏结束！当前分数：${score}`);
         }
         gameEnd = true;
         reportScore("2048", score);
