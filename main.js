@@ -120,21 +120,88 @@ if(playerName){
     document.getElementById("nicknameShow").innerHTML = "当前玩家：" + playerName;
 }
 
-// ===== 加载动画：保留进度条观感，但比原来快很多 =====
+// ===== 加载动画：真进度条(保底2秒) =====
+// 进度 = min(真实资源进度, 时间曲线)。资源快 → 按2秒匀步爬满; 资源慢 → 按真实进度爬。
+// 两者都到 100% 才淡出进主界面: 设备再好, 进度条也至少展示2秒, 不会闪没。
 function hideLoader(){
     let loader = document.getElementById("loader");
     if(!loader) return;
-    // 进度条展示 1.2 秒后淡出，内容同时淡入
-    setTimeout(function(){
+    let bar = document.querySelector(".progress-bar");
+    if(!bar){ return; }
+
+    const MIN_SHOW_MS = 1000;      // 保底展示时长(1秒)
+    const startTime = Date.now();
+    let done = 0, total = 0, finished = false;
+
+    function realPct(){           // 真实资源进度
+        return total > 0 ? (done / total * 100) : 100;
+    }
+    function timePct(){           // 时间进度(2秒内线性)
+        return Math.min(100, (Date.now() - startTime) / MIN_SHOW_MS * 100);
+    }
+    function displayPct(){        // 二者取小: 不超前于真实, 也不快于保底曲线
+        return Math.min(realPct(), timePct());
+    }
+    function render(){
+        if(bar && !finished) bar.style.width = Math.max(0, Math.min(100, displayPct())) + "%";
+    }
+    function maybeFinish(){
+        if(finished) return;
+        render();
+        // 真实全部完成 且 保底时间已到 → 结束
+        if(total > 0 && done >= total && (Date.now() - startTime) >= MIN_SHOW_MS){
+            finish();
+        }
+    }
+    function finish(){
+        if(finished) return;
+        finished = true;
+        bar.style.width = "100%";
         loader.style.opacity = "0";
-    }, 1200);
-    setTimeout(function(){
-        loader.style.display = "none";
-        document.body.classList.remove("loading");
-        document.body.classList.add("page-show");
-        // 加载条结束 → 弹出登录门(登录 / 不登录直接进)
-        if(window.showLoginGate) window.showLoginGate();
-    }, 1600);
+        setTimeout(function(){
+            loader.style.display = "none";
+            document.body.classList.remove("loading");
+            document.body.classList.add("page-show");
+            if(window.showLoginGate) window.showLoginGate();
+        }, 300);
+    }
+
+    // 每 50ms 刷新一次(时间曲线推进, 让进度平滑)
+    const tick = setInterval(function(){
+        render();
+        maybeFinish();
+        if(finished) clearInterval(tick);
+    }, 50);
+
+    // ---- 实测: 页面加载了多少真实资源 ----
+    function track(){
+        if(finished) return;
+        const docs = Array.from(document.querySelectorAll("img[src]"));
+        const links = Array.from(document.querySelectorAll('link[rel="stylesheet"][href]'));
+        const scripts = Array.from(document.querySelectorAll('script[src]'));
+        total = docs.length + links.length + scripts.length;
+        done = 0;
+        render();
+
+        if(total === 0){
+            done = 0;              // 无资源: 走纯时间曲线, 2秒后完成
+            return;
+        }
+        const onOne = function(){ done += 1; maybeFinish(); };
+        const all = [...docs, ...links, ...scripts];
+        all.forEach(function(el){
+            if(el.complete || el.readyState === "complete"){ onOne(); return; }
+            el.addEventListener("load", onOne, { once:true });
+            el.addEventListener("error", onOne, { once:true });
+        });
+        // 兜底: 6 秒后仍未完成 → 强制完成(防资源卡死)
+        setTimeout(function(){ if(!finished){ done = total; maybeFinish(); } }, 6000);
+    }
+
+    track();
+    window.addEventListener("load", function(){
+        if(!finished){ done = total; maybeFinish(); }
+    }, { once:true });
 }
 
 if(document.readyState === "loading"){
