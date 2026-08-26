@@ -1,17 +1,17 @@
-// report.js v2 —— 所有小游戏共用的排行榜分数上报（防丢失增强版）
+// report.js v3 —— 小游戏排行榜上报（Firestore 云数据库直连版）
 // 游戏结束时调用 reportScore(游戏id, 分数)；玩家名取网站里存的昵称(playerName)
-// v2 改动：
-//   1) 失败自动重试(最多3次, 间隔3秒, 避开服务器同玩家2秒限流)
-//   2) 待传队列(localStorage)：请求失败/页面刷新都不丢, 下次打开页面自动补传
-//   3) 请求超时控制(15秒, 适配Render免费实例冷启动)
-//   4) 轻量提示 showToast()(右上角小条, 不阻塞游戏流程)
-// 上报到线上排行榜服务器
+// v3 改动：
+//   - 弃用 Render 服务器，成绩直接写入 Google Firestore（免费云数据库，永久存储，无冷启动）
+//   - 文档 ID = 游戏_名字（如 snake_毛毛），同名玩家自动覆盖为最新成绩
+//   - 保留 v2 的：失败自动重试 + 待传队列(localStorage 补传) + 15s 超时
+//   - 排行榜页 games/ranking.html 也直读 Firestore，两边一致
 
-const REPORT_URL = "https://maomao-server.onrender.com/score";
+const FS_BASE = "https://firestore.googleapis.com/v1/projects/maomao-3c9ef/databases/(default)/documents";
+const FS_KEY = "AIzaSyCa7M7dFqDlilAtniesykU97PWb--S_EX8";
 const PENDING_KEY = "reportPending";   // 待传队列 {game,score,name,ts,fail}
 const MAX_RETRY = 3;
-const RETRY_DELAY = 3000;              // 3秒后重试(>服务器2秒限流窗口)
-const REQ_TIMEOUT = 15000;             // 15秒超时(冷启动备用)
+const RETRY_DELAY = 3000;
+const REQ_TIMEOUT = 15000;
 
 // ===== 上报入口 =====
 function reportScore(game, score) {
@@ -32,49 +32,86 @@ function saveQueue(q) {
     try { localStorage.setItem(PENDING_KEY, JSON.stringify(q)); } catch (e) {}
 }
 
-// ===== 尝试发送队首(一次只发一条, 保证顺序与限流安全) =====
+// 文档 ID: 游戏_名字(REST 路径须 URL 编码)
+// 文档 ID: 游戏UTF8hex + "_" + 名字UTF8hex, 纯 ASCII 安全 ID
+// 例: snake__毛毛 → snake__e6af9be6af9b (毛毛=UTF8字节 e6af9b e6af9b)
+// Firestore REST 创建必须用 ?documentId= query 参数(路径方式 /scores/{id} 不被识别)
+function docId(item) {
+    const hex = (s) => {
+        const bytes = new TextEncoder().encode(s);
+        let h = "";
+        bytes.forEach(b => h += b.toString(16).padStart(2, "0"));
+        return h;
+    };
+    return hex(item.game) + "_" + hex(item.name);
+}
+
+// 覆盖写入(create 或 replace overwrite); 数字用字符串 integerValue
+function buildDoc(item) {
+    return {
+        fields: {
+            game:  { stringValue: item.game },
+            name:  { stringValue: item.name },
+            score: { integerValue: String(item.score) },
+            ts:    { integerValue: String(item.ts) }
+        }
+    };
+}
+
+// ===== 尝试发送队首(一次只发一条) =====
 let flushing = false;
 function flushQueue() {
     if (flushing) return;
     const q = loadQueue();
     if (q.length === 0) return;
     const head = q[0];
-    // 网络重试已尽: 本次会话不再纠缠, 等下次打开页面(load 会清零)再补传
     if ((head.fail || 0) >= MAX_RETRY) return;
     flushing = true;
     const item = head;
 
-    // 超时控制(AbortController)
     const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
     const timer = ctrl ? setTimeout(() => ctrl.abort(), REQ_TIMEOUT) : null;
 
-    fetch(REPORT_URL, {
+    // Firestore REST: 创建用 ?documentId= ; 存在(409)则 PATCH /scores/{id} 覆盖字段
+    const id = docId(item);
+    const url = FS_BASE + "/scores?documentId=" + id + "&key=" + FS_KEY;
+    const body = buildDoc(item);
+
+    const doWrite = () => fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: item.name, game: item.game, score: item.score }),
+        body: JSON.stringify(body),
         keepalive: true,
         signal: ctrl ? ctrl.signal : undefined
-    })
-    .then(r => r.json().catch(() => ({ ok: false, message: "响应解析失败 HTTP" + r.status })))
+    }).then(r => {
+        if (r.status === 200 || r.status === 201) return { ok: true };
+        // 已存在(409) → 用 PATCH 覆盖(score/ts)
+        if (r.status === 409) {
+            const patchUrl = FS_BASE + "/scores/" + id + "?key=" + FS_KEY +
+                "&updateMask.fieldPaths=score&updateMask.fieldPaths=ts";
+            const patchBody = { fields: { score: { integerValue: String(item.score) }, ts: { integerValue: String(item.ts) } } };
+            return fetch(patchUrl, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(patchBody),
+                keepalive: true,
+                signal: ctrl ? ctrl.signal : undefined
+            }).then(p => ({ ok: p.status === 200 }));
+        }
+        return { ok: false, status: r.status };
+    });
+
+    doWrite()
     .then(d => {
-        // 服务器明确答复(即使 400 也解析过 body)：
-        //   ok:true                → 已记录, 完成
-        //   ok:false + 太快         → 上一次已成功, 本次视为完成
-        //   ok:false + 其他         → 未知游戏/分数异常等, 重试无用, 丢弃
-        const tooFast = d && d.message && d.message.indexOf("太快") >= 0;
-        if (d && d.ok) {
-            console.log("[排行榜] 成绩已上传:", d);
-            finishQueue();
-        } else if (tooFast) {
-            console.log("[排行榜] 稍早提交已在排队(操作太快), 视为成功");
+        if (d.ok) {
+            console.log("[排行榜] 成绩已上传 Firestore:", d);
             finishQueue();
         } else {
-            console.log("[排行榜] 该成绩不会被记录:", d && d.message);
+            console.log("[排行榜] 该成绩不会被记录:", d);
             finishQueue();
         }
     })
     .catch(e => {
-        // 只有网络层失败/超时才重试(服务器没答复)
         item.fail = (item.fail || 0) + 1;
         q[0].fail = item.fail;
         saveQueue(q);
