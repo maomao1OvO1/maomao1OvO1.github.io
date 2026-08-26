@@ -237,7 +237,7 @@ body.dark-mode{
 
 <body>
 
-<script src="report.js"></script>
+<script src="report.js?v=2"></script>
 
 <script>
 
@@ -387,7 +387,7 @@ function resetStats() {
 
         updateStatsDisplay();
 
-        alert('统计已重置！');
+        showToast('统计已重置！');
 
     }
 
@@ -508,7 +508,7 @@ function play(x, y){
 
     }
 
-    alert(turn==1 ? "⚫ 黑棋胜利！" : "⚪ 白棋胜利！");
+    showToast(turn==1 ? "⚫ 黑棋胜利！" : "⚪ 白棋胜利！");
 
     gameEnd = true;
 
@@ -538,7 +538,7 @@ function play(x, y){
 
         } else {
 
-            alert('职业AI未加载，降级为普通AI');
+            showToast('职业AI未加载，降级为普通AI');
 
             setTimeout(aiMove, 500);
 

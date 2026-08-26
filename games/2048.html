@@ -209,7 +209,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </button>
 
-<script src="report.js"></script>
+<script src="report.js?v=2"></script>
 
 <script>
 
@@ -257,7 +257,7 @@ function resetStats() {
     if (confirm('确定要重置2048的统计吗？')) {
         saveStats(defaultStats());
         updateStatsDisplay();
-        alert('统计已重置！');
+        showToast('统计已重置！');
     }
 }
 
@@ -270,7 +270,7 @@ function checkWin() {
                 stats.winCount++;
                 saveStats(stats);
                 updateStatsDisplay();
-                alert('🎉 你赢了！已达到2048！');
+                showToast('🎉 你赢了！已达到2048！');
                 return true;
             }
         }
@@ -559,9 +559,9 @@ function checkGameOver(){
             stats.highScore = score;
             saveStats(stats);
             updateStatsDisplay();
-            alert(`🎯 新纪录！最高分：${score}`);
+            showToast(`🎯 新纪录！最高分：${score}`);
         } else {
-            alert(`😢 游戏结束！当前分数：${score}`);
+            showToast(`😢 游戏结束！当前分数：${score}`);
         }
         gameEnd = true;
         reportScore("2048", score);
