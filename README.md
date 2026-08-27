@@ -2,7 +2,7 @@
 
 > GitHub Pages 托管的个人小站 —— 我的 AI 余额查询盒、小游戏大厅、硬件测试实验室与音乐/相册角落，全都在这一个纯静态仓库里。
 
-🔗 线上地址：https://maomao1ovo1.github.io
+🔗 线上地址：https://maomaowang.top（旧域名 `https://maomao1ovo1.github.io` 仍保留可用）
 
 ---
 
