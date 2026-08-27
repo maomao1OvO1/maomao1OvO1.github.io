@@ -106,8 +106,60 @@ function emailLogin(email, pass, isSignup){
     const f = isSignup
         ? firebase.auth().createUserWithEmailAndPassword(email, pass)
         : firebase.auth().signInWithEmailAndPassword(email, pass);
-    f.then(function(){})
-     .catch(function(err){ alert("邮箱登录失败：" + (err.message || err)); });
+    f.then(function(cred){
+        const u = cred.user;
+        if(isSignup){
+            // 注册成功：必须先去邮箱点「确认」链接，验证通过才算真正可用（否则用不了）
+            return (u.sendEmailVerification ? u.sendEmailVerification() : Promise.resolve())
+                .then(function(){ return auth.signOut(); })
+                .then(function(){
+                    clearAuthCache();
+                    alert("✅ 注册成功！已往 " + email + " 发送验证邮件，请去邮箱点「确认」链接，验证通过后再回来登录。");
+                })
+                .catch(function(err){
+                    clearAuthCache();
+                    alert("⚠️ 注册成功，但验证邮件发送失败（" + (err.message||err) + "）。请稍后重新登录再试；邮箱验证前暂时登不进。");
+                });
+        }
+        if(u.emailVerified){
+            // 邮箱已验证，正常登录（onAuthStateChanged 会接管后续）
+            return;
+        }
+        // 邮箱还没验证：拦截登录，重发验证邮件并登出，回到登录门
+        return (u.sendEmailVerification ? u.sendEmailVerification() : Promise.resolve())
+            .then(function(){ return auth.signOut(); })
+            .then(function(){
+                clearAuthCache();
+                alert("⚠️ 该邮箱还没验证，暂时不能登录。已重新发送验证邮件，请到邮箱点「确认」链接后再来登录。");
+            })
+            .catch(function(err){
+                clearAuthCache();
+                alert("⚠️ 邮箱还没验证。已重新发验证邮件（" + (err.message||err) + "），请到邮箱点「确认」链接后再来登录。");
+            });
+    })
+    .catch(function(err){
+        if(isSignup){
+            if(err.code === "auth/email-already-in-use") alert("该邮箱已注册，请直接登录");
+            else if(err.code === "auth/weak-password") alert("密码太弱：至少 6 位");
+            else alert("邮箱注册失败：" + (err.message || err));
+        }else{
+            if(err.code === "auth/wrong-password" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-login-credentials") alert("邮箱或密码不正确，或该邮箱还没设密码（若是谷歌/GitHub 账号，请用对应方式登录）");
+            else if(err.code === "auth/user-not-found") alert("该邮箱还没注册，请先注册");
+            else if(err.code === "auth/too-many-requests") alert("尝试次数太多，请稍后再试");
+            else if(err.code === "auth/invalid-email") alert("邮箱格式不正确");
+            else alert("邮箱登录失败：" + (err.message || err));
+        }
+    });
+}
+
+// 邮箱验证拦截/强制登出时清本地登录缓存并回登录门（配合 onAuthStateChanged）
+function clearAuthCache(){
+    try{
+        localStorage.removeItem("authUser");
+        localStorage.removeItem("guestMode");
+        hideAccountMenu();
+        showLoginGate();
+    }catch(e){}
 }
 
 // ===================== 登录状态 =====================
@@ -436,16 +488,24 @@ function logout(){
 function toggleEmailMode(){
     const t = document.getElementById("emailMode");
     if(!t) return;
-    const isSignup = t.getAttribute("data-mode") === "signup";
-    t.setAttribute("data-mode", isSignup ? "login" : "signup");
-    t.textContent = isSignup ? "没有账号?注册" : "已有账号?登录";
-    // 注册模式：显示「确认密码」框与提示，按钮文字同步
+    const isSignupNow = t.getAttribute("data-mode") === "signup";
+    const newMode = isSignupNow ? "login" : "signup";
+    t.setAttribute("data-mode", newMode);
+    const signup = newMode === "signup";
+    // 链接文案：显示「点它会切到哪个模式」（当前模式决定）
+    t.textContent = signup ? "已有账号?登录" : "没有账号?注册";
+    // 邮箱表单：注册要填两遍密码，登录只填一次
     const wrap = document.getElementById("lgPass2Wrap");
     const hint = document.getElementById("lgPassHint");
     const submit = document.getElementById("lgSubmit");
-    if(submit) submit.textContent = isSignup ? "邮箱注册" : "邮箱登录";
-    if(wrap) wrap.style.display = isSignup ? "block" : "none";
-    if(hint) hint.style.display = isSignup ? "block" : "none";
+    if(wrap) wrap.style.display = signup ? "block" : "none";
+    if(hint) hint.style.display = signup ? "block" : "none";
+    if(submit) submit.textContent = signup ? "邮箱注册" : "邮箱登录";
+    // 谷歌/GitHub 按钮：跟随模式显示 登录/注册
+    var gb = document.querySelector(".lg-btn.google");
+    var ghb = document.querySelector(".lg-btn.github");
+    if(gb) gb.textContent = signup ? "谷歌 注册" : "谷歌 登录";
+    if(ghb) ghb.textContent = signup ? "GitHub 注册" : "GitHub 登录";
 }
 
 // 密码显示/隐藏（👁 按钮，网上软件通用样式）
