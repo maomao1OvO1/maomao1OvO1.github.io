@@ -421,7 +421,7 @@ updateTime();
         </div>
         <div id="gateStep2" style="display:none;">
             <h3>选择登录方式</h3>
-            <button class="lg-btn google" onclick="loginProvider('google')">谷歌登录</button>
+            <button class="lg-btn google" onclick="loginProvider('google')">谷歌 登录</button>
             <button class="lg-btn github" onclick="loginProvider('github')">GitHub 登录</button>
             <div class="lg-divider"><span>或</span></div>
             <input id="lgEmail" class="lg-input" type="email" placeholder="邮箱">
@@ -435,6 +435,7 @@ updateTime();
             </div>
             <div class="lg-pass-hint" id="lgPassHint" style="display:none;">🔒 密码至少 6 位，两遍输入需保持一致</div>
             <button class="lg-btn email" id="lgSubmit" onclick="emailLogin(document.getElementById('lgEmail').value, document.getElementById('lgPass').value, document.getElementById('emailMode').getAttribute('data-mode')==='signup')">邮箱登录</button>
+            <div class="lg-pass-hint" id="emailVerifyHint">📩 邮箱+密码登录需先在邮箱里点「确认」链接，验证通过后才能登进；没收到就翻♻️垃圾箱。</div>
             <button id="emailMode" class="lg-link" data-mode="login" onclick="toggleEmailMode()">没有账号?注册</button>
             <button class="gate-back" onclick="gateBack()">← 返回</button>
         </div>
