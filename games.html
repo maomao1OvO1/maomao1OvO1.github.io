@@ -243,7 +243,7 @@ if(localStorage.getItem("theme") === "dark"){
 <script>
 (function(){
   try{
-    if(/MicroMessenger/i.test(navigator.userAgent||"")){
+    if(/MicroMessenger/i.test(navigator.userAgent||"") || /[?if(/MicroMessenger/i.test(navigator.userAgent||"")){]wx=1/.test(location.search||"")){
       document.querySelectorAll(".game-card").forEach(function(el){ el.style.display="none"; });
       var d=document.createElement("div");
       d.style.cssText="text-align:center;padding:36px 16px;color:#888;font-size:14px;line-height:1.7;";
