@@ -200,8 +200,10 @@ function saveVip(names){
     if(!__owner){ msg.textContent = "仅站长可改"; return; }
     if(!__idToken){ msg.textContent = "获取登录令牌中，稍后再试"; return; }
     var body = { fields: { names: { arrayValue: { values: names.map(function(n){ return { stringValue: n }; }) } } } };
-    fetch(FS_BASE + "/special/vips", {
-        method: "PUT",
+    // Firestore REST：PATCH = 更新或创建文档（无 PUT 方法）
+    var url = FS_BASE + "/special/vips?updateMask.fieldPaths=names";
+    fetch(url, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + __idToken },
         body: JSON.stringify(body)
     })
@@ -210,7 +212,7 @@ function saveVip(names){
         else if(r.status === 401 || r.status === 403){ msg.textContent = "保存被拒：需先用站长账号登录，且 Firestore 规则已放行 special（见说明）"; }
         else { msg.textContent = "保存失败 HTTP " + r.status; }
     })
-    .catch(function(e){ msg.textContent = "保存失败:" + e.message; });
+    .catch(function(e){ msg.textContent = "保存失败：" + (e.message || "网络错误"); });
 }
 
 // ===== 文档 ID 工具（与 report.js 一致：hex(游戏)+"_"+hex(名字)）=====
