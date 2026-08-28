@@ -91,7 +91,13 @@ function loadUsers(){
     .then(function(r){
         if(r.status === 401){ msg.textContent = "⚠️ 登录令牌无效，请重新登录"; msg.className = "msg err"; return null; }
         if(r.status === 403){ msg.textContent = "⚠️ 仅站长可用（请用站长账号登录）"; msg.className = "msg err"; return null; }
-        if(!r.ok){ msg.textContent = "读取失败 HTTP " + r.status; msg.className = "msg err"; return null; }
+        if(!r.ok){
+            return r.json().catch(function(){ return {}; }).then(function(d){
+                msg.textContent = "读取失败：" + (d && d.error ? d.error : "HTTP " + r.status);
+                msg.className = "msg err";
+                return null;
+            });
+        }
         return r.json();
     })
     .then(function(d){
