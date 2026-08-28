@@ -240,6 +240,20 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+<script>
+(function(){
+  try{
+    if(/MicroMessenger/i.test(navigator.userAgent||"")){
+      document.querySelectorAll(".game-card").forEach(function(el){ el.style.display="none"; });
+      var d=document.createElement("div");
+      d.style.cssText="text-align:center;padding:36px 16px;color:#888;font-size:14px;line-height:1.7;";
+      d.textContent="💡 微信内不展示游戏内容，请点击右上角，用浏览器（Chrome）打开即可游玩。";
+      document.body.insertBefore(d, document.body.firstChild);
+    }
+  }catch(e){}
+})();
+</script>
+
 </body>
 
 </html>
