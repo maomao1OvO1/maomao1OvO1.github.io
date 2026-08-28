@@ -69,6 +69,17 @@ body.dark-mode { background:#121212; color:#fff; }
         <button class="danger" onclick="deletePlayerAll()">删除该玩家全部记录</button>
     </div>
 
+    <div class="box">
+        <div class="sec-title">🎨 呼吸灯名单（排行榜彩色特效 · 你 + 授权的人）</div>
+        <div class="msg" id="vipMsg"></div>
+        <div id="vipList"></div>
+        <div style="margin-top:8px;">
+            <input id="vipName" placeholder="玩家名" style="width:60%">
+            <button onclick="addVip()">加入名单</button>
+        </div>
+        <div class="msg" style="font-size:12px;color:#999;">提示：你本人无论叫什么都会自动亮；这里授权的人也会亮。</div>
+    </div>
+
     <a href="ranking.html" class="back-home">🏆 回排行榜</a>
     <a href="allplayers.html" class="back-home" style="left:20px;right:auto;">👥 玩家汇总</a>
 </div>
@@ -129,6 +140,77 @@ function init(){
         sel.appendChild(opt);
     }
     loadAll();
+    refreshVip();
+}
+
+// ===== 呼吸灯名单（special/vips）：读 / 加 / 删 / 存 =====
+function refreshVip(){
+    var box = document.getElementById("vipList");
+    var msg = document.getElementById("vipMsg");
+    if (!box) return;
+    msg.textContent = "加载中..."; msg.className = "msg";
+    fetch(FS_BASE + "/special/vips?key=" + FS_KEY)
+    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function(d){
+        var arr = (d.fields && d.fields.names && d.fields.names.arrayValue && d.fields.names.arrayValue.values) || [];
+        renderVip(arr.map(function(v){ return v.stringValue; }).filter(Boolean));
+    })
+    .catch(function(){ renderVip([]); });
+}
+function renderVip(names){
+    var box = document.getElementById("vipList");
+    var msg = document.getElementById("vipMsg");
+    box.innerHTML = "";
+    msg.textContent = names.length ? ("当前名单：" + names.length + " 人") : "名单为空（默认只有「毛毛」会亮）";
+    names.forEach(function(n){
+        var row = document.createElement("div"); row.className = "rowsc"; row.style.borderBottom = "1px solid #eee";
+        var span = document.createElement("span"); span.style.display = "inline-block"; span.style.minWidth = "120px"; span.textContent = n;
+        var btn = document.createElement("button"); btn.className = "danger"; btn.textContent = "移除"; btn.style.marginLeft = "8px";
+        btn.onclick = function(){ removeVip(n); };
+        row.appendChild(span); row.appendChild(btn); box.appendChild(row);
+    });
+}
+function readVipNames(){
+    return fetch(FS_BASE + "/special/vips?key=" + FS_KEY)
+    .then(function(r){ if(!r.ok) return []; return r.json(); })
+    .then(function(d){
+        var arr = (d && d.fields && d.fields.names && d.fields.names.arrayValue && d.fields.names.arrayValue.values) || [];
+        return arr.map(function(v){ return v.stringValue; }).filter(Boolean);
+    })
+    .catch(function(){ return []; });
+}
+function addVip(){
+    var n = document.getElementById("vipName") ? document.getElementById("vipName").value.trim() : "";
+    var msg = document.getElementById("vipMsg");
+    if(!n){ msg.textContent = "请输入玩家名"; return; }
+    readVipNames().then(function(names){
+        if(names.indexOf(n) >= 0){ msg.textContent = "已在名单里"; return; }
+        names.push(n);
+        saveVip(names);
+    });
+}
+function removeVip(n){
+    readVipNames().then(function(names){
+        var next = names.filter(function(x){ return x !== n; });
+        saveVip(next);
+    });
+}
+function saveVip(names){
+    var msg = document.getElementById("vipMsg");
+    if(!__owner){ msg.textContent = "仅站长可改"; return; }
+    if(!__idToken){ msg.textContent = "获取登录令牌中，稍后再试"; return; }
+    var body = { fields: { names: { arrayValue: { values: names.map(function(n){ return { stringValue: n }; }) } } } };
+    fetch(FS_BASE + "/special/vips", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + __idToken },
+        body: JSON.stringify(body)
+    })
+    .then(function(r){
+        if(r.ok){ msg.textContent = "✅ 已保存"; refreshVip(); }
+        else if(r.status === 401 || r.status === 403){ msg.textContent = "保存被拒：需先用站长账号登录，且 Firestore 规则已放行 special（见说明）"; }
+        else { msg.textContent = "保存失败 HTTP " + r.status; }
+    })
+    .catch(function(e){ msg.textContent = "保存失败:" + e.message; });
 }
 
 // ===== 文档 ID 工具（与 report.js 一致：hex(游戏)+"_"+hex(名字)）=====

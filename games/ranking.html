@@ -26,7 +26,7 @@ button:hover { background:#6543a5; }
 .rank-card .name { flex:1; text-align:left; }
 .rank-card .score { font-weight:bold; }
 
-/* ===== 毛毛专属：呼吸灯 + 闪光 ===== */
+/* ===== 站长/授权玩家：呼吸灯 + 闪光 ===== */
 .rank-card.owner {
     border:3px solid #7C5CBF;
     background:#f3edff;
@@ -76,7 +76,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 <div class="box">
     <select id="gameSel"></select>
-    <button onclick="loadRank()">查看榜单</button>
+    <button onclick="refresh()">查看榜单</button>
     <div class="msg" id="msg">加载中...</div>
     <div id="list"></div>
 </div>
@@ -88,7 +88,13 @@ if(localStorage.getItem("theme") === "dark"){
 // Firestore 直连配置(与 report.js 相同)
 const FS_BASE = "https://firestore.googleapis.com/v1/projects/maomao-3c9ef/databases/(default)/documents";
 const FS_KEY = "AIzaSyCa7M7dFqDlilAtniesykU97PWb--S_EX8";
-const OWNER = "毛毛";   // 专属特效玩家名字
+const OWNER = "毛毛";   // 默认呼吸灯名字（兜底）
+
+// 站长邮箱（混淆存储，防爬虫；与 login.js 一致）
+const OWNER_EMAIL = (function(){ try { return atob("bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft").split("").reverse().join("").toLowerCase(); } catch(e){ return ""; } })();
+
+// 呼吸灯名单（默认先含毛毛；从 Firestore special/vips 读取，站长登录时自动加自己当前名字）
+let VIP = new Set([OWNER]);
 
 // 玩家名公开可写，展示时必须转义（防 XSS）
 function escHtml(s){ return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
@@ -125,7 +131,31 @@ for (let id in GAMES) {
     opt.value = id; opt.textContent = GAMES[id].label;
     gameSel.appendChild(opt);
 }
-loadRank();
+refresh();
+
+// 先加载呼吸灯名单，再渲染榜单
+function refresh(){
+    loadVip().then(loadRank);
+}
+
+function loadVip(){
+    return fetch(FS_BASE + "/special/vips?key=" + FS_KEY)
+    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function(d){
+        var arr = (d.fields && d.fields.names && d.fields.names.arrayValue && d.fields.names.arrayValue.values) || [];
+        var names = arr.map(function(v){ return v.stringValue; }).filter(Boolean);
+        VIP = new Set(names.length ? names : [OWNER]);
+        // 站长登录时：把他正用着的名字也加进名单（不管改叫什么都亮）
+        try {
+            var a = JSON.parse(localStorage.getItem("authUser") || "null");
+            if (a && String(a.email || "").toLowerCase() === OWNER_EMAIL) {
+                var pn = localStorage.getItem("playerName");
+                if (pn) VIP.add(pn);
+            }
+        } catch(e){}
+    })
+    .catch(function(){ /* 规则未生效/暂无名单 → 兜底只亮毛毛 */ });
+}
 
 // 文档 ID 格式: hex(游戏) + "_" + hex(名字) → 解码回 {game, name}
 function decodeDocId(docId) {
@@ -180,7 +210,7 @@ function loadRank() {
         let html = "";
         top.forEach((p, i) => {
             const medal = ["🥇","🥈","🥉"][i] || "🏅";
-            const isOwner = p.name === OWNER;
+            const isOwner = VIP.has(p.name);
             html +=
                 '<div class="rank-card' + (isOwner ? " owner" : "") + '">' +
                 '<span class="rank">' + medal + '</span>' +
