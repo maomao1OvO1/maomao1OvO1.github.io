@@ -82,12 +82,29 @@ if(localStorage.getItem("theme") === "dark"){
 </div>
 
 <a href="../games.html" class="back-home">🎮 返回小游戏</a>
+<button id="adminBtn" style="display:none;position:fixed;top:20px;left:20px;background:#7C5CBF;color:#fff;padding:10px 15px;border:none;border-radius:20px;font-size:16px;z-index:9;cursor:pointer;" onclick="location.href='admin.html'">⚙️ 管理</button>
 
 <script>
 // Firestore 直连配置(与 report.js 相同)
 const FS_BASE = "https://firestore.googleapis.com/v1/projects/maomao-3c9ef/databases/(default)/documents";
 const FS_KEY = "AIzaSyCa7M7dFqDlilAtniesykU97PWb--S_EX8";
 const OWNER = "毛毛";   // 专属特效玩家名字
+
+// 玩家名公开可写，展示时必须转义（防 XSS）
+function escHtml(s){ return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+
+// ===== 站长专属：仅毛毛账号显示「管理」入口 =====
+(function(){
+    try {
+        var a = JSON.parse(localStorage.getItem("authUser") || "null");
+        if (a) {
+            var em = String(a.email || "").toLowerCase();
+            var nm = String(a.name || "");
+            var isMao = /maomao1ovo1@(gmail|163)\.com$/.test(em) || /毛毛|maomao1ovo1/i.test(nm);
+            if (isMao) document.getElementById("adminBtn").style.display = "block";
+        }
+    } catch (e) {}
+})();
 
 // 游戏定义(与服务器 GAMES 一致; best=min 越小越好如猜数字, max 越大越好)
 const GAMES = {
@@ -167,7 +184,7 @@ function loadRank() {
             html +=
                 '<div class="rank-card' + (isOwner ? " owner" : "") + '">' +
                 '<span class="rank">' + medal + '</span>' +
-                '<span class="name">' + (isOwner ? "👑 " : "") + p.name + '</span>' +
+                '<span class="name">' + (isOwner ? "👑 " : "") + escHtml(p.name) + '</span>' +
                 '<span class="score">' + p.score + ' ' + (GAMES[game].unit || "") + '</span>' +
                 '</div>';
         });
