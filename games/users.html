@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户管理 · 毛毛</title>
+<style>
+body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
+h1 { color:#7C5CBF; }
+.gate { max-width:480px; margin:40px auto; background:#fff; padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
+.box { max-width:700px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
+button { padding:9px 14px; border:none; border-radius:10px; font-size:15px; margin:4px; background:#7C5CBF; color:#fff; cursor:pointer; }
+button:hover { background:#6543a5; }
+.msg { color:#666; margin:6px 0; }
+.msg.err { color:#c94f4f; }
+table { width:100%; border-collapse:collapse; margin-top:8px; font-size:14px; }
+th, td { border:1px solid #e0e0e0; padding:6px 8px; }
+th { background:#f3edff; color:#6543a5; }
+td.mail { text-align:left; word-break:break-all; }
+.back-home { position:fixed; top:20px; right:20px; background:#e5dcff; color:#6543a5; padding:10px 15px; border-radius:20px; text-decoration:none; font-size:16px; z-index:9; }
+.scroll { overflow-x:auto; }
+body.dark-mode { background:#121212; color:#fff; }
+.dark-mode .box, .dark-mode .gate { background:#1e1e1e; color:#eee; }
+.dark-mode th { background:#2a2438; color:#bb9cff; }
+.dark-mode th, .dark-mode td { border-color:#333; }
+.dark-mode .back-home { background:#333; color:#bb9cff; }
+</style>
+</head>
+
+<body>
+
+<h1>👥 用户管理</h1>
+
+<div id="gate" class="gate">
+    <p>⚠️ 这个页面只有<b>站长（毛毛账号）</b>能用。</p>
+    <p id="gateWhy">请先登录毛毛账号。</p>
+    <a href="../index.html" class="back-home">🏠 回主页</a>
+</div>
+
+<div id="panel" style="display:none;">
+    <div class="box">
+        <div class="msg" id="msg">加载中...</div>
+        <div class="scroll">
+            <table id="tbl">
+                <thead><tr>
+                    <th>邮箱</th>
+                    <th>登录方式</th>
+                    <th>注册时间</th>
+                    <th>上次登录</th>
+                </tr></thead>
+                <tbody id="tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <a href="../index.html" class="back-home">🏠 回主页</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script>
+// ===== 配置 =====
+const API_BASE = "https://maomao-admin-api.onrender.com";   // 站长后台 API（maomao-admin-api）
+// 站长邮箱（混淆存储，防爬虫；与 login.js 一致）
+const OWNER_EMAIL = (function(){ try { return atob("bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft").split("").reverse().join("").toLowerCase(); } catch(e){ return ""; } })();
+
+let __idToken = null;
+
+if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); }
+firebase.auth().onAuthStateChanged(function(user){
+    if (user && String(user.email || "").toLowerCase() === OWNER_EMAIL) {
+        document.getElementById("gate").style.display = "none";
+        document.getElementById("panel").style.display = "block";
+        user.getIdToken().then(function(t){ __idToken = t; loadUsers(); });
+    } else {
+        document.getElementById("gate").style.display = "block";
+        document.getElementById("panel").style.display = "none";
+        document.getElementById("gateWhy").textContent = user
+            ? "当前登录：" + user.email + "（不是站长账号）"
+            : "请先登录毛毛账号。";
+    }
+});
+
+// ===== 用户列表（仅站长；maomao-admin-api 校验）=====
+function loadUsers(){
+    var msg = document.getElementById("msg");
+    if (!__idToken){ msg.textContent = "获取登录令牌中，稍后再试"; return; }
+    msg.textContent = "加载中..."; msg.className = "msg";
+    fetch(API_BASE + "/api/users", { headers: { "Authorization": "Bearer " + __idToken } })
+    .then(function(r){
+        if(r.status === 401){ msg.textContent = "⚠️ 登录令牌无效，请重新登录"; msg.className = "msg err"; return null; }
+        if(r.status === 403){ msg.textContent = "⚠️ 仅站长可用（请用站长账号登录）"; msg.className = "msg err"; return null; }
+        if(!r.ok){ msg.textContent = "读取失败 HTTP " + r.status; msg.className = "msg err"; return null; }
+        return r.json();
+    })
+    .then(function(d){
+        if(!d) return;
+        renderUsers(d.users || []);
+    })
+    .catch(function(e){ msg.textContent = "读取失败：" + (e.message || "网络错误"); msg.className = "msg err"; });
+}
+function renderUsers(users){
+    var tbody = document.getElementById("tbody");
+    var msg = document.getElementById("msg");
+    msg.textContent = "共 " + users.length + " 位用户（新注册在前）"; msg.className = "msg";
+    tbody.innerHTML = "";
+    users.forEach(function(u){
+        var tr = document.createElement("tr");
+        var td1 = document.createElement("td"); td1.className = "mail"; td1.textContent = u.email || u.displayName || "(无名)";
+        var td2 = document.createElement("td"); td2.textContent = provLabel(u.providers);
+        var td3 = document.createElement("td"); td3.textContent = fmtTime(u.createdAt);
+        var td4 = document.createElement("td"); td4.textContent = fmtTime(u.lastSignInAt);
+        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+        tbody.appendChild(tr);
+    });
+}
+function provLabel(p){
+    var m = { "google.com":"Google", "github.com":"GitHub", "password":"邮箱" };
+    if(!p || !p.length) return "-";
+    return p.map(function(x){ return m[x] || x; }).join(" / ");
+}
+function fmtTime(t){
+    if(!t) return "-";
+    var d = new Date(t);
+    if(isNaN(d)) return t;
+    return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate() + " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+</script>
+
+</body>
+</html>
