@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排行榜管理 · 毛毛</title>
+<style>
+body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
+h1 { color:#7C5CBF; }
+.box { max-width:620px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
+select, input, button { padding:9px 12px; border:none; border-radius:10px; font-size:15px; margin:4px; box-sizing:border-box; }
+select, input { border:1px solid #ccc; background:#fff; }
+button { background:#7C5CBF; color:#fff; cursor:pointer; }
+button:hover { background:#6543a5; }
+button.sec { background:#e5dcff; color:#6543a5; }
+button.danger { background:#c94f4f; }
+button.danger:hover { background:#a83838; }
+.gate { max-width:480px; margin:40px auto; background:#fff; padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
+.rowhead { font-weight:bold; color:#7C5CBF; margin:6px 0; }
+.rowsc { margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #eee; }
+.rowsc .rmeta { display:inline-block; margin-right:8px; }
+.rowsc .btns { display:inline-block; }
+.rowsc small { color:#999; }
+.msg { color:#666; margin:6px 0; }
+.msg.err { color:#c94f4f; }
+.msg.ok { color:#2a8a3f; }
+.sec-title { margin-top:14px; font-weight:bold; color:#6543a5; }
+#list { max-width:600px; }
+.back-home { position:fixed; top:20px; right:20px; background:#e5dcff; color:#6543a5; padding:10px 15px; border-radius:20px; text-decoration:none; font-size:16px; z-index:9; }
+body.dark-mode { background:#121212; color:#fff; }
+.dark-mode .box, .dark-mode .gate { background:#1e1e1e; color:#eee; }
+.dark-mode select, .dark-mode input { background:#333; color:#eee; border-color:#555; }
+.dark-mode button.sec { background:#333; color:#bb9cff; }
+.dark-mode .back-home { background:#333; color:#bb9cff; }
+.dark-mode .rowsc { border-color:#333; }
+</style>
+</head>
+
+<body>
+
+<h1>🏆 排行榜管理</h1>
+
+<div id="gate" class="gate">
+    <p>⚠️ 这个页面只有<b>站长（毛毛账号）</b>能用。</p>
+    <p id="gateWhy">请先登录毛毛账号。</p>
+    <a href="../index.html" class="back-home">🏠 回主页</a>
+</div>
+
+<div id="panel" style="display:none;">
+    <div class="box">
+        <div class="sec-title">🎮 选择游戏　查看/改/删</div>
+        <select id="gameSel"></select>
+        <button onclick="loadAll()">刷新</button>
+        <div class="msg" id="msg">加载中...</div>
+        <div id="list"></div>
+    </div>
+
+    <div class="box">
+        <div class="sec-title">➕ 添加 / 覆盖一条记录（用当前所选游戏）</div>
+        <input id="addName" placeholder="玩家名" style="width:46%">
+        <input id="addScore" type="number" placeholder="分数" style="width:46%">
+        <button onclick="addScore()">添加 / 覆盖</button>
+    </div>
+
+    <div class="box">
+        <div class="sec-title">🗑️ 按名字删除某玩家【全部】记录（跨所有游戏）</div>
+        <input id="delName" placeholder="玩家名" style="width:70%">
+        <button class="danger" onclick="deletePlayerAll()">删除该玩家全部记录</button>
+    </div>
+
+    <a href="ranking.html" class="back-home">🏆 回排行榜</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script>
+// ===== 配置（与 report.js / ranking.html 一致）=====
+const FS_BASE = "https://firestore.googleapis.com/v1/projects/maomao-3c9ef/databases/(default)/documents";
+const FS_KEY = "AIzaSyCa7M7dFqDlilAtniesykU97PWb--S_EX8";
+// 站长邮箱（混淆存储，防爬虫；与 login.js 相同写法）
+var OWNER_EMAIL = (function(){ try { return atob("bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft").split("").reverse().join("").toLowerCase(); } catch(e){ return ""; } })();
+var OWNER_EMAILS = [OWNER_EMAIL];
+const GAMES = {
+    "2048":  { label: "2048",    best: "max", unit: "分" },
+    "snake": { label: "贪吃蛇",  best: "max", unit: "分" },
+    "typing":{ label: "打字",    best: "max", unit: "字/分" },
+    "guess": { label: "猜数字",  best: "min", unit: "次" },
+    "gomoku":{ label: "五子棋",  best: "max", unit: "连胜" },
+    "chess": { label: "象棋",    best: "max", unit: "连胜" },
+    "fish":  { label: "捕鱼",    best: "max", unit: "分" },
+    "go":    { label: "围棋",    best: "max", unit: "目" }
+};
+
+// ===== Firebase Auth：站长校验（删除凭据）=====
+let __idToken = null;          // 站长登录后拿到的 ID token（用于删除）
+let __owner = false;
+
+if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); }
+
+firebase.auth().onAuthStateChanged(function(user){
+    if (user && OWNER_EMAILS.indexOf(String(user.email || "").toLowerCase()) >= 0) {
+        __owner = true;
+        document.getElementById("gate").style.display = "none";
+        document.getElementById("panel").style.display = "block";
+        user.getIdToken().then(function(t){ __idToken = t; });
+        init();
+    } else {
+        __owner = false;
+        document.getElementById("gate").style.display = "block";
+        document.getElementById("panel").style.display = "none";
+        var why = document.getElementById("gateWhy");
+        why.textContent = user
+            ? "当前登录：" + user.email + "（不是站长账号，无法进入）"
+            : "请先登录毛毛账号（邮箱/Google 登录均可）。";
+    }
+});
+
+// ===== 初始化：游戏下拉 =====
+function init(){
+    var sel = document.getElementById("gameSel");
+    sel.innerHTML = "";
+    for (var id in GAMES){
+        var opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = GAMES[id].label;
+        sel.appendChild(opt);
+    }
+    loadAll();
+}
+
+// ===== 文档 ID 工具（与 report.js 一致：hex(游戏)+"_"+hex(名字)）=====
+function hexStr(s){
+    var bytes = new TextEncoder().encode(s);
+    var h = "";
+    for (var i = 0; i < bytes.length; i++) h += bytes[i].toString(16).padStart(2, "0");
+    return h;
+}
+function docIdFor(game, name){ return hexStr(game) + "_" + hexStr(name); }
+
+function decodeDocId(docId){
+    var i = docId.indexOf("_");
+    if (i < 0) return null;
+    function h2s(h){
+        if (h.length % 2) return "";
+        var bytes = [];
+        for (var j = 0; j < h.length; j += 2) bytes.push(parseInt(h.slice(j, j + 2), 16));
+        try { return new TextDecoder().decode(new Uint8Array(bytes)); } catch(e){ return ""; }
+    }
+    var game = h2s(docId.slice(0, i));
+    var name = h2s(docId.slice(i + 1));
+    if (!game || !name) return null;
+    return { game: game, name: name };
+}
+
+// ===== 小工具 =====
+function setMsg(m, ok){
+    var el = document.getElementById("msg");
+    el.textContent = m;
+    el.className = "msg " + (ok ? "ok" : "err");
+}
+function getSelGame(){ return document.getElementById("gameSel").value; }
+
+// ===== 加载全部记录，按所选游戏渲染 =====
+function loadAll(){
+    var msg = document.getElementById("msg");
+    var list = document.getElementById("list");
+    msg.textContent = "加载中..."; msg.className = "msg";
+    var game = getSelGame();
+
+    fetch(FS_BASE + "/scores?key=" + FS_KEY)
+    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function(data){
+        var docs = data.documents || [];
+        var entries = [];
+        docs.forEach(function(d){
+            var id = decodeDocId(d.name.split("/").pop());
+            if (!id || id.game !== game) return;
+            var f = d.fields || {};
+            var score = f.score ? Number(f.score.integerValue || f.score.doubleValue) : NaN;
+            var name = f.name ? f.name.stringValue : id.name;
+            var ts = f.ts ? Number(f.ts.integerValue || 0) : 0;
+            if (isNaN(score)) return;
+            entries.push({ docId: d.name.split("/").pop(), name: name, score: score, ts: ts });
+        });
+
+        if (!entries.length){ msg.textContent = "该游戏暂无记录"; return; }
+
+        var dir = GAMES[game].best === "min" ? 1 : -1;
+        entries.sort(function(a,b){ return dir * (a.score - b.score); });
+
+        list.innerHTML = "";
+        entries.forEach(function(ent){
+            var dt = ent.ts ? new Date(ent.ts) : null;
+            var dtStr = dt ? (dt.getFullYear() + "-" + (dt.getMonth()+1) + "-" + dt.getDate()) : "";
+
+            var row = document.createElement("div");
+            row.className = "rowsc";
+
+            var meta = document.createElement("span");
+            meta.className = "rmeta";
+            var b = document.createElement("b"); b.textContent = ent.name; meta.appendChild(b);
+            meta.appendChild(document.createTextNode("　" + ent.score + " " + (GAMES[game].unit||"")));
+            row.appendChild(meta);
+
+            if (dtStr){ var sm = document.createElement("small"); sm.textContent = "(" + dtStr + ")"; row.appendChild(sm); }
+
+            var btns = document.createElement("span");
+            btns.className = "btns";
+            var mb = document.createElement("button"); mb.className = "sec"; mb.textContent = "改";
+            mb.dataset.act = "mod"; mb.dataset.name = ent.name; mb.dataset.score = ent.score;
+            var db = document.createElement("button"); db.className = "danger"; db.textContent = "删";
+            db.dataset.act = "del"; db.dataset.name = ent.name; db.dataset.docid = ent.docId;
+            btns.appendChild(mb); btns.appendChild(db);
+            row.appendChild(btns);
+
+            list.appendChild(row);
+        });
+        msg.textContent = "共 " + entries.length + " 条";
+    })
+    .catch(function(e){ msg.textContent = "加载失败:" + e.message; msg.className = "msg err"; });
+}
+
+// 事件委托（改/删按钮），避免把玩家名拼进内联 onclick（XSS / 引号安全）
+document.getElementById("list").addEventListener("click", function(e){
+    var b = e.target && e.target.closest ? e.target.closest("button") : null;
+    if (!b) return;
+    var act = b.dataset.act;
+    if (act === "mod") modifyScore(b.dataset.name, Number(b.dataset.score));
+    else if (act === "del") deleteOne(b.dataset.name, b.dataset.docid);
+});
+
+// ===== 添加 / 覆盖（公开写，与报告一致）=====
+function addScore(){
+    var name = document.getElementById("addName").value.trim();
+    var score = parseInt(document.getElementById("addScore").value, 10);
+    if (!name){ setMsg("请填玩家名", false); return; }
+    if (isNaN(score)){ setMsg("请填有效分数", false); return; }
+    var game = getSelGame();
+    var id = docIdFor(game, name);
+    var body = { fields: {
+        game:  { stringValue: game },
+        name:  { stringValue: name },
+        score: { integerValue: String(score) },
+        ts:    { integerValue: String(Date.now()) }
+    }};
+    var url = FS_BASE + "/scores?documentId=" + id + "&key=" + FS_KEY;
+    fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) })
+    .then(function(r){
+        if (r.status === 200 || r.status === 201){ setMsg("✅ 已添加/覆盖：" + name + " = " + score, true); loadAll(); return; }
+        if (r.status === 409){
+            var patchUrl = FS_BASE + "/scores/" + id + "?key=" + FS_KEY +
+                "&updateMask.fieldPaths=score&updateMask.fieldPaths=ts";
+            return fetch(patchUrl, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ fields: { score:{ integerValue:String(score) }, ts:{ integerValue:String(Date.now()) } } }) })
+            .then(function(p){ if(p.ok){ setMsg("✅ 已覆盖：" + name + " = " + score, true); loadAll(); } else { setMsg("覆盖失败 HTTP " + p.status, false); } });
+        }
+        setMsg("添加失败 HTTP " + r.status, false);
+    })
+    .catch(function(e){ setMsg("添加失败:" + e.message, false); });
+}
+
+// ===== 修改分数（公开写）=====
+function modifyScore(name, curScore){
+    var now = prompt("修改「" + name + "」的分数（当前 " + curScore + "）：", curScore);
+    if (now === null) return;
+    now = parseInt(now, 10);
+    if (isNaN(now)){ setMsg("分数无效", false); return; }
+    var game = getSelGame();
+    var id = docIdFor(game, name);
+    var patchUrl = FS_BASE + "/scores/" + id + "?key=" + FS_KEY +
+        "&updateMask.fieldPaths=score&updateMask.fieldPaths=ts";
+    fetch(patchUrl, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ fields: { score:{ integerValue:String(now) }, ts:{ integerValue:String(Date.now()) } } }) })
+    .then(function(r){
+        if (r.ok){ setMsg("✅ 已修改 " + name + " = " + now, true); loadAll(); }
+        else { setMsg("修改失败 HTTP " + r.status, false); }
+    })
+    .catch(function(e){ setMsg("修改失败:" + e.message, false); });
+}
+
+// ===== 删除单条记录（需站长 token，规则里仅站长可删）=====
+function deleteOne(name, docId){
+    if (!__owner){ setMsg("仅站长可删", false); return; }
+    if (!confirm("确定删除「" + name + "」的这条记录？")) return;
+    if (!__idToken){ setMsg("正在获取登录令牌，请稍后再试", false); return; }
+    var delUrl = FS_BASE + "/scores/" + docId;
+    fetch(delUrl, { method:"DELETE", headers:{ "Authorization": "Bearer " + __idToken } })
+    .then(function(r){
+        if (r.ok){ setMsg("✅ 已删除：" + name, true); loadAll(); }
+        else if (r.status === 403 || r.status === 401){ setMsg("删除被拒：需先在 Firestore 规则里放行站长删除（见说明），且用站长账号登录", false); }
+        else { setMsg("删除失败 HTTP " + r.status, false); }
+    })
+    .catch(function(e){ setMsg("删除失败:" + e.message, false); });
+}
+
+// ===== 删除某玩家全部记录（跨所有游戏）=====
+function deletePlayerAll(){
+    var name = document.getElementById("delName").value.trim();
+    if (!name){ setMsg("请填要删除的玩家名", false); return; }
+    if (!__owner){ setMsg("仅站长可删", false); return; }
+    if (!confirm("确定删除玩家「" + name + "」在所有游戏里的全部记录？此操作不可撤销！")) return;
+    if (!__idToken){ setMsg("正在获取登录令牌，请稍后再试", false); return; }
+
+    fetch(FS_BASE + "/scores?key=" + FS_KEY)
+    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function(data){
+        var docs = data.documents || [];
+        var targets = [];
+        docs.forEach(function(d){
+            var f = d.fields || {};
+            var pnm = f.name ? f.name.stringValue : (decodeDocId(d.name.split("/").pop()) || {}).name;
+            if (pnm === name) targets.push(d.name.split("/").pop());
+        });
+        if (!targets.length){ setMsg("没有找到玩家「" + name + "」的记录", false); return; }
+
+        var done = 0, failed = 0;
+        function next(i){
+            if (i >= targets.length){ setMsg("✅ 删除完成：成功 " + done + " 条" + (failed ? "，失败 " + failed + " 条" : ""), failed === 0); loadAll(); return; }
+            var delUrl = FS_BASE + "/scores/" + targets[i].replace(/\//g, "_"); // docId 已 URL 安全
+            fetch(delUrl, { method:"DELETE", headers:{ "Authorization": "Bearer " + __idToken } })
+            .then(function(r){
+                if (r.ok) done++; else failed++;
+                next(i + 1);
+            })
+            .catch(function(){ failed++; next(i + 1); });
+        }
+        next(0);
+    })
+    .catch(function(e){ setMsg("读取失败:" + e.message, false); });
+}
+</script>
+
+</body>
+</html>
