@@ -218,15 +218,3 @@ if("serviceWorker" in navigator){
         console.log("Service Worker 注册失败:", error);
     });
 }
-
-// ===== 微信内访问 → 隐藏游戏/测试内容（合规），普通浏览器正常 =====
-(function(){
-  try{
-    var isWX = /MicroMessenger/i.test(navigator.userAgent || "") || /[?&]wx=1/.test(location.search || "");
-    if(isWX){
-      document.querySelectorAll(".wx-hide").forEach(function(el){ el.style.display = "none"; });
-      var n = document.getElementById("wxNotice");
-      if(n) n.style.display = "block";
-    }
-  }catch(e){}
-})();
