@@ -248,10 +248,14 @@ function showUserBox(name, photo, user){
             n.classList.add("gold-name");
             const role = document.getElementById("accRole");
             if(role) role.style.display = "inline";
+            const ua = document.getElementById("userAdminWrap");
+            if(ua) ua.style.display = "block";
         }else{
             n.classList.remove("gold-name");
             const role = document.getElementById("accRole");
             if(role) role.style.display = "none";
+            const ua = document.getElementById("userAdminWrap");
+            if(ua) ua.style.display = "none";
         }
     }
     const img = document.getElementById("accPhoto");
