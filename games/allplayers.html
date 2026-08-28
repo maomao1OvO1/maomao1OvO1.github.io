@@ -30,6 +30,13 @@ body.dark-mode { background:#121212; color:#fff; }
 
 <body>
 
+<script>
+// ===== 读取深色模式 =====
+if(localStorage.getItem("theme") === "dark"){
+    document.body.classList.add("dark-mode");
+}
+</script>
+
 <h1>👥 玩家汇总（全部游戏）</h1>
 
 <div id="gate" class="gate">
