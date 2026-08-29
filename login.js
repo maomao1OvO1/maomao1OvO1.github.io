@@ -537,7 +537,7 @@ document.addEventListener("click", function(e){
     const b = document.getElementById("accountBtn");
     if(!m || m.style.display !== "block") return;
     if(!m.contains(e.target) && !(b && b.contains(e.target))){
-        m.style.display = "none";
+        hideAccountMenu();
     }
 });
 
