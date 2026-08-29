@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html>
 
+<!--
+  文件：guess.html —— 猜数字小游戏
+  用途：经典「1~100 猜数字」益智小游戏。系统随机生成一个 1~100 的整数，
+        玩家反复输入数字，根据「太大/太小」提示逐步逼近正确答案，直到猜中。
+  核心逻辑：
+      1. 页面加载时用 Math.random 生成目标答案 answer，并初始化猜测次数 count。
+      2. 玩家点击「猜一下」触发 checkGuess()，读取输入框数值并做一次比较。
+      3. 相等 → 提示猜中 + 记录成绩；偏大 → 提示「太大了」；偏小 → 提示「太小了」。
+  引用资源：
+      - report.js?v=3：猜中后调用 reportScore("guess", 次数) 把成绩上报到排行榜后台。
+  视觉特性：
+      - 支持深色模式，读取 localStorage 的 theme 字段，为 dark 时给 body 加 dark-mode 类。
+-->
+
 <head>
 
 <meta charset="UTF-8">
@@ -9,6 +23,7 @@
 
 <style>
 
+/* 全局：让页面内容居中，并统一使用无衬线字体 */
 body {
 
     text-align: center;
@@ -17,6 +32,7 @@ body {
 
 }
 
+/* 游戏主体卡片：居中、固定宽度、圆角 + 浅灰背景，把整个游戏装在卡片里 */
 .game-box {
 
     margin: 80px auto;
@@ -31,6 +47,7 @@ body {
 
 }
 
+/* 数字输入框：限定宽度、内边距与圆角边框 */
 input {
 
     width: 100px;
@@ -43,6 +60,7 @@ input {
 
 }
 
+/* 「猜一下」按钮：与输入框留出间距，圆角胶囊样式 */
 button {
 
     margin-top: 15px;
@@ -59,6 +77,7 @@ button {
 
 /* ===== 返回小游戏按钮 ===== */
 
+/* 固定在右上角，链接回小游戏大厅 games.html */
 .back-home {
 
     position: fixed;
@@ -83,6 +102,7 @@ button {
 
 /* ===== 深色模式 ===== */
 
+/* 深色模式：整页背景变深色、文字变白 */
 body.dark-mode{
 
     background:#121212;
@@ -91,12 +111,14 @@ body.dark-mode{
 
 }
 
+/* 深色模式下：卡片背景加深，避免刺眼 */
 .dark-mode .game-box{
 
     background:#222;
 
 }
 
+/* 深色模式下：输入框加深背景并描边，输入文字为白色 */
 .dark-mode input{
 
     background:#222;
@@ -107,6 +129,7 @@ body.dark-mode{
 
 }
 
+/* 深色模式下：按钮用深灰底白字 */
 .dark-mode button{
 
     background:#333;
@@ -125,6 +148,9 @@ body.dark-mode{
 
 // ===== 读取深色模式 =====
 
+// 页面一加载就先读取本地存储的 theme：若为 dark 就给 body 加上 dark-mode 类，
+// 这样整页在显示前就已切换到深色，避免闪烁。
+
 if(localStorage.getItem("theme") === "dark"){
 
     document.body.classList.add("dark-mode");
@@ -133,26 +159,31 @@ if(localStorage.getItem("theme") === "dark"){
 
 </script>
 
+<!-- 固定在右上角的返回按钮，链接到小游戏大厅 -->
 <a href="../games.html" class="back-home">
 🎮 返回小游戏
 </a>
 
+<!-- 游戏主体：标题、提示文案、输入框、按钮、结果显示 -->
 <div class="game-box">
 
 <h1>🎯 猜数字</h1>
 
 <p>我已经想好了一个 1~100 的数字</p>
 
+<!-- 玩家输入所猜数字的文本框 -->
 <input id="guess" type="number">
 
 <br>
 
+<!-- 点击后调用 checkGuess() 判断本次猜测 -->
 <button onclick="checkGuess()">
 
 猜一下
 
 </button>
 
+<!-- 用于显示「太大 / 太小 / 猜中了」的反馈文字 -->
 <p id="result"></p>
 
 </div>
@@ -163,18 +194,25 @@ if(localStorage.getItem("theme") === "dark"){
 
 // ===== 游戏核心 =====
 
+// 在 1~100 之间随机生成目标答案（Math.random 返回 0≤x<1，乘 100 后取整再加 1）
 let answer = Math.floor(Math.random() * 100) + 1;
 
+// 记录玩家已经猜了几次，用于最终成绩与排行榜
 let count = 0;
 
+// 处理一次猜测：读取输入值、与答案比较并给出反馈
 function checkGuess(){
 
+    // 把输入框的字符串内容转成数字（Number 转换，空值会得到 NaN）
     let num = Number(document.getElementById("guess").value);
 
+    // 获取结果显示元素
     let result = document.getElementById("result");
 
+    // 每猜一次计数加一
     count++;
 
+    // 猜中了：提示用了多少次，并把成绩上报到排行榜后台
     if(num === answer){
 
     result.innerHTML =
@@ -184,12 +222,14 @@ function checkGuess(){
 
 }    
 
+// 猜大啦：提示「太大了」，让玩家往下调
 else if(num > answer){
 
         result.innerHTML = "⬇️ 太大了";
 
     }else{
 
+        // 否则说明猜小了：提示「太小了」，让玩家往上调
         result.innerHTML = "⬆️ 太小了";
 
     }

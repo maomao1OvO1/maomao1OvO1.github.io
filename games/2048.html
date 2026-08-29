@@ -1,4 +1,29 @@
 <!DOCTYPE html>
+<!--
+    ═══════════════════════════════════════════════════════════════════════
+    文件：games/2048.html —— 2048 小游戏
+    ───────────────────────────────────────────────────────────────────────
+    【用途】经典 2048 数字合并游戏：4×4 棋盘，向上下左右滑动，相同数字合并，
+             目标是拼出一个 2048 方块。
+    【核心逻辑】（合并算法是灵魂，务必读懂）
+        棋盘是 4×4 二维数组 board，0 表示空格。每次朝某方向移动，本质是：
+        1. 把「每一行（左右）或每一列（上下）」拆成一条一维数组；
+        2. 对这条数组做统一的 move()：
+           a. 先过滤掉所有 0（数字向移动方向靠拢）；
+           b. 从左往右扫描，若相邻两数相等 → 左边×2（合并得分），右边清零；
+           c. 再次去零，并在尾部补 0 补齐到 4 格；
+        3. 再把处理好的数组写回棋盘（左右直接写回行；上下写回列）。
+        四个方向的差异只在于「拆分/反向」：
+           - 左：每行直接 move，数字靠左合并；
+           - 右：每行 reverse → move → reverse，数字靠右合并；
+           - 上：把每列拼成数组 move，再写回，数字靠上合并；
+           - 下：每列 reverse → move → reverse，数字靠下合并。
+        每走一步后：在随机空格生成新数字(2) → 重绘画面 → 判断输赢。
+    【游戏玩法】方向键，或按住游戏区域滑动（≥30px），控制方块移动与合并；
+                所有成功合并得到的新数字累加即为当前分数。
+    【是否上报成绩】游戏结束时 reportScore("2048", 分数) 上报到成绩系统。
+    ═══════════════════════════════════════════════════════════════════════
+-->
 <html>
 
 <head>
@@ -9,6 +34,7 @@
 
 <style>
 
+/* ===== 页面基础：居中、无衬线字体、禁用文字选中（避免滑动时误选文字）===== */
 body {
 
     text-align: center;
@@ -45,6 +71,8 @@ body {
 
 }
 
+/* ===== 棋盘容器 ===== */
+/* CSS Grid 排成 4 列；深色底 + 圆角；touch-action:none 屏蔽浏览器默认触摸手势 */
 #game {
 
     width: 320px;
@@ -67,6 +95,8 @@ body {
 
 }
 
+/* ===== 单个格子 ===== */
+/* 正方形、圆角，数字水平垂直居中；背景色会随数值变化（见 JS getCellStyle）*/
 .cell {
 
     width: 100%;
@@ -91,6 +121,7 @@ body {
 
 }
 
+/* ===== 控制方向按钮 ===== */
 button {
 
     width: 70px;
@@ -109,6 +140,7 @@ button {
 
 }
 
+/* ===== 重新开始按钮（更宽、字号小）===== */
 .restart {
 
     width: 130px;
@@ -214,20 +246,20 @@ if(localStorage.getItem("theme") === "dark"){
 <script>
 
 // ===== 游戏数据 =====
-
-let board;
-
-let score;
-
+let board;                 // 4×4 棋盘（二维数组），0 表示空格
+let score;                 // 当前分数（所有合并产生的新数字之和）
 let gameEnd = false; // 用于防止重复触发结束
 
 // ===== 统计功能 =====
+// 存储键：把最高分/达到2048次数保存在浏览器 localStorage
 const STATS_KEY = 'game2048_stats';
 
+// 默认统计值：最高分 0、胜利次数 0
 function defaultStats() {
     return { highScore: 0, winCount: 0 };
 }
 
+// 读取统计：从 localStorage 读并 JSON 解析；字段异常/解析失败就回退默认值
 function loadStats() {
     let data = localStorage.getItem(STATS_KEY);
     if (data) {
@@ -243,16 +275,19 @@ function loadStats() {
     return defaultStats();
 }
 
+// 保存统计：把统计对象序列化写回 localStorage
 function saveStats(stats) {
     localStorage.setItem(STATS_KEY, JSON.stringify(stats));
 }
 
+// 刷新统计面板显示（最高分 + 达到2048次数）
 function updateStatsDisplay() {
     let stats = loadStats();
     document.getElementById('stats').innerHTML =
         `🏆 最高分：${stats.highScore} &nbsp;|&nbsp; 🎉 达到2048次数：${stats.winCount}`;
 }
 
+// 重置统计：先确认，再清空并刷新显示
 function resetStats() {
     if (confirm('确定要重置2048的统计吗？')) {
         saveStats(defaultStats());
@@ -262,6 +297,7 @@ function resetStats() {
 }
 
 // ===== 检查是否达到2048（胜利） =====
+// 遍历整个棋盘，只要有一格是 2048 就判定胜利：累加胜利次数、保存、弹窗，返回 true
 function checkWin() {
     for (let i=0;i<4;i++) {
         for (let j=0;j<4;j++) {

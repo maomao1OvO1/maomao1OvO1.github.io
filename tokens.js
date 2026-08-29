@@ -1,9 +1,29 @@
 // ===== AI 余额（自助查询） =====
-// 每个访客用自己的 API Key，在浏览器里直接查自己的余额。
-// Key 只在“访客自己的浏览器”里保存(localStorage)，方便刷新后还在；
-// 不会上传到任何服务器、不经任何中转，也没有人能看到你的 Key。
+/*
+ * =========================== 文件级注释 ===========================
+ * 本文件：tokens.js —— 「AI 余额自助查询」小部件
+ * 用途：访客选择 AI 厂商（DeepSeek / Moonshot-Kimi / OpenAI），填入自己的 API Key，
+ *       在浏览器端直接向各家官方余额接口发请求，显示剩余额度。
+ *
+ * 隐私说明：Key 只保存在访客自己的浏览器 localStorage，不上传任何服务器、
+ *           不经任何中转，也没有人能看到（仅浏览器本地使用）。
+ *
+ * 主要函数清单：
+ *   - getByPath(obj, path)      按路径从对象里取值，支持 a.b[0].c
+ *   - saveState()               把当前选的厂商 + Key 存到 localStorage
+ *   - restoreState()            从 localStorage 恢复上次的厂商 + Key
+ *   - clearTokensState()        清空本地保存的 Key/厂商，重置输入框
+ *   - checkBalance()            构造请求头并调用对应厂商余额接口，展示结果
+ *
+ * 被哪些页面引用：index.html（AI 余额卡片）
+ * =================================================================
+ */
 
+// 支持查询的 AI 厂商配置表
+// 每项包含：url=余额接口地址；auth=认证前缀; path=余额字段提取路径;
+//          unit=单位(可为空); note=给用户的提示(可为空)。
 const PROVIDERS = {
+  // DeepSeek 官方余额接口：返回 balance_infos[0].total_balance
   "DeepSeek": {
     url: "https://api.deepseek.com/user/balance",
     auth: "Bearer ",
@@ -11,6 +31,7 @@ const PROVIDERS = {
     unit: "",
     note: ""
   },
+  // Moonshot/Kimi 余额接口：返回 data.available_balance
   "Moonshot/Kimi": {
     url: "https://api.moonshot.cn/v1/users/me/balance",
     auth: "Bearer ",
@@ -18,6 +39,7 @@ const PROVIDERS = {
     unit: "",
     note: ""
   },
+  // OpenAI 信用额度接口：返回 total_available；官方无稳定余额接口，可能查不到
   "OpenAI": {
     url: "https://api.openai.com/v1/dashboard/billing/credit_grants",
     auth: "Bearer ",

@@ -1,51 +1,111 @@
 <!DOCTYPE html>
+<!-- ============================================================
+  chess.html —— 国际象棋（完整网页版棋类游戏）
+  ------------------------------------------------------------
+  【文件用途】单文件自包含的国际象棋游戏页，纯原生 HTML+CSS+JS，
+    不依赖任何第三方游戏框架，可离线直接打开游玩。支持三种对局
+    模式：双人同屏对战、普通随机 AI、以及通过 Web Worker 调用本地
+    Stockfish 引擎的高级 AI（更接近真人水平）。页面集成了走子、
+    吃子、王车易位、兵升变、吃过路兵、将军/将死、以及多种判和规则，
+    并通过 localStorage 持久化对局胜场统计。
+
+  【核心逻辑】
+    · 棋盘数据结构：一个 8×8 二维数组 board，下标 board[x][y]，
+      x 为行(0=黑方底线, 7=白方底线)，y 为列(0~7 对应 a~h 列)。
+      棋子的 Unicode 记法：大写白子(♔♕♖♗♘♙)，小写黑子(♚♛♜♝♞♟)。
+    · 走子合法性：先由 getMoves() 生成某子的“伪合法着法”，再经
+      isLegalMove() → simulateMove() 模拟后检测己方王是否仍处于
+      被攻击状态来剔除“送王”的着法，最终得到真正合法的走法。
+    · 走法判定核心难点：王车易位（王与车都未动、路径无子、王不
+      经过/停留在被攻击格）、兵升变、吃过路兵、以及将军/将死的判别。
+
+  【游戏玩法】点击己方棋子选中，再点击高亮的目标格落子；每回合会
+    高亮当前可走位置。白色永远是先手。落子后若进入将军状态会红色
+    闪烁标记王，并提示“将军”；若一方无合法着法且正在被将军，则判
+    为将死并宣布另一方获胜。
+
+  【设备/API 依赖】
+    · localStorage：存取胜场统计数据（键 chess_stats）。
+    · Web Worker：仅当选择“Stockfish AI”时创建，加载本地
+      stockfish/stockfish-18-lite-single.js 并通过 UCI 协议通信。
+    · report.js：可选的成绩上报脚本（reportScore 上报胜场）。
+  ------------------------------------------------------------
+============================================================ -->
 <html>
 <head>
 <meta charset="UTF-8">
 <title>♟️ 国际象棋</title>
 <style>
+/* ===== 全局版式 ===== */
+/* 页面居中 + 基础字体，保证桌面/手机都能正常显示棋盘 */
+body{text-align:center;font-family:Arial;}
+/* 右上角固定的“返回小游戏”悬浮按钮 */
+.back-home{position:fixed;top:20px;right:20px;background:#e5dcff;color:#6543a5;padding:10px 15px;border-radius:20px;text-decoration:none;font-size:16px;}
 body{text-align:center;font-family:Arial;}
 .back-home{position:fixed;top:20px;right:20px;background:#e5dcff;color:#6543a5;padding:10px 15px;border-radius:20px;text-decoration:none;font-size:16px;}
+/* ===== 棋盘网格 ===== */
+/* 外层棋盘：固定 400×400，用 CSS Grid 排成 8×8 的国际象棋格 */
 #board{width:400px;height:400px;margin:0 auto;display:grid;grid-template-columns:repeat(8,1fr);border-radius:15px;overflow:hidden;position:relative;}
+/* 单个格子的公共样式：尺寸、居中、鼠标手势，position:relative 便于叠加提示层 */
 .cell{width:50px;height:50px;display:flex;justify-content:center;align-items:center;font-size:36px;cursor:pointer;box-sizing:border-box;position:relative;}
+/* 浅/深两色棋盘格，按 (x+y) 奇偶交替着色 */
 .light{background:#f0d9b5;}
 .dark{background:#b58863;}
+/* 当前选中棋子的高亮描边 */
 .select{outline:4px solid #6543a5;}
+/* 合法走法提示：在目标格中央画一个半透明圆点，pointer-events:none 防止挡住点击 */
 .cell.move-hint::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.35);pointer-events:none;z-index:1;}
+/* 上一步的起点/终点高亮（绿色系） */
 .cell.last-from{background-color:#aaffaa !important;}
 .cell.last-to{background-color:#66dd66 !important;}
+/* 正在被将军的王的格子：红色闪烁警示 */
 .cell.in-check{background-color:#ff6666 !important;animation:blink 0.8s infinite alternate;}
 @keyframes blink{from{background-color:#ff6666;}to{background-color:#ff0000;}}
+/* ===== 按钮与暗色主题 ===== */
 button{padding:10px 20px;border:none;border-radius:20px;margin:5px;cursor:pointer;font-size:16px;}
 body.dark-mode{background:#121212;color:white;}
 .dark-mode button{background:#333;color:white;}
 body.dark-mode .cell{color:#000;}
+/* ===== 统计面板 ===== */
 #stats{margin:15px auto;padding:10px;font-size:18px;background:rgba(255,255,255,0.1);border-radius:10px;display:inline-block;}
 .dark-mode #stats{background:rgba(255,255,255,0.05);}
+/* ===== 行列坐标标签（棋盘外围的 a~h 列号 / 1~8 行号） ===== */
 .letters{margin-left:40px;width:400px;height:30px;display:grid;grid-template-columns:repeat(8,50px);}
 .letters span{display:flex;justify-content:center;align-items:center;}
 .numbers{width:40px;height:400px;display:grid;grid-template-rows:repeat(8,50px);}
 .numbers span{display:flex;justify-content:center;align-items:center;}
 .board-row{display:flex;align-items:flex-start;}
 .chess-wrapper{width:440px;margin:30px auto;}
+/* ===== 走子动画层 ===== */
+/* 动画层覆盖整个棋盘，pointer-events:none 与 z-index:10 使其不拦截点击 */
 #animation-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;}
+/* 正在平移的棋子：用 left/top 的 transition 平滑移动（200ms） */
 .anim-piece{position:absolute;width:50px;height:50px;display:flex;justify-content:center;align-items:center;font-size:36px;transition:left 0.2s ease, top 0.2s ease;pointer-events:none;}
+/* 移动中棋子的颜色区分：白子带黑描边可见，黑子无描边 */
 .anim-piece.white-piece{color:white;text-shadow:0 0 2px black;}
 .anim-piece.black-piece{color:black;text-shadow:none;}
 </style>
 
 </head>
 <body>
+<!-- 进入页面先读 localStorage 的 theme：若是暗色主题就立刻给 body 加上 dark-mode 类，
+     因为写在 <body> 顶部，可避免“先亮后暗”的闪烁（FOUC） -->
 <script>if(localStorage.getItem("theme")==="dark"){document.body.classList.add("dark-mode");}</script>
+<!-- 顶部导航：返回小游戏入口 -->
 <a href="../games.html" class="back-home">🎮 返回小游戏</a>
 <h1>♟️ 国际象棋</h1>
+<!-- 对局模式选择按钮：双人同屏 / 普通随机 AI / Stockfish 强 AI -->
 <button onclick="setMode('player')">双人模式</button>
 <button onclick="setMode('normal')">普通AI</button>
 <button onclick="setMode('stockfish')">Stockfish AI</button>
+<!-- 切换“是否让 AI 执白先手” -->
 <button onclick="toggleAIFirst(this)">AI先手：关闭</button>
+<!-- 当前回合/状态提示行 -->
 <p id="info">白方回合</p>
+<!-- 胜场统计面板 -->
 <div id="stats"></div>
 <button onclick="resetStats()" style="background:#ffcccb;color:#a00;">🔄 重置统计</button>
+<!-- 棋盘容器：上方是列号 a~h，下方是棋盘主体，左侧是行号 1~8 -->
 <div class="chess-wrapper">
 <div class="letters"><span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span></div>
 <div class="board-row">
@@ -54,46 +114,77 @@ body.dark-mode .cell{color:#000;}
 </div>
 </div>
 <button onclick="restart()">重新开始</button>
+<!-- 加载可选的成绩上报脚本（若无该文件也能正常游玩） -->
 <script src="report.js?v=3"></script>
 <script>
 // ============================================================
 // 完整国际象棋引擎 - 修复AI先手持续走棋
 // ============================================================
+
+// ===== 全局状态变量 =====
+// board：8×8 二维数组，board[x][y]，x 行(0=黑方底线 7=白方底线)，y 列(0~7=a~h)
+// turn：当前轮到谁走("white"/"black")；mode：对局模式("player"/"normal"/"stockfish")
+// aiFirst：是否 AI 执白先手；stockfish：Stockfish Web Worker 实例（未加载时为 null）
 let board=[], turn="white", mode="player", aiFirst=false, stockfish=null;
+// positionHistory：已出现过的局面 FEN 列表（用于三次重复判和）
+// halfMoveClock：五十步规则计数器（每步/吃子清零）；moveCount：总步数
 let positionHistory=[], halfMoveClock=0, moveCount=0;
+// lastFrom/lastTo：上一步起止格（用于高亮）；inCheckKingPos：当前被将军的王的位置
+// selected：当前选中的棋子格；gameEnd：游戏是否已结束
 let lastFrom=null, lastTo=null, inCheckKingPos=null, selected=null, gameEnd=false;
+// moved：记录双方王与四个车是否已动过（车是否动过决定了王车易位是否被禁止）
 let moved={whiteKing:false,blackKing:false,whiteLeftRook:false,whiteRightRook:false,blackLeftRook:false,blackRightRook:false};
+// lastMove：上一步的完整信息（吃的子、起止格、是否兵走两格），供吃过路兵与易位检测使用
 let lastMove=null;
+// startBoard：棋盘初始阵型（与棋谱标准一致，白方在下）
 const startBoard=[
-["♜","♞","♝","♛","♚","♝","♞","♜"],
-["♟","♟","♟","♟","♟","♟","♟","♟"],
+["♜","♞","♝","♛","♚","♝","♞","♜"],  // 第0行：黑方底线（黑车/马/象/后/王）
+["♟","♟","♟","♟","♟","♟","♟","♟"],  // 第1行：黑方八兵
+["","","","","","","",""],            // 第2~5行：空行
 ["","","","","","","",""],
 ["","","","","","","",""],
 ["","","","","","","",""],
-["","","","","","","",""],
-["♙","♙","♙","♙","♙","♙","♙","♙"],
-["♖","♘","♗","♕","♔","♗","♘","♖"]
+["♙","♙","♙","♙","♙","♙","♙","♙"],  // 第6行：白方八兵
+["♖","♘","♗","♕","♔","♗","♘","♖"]   // 第7行：白方底线（白车/马/象/后/王）
 ];
+// ===== 走子动画相关状态 =====
+// animating：是否处于动画播放中；animFrom/animTo：动画起止格
+// animPiece：移动中的棋子；animStartTime：动画开始时刻；animCaptured：被吃的棋子
 let animating=false, animFrom=null, animTo=null, animPiece=null, animStartTime=0, animCaptured=null;
+// 动画时长（毫秒）：棋子从起点平滑滑到终点的时间
 const ANIM_DURATION=200;
 
 // ===== 统计 =====
+// localStorage 存储键名：保存各模式的胜负统计
 const STATS_KEY='chess_stats';
+// 默认统计结构：三种模式各记录白方/黑方胜场
 function defaultStats(){return{player:{whiteWins:0,blackWins:0},normal:{whiteWins:0,blackWins:0},stockfish:{whiteWins:0,blackWins:0}};}
+// 从 localStorage 读取统计；若数据结构缺失或损坏则回退到默认（容错处理）
 function loadStats(){let d=localStorage.getItem(STATS_KEY);if(d){try{let p=JSON.parse(d);let def=defaultStats();for(let m in def){if(!p[m])p[m]=def[m];if(typeof p[m].whiteWins!=='number')p[m].whiteWins=0;if(typeof p[m].blackWins!=='number')p[m].blackWins=0;}return p;}catch(e){return defaultStats();}}return defaultStats();}
+// 把统计对象序列化写回 localStorage
 function saveStats(s){localStorage.setItem(STATS_KEY,JSON.stringify(s));}
+// 记录一局胜场：在当前 mode 下给对应颜色加一胜，并调用 reportScore 向后台上报总胜场
 function recordWin(w){let s=loadStats();if(s[mode]){if(w==='white')s[mode].whiteWins++;else if(w==='black')s[mode].blackWins++;saveStats(s);}let wins=0;for(let m in s){wins+=(s[m].whiteWins||0);}reportScore("chess",wins);}
+// 刷新统计面板显示：展示当前模式的胜负情况与总胜场
 function updateStatsDisplay(){let s=loadStats();let ms=s[mode]||{whiteWins:0,blackWins:0};let total=ms.whiteWins+ms.blackWins;let mn={'player':'双人模式','normal':'普通AI','stockfish':'高级AI'}[mode]||mode;document.getElementById('stats').innerHTML=`${mn}：白方 ${ms.whiteWins} 胜 &nbsp;|&nbsp; 黑方 ${ms.blackWins} 胜 &nbsp;|&nbsp; 总胜场 ${total}`;}
+// 重置统计：确认后恢复全零并刷新显示
 function resetStats(){if(confirm('确定要重置所有模式的胜场统计吗？')){saveStats(defaultStats());updateStatsDisplay();alert('统计已重置！');}}
 
 // ===== 工具 =====
+// color(p)：根据棋子 Unicode 判断颜色——白子在大写集合中返回"white"，否则返回"black"
 function color(p){if("♙♖♘♗♕♔".includes(p))return"white";return"black";}
+// copyBoard(): 深拷贝当前棋盘（用于模拟时不影响真实棋盘；本文件实际用 simulateMove 就地回滚）
 function copyBoard(){return board.map(r=>[...r]);}
+// setMode(m)：切换到指定对局模式（player/normal/stockfish），并初始化对应 AI、更新提示与统计
 function setMode(m){mode=m;if(m=="normal")document.getElementById("info").innerHTML="普通AI模式";else if(m=="stockfish"){document.getElementById("info").innerHTML="Stockfish AI模式";initStockfish();aiFirst=false;}else{document.getElementById("info").innerHTML="双人模式";}updateStatsDisplay();}
+// initStockfish()：创建 Stockfish Worker，先发 UCI 指令建立引擎通信；onerror 记录加载/运行错误
 function initStockfish(){stockfish=new Worker("stockfish/stockfish-18-lite-single.js");stockfish.onerror=function(e){console.log("Stockfish错误:",e.message);};stockfish.postMessage("uci");stockfish.onmessage=function(e){console.log("Stockfish:",e.data);};}
+// toggleAIFirst(btn)：切换“AI 是否执白先手”并重开一局
 function toggleAIFirst(btn){aiFirst=!aiFirst;btn.innerHTML=aiFirst?"AI先手：开启":"AI先手：关闭";restart();}
 
 // ===== 核心 =====
+// restart()：重置棋盘与全部对局状态，重新开局；若开启 AI 先手且不是双人模式，
+//            则让 AI 白方延迟 500ms 走出第一步
 function restart(){
 board=JSON.parse(JSON.stringify(startBoard));turn="white";selected=null;gameEnd=false;
 moved={whiteKing:false,blackKing:false,whiteLeftRook:false,whiteRightRook:false,blackLeftRook:false,blackRightRook:false};

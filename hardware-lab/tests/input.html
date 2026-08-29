@@ -1,7 +1,44 @@
 <!DOCTYPE html>
+<!--
+    ============================================================
+    硬件实验室 · 输入设备测试页面  (input.html)
+    ============================================================
+    一、本页测试的硬件：
+        1. 键盘  —— 监听 keydown / keyup，统计按下/释放次数，并显示最近按下的键名。
+        2. 鼠标  —— 监听 pointermove / pointerdown / pointerup / wheel，
+                    显示当前坐标(X, Y)，并记录按下/释放/滚轮事件。
+        3. 触摸屏 —— 监听 touchstart / touchmove / touchend，
+                    统计「触摸开始次数」「最大同时触摸点数」，并显示当前触摸点数。
+        4. 手柄  —— 监听 gamepadconnected / gamepaddisconnected，
+                    配合 requestAnimationFrame 轮询 navigator.getGamepads()，
+                    读取按钮(buttons)与摇杆(axes)的状态变化。
+
+    二、用到的浏览器 API：
+        . localStorage          —— 读取深色模式主题(localStorage.getItem("theme"))
+        . addEventListener      —— 在 window 上绑定各种输入事件
+        . Pointer Events        —— pointermove/pointerdown/pointerup（鼠标/触摸/笔统一事件）
+        . Touch Events          —— touchstart/touchmove/touchend（触摸屏）
+        . Keyboard Events       —— keydown/keyup（键盘）
+        . Wheel Event           —— wheel（鼠标滚轮）
+        . Gamepad API           —— gamepadconnected/gamepaddisconnected/navigator.getGamepads()
+        . DOM 操作              —— getElementById/createElement/prepend/textContent/innerHTML
+        . requestAnimationFrame —— 手柄每帧轮询
+        . Date.toLocaleTimeString—— 生成日志时间戳
+
+    三、测试流程：
+        1. 页面加载后先读取 localStorage，恢复深色/浅色主题。
+        2. 分别对 键盘/鼠标/触摸/手柄 绑定对应的事件监听。
+        3. 触发任意输入事件时，更新对应卡片里的状态文字、数值/坐标，
+           并调用 addLog() 把事件追加到「事件记录」区（最多保留 50 条）。
+        4. 手柄部分用 updateGamepadInfo() 读取当前手柄并轮询按钮/摇杆变化。
+        5. 点击底部「清除统计与记录」按钮调用 resetAll()，重置所有统计与日志。
+    ============================================================
+-->
 <html lang="zh-CN">
 
 <head>
+
+<!-- ====== 页面头部：字符集、移动端视口设置、页面标题 ====== -->
 
 <meta charset="UTF-8">
 
@@ -9,6 +46,8 @@
 content="width=device-width,initial-scale=1.0">
 
 <title>⌨️ 输入设备测试</title>
+
+<!-- ====== 第一段样式：卡片/分区/按钮等基础布局 + 深色模式基础样式 ====== -->
 
 <style>
 
@@ -234,6 +273,7 @@ body.dark-mode button:not(.hardware-back){
 
 
 <style>
+/* 第二段样式：覆盖主站深色体系的黑调覆盖层（用 !important 强制覆盖配色） */
 /* ==== 深色模式·黑调覆盖层(主站深色体系) ==== */
 body.dark-mode{
     background:#121212 !important;
@@ -268,6 +308,8 @@ body.dark-mode .hardware-back{
 
 <body>
 
+<!-- ====== 页面主体 ====== -->
+<!-- 顶部固定「返回硬件大厅」按钮，点击跳回上一级目录的 index.html -->
 <button
     class="hardware-back"
     onclick="location.href='../index.html'">
@@ -285,9 +327,11 @@ body.dark-mode .hardware-back{
 
 <div class="card">
 
+<!-- 主卡片：内部依次承载 键盘/鼠标/触摸/手柄 四块测试区 + 底部事件记录区 -->
 
 <!-- ========================= -->
 <!-- 键盘 -->
+<!-- 监听 keydown / keyup，统计按下/释放次数，显示最近按下的键名 -->
 <!-- ========================= -->
 
 <div class="section">
@@ -300,12 +344,14 @@ class="status">
 等待键盘输入
 </div>
 
+<!-- 最近一次按键的显示区 -->
 <div class="event-box">
 
 <div class="event-title">
 最近按键
 </div>
 
+<!-- 这里由 JS 动态写入按下的键名 -->
 <div
 id="keyValue"
 class="event-value">
@@ -318,6 +364,7 @@ class="event-value">
 
 <div class="stat">
 
+<!-- 键盘「按下」次数统计 -->
 <div class="small">
 按下次数
 </div>
@@ -332,6 +379,7 @@ class="value">
 
 <div class="stat">
 
+<!-- 键盘「释放」次数统计 -->
 <div class="small">
 释放次数
 </div>
@@ -351,6 +399,7 @@ class="value">
 
 <!-- ========================= -->
 <!-- 鼠标 -->
+<!-- 监听 pointermove / pointerdown / pointerup / wheel，显示坐标并记录事件 -->
 <!-- ========================= -->
 
 <div class="section">
@@ -363,6 +412,7 @@ class="status">
 等待鼠标输入
 </div>
 
+<!-- 鼠标当前坐标(X, Y) 的显示区，由 JS 动态写入 -->
 <div class="event-box">
 
 <div class="event-title">
@@ -382,6 +432,7 @@ class="event-value">
 
 <!-- ========================= -->
 <!-- 触摸 -->
+<!-- 监听 touchstart / touchmove / touchend，统计触摸点数与最大同时点数 -->
 <!-- ========================= -->
 
 <div class="section">
@@ -394,6 +445,7 @@ class="status">
 等待触摸
 </div>
 
+<!-- 当前触摸点数显示区 -->
 <div class="event-box">
 
 <div class="event-title">
@@ -412,6 +464,7 @@ class="event-value">
 
 <div class="stat">
 
+<!-- 触摸「开始」次数统计 -->
 <div class="small">
 触摸开始
 </div>
@@ -426,6 +479,7 @@ class="value">
 
 <div class="stat">
 
+<!-- 历史最大同时触摸点数统计 -->
 <div class="small">
 最大同时触摸
 </div>
@@ -445,6 +499,7 @@ class="value">
 
 <!-- ========================= -->
 <!-- 手柄 -->
+<!-- 监听 gamepadconnected / gamepaddisconnected，轮询按钮与摇杆状态 -->
 <!-- ========================= -->
 
 <div class="section">
@@ -457,6 +512,7 @@ class="status">
 未检测到手柄
 </div>
 
+<!-- 手柄基本信息显示区（手柄 id、按钮数、摇杆数） -->
 <div class="event-box">
 
 <div class="event-title">
@@ -475,6 +531,7 @@ class="event-value">
 
 <div class="stat">
 
+<!-- 手柄按钮数量统计 -->
 <div class="small">
 按钮数量
 </div>
@@ -489,6 +546,7 @@ class="value">
 
 <div class="stat">
 
+<!-- 手柄摇杆(轴)数量统计 -->
 <div class="small">
 摇杆数量
 </div>
@@ -508,18 +566,21 @@ class="value">
 
 <!-- ========================= -->
 <!-- 事件日志 -->
+<!-- 所有输入事件都会追加到下方列表，最多保留 50 条 -->
 <!-- ========================= -->
 
 <div class="log-title">
 📋 事件记录
 </div>
 
+<!-- 每条日志由 addLog() 动态生成并插入此容器 -->
 <div id="eventLog"></div>
 
 
 </div>
 
 
+<!-- 底部「清除」按钮：点击后调用 resetAll() 重置所有统计并清空事件记录 -->
 <button onclick="resetAll()">
 🧹 清除统计与记录
 </button>
@@ -529,10 +590,16 @@ class="value">
 
 <script>
 
+// ============================================================
+// 脚本入口
+// 分区顺序：深色模式 → 数据 → 事件记录 → 键盘 → 鼠标 → 触摸 → 手柄 → 清除
+// ============================================================
+
 // ============================
 // 深色模式
 // ============================
 
+// 读取 localStorage 中保存的主题，若为 "dark" 则给 body 添加 dark-mode 类
 if(
     localStorage.getItem("theme")
     === "dark"
@@ -547,6 +614,7 @@ if(
 
 // ============================
 // 数据
+// 各输入设备的统计变量，初始化为 0 / 空数组 / null
 // ============================
 
 let keyDownCount=0;
@@ -564,6 +632,10 @@ let previousAxes=[];
 
 // ============================
 // 事件记录
+// addLog(): 把一条输入事件追加到「事件记录」列表
+//   参数 type      : 事件类型标题（如 "⌨️ 键盘按下"）
+//   参数 text      : 事件的具体内容
+//   参数 className : 决定日志左侧色条（区分键盘/鼠标/触摸/手柄）
 // ============================
 
 function addLog(
@@ -572,23 +644,27 @@ function addLog(
     className
 ){
 
+    // 找到事件记录容器
     const log =
         document.getElementById(
             "eventLog"
         );
 
 
+    // 新建一条日志的 DOM 节点
     const item =
         document.createElement(
             "div"
         );
 
 
+    // 附加通用类名 .log 与设备专用类名（决定左侧色条颜色）
     item.className =
         "log " +
         className;
 
 
+    // 取当前时间作为日志时间戳
     const now =
         new Date();
 
@@ -597,6 +673,7 @@ function addLog(
         now.toLocaleTimeString();
 
 
+    // 用 HTML 字符串填充日志内容：时间 + 类型 + 内容
     item.innerHTML =
         '<div class="log-time">' +
         time +
@@ -607,11 +684,13 @@ function addLog(
         text;
 
 
+    // 新日志插入到列表最前面（最新的在最上方）
     log.prepend(
         item
     );
 
 
+    // 限制日志最多保留 50 条，超出则删除最旧的一条
     while(
         log.children.length > 50
     ){
@@ -627,33 +706,40 @@ function addLog(
 
 // ============================
 // 键盘
+// 监听 window 上的 keydown / keyup
 // ============================
 
+// 按下任意键：按下计数 +1，显示键名，更新状态，追加日志
 window.addEventListener(
     "keydown",
     function(event){
 
+        // 按下次数 +1
         keyDownCount++;
 
 
+        // 更新「按下次数」显示
         document.getElementById(
             "keyDownCount"
         ).textContent =
             keyDownCount;
 
 
+        // 显示最近按下的键名
         document.getElementById(
             "keyValue"
         ).textContent =
             event.key;
 
 
+        // 更新键盘状态为「已检测到输入」
         document.getElementById(
             "keyboardStatus"
         ).textContent =
             "🟢 检测到键盘输入";
 
 
+        // 追加「键盘按下」日志（记录键名）
         addLog(
             "⌨️ 键盘按下",
             event.key,
@@ -664,19 +750,23 @@ window.addEventListener(
 );
 
 
+// 释放任意键：释放计数 +1，更新显示，追加日志
 window.addEventListener(
     "keyup",
     function(event){
 
+        // 释放次数 +1
         keyUpCount++;
 
 
+        // 更新「释放次数」显示
         document.getElementById(
             "keyUpCount"
         ).textContent =
             keyUpCount;
 
 
+        // 追加「键盘释放」日志（记录键名）
         addLog(
             "⌨️ 键盘释放",
             event.key,
@@ -689,12 +779,16 @@ window.addEventListener(
 
 // ============================
 // 鼠标
+// 监听 pointermove / pointerdown / pointerup / wheel
+// 只处理 pointerType 为 "mouse" 的事件，排除触摸/笔等其他指针
 // ============================
 
+// 鼠标移动：更新坐标并标记「检测到鼠标」
 window.addEventListener(
     "pointermove",
     function(event){
 
+        // 仅处理鼠标事件，其他指针类型直接忽略
         if(
             event.pointerType !==
             "mouse"
@@ -705,6 +799,7 @@ window.addEventListener(
         }
 
 
+        // 显示鼠标当前坐标(X, Y)，四舍五入取整
         document.getElementById(
             "mouseValue"
         ).textContent =
@@ -717,6 +812,7 @@ window.addEventListener(
             );
 
 
+        // 更新鼠标状态为「已检测到」
         document.getElementById(
             "mouseStatus"
         ).textContent =
@@ -726,10 +822,12 @@ window.addEventListener(
 );
 
 
+// 鼠标按下：更新状态并追加日志
 window.addEventListener(
     "pointerdown",
     function(event){
 
+        // 仅处理鼠标事件
         if(
             event.pointerType !==
             "mouse"
@@ -740,12 +838,14 @@ window.addEventListener(
         }
 
 
+        // 更新鼠标状态为「已按下」
         document.getElementById(
             "mouseStatus"
         ).textContent =
             "🟢 鼠标按下";
 
 
+        // 追加「鼠标按下」日志（显示按钮编号）
         addLog(
             "🖱️ 鼠标按下",
             "按钮 " +
@@ -757,10 +857,12 @@ window.addEventListener(
 );
 
 
+// 鼠标释放：追加日志（仅鼠标事件）
 window.addEventListener(
     "pointerup",
     function(event){
 
+        // 仅处理鼠标事件
         if(
             event.pointerType !==
             "mouse"
@@ -771,6 +873,7 @@ window.addEventListener(
         }
 
 
+        // 追加「鼠标释放」日志（显示按钮编号）
         addLog(
             "🖱️ 鼠标释放",
             "按钮 " +
@@ -782,10 +885,12 @@ window.addEventListener(
 );
 
 
+// 鼠标滚轮：根据滚动方向追加日志
 window.addEventListener(
     "wheel",
     function(event){
 
+        // 根据 deltaY 正负判断滚动方向（向下/向上）
         addLog(
             "🖱️ 鼠标滚轮",
             event.deltaY > 0
@@ -800,31 +905,39 @@ window.addEventListener(
 
 // ============================
 // 触摸
+// 监听 touchstart / touchmove / touchend
+// 各监听均使用 passive:true，避免影响页面滚动性能
 // ============================
 
+// 触摸开始：统计开始次数与当前点数，并记录最大同时点数
 window.addEventListener(
     "touchstart",
     function(event){
 
+        // 当前同时触摸的点数
         const count =
             event.touches.length;
 
 
+        // 触摸开始计数 +1
         touchStartCount++;
 
 
+        // 更新「触摸开始」次数显示
         document.getElementById(
             "touchStartCount"
         ).textContent =
             touchStartCount;
 
 
+        // 显示当前触摸点数
         document.getElementById(
             "touchValue"
         ).textContent =
             count;
 
 
+        // 若本次点数超过历史最大值，则更新最大值并显示
         if(
             count > maxTouch
         ){
@@ -841,12 +954,14 @@ window.addEventListener(
         }
 
 
+        // 更新触摸状态为「已检测到」
         document.getElementById(
             "touchStatus"
         ).textContent =
             "🟢 检测到触摸";
 
 
+        // 追加「触摸开始」日志（记录点数）
         addLog(
             "👆 触摸开始",
             count +
@@ -861,14 +976,17 @@ window.addEventListener(
 );
 
 
+// 触摸移动：只更新当前点数，不写日志（避免高频刷屏）
 window.addEventListener(
     "touchmove",
     function(event){
 
+        // 当前同时触摸的点数
         const count =
             event.touches.length;
 
 
+        // 实时更新当前触摸点数显示
         document.getElementById(
             "touchValue"
         ).textContent =
@@ -887,20 +1005,24 @@ window.addEventListener(
 );
 
 
+// 触摸结束：显示剩余点数并追加日志
 window.addEventListener(
     "touchend",
     function(event){
 
+        // 剩余触摸点数
         const count =
             event.touches.length;
 
 
+        // 更新剩余触摸点数显示
         document.getElementById(
             "touchValue"
         ).textContent =
             count;
 
 
+        // 追加「触摸结束」日志（记录剩余点数）
         addLog(
             "👆 触摸结束",
             "剩余 " +
@@ -918,16 +1040,20 @@ window.addEventListener(
 
 // ============================
 // 手柄连接
+// 监听「手柄接入」与「手柄拔出」事件
 // ============================
 
+// 手柄接入：保存手柄对象并更新界面与日志
 window.addEventListener(
     "gamepadconnected",
     function(event){
 
+        // 保存当前使用的手柄对象
         activeGamepad =
             event.gamepad;
 
 
+        // 清空上一次的按钮/摇杆快照，重新开始对比
         previousButtons =
             [];
 
@@ -936,12 +1062,14 @@ window.addEventListener(
             [];
 
 
+        // 更新手柄状态为「已连接」
         document.getElementById(
             "gamepadStatus"
         ).textContent =
             "🟢 手柄已连接";
 
 
+        // 追加「手柄连接」日志（显示手柄 id）
         addLog(
             "🎮 手柄连接",
             event.gamepad.id,
@@ -949,16 +1077,19 @@ window.addEventListener(
         );
 
 
+        // 立即刷新一次手柄信息
         updateGamepadInfo();
 
     }
 );
 
 
+// 手柄拔出：清空对应手柄引用并重置显示
 window.addEventListener(
     "gamepaddisconnected",
     function(event){
 
+        // 仅当拔出的是当前正在使用的手柄时才清空引用
         if(
             activeGamepad &&
             activeGamepad.index ===
@@ -971,30 +1102,35 @@ window.addEventListener(
         }
 
 
+        // 更新手柄状态为「未检测到」
         document.getElementById(
             "gamepadStatus"
         ).textContent =
             "未检测到手柄";
 
 
+        // 重置手柄信息显示
         document.getElementById(
             "gamepadValue"
         ).textContent =
             "--";
 
 
+        // 重置按钮数量显示
         document.getElementById(
             "buttonCount"
         ).textContent =
             "--";
 
 
+        // 重置摇杆数量显示
         document.getElementById(
             "axisCount"
         ).textContent =
             "--";
 
 
+        // 追加「手柄断开」日志（显示手柄 id）
         addLog(
             "🎮 手柄断开",
             event.gamepad.id,
@@ -1007,10 +1143,12 @@ window.addEventListener(
 
 // ============================
 // 手柄轮询
+// updateGamepadInfo(): 读取当前手柄信息，并对比按钮/摇杆的状态变化
 // ============================
 
 function updateGamepadInfo(){
 
+    // 获取当前所有已连接手柄（API 不存在时用空数组兜底）
     const pads =
         navigator.getGamepads
         ? navigator.getGamepads()
@@ -1020,6 +1158,7 @@ function updateGamepadInfo(){
     let pad=null;
 
 
+    // 优先取上一次记录的手柄（通过 index 定位）
     if(activeGamepad){
 
         pad =
@@ -1030,6 +1169,7 @@ function updateGamepadInfo(){
     }
 
 
+    // 若取不到，则遍历所有手柄，找一个可用的作为当前手柄
     if(!pad){
 
         for(
@@ -1051,6 +1191,7 @@ function updateGamepadInfo(){
     }
 
 
+    // 仍然没有任何手柄则直接返回
     if(!pad){
 
         return;
@@ -1058,24 +1199,28 @@ function updateGamepadInfo(){
     }
 
 
+    // 更新手柄状态与基本信息
     document.getElementById(
         "gamepadStatus"
     ).textContent =
         "🟢 手柄已连接";
 
 
+    // 显示手柄 id
     document.getElementById(
         "gamepadValue"
     ).textContent =
         pad.id;
 
 
+    // 显示按钮数量
     document.getElementById(
         "buttonCount"
     ).textContent =
         pad.buttons.length;
 
 
+    // 显示摇杆数量（每个摇杆占用 2 根轴，故除以 2 向下取整）
     document.getElementById(
         "axisCount"
     ).textContent =
@@ -1086,6 +1231,7 @@ function updateGamepadInfo(){
 
     // ========================
     // 手柄按钮变化
+    // 逐一对比每个按钮「上次按压状态」，只有状态发生变化时才记录
     // ========================
 
     for(
@@ -1094,19 +1240,23 @@ function updateGamepadInfo(){
         i++
     ){
 
+        // 当前按钮是否被按下
         const pressed =
             pad.buttons[i].pressed;
 
 
+        // 上次该按钮的按压状态（无记录则视为未按下）
         const old =
             previousButtons[i] ||
             false;
 
 
+        // 若本次与上次状态不同，则追加日志
         if(
             pressed !== old
         ){
 
+            // 追加「手柄按钮」日志（按下/释放）
             addLog(
                 "🎮 手柄按钮",
                 "按钮 " +
@@ -1120,6 +1270,7 @@ function updateGamepadInfo(){
         }
 
 
+        // 保存本次按压状态，供下一帧对比
         previousButtons[i]=pressed;
 
     }
@@ -1127,6 +1278,7 @@ function updateGamepadInfo(){
 
     // ========================
     // 摇杆变化
+    // 逐一对比每根轴「上次数值」，变化超过 0.15 才记日志
     // ========================
 
     for(
@@ -1135,10 +1287,12 @@ function updateGamepadInfo(){
         i++
     ){
 
+        // 当前轴的值（范围约 -1 ~ 1）
         const value =
             pad.axes[i];
 
 
+        // 上次该轴的数值（无记录则视为 0）
         const old =
             previousAxes[i] ||
             0;
@@ -1150,12 +1304,14 @@ function updateGamepadInfo(){
          * 刷爆日志。
          */
 
+        // 若变化超过 0.15 则追加日志
         if(
             Math.abs(
                 value-old
             ) > 0.15
         ){
 
+            // 追加「手柄摇杆」日志（记录轴编号与数值）
             addLog(
                 "🎮 手柄摇杆",
                 "轴 " +
@@ -1168,6 +1324,7 @@ function updateGamepadInfo(){
         }
 
 
+        // 保存本次轴数值，供下一帧对比
         previousAxes[i]=value;
 
     }
@@ -1175,6 +1332,8 @@ function updateGamepadInfo(){
 }
 
 
+// 手柄轮询主循环：每帧调用 updateGamepadInfo() 检查一次，
+// 随后通过 requestAnimationFrame 安排下一帧，实现持续轮询。
 function gamepadLoop(){
 
     updateGamepadInfo();
@@ -1186,15 +1345,18 @@ function gamepadLoop(){
 }
 
 
+// 启动手柄轮询
 gamepadLoop();
 
 
 // ============================
 // 清除
+// resetAll(): 重置所有统计数值与界面显示，并清空事件记录
 // ============================
 
 function resetAll(){
 
+    // 重置所有统计变量为初始值
     keyDownCount=0;
     keyUpCount=0;
 
@@ -1205,6 +1367,7 @@ function resetAll(){
     previousAxes=[];
 
 
+    // 重置键盘相关显示
     document.getElementById(
         "keyDownCount"
     ).textContent="0";
@@ -1226,6 +1389,7 @@ function resetAll(){
         "等待键盘输入";
 
 
+    // 重置触摸相关显示
     document.getElementById(
         "touchStartCount"
     ).textContent="0";
@@ -1247,6 +1411,7 @@ function resetAll(){
         "等待触摸";
 
 
+    // 重置鼠标相关显示
     document.getElementById(
         "mouseValue"
     ).textContent="--";
@@ -1258,6 +1423,7 @@ function resetAll(){
         "等待鼠标输入";
 
 
+    // 清空事件记录区
     document.getElementById(
         "eventLog"
     ).innerHTML="";

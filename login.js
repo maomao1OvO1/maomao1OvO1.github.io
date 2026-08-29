@@ -1,11 +1,50 @@
 // ===== 登录系统（Firebase Auth + 账号菜单 + 绑定多个登录方式） =====
+/*
+ * =========================== 文件级注释 ===========================
+ * 本文件：login.js —— 网站「登录系统」核心逻辑
+ * 用途：基于 Firebase Authentication 实现用户登录门、账号菜单、
+ *       多登录方式绑定/解绑（谷歌/GitHub/邮箱）、修改密码、游客模式，
+ *       以及账号按钮 / 金色昵称等展示逻辑。
+ *
+ * 主要函数清单：
+ *   - isConfigReady()              检测 Firebase 配置是否已填写
+ *   - initFirebase()               初始化 Firebase 并监听登录状态变化
+ *   - showLoginGate / hideLoginGate  显示/隐藏登录门（游客/已登录时跳过）
+ *   - gateLogin / gateBack / gateGuest  登录门步骤切换 + 进入游客模式
+ *   - loginProvider()              谷歌/GitHub 弹窗登录
+ *   - emailLogin()                 邮箱注册/登录（含邮箱验证拦截）
+ *   - clearAuthCache()             清本地登录缓存并回登录门
+ *   - updateContactEmail()         按账号展示「持有者邮箱」或锁定提示
+ *   - pickAvatar()                 按优先级选择头像（谷歌→GitHub→默认）
+ *   - showLoginState / showUserBox 渲染登录态 / 账号按钮
+ *   - toggleAccountMenu / hideAccountMenu / updateAccountMenu  账号下拉菜单
+ *   - unlinkProvider / bindProvider / showBindEmail / linkEmail  绑定/解绑
+ *   - showChangePassword / changePassword                    修改密码
+ *   - switchAccount / logout         切换账号/退出登录
+ *   - toggleEmailMode / togglePassEye 邮箱表单切换、密码显示/隐藏
+ *
+ * 被哪些页面引用：index.html（首页登录门 + 账号按钮）
+ * =================================================================
+ */
 
+// Firebase Auth 实例引用：由 initFirebase() 成功初始化后赋值；未初始化时各处会判定为空
 let auth = null;
 
+// 功能：判断 Firebase 配置是否真正填写好（不是模板占位符）
+// 参数：无
+// 返回：true=可初始化 Firebase；false=还没配置（引导用户先去 firebase-config.js 填）
 function isConfigReady(){
     return window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey && window.FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
 }
 
+// 功能：初始化 Firebase Auth，并监听登录状态变化（全站登录中枢）
+// 参数：无
+// 返回：无
+// 关键逻辑：
+//   - 未填配置 / SDK 未加载时直接跳过（不报错）
+//   - firebase.initializeApp 用全局 window.FIREBASE_CONFIG 配置
+//   - auth.onAuthStateChanged 是「登录状态」的唯一可信来源：
+//     user 存在 → 显示真实登录态；否则按本地缓存恢复（游客或上次登录信息）
 function initFirebase(){
     if(!isConfigReady() || !firebase) return;
     firebase.initializeApp(window.FIREBASE_CONFIG);
@@ -36,6 +75,11 @@ function initFirebase(){
 
 // ===================== 登录门 =====================
 
+// 功能：显示「登录门」（全屏遮罩），或在已登录/游客模式下直接隐藏并恢复账号按钮
+// 参数：无
+// 返回：无
+// 关键逻辑：优先判断：游客模式→直接显示游客按钮；有本地登录缓存→直接恢复账号按钮；
+//           都没有→才显示登录门，且默认展示第一步（gateStep1）。
 function showLoginGate(){
     const g = document.getElementById("loginGate");
     if(!g) return;
@@ -57,21 +101,27 @@ function showLoginGate(){
     if(s2) s2.style.display = "none";
 }
 
+// 功能：隐藏登录门（完整遮罩直接 display:none）
 function hideLoginGate(){
     const g = document.getElementById("loginGate");
     if(g) g.style.display = "none";
 }
 
+// 功能：登录门第一步 → 第二步（隐藏「开始」步，显示「选择登录方式」步）
 function gateLogin(){
     document.getElementById("gateStep1").style.display = "none";
     document.getElementById("gateStep2").style.display = "block";
 }
 
+// 功能：登录门第二步 → 返回第一步
 function gateBack(){
     document.getElementById("gateStep1").style.display = "block";
     document.getElementById("gateStep2").style.display = "none";
 }
 
+// 功能：进入「游客模式」——不登录就能逛
+// 关键逻辑：写 guestMode 标记、清掉登录缓存、隐藏登录门、
+//           显示游客账号按钮、并把联系方式设为被锁定状态。
 function gateGuest(){
     localStorage.setItem("guestMode", "1");
     localStorage.removeItem("authUser");
@@ -82,6 +132,11 @@ function gateGuest(){
 
 // ===================== 登录方式(登录门第二步) =====================
 
+// 功能：用第三方 Provider（谷歌/GitHub）的「弹窗」方式登录
+// 参数：providerName —— "google" 或 "github"
+// 返回：无（Promise 链，成功或失败都只弹提示）
+// 关键逻辑：new firebase.auth.XxxAuthProvider() 构造对应登录源，
+//           signInWithPopup 拉起浏览器弹窗授权；失败统一弹错误消息。
 function loginProvider(providerName){
     if(!auth){ alert("登录需先在 firebase-config.js 填入你的 Firebase 配置"); return; }
     let p = providerName === "google"
@@ -92,6 +147,17 @@ function loginProvider(providerName){
     .catch(function(err){ alert("登录失败：" + (err.message || err)); });
 }
 
+// 功能：邮箱「注册」或「登录」（登录门邮箱表单提交入口）
+// 参数：
+//   - email     —— 邮箱字符串
+//   - pass      —— 密码字符串
+//   - isSignup  —— true=注册；false=登录
+// 返回：无（Promise 流程，全部通过弹窗提示结果）
+// 关键逻辑：
+//   - 注册：校验密码≥6位、两次密码一致 → createUserWithEmailAndPassword
+//   - 注册成功：发验证邮件并登出（未验证前不能登录）→ 回登录门
+//   - 登录：signInWithEmailAndPassword；若邮箱未验证则拦截登录、重发验证邮件并登出
+//   - 错误统一按 Firebase 错误码（auth/xxx）给出友好中文提示
 function emailLogin(email, pass, isSignup){
     if(!auth){ alert("登录需先在 firebase-config.js 填入你的 Firebase 配置"); return; }
     email = String(email||"").trim();
@@ -181,6 +247,11 @@ function decodeContactEmail(s){
     try{ return atob(s).split("").reverse().join(""); }catch(e){ return ""; }
 }
 
+// 功能：更新「持有者邮箱」显示区域
+// 参数：user —— 当前登录用户对象（含 email），null 表示未登录/游客
+// 返回：无
+// 关键逻辑：把邮箱编码（Base64+倒序）解码成明文，仅在「毛毛」账号登录时展示，
+//           其他情况显示「🔒 请登录后查看」并加锁定样式（保护隐私）。
 function updateContactEmail(user){
     try{
         const el = document.getElementById("contactEmail");
@@ -218,6 +289,13 @@ function pickAvatar(user){
     return DEFAULT_AVATAR;
 }
 
+// 功能：进入真实登录态时刷新整个界面（账号按钮 + 联系方式 + 缓存）
+// 参数：
+//   - user     —— Firebase 用户对象
+//   - loggedIn —— 是否已登录的标记
+// 返回：无
+// 关键逻辑：取昵称与头像（pickAvatar），把登录信息写入 localStorage(authUser) 供下次恢复，
+//           移除游客标记，渲染账号按钮并恢复联系方式；最后强制隐藏登录门。
 function showLoginState(user, loggedIn){
     if(loggedIn && user){
         const name = user.displayName || user.email;
@@ -232,6 +310,14 @@ function showLoginState(user, loggedIn){
 
 // ===================== 账号按钮 + 菜单 =====================
 
+// 功能：渲染账号按钮（昵称 + 头像 + 金色昵称/管理员标记）
+// 参数：
+//   - name  —— 显示昵称（游客/已登录）
+//   - photo —— 头像 URL（可空）
+//   - user  —— Firebase 用户对象（可空，游客时 null）
+// 返回：无
+// 关键逻辑：通过正则判断是否「毛毛」账号（名字/邮箱匹配），命中则加金色昵称、
+//           显示角色徽标与管理员入口；否则去掉这些特权，头像回退默认灰头像。
 function showUserBox(name, photo, user){
     const btn = document.getElementById("accountBtn");
     if(!btn) return;
@@ -274,6 +360,11 @@ function showUserBox(name, photo, user){
     }
 }
 
+// 功能：打开/关闭账号下拉菜单
+// 参数：event —— 触发点击事件（阻止冒泡，避免被“点击菜单外关闭”逻辑误关）
+// 返回：无
+// 关键逻辑：切 menu 的 display；打开时给账号按钮加“卡片收起”样式，
+//           并调用 updateAccountMenu 刷新菜单内容；关闭时恢复正常。
 function toggleAccountMenu(event){
     if(event) event.stopPropagation();
     const m = document.getElementById("accountMenu");
@@ -286,6 +377,11 @@ function toggleAccountMenu(event){
     if(show) updateAccountMenu(auth && auth.currentUser);
 }
 
+// 功能：关闭账号菜单，并还原界面状态
+// 参数：无
+// 返回：无
+// 关键逻辑：隐藏 menu、去掉账号按钮“收起”样式、收起展开的“改密码/绑定邮箱”表单，
+//           避免下次打开时残留。
 function hideAccountMenu(){
     const m = document.getElementById("accountMenu");
     if(m) m.style.display = "none";
@@ -299,6 +395,15 @@ function hideAccountMenu(){
     });
 }
 
+// 功能：刷新账号菜单内容（昵称/邮箱/绑定列表/特权按钮）
+// 参数：user —— 当前登录用户对象；null=游客/未登录
+// 返回：无
+// 关键逻辑：
+//   - 每次打开都先收起展开的表单，防残留
+//   - 未登录：显示“游客 / 未登录” + 登录/切换按钮
+//   - 已登录：按 providerData 判断已绑定哪些登录方式（google/github/password），
+//     没绑定的给「绑定」按钮，已绑定的给「解绑」按钮；
+//     密码方式存在时才显示「修改密码」入口。
 function updateAccountMenu(user){
     const menu = document.getElementById("accountMenu");
     if(!menu) return;
@@ -367,6 +472,11 @@ function updateAccountMenu(user){
 
 // ===================== 解绑(取消绑定)登录方式 =====================
 
+// 功能：解绑(取消绑定)某个登录方式
+// 参数：providerId —— 如 "google.com" / "github.com" / "password"
+// 返回：无
+// 关键逻辑：先 confirm 二次确认；auth.currentUser.unlink 解绑；
+//           auth/requires-recent-login 错误提示“需近期重新登录”（Firebase 安全限制）。
 function unlinkProvider(providerId){
     if(!auth || !auth.currentUser){ alert("请先登录"); return; }
     const label = providerId === "google.com" ? "Google" : providerId === "github.com" ? "GitHub" : "邮箱";
@@ -387,6 +497,10 @@ function unlinkProvider(providerId){
 
 // ===================== 绑定其他登录方式(账号关联) =====================
 
+// 功能：绑定一个新的第三方登录方式到当前账号（账号关联）
+// 参数：providerName —— "google" 或 "github"
+// 返回：无
+// 关键逻辑：linkWithPopup 弹出授权；auth/credential-already-in-use 提示该方式已被占用。
 function bindProvider(providerName){
     if(!auth || !auth.currentUser){ alert("请先登录"); return; }
     let p = providerName === "google"
@@ -400,6 +514,7 @@ function bindProvider(providerName){
     });
 }
 
+// 功能：显示「绑定邮箱」表单
 function showBindEmail(){
     const box = document.getElementById("bindEmailBox");
     if(box) box.style.display = "block";
@@ -407,11 +522,20 @@ function showBindEmail(){
 
 // ===================== 更改密码（邮箱密码账号） =====================
 
+// 功能：显示「修改密码」表单
 function showChangePassword(){
     const box = document.getElementById("changePassBox");
     if(box) box.style.display = "block";
 }
 
+// 功能：修改邮箱密码（需旧密码验证）
+// 参数：无（从页面表单读取旧/新密码两遍）
+// 返回：无
+// 关键逻辑：
+//   - 校验旧密码/新密码非空、新密码≥6位、两遍一致、新旧不同
+//   - 先 reauthenticateWithCredential 验证当前密码（防他人登录后改密）
+//   - 再 updatePassword 更新；成功后清空表单并关闭弹窗
+//   - 错误码分别给出“密码不对 / 太弱 / 需近期重新登录”等提示
 function changePassword(){
     if(!auth || !auth.currentUser){ alert("请先登录"); return; }
     const oldPass = document.getElementById("changeOldPass") ? document.getElementById("changeOldPass").value : "";
@@ -451,6 +575,11 @@ function changePassword(){
     });
 }
 
+// 功能：把「邮箱+密码」作为新的登录方式绑定到当前账号
+// 参数：无（从页面表单读取邮箱/密码）
+// 返回：无
+// 关键逻辑：构造 EmailAuthProvider 凭据 → linkWithCredential 绑定；
+//           绑定后向该邮箱发验证邮件确认归属；错误码提示该邮箱已被占用。
 function linkEmail(){
     if(!auth || !auth.currentUser){ alert("请先登录"); return; }
     const email = document.getElementById("bindEmail").value.trim();
@@ -477,6 +606,7 @@ function linkEmail(){
 
 // ===================== 切换账号 / 退出 =====================
 
+// 功能：退出并回到登录门（供“切换账号”使用）
 function switchAccount(){
     if(auth) auth.signOut();
     localStorage.removeItem("authUser");
@@ -487,6 +617,7 @@ function switchAccount(){
     showLoginGate();
 }
 
+// 功能：正式退出登录（清缓存、隐藏账号按钮、回登录门）
 function logout(){
     if(auth) auth.signOut();
     localStorage.removeItem("authUser");
@@ -499,6 +630,11 @@ function logout(){
 
 // ===================== 邮箱表单切换(登录门) =====================
 
+// 功能：在「邮箱登录 / 邮箱注册」之间切换表单 UI
+// 参数：无
+// 返回：无
+// 关键逻辑：读 data-mode 判断当前模式并翻转；注册模式显示“两遍密码”和不同文案，
+//           同时把谷歌/GitHub 按钮文案切换为“注册/登录”。
 function toggleEmailMode(){
     const t = document.getElementById("emailMode");
     if(!t) return;

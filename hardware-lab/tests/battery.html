@@ -1,6 +1,27 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 
+<!-- ============================================================
+  【文件】battery.html —— 电池检测
+  【硬件】设备的电池（电量百分比、充电状态、预计剩余时间）
+  【用途】读取并实时显示电池基本信息
+  【浏览器 API】
+    - navigator.getBattery()                       → 核心API：获取 BatteryManager 对象
+    - battery.level / charging / chargingTime / dischargingTime
+        → 电量(0~1)、是否充电、充/放电预计剩余秒数
+    - battery 上的 levelchange / chargingchange /
+      chargingtimechange / dischargingtimechange   → 事件监听，数据变化时刷新
+    - localStorage.getItem("darkMode"/"theme")     → 跟随主站深色模式
+  【测试流程】
+    1. init() 检查浏览器是否支持 getBattery，支持则异步获取电池对象
+    2. updateBattery() 把电量、充电状态、剩余时间写入页面
+    3. 监听 4 个电池事件，任一生效即重新调 updateBattery() 实时刷新
+  【判定方式】
+    - 支持：显示电量% + ⚡正在充电 / 🔋正在放电 + 预计时间
+    - 不支持：状态栏显示 ❌ 浏览器不支持 Battery Status API
+    - 电压/电流/功率/温度/协议 网页无法读取，固定显示“系统未提供”（不做猜测）
+============================================================ -->
+
 <head>
 
 <meta charset="UTF-8">
@@ -12,10 +33,12 @@ content="width=device-width, initial-scale=1.0">
 
 <style>
 
+/* 统一盒模型：宽高含内边距与边框 */
 *{
     box-sizing:border-box;
 }
 
+/* 页面基础：浅色底、居中 */
 body{
     margin:0;
     padding:25px 20px;
@@ -25,15 +48,18 @@ body{
     color:#222;
 }
 
+/* 标题 */
 h1{
     margin:20px 0 8px;
 }
 
+/* 副标题说明文字 */
 .desc{
     color:#777;
     margin-bottom:25px;
 }
 
+/* 卡片容器：承载电池信息 */
 .card{
     max-width:460px;
     margin:15px auto;
@@ -43,6 +69,7 @@ h1{
     box-shadow:0 5px 20px #0002;
 }
 
+/* 电池图形主体：外框 */
 .battery{
     width:180px;
     height:90px;
@@ -53,6 +80,7 @@ h1{
     overflow:visible;
 }
 
+/* 电池正极的凸起小头 */
 .battery::after{
     content:"";
     position:absolute;
@@ -64,6 +92,7 @@ h1{
     border-radius:0 5px 5px 0;
 }
 
+/* 电量填充块：底部起，宽度随电量%变化 */
 .level{
     position:absolute;
     left:0;
@@ -75,6 +104,7 @@ h1{
     transition:width .5s;
 }
 
+/* 电池内的百分比文字 */
 .percent{
     position:absolute;
     inset:0;
@@ -85,6 +115,7 @@ h1{
     font-weight:bold;
 }
 
+/* 两列网格布局：容纳各项电池数据 */
 .grid{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -92,23 +123,27 @@ h1{
     margin-top:20px;
 }
 
+/* 单个数据卡片 */
 .item{
     padding:15px 8px;
     background:#f3f3f3;
     border-radius:16px;
 }
 
+/* 数据项标题（如“电池电量”） */
 .label{
     color:#777;
     font-size:13px;
     margin-bottom:7px;
 }
 
+/* 数据项数值（电量%、充电状态等） */
 .value{
     font-size:19px;
     font-weight:bold;
 }
 
+/* 底部状态条：显示读取结果或错误 */
 .status{
     margin-top:18px;
     padding:12px;
@@ -117,6 +152,7 @@ h1{
     color:#666;
 }
 
+/* 说明文字：解释网页无法读取的电源数据 */
 .note{
     margin-top:18px;
     font-size:13px;
@@ -124,6 +160,7 @@ h1{
     color:#888;
 }
 
+/* 刷新 / 返回按钮 */
 button{
     width:90%;
     max-width:350px;
@@ -137,33 +174,40 @@ button{
     font-size:17px;
 }
 
+/* 按钮按下反馈 */
 button:active{
     transform:scale(.97);
 }
 
+/* 深色模式：页面底与文字 */
 body.dark-mode{
     background:#121212;
     color:#eee;
 }
 
+/* 深色模式：卡片 */
 body.dark-mode .card{
     background:#1e1e1e;
 }
 
+/* 深色模式：辅助文字 */
 body.dark-mode .desc,
 body.dark-mode .label,
 body.dark-mode .note{
     color:#aaa;
 }
 
+/* 深色模式：数据卡片 */
 body.dark-mode .item{
     background:#292929;
 }
 
+/* 深色模式：状态条 */
 body.dark-mode .status{
     background:#292929;
 }
 
+/* 深色模式：按钮 */
 body.dark-mode button{
     background:#333;
     color:#fff;
@@ -224,6 +268,7 @@ body.dark-mode .hardware-back{
 
 <div class="card">
 
+<!-- 电池图形：内层 #level 是电量填充，#percent 是百分比文字 -->
 <div class="battery">
 
 <div id="level"
@@ -240,7 +285,8 @@ class="percent">
 
 <div class="grid">
 
-
+<!-- 电量、充电状态、电压、电流、功率、温度、协议、预计时间 8 项数据 -->
+<!-- 其中电压/电流/功率/温度/协议网页无法读取，固定文案“系统未提供” -->
 <div class="item">
 
 <div class="label">
@@ -388,6 +434,7 @@ class="status">
 // 深色模式
 // ============================
 
+// 兼容主站的 darkMode / theme 两种保存方式，深色时加 dark-mode 类
 const dark =
     localStorage.getItem("darkMode") === "1" ||
     localStorage.getItem("theme") === "dark";
@@ -401,13 +448,14 @@ if(dark){
 // 电池
 // ============================
 
-let battery = null;
+let battery = null;   // 保存 BatteryManager 对象（getBattery() 返回）
 
 
 // ============================
 // 时间
 // ============================
 
+// 把秒数格式化为“x 小时 y 分钟”；无效或过快时提示“系统未提供”
 function formatTime(seconds){
 
     // 浏览器没有提供有效的预计时间
@@ -441,7 +489,7 @@ function formatTime(seconds){
 
     }
 
-    return minutes + " 分钟";
+    return minutes + " 分钟";   // 不足 1 小时只显示分钟
 
 }
 
@@ -450,6 +498,7 @@ function formatTime(seconds){
 // 更新
 // ============================
 
+// 读取一次电池信息并刷新页面上的电量、充电状态、剩余时间与状态条
 function updateBattery(){
 
     if(!battery){
@@ -457,7 +506,7 @@ function updateBattery(){
         document.getElementById(
             "status"
         ).textContent =
-            "❌ 浏览器不支持 Battery Status API";
+            "❌ 浏览器不支持 Battery Status API";   // 未拿到电池对象
 
         return;
 
@@ -466,30 +515,30 @@ function updateBattery(){
 
     const percent =
         Math.round(
-            battery.level * 100
+            battery.level * 100    // level 为 0~1，换算成百分比
         );
 
 
     document.getElementById(
         "batteryLevel"
     ).textContent =
-        percent + "%";
+        percent + "%";                              // 数据卡片：电量
 
 
     document.getElementById(
         "percent"
     ).textContent =
-        percent + "%";
+        percent + "%";                              // 电池图形内文字
 
 
     document.getElementById(
         "level"
     ).style.width =
-        percent + "%";
+        percent + "%";                              // 电池图形填充宽度
 
 
     if(
-        battery.charging
+        battery.charging                            // 是否在充电
     ){
 
         document.getElementById(
@@ -501,7 +550,7 @@ function updateBattery(){
             "time"
         ).textContent =
             formatTime(
-                battery.chargingTime
+                battery.chargingTime                // 充满还需的秒数
             );
 
     }else{
@@ -515,7 +564,7 @@ function updateBattery(){
             "time"
         ).textContent =
             formatTime(
-                battery.dischargingTime
+                battery.dischargingTime             // 用到没电还剩的秒数
             );
 
     }
@@ -533,10 +582,11 @@ function updateBattery(){
 // 初始化
 // ============================
 
+// 页面加载：检查支持 → 获取电池对象 → 监听电池事件实时刷新
 async function init(){
 
     if(
-        !navigator.getBattery
+        !navigator.getBattery                      // 不支持电池 API
     ){
 
         document.getElementById(
@@ -552,30 +602,34 @@ async function init(){
     try{
 
         battery =
-            await navigator.getBattery();
+            await navigator.getBattery();          // 核心API：获取电池对象
 
 
-        updateBattery();
+        updateBattery();                            // 先显示一次
 
 
+        // 电量变化时刷新
         battery.addEventListener(
             "levelchange",
             updateBattery
         );
 
 
+        // 充电状态变化时刷新
         battery.addEventListener(
             "chargingchange",
             updateBattery
         );
 
 
+        // 预计充满时间变化时刷新
         battery.addEventListener(
             "chargingtimechange",
             updateBattery
         );
 
 
+        // 预计放电时间变化时刷新
         battery.addEventListener(
             "dischargingtimechange",
             updateBattery
@@ -596,7 +650,7 @@ async function init(){
 }
 
 
-init();
+init();   // 页面加载即启动
 
 </script>
 

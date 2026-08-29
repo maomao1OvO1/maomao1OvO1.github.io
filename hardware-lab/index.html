@@ -1,21 +1,44 @@
+<!-- =========================================================================
+  文件：hardware-lab/index.html ｜ 硬件测试大厅（入口页）
+  用途：本站「硬件测试」板块的导航首页，以按钮列表形式集中提供 15 项手机
+        硬件/系统能力测试入口：摄像头、震动、麦克风、手柄、传感器、音频、
+        屏幕、网络、电池、触摸、输入设备、设备信息、隐私泄露、性能、手电筒。
+  核心逻辑：
+    1. 纯静态导航页：每个按钮通过 onclick 用 location.href 跳转到 tests/ 下的
+       对应测试页。
+    2. 自适应布局：.test-list 宽度 100%、最大 400px、水平居中，手机端友好。
+    3. 深色模式双保险：内嵌三段 <style> + 外部 hardware.css 共同处理
+       dark-mode 配色；页尾脚本 applyMainTheme() 读取 localStorage.theme
+       给 <body> 挂 .dark-mode 类，与主站主题保持一致。
+    4. 一个「返回主页」按钮固定在右上角，跳回上级目录的 index.html。
+  引用资源：hardware.css（各测试页通用样式/深色/返回按钮）、
+            tests/ 下的全部测试页面、../index.html（返回主站）。
+========================================================================= -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
 
+<!-- 声明 UTF-8 编码，确保中文正常显示 -->
 <meta charset="UTF-8">
 
+<!-- 移动端视口：宽度=设备宽度，初始缩放=1，使页面在手机上按 1:1 渲染 -->
 <meta name="viewport"
 content="width=device-width, initial-scale=1.0">
 
+<!-- 页面标题：硬件测试大厅 -->
 <title>📱 硬件测试大厅</title>
 
+<!-- ===== 内嵌样式块 1：本页基础布局与按钮样式 ===== -->
 <style>
 
+/* 通配选择器：所有元素都改用 border-box 盒模型，
+   使 width/height 能直接包含 padding 和 border，避免溢出 */
 *{
     box-sizing:border-box;
 }
 
+/* 整页基础样式：无外边距、上下左右内边距、居中布局、无衬线字体、浅灰背景、深灰文字 */
 body{
     margin:0;
     padding:30px 20px;
@@ -25,16 +48,19 @@ body{
     color:#222;
 }
 
+/* 主标题：上下留白，与下方按钮区隔开 */
 h1{
     margin:20px 0 30px;
 }
 
+/* 测试按钮容器：占满整宽但最大 400px，容器自身水平居中 */
 .test-list{
     width:100%;
     max-width:400px;
     margin:auto;
 }
 
+/* 容器内每个测试按钮：block 撑满容器、圆角卡片、白底、两侧投影、带悬停过渡动画 */
 .test-list button{
     display:block;
     width:100%;
@@ -50,18 +76,21 @@ h1{
     transition:0.2s;
 }
 
+/* 按钮按下反馈：整体轻微缩小（0.97），产生按压感 */
 .test-list button:active{
     transform:scale(0.97);
 }
 
 
-/* ===== 深色模式 ===== */
+/* ===== 深色模式（基础版） ===== */
+/* 当 body 带 .dark-mode 类时：整页换成深灰背景 + 浅色文字 */
 
 body.dark-mode{
     background:#121212;
     color:#eee;
 }
 
+/* 深色下测试按钮：深灰卡片 + 更强投影 */
 body.dark-mode .test-list button{
     background:#292929;
     color:#eee;
@@ -69,20 +98,21 @@ body.dark-mode .test-list button{
 }
 
 
-/* ===== 返回主页 ===== */
+/* ===== 返回主页按钮（浮动右上角） ===== */
+/* 纯 JS 页面没有主站顶部导航，这里单独做一个固定在右上角的返回按钮 */
 
 .hardware-back{
-    position:fixed;
+    position:fixed;   /* 相对窗口固定定位 */
 
-    top:20px;
-    right:20px;
+    top:20px;    /* 距窗口顶部 20px */
+    right:20px;  /* 距窗口右侧 20px */
 
-    left:auto;
-    bottom:auto;
+    left:auto;   /* 复位继承/之前的 left，只锚定右侧 */
+    bottom:auto; /* 复位 bottom，避免被其他规则拉到底部 */
 
-    z-index:99999;
+    z-index:99999; /* 极大层级，保证浮在最上层 */
 
-    width:auto;
+    width:auto;  /* 宽度跟随内容（文字+emoji 自适应） */
 
     margin:0;
     padding:10px 16px;
@@ -92,8 +122,8 @@ body.dark-mode .test-list button{
 
     font-size:15px;
 
-    background:rgb(228,219,254);
-    color:rgb(124,92,191);
+    background:rgb(228,219,254); /* 淡紫色底 */
+    color:rgb(124,92,191);       /* 深紫色文字 */
 
     box-shadow:0 4px 15px #0002;
 
@@ -102,25 +132,28 @@ body.dark-mode .test-list button{
     transition:0.2s;
 }
 
+/* 返回按钮按下反馈：轻微缩小 */
 .hardware-back:active{
     transform:scale(0.95);
 }
 
 
-/* ===== 深色模式返回主页 ===== */
+/* ===== 深色模式返回主页（占位：最终配色由下方/外部覆盖层决定） ===== */
 
 
 
 </style>
 
+<!-- 引入各测试页通用样式表：呼应 hardware.css 中的硬件测试深色体系与返回按钮 -->
 <link rel="stylesheet" href="hardware.css">
 
 
 
 
+<!-- ===== 内嵌样式块 2：深色模式「返回主页」按钮样式（优先级最高的一层） ===== -->
 <style id="index-back-final">
 
-/* ===== 返回主页按钮 ===== */
+/* ===== 返回主页按钮（深色下保持淡紫底/深紫字，并加 !important 覆盖其他层） ===== */
 
 body.dark-mode .hardware-back{
     background:rgb(228,219,254) !important;
@@ -129,12 +162,18 @@ body.dark-mode .hardware-back{
 
 </style>
 
+<!-- ===== 内嵌样式块 3：深色模式·黑调覆盖层（主站深色统一体系） =====
+     这一层用 !important 强覆盖前面所有深色配色，把按钮/卡片/输入等元素
+     统一成与主站一致的「黑底 + 紫色点缀」体系。 -->
 <style>
 /* ==== 深色模式·黑调覆盖层(主站深色体系) ==== */
+/* body 基础：纯黑背景 + 近白文字 */
 body.dark-mode{
     background:#121212 !important;
     color:#eeeeee !important;
 }
+/* 需要改黑底的容器类：卡片、描述、注释、列表项、测试按钮、通用按钮/输入/下拉框，
+   统一改为 #1e1e1e 深灰底 + 浅字 + 深色边框 */
 body.dark-mode .card,
 body.dark-mode .desc,
 body.dark-mode .note,
@@ -147,13 +186,16 @@ body.dark-mode select{
     color:#eeeeee !important;
     border-color:#333333 !important;
 }
+/* 标题类与各级标题：统一改为淡紫色 #bb9cff，呼应主站紫调 */
 body.dark-mode .label,
 body.dark-mode h1,body.dark-mode h2,body.dark-mode h3{
     color:#bb9cff !important;
 }
+/* 正文/列表/描述段落：使用稍暗的灰色，降低对比度、护眼 */
 body.dark-mode p,body.dark-mode li,body.dark-mode .desc p{
     color:#aaaaaa !important;
 }
+/* 深色下返回按钮：深灰底 + 紫字（覆盖 index-back-final 的淡紫配色） */
 body.dark-mode .hardware-back{
     background:#222222 !important;
     color:#bb9cff !important;
@@ -163,72 +205,90 @@ body.dark-mode .hardware-back{
 
 <body>
 
+<!-- 页面主标题 -->
 <h1>📱 硬件测试大厅</h1>
 
+<!-- 测试入口列表容器：内含 15 个测试跳转按钮，均由 .test-list 样式统一排版 -->
 <div class="test-list">
 
+    <!-- 摄像头测试：调起摄像头预览（tests/camera.html） -->
     <button onclick="location.href='tests/camera.html'">
         📷 摄像头
     </button>
 
+    <!-- 震动测试：调用震动马达（tests/vibration.html） -->
     <button onclick="location.href='tests/vibration.html'">
         📳 震动
     </button>
 
+    <!-- 麦克风测试：录音/音量检测（tests/microphone.html） -->
     <button onclick="location.href='tests/microphone.html'">
         🎤 麦克风
     </button>
 
+    <!-- 手柄测试：读取游戏手柄按键/摇杆（tests/gamepad.html） -->
     <button onclick="location.href='tests/gamepad.html'">
         🎮 手柄
     </button>
 
+    <!-- 传感器测试：加速度计/陀螺仪/光感等（tests/sensors.html） -->
     <button onclick="location.href='tests/sensors.html'">
         🧭 手机传感器
     </button>
 
+    <!-- 音频分析：频率/响度等（tests/audio.html） -->
     <button onclick="location.href='tests/audio.html'">
         🔊 音频分析
     </button>
 
+    <!-- 屏幕/全屏测试：分辨率、深色、全屏切换（tests/screen.html） -->
     <button onclick="location.href='tests/screen.html'">
         🖥️ 屏幕 / 全屏
     </button>
 
+    <!-- 网络测试：上下行带宽/延迟（tests/network.html） -->
     <button onclick="location.href='tests/network.html'">
         🌐 网络测试
     </button>
 
+    <!-- 电池检测：电量/充电状态/温度（tests/battery.html） -->
     <button onclick="location.href='tests/battery.html'">
         🔋 电池检测
     </button>
 
+    <!-- 触摸屏测试：多点触控/触摸轨迹（tests/touch.html） -->
     <button onclick="location.href='tests/touch.html'">
         📱 触摸屏测试
     </button>
 
+    <!-- 输入设备测试：键盘/鼠标等外设感知（tests/input.html） -->
     <button onclick="location.href='tests/input.html'">
         🖱️ 输入设备测试
     </button>
 
+    <!-- 设备信息测试：型号/系统/分辨率/CPU 等（tests/device.html） -->
     <button onclick="location.href='tests/device.html'">
         📋 设备信息
     </button>
 
+    <!-- 隐私泄露测试：检测摄像头/位置/剪贴板等权限暴露（tests/privacy.html） -->
     <button onclick="location.href='tests/privacy.html'">
         🔒 隐私泄露
     </button>
 
+    <!-- 性能测试：帧率/内存等基准（tests/performance.html） -->
     <button onclick="location.href='tests/performance.html'">
         ⚡ 性能测试
     </button>
 
+    <!-- 手电筒测试：控制闪光灯常亮（tests/flashlight.html） -->
     <button onclick="location.href='tests/flashlight.html'">
         🔦 手电筒测试
     </button>
 
 </div>
 
+<!-- 返回主页按钮：固定在右上角（见 .hardware-back 样式），跳回上级目录 index.html -->
 <button
     class="hardware-back"
     onclick="location.href='../index.html'">
@@ -238,6 +298,11 @@ body.dark-mode .hardware-back{
 
 <script>
 
+// applyMainTheme：应用主站主题到本页。
+// 思路：读取 localStorage 中的 "theme" 字段，若为 "dark" 则给 <body> 挂上
+//       .dark-mode 类；否则移除。classList.toggle 的第二个参数 dark 直接用
+//       布尔值控制「加 / 删类」，从而让上面三段深色样式自动生效，
+//       实现与主站相同的明暗主题切换。
 function applyMainTheme(){
 
     const dark =
@@ -250,6 +315,7 @@ function applyMainTheme(){
 
 }
 
+// 页面加载后立即执行一次主题应用，保证首屏就是正确的明暗配色。
 applyMainTheme();
 
 </script>

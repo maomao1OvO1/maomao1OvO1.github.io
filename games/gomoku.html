@@ -1,4 +1,32 @@
 <!DOCTYPE html>
+
+<!-- ============================================================
+     五子棋（Gomoku / 连珠）网页小游戏
+
+     【玩法说明】
+       · 黑棋先手，双方轮流在 15×15 棋盘上落子（棋盘用 CSS 渐变绘制网格）。
+       · 目标：在任意方向（横 / 竖 / 两条对角线）连成五枚同色棋子即获胜。
+         注：本游戏按"连成 5 枚及以上"判胜，不处理"长连/禁手"规则。
+
+     【胜负判定】
+       · 每落一子后调用 checkWin(x, y, 玩家)：以落子点为中心，沿 4 个方向用
+         countLine 统计正、反两个方向同色连续子的数量，相加后 ≥ 5 即判胜。
+       · 判胜后 alert 提示获胜方、recordWin 记录该模式胜场，并置 gameEnd = true 停止本局。
+
+     【是否上报成绩】
+       · 是。当执黑棋（代表玩家，color=1）获胜时调用 addScore() → reportScore("gomoku", wins)
+         上报玩家的累计黑棋胜场；uploadScore() 还会把"本局有玩家获胜"的信息 POST 到远程
+         服务器（仅游戏名与玩家名，无其他敏感信息）。详见下方对应函数注释。
+
+     【AI 模式】
+       · 双人模式：两名玩家本地轮流落子。
+       · 普通AI（ai）：轮到白棋时由程序自动走子，使用"Minimax + Alpha-Beta 剪枝 + 局面评估"。
+       · 职业AI（pro）：依赖外部 proAI.js，若加载失败则降级为普通AI。
+
+     【数据约定】
+       · board[i][j]：0 = 空，1 = 黑棋，2 = 白棋。（i 为行、j 为列，棋盘 15×15）
+       · 统计按模式分开保存到 localStorage（键：gomoku_stats_v2）。
+     ============================================================ -->
 <html>
 
 <head>
@@ -9,11 +37,17 @@
 
 <style>
 
+/* ===== 全局页面样式 ===== */
+
 body {
+
+    /* 整页内容水平居中，便于棋盘居中显示 */
 
     text-align: center;
 
     font-family: Arial;
+
+    /* 禁用文本选中，避免点击棋盘时选中文字影响体验 */
 
     user-select: none;
 
@@ -171,6 +205,7 @@ body {
 
 }
 
+/* 通用按钮样式：圆角胶囊外观，并与背景色做区分 */
 button {
 
     padding: 10px 20px;
@@ -307,6 +342,8 @@ if(localStorage.getItem("theme") === "dark"){
 
 const STATS_KEY = 'gomoku_stats_v2';
 
+// 默认统计模板：双人 / 普通AI / 职业AI 三种模式各自的胜负场。
+// 用作首次启动或存档缺失时的初始值，保证统计对象结构始终一致。
 function defaultStats() {
 
     return {
@@ -321,6 +358,8 @@ function defaultStats() {
 
 }
 
+// 从 localStorage 读取统计：若存档存在则 JSON 解析，并逐模式补齐缺失字段
+// （防止老版本存档缺字段导致后续崩溃）；解析失败或不存在则回退默认值。
 function loadStats() {
 
     let data = localStorage.getItem(STATS_KEY);
@@ -357,12 +396,15 @@ function loadStats() {
 
 }
 
+// 把统计对象 JSON 序列化写回 localStorage，持久化胜场数据。
 function saveStats(stats) {
 
     localStorage.setItem(STATS_KEY, JSON.stringify(stats));
 
 }
 
+// 刷新统计显示：只展示"当前模式"下黑白双方的胜场，填入 #stats 区域。
+// 若该模式暂无记录，则用 0 兜底。
 function updateStatsDisplay() {
 
     let stats = loadStats();
@@ -379,6 +421,7 @@ function updateStatsDisplay() {
 
 }
 
+// 重置统计：先弹窗确认，确认后把统计清零为默认值并刷新界面。
 function resetStats() {
 
     if (confirm('确定重置五子棋所有模式的胜场统计吗？')) {
@@ -393,6 +436,7 @@ function resetStats() {
 
 }
 
+// 记录一次胜场：按"当前模式 + 获胜颜色(1黑/2白)"累加对应计数，保存并刷新。
 function recordWin(color) {
 
     let stats = loadStats();
@@ -413,20 +457,29 @@ function recordWin(color) {
 
 // ----- 游戏数据 -----
 
+// 15×15 的二维棋盘数组，board[行i][列j]：0=空、1=黑、2=白。
 let board = [];
 
+// 当前执子方：1=黑（玩家），2=白（AI 或另一方）。
 let turn = 1;
 
+// 当前游戏模式：player=双人、ai=普通AI、pro=职业AI。
 let mode = "player";
 
+// 是否 AI 先手（开启后棋盘为空时由 AI 执黑先行）。
 let aiFirst = false;
 
+// 本局是否已结束（结束后禁止继续落子，防止重复操作）。
 let gameEnd = false;
 
+// AI 开始计算的时间戳，用于实现"思考超时"（到点提前返回当前最优）。
 let aiStartTime = 0;
 
+// AI 思考的超时上限（毫秒），到期强制返回当前最优解，避免长时间卡顿。
 let aiTimeout = 10000;
 
+// 向远程服务器上报"本局有玩家获胜"（POST）。
+// 只发送游戏名和玩家名（无棋盘、分数等隐私信息），用于记录参与/获胜事件。
 function uploadScore(color){
 
     fetch("https://maomao-server.onrender.com/win",{
@@ -451,6 +504,10 @@ function uploadScore(color){
 
 // ===== 创建棋盘 =====
 
+// 初始化棋盘数据并为每个交点生成一个 .cell 格子：
+// - 二维数组 board 全部置 0（空）
+// - 用 dataset 记录行列坐标，并绑定点击事件 play(i,j)
+// - 棋盘一共 15×15 个格子
 function createBoard(){
 
     board = [];
@@ -487,6 +544,11 @@ function createBoard(){
 
 // ===== 下棋 =====
 
+// 一次完整的落子流程：
+// 1) 局已结束或该点已有棋子 → 直接返回（不合法）
+// 2) 在 board 写入当前执子方并调用 update() 刷新画面
+// 3) checkWin 判胜：胜利则记录胜场、玩家黑棋另加积分、弹出提示并终局
+// 4) 否则切换执子方并更新提示；若轮到 AI（普通/职业），延时触发 AI 走子
 function play(x, y){
 
     if(gameEnd) return;
@@ -550,6 +612,9 @@ function play(x, y){
 
 // ===== 刷新棋盘 =====
 
+// 根据二维数组 board 的状态重绘整盘：
+// 遍历 15×15 个格子，清空后按值插入对应棋子（1黑 / 2白）的 DOM 元素。
+// 格子按创建顺序与数组遍历顺序一一对应，所以用累计下标 idx 定位即可。
 function update(){
 
     let cells = document.querySelectorAll(".cell");
@@ -592,6 +657,7 @@ function update(){
 
 // ===== 切换AI先手 =====
 
+// 翻转 aiFirst 布尔值，刷新按钮文案，并重新开一局让新设置立即生效。
 function toggleAIFirst(btn){
 
     aiFirst = !aiFirst;
@@ -604,6 +670,8 @@ function toggleAIFirst(btn){
 
 // ===== 模式切换 =====
 
+// 切换游戏模式（player/ai/pro）：更新模式提示文案并重新开局。
+// 切换后 aiFirst 相关逻辑照常生效（AI 模式且开启先手时由 AI 先行）。
 function setMode(m){
 
     mode = m;
@@ -622,6 +690,8 @@ function setMode(m){
 
 // ===== 重新开始 =====
 
+// 重置本局：执子方回到黑棋、解除结束标记、重建棋盘、重绘并刷新统计。
+// 若开启了"AI先手"且当前为 AI 模式，则轮到白棋并由 AI 先行。
 function restart(){
 
     turn = 1;
@@ -664,6 +734,10 @@ function restart(){
 
 // ============================================================
 
+// 用"最小最大 + Alpha-Beta 剪枝"搜索白棋(AI)的最优落点：
+// 遍历每个候选空位，假设 AI 落在该点后调用 minimax(深度=5) 递归评估，
+// 取得分最高的位置；若开局且候选只有 1 个，直接落天元 (7,7)。
+// 搜索全程记录 aiStartTime，超时则提前返回当前最优，避免卡死。
 function searchBestMove(){
 
     aiStartTime = Date.now();
@@ -714,6 +788,8 @@ function searchBestMove(){
 
 }
 
+// 收集"值得考虑"的候选落点：所有空格中，只有周围 8 格内有棋子的才参与搜索，
+// 大幅缩小 Minimax 分支；若棋盘为空（无任何候选）则返回天元 [7,7]。
 function getCandidateMoves(){
 
     let moves=[];
@@ -738,12 +814,19 @@ function getCandidateMoves(){
 
 }
 
+// Minimax + Alpha-Beta 剪枝：
+// - isAI 为 true 表示轮到 AI（白棋，取最大值）；false 表示轮到对手（黑棋，取最小值）。
+// - depth 为剩余搜索深度，depth==0 或超时则直接返回当前局面评估，不再展开。
+// - alpha 记录"已确认的最大可选值"，beta 记录"已确认的最小可选值"；
+//   当 beta<=alpha 时说明后面分支已被父节点掐掉（剪枝），直接 break，
+//   用大量减少的搜索换取相同最优解，是 AI 能在 10 秒内下完的关键。
 function minimax(depth,isAI,alpha,beta){
 
     if(Date.now()-aiStartTime > aiTimeout) return evaluateBoard();
 
     if(depth==0) return evaluateBoard();
 
+    // AI 取极大、对手取极小：用正负无穷做初始"哨兵值"，之后逐个分支比较更新。
     let best = isAI ? -999999 : 999999;
 
     let moves=getCandidateMoves();
@@ -752,12 +835,14 @@ function minimax(depth,isAI,alpha,beta){
 
         let i=m[0], j=m[1];
 
+        // 试探性落子：AI 走 2（白），对手走 1（黑）；递归后立刻撤销，还原棋盘。
         board[i][j]=isAI?2:1;
 
         let score=minimax(depth-1,!isAI,alpha,beta);
 
         board[i][j]=0;
 
+        // 根据当前是"极大层"还是"极小层"更新 best，并同步收窄 alpha/beta 区间。
         if(isAI){
 
             best=Math.max(best,score);
@@ -772,6 +857,7 @@ function minimax(depth,isAI,alpha,beta){
 
         }
 
+        // 剪枝：一旦 beta<=alpha，说明该分支无论如何都无法胜过已有最优，丢弃剩余兄弟分支。
         if(beta<=alpha) break;
 
     }
@@ -780,6 +866,8 @@ function minimax(depth,isAI,alpha,beta){
 
 }
 
+// 整个棋盘的启发式评分：AI(白棋，2)的每个点得分累加为"净优势"，
+// 对手(黑棋，1)扣分；得分越高对 AI 越有利。它是 Minimax 的叶子评估函数。
 function evaluateBoard(){
 
     let score=0;
@@ -800,6 +888,8 @@ function evaluateBoard(){
 
 }
 
+// 查找 AI 能"一击制胜"的落点：试探在每个空位放白子，若该点评估 ≥10000（即成五），
+// 直接采纳；这是一个强力的"先赢再说"策略，优先级很高。
 function findThreatSearch(){
 
     let best=null;
@@ -828,10 +918,19 @@ function findThreatSearch(){
 
 }
 
+// 普通AI 的决策总入口（白棋行动）。按优先级依次尝试，一旦命中即落子返回：
+// ① findBestMove(2)            自己能否直接成五 → 立刻获胜
+// ② findThreatSearch           自己是否有一步绝杀
+// ③ findBestMove(1)            对方是否下一步成五 → 必须封堵
+// ④ findDoubleThreatMove(1)    对方是否存在"双三"必败威胁
+// ⑤ findThreatMove(1)          对方其它一般威胁
+// ⑥ searchBestMove()           Minimax+剪枝全局计算
+// ⑦ 兜底：对候选点做"进攻+防守"加权评分（含随机扰动）取最高
 function aiMove(){
 
     if(gameEnd)return;
 
+    // ① 优先：AI 自己能否立即连成五子（白棋 player=2）。
     let move=findBestMove(2);
 
     if(move){ play(move[0],move[1]); return; }
@@ -840,18 +939,22 @@ function aiMove(){
 
     if(threatMove){ play(threatMove[0],threatMove[1]); return; }
 
+    // ③ 其次：黑棋(对手)是否下一步成五？若是，必须封堵。
     move=findBestMove(1);
 
     if(move){ play(move[0],move[1]); return; }
 
+    // ④ 再查对手是否形成"双三"（两个活三），形成则近乎必败，需抢先破坏。
     move=findDoubleThreatMove(1);
 
     if(move){ play(move[0],move[1]); return; }
 
+    // ⑤ 仍无急切威胁，再捡漏对手的一般性威胁。
     move=findThreatMove(1);
 
     if(move){ play(move[0],move[1]); return; }
 
+    // 收集所有"周围有棋"的空位作为候选，供后续搜索与评分使用。
     let moves=[];
 
     for(let i=0;i<15;i++){
@@ -864,16 +967,20 @@ function aiMove(){
 
     }
 
+    // ⑥ Minimax 全局搜索给出一个"总体最优"点，若能找到则直接采用。
     let searchMove = searchBestMove();
 
     if(searchMove){ play(searchMove[0],searchMove[1]); return; }
 
+    // ⑦ 兜底加权评分：对每个候选点综合"进攻值、防守值、局部搜索结果"打分。
     let bestScore = -1, bestMove = null;
 
     for(let m of moves){
 
         let i=m[0], j=m[1];
 
+        // attack=该点对白棋(攻)的价值；defense=该点对黑棋(防)的价值；
+        // 防守权重更高(×1.5)，再叠加 Minimax 视角(search)与随机扰动，避免每次都一样。
         let attack = evaluatePoint(i,j,2);
 
         let defense = evaluatePoint(i,j,1);
@@ -890,6 +997,8 @@ function aiMove(){
 
 }
 
+// 判断 (x,y) 周围 8 个邻格内是否已有棋子。
+// 五子棋的有效落点几乎总在已有棋子附近，用它过滤出"值得搜索"的候选点。
 function nearChess(x,y){
 
     for(let i=-1;i<=1;i++){
@@ -908,6 +1017,8 @@ function nearChess(x,y){
 
 }
 
+// 计算在 (x,y) 处放 p 色棋子后，四个方向中能连成的最长同色子数。
+// dirs 分别为横、竖、主对角、副对角四个方向；对每个方向用 countLine 向两端累计。
 function maxLine(x,y,p){
 
     let dirs=[[1,0],[0,1],[1,1],[1,-1]];
@@ -930,6 +1041,16 @@ function maxLine(x,y,p){
 
 }
 
+// 评估"在 (x,y) 落 player 色棋子"这一点的价值（启发式打分）。
+// 思路：沿四个方向统计连成子数 count，再用 countLine 看两端是否"开放"（open=0/1/2）。
+// 棋子越长、两端越开放，威胁越大，对应越高权重：
+//   count≥5             → 成五必杀       1000000
+//   count=4 且两端开放  → 活四(必成五)    500000
+//   count=4 一端开放    → 冲四           100000
+//   count=3 两端开放    → 活三           10000
+//   count=3 一端开放    → 眠三            1000
+//   count=2 两端开放    → 活二             500
+// 注意：打分时先把该位置临时写为 player，结束后立刻还原，不改动真实棋盘。
 function evaluatePoint(x,y,player){
 
     let score=0, old=board[x][y];
@@ -948,6 +1069,7 @@ function evaluatePoint(x,y,player){
 
         count+=left+right;
 
+        // open 记录这条连线"两端"各有多少空位（0/1/2），开放越多越接近成五。
         let open=0;
 
         let x1=x+d[0]*(left+1), y1=y+d[1]*(left+1);
@@ -958,6 +1080,7 @@ function evaluatePoint(x,y,player){
 
         if(x2>=0&&x2<15&&y2>=0&&y2<15&&board[x2][y2]==0) open++;
 
+        // 按"连子数 + 开放端"匹配威胁等级，累加对应分值（分值越大对 player 越有利）。
         if(count>=5) score+=1000000;
 
         else if(count==4 && open==2) score+=500000;
@@ -978,12 +1101,18 @@ function evaluatePoint(x,y,player){
 
 }
 
+// 对指定点 (x,y) 做一次"局部"评估（比 evaluatePoint 更粗、更快）：
+// 1) 假设 (x,y) 处已有 AI 白子(2)，若因此成五 → 直接给极高分 999999。
+// 2) 在 (x,y) 附近 5×5 范围逐个试探"黑棋(对手)落点"，记录对手最狠的得分 worst。
+// 3) 返回 自身价值 evaluatePoint(x,y,2) - worst：
+//    自己得分越高、对手被限制得越死，最终值越大，越值得下。
 function minimaxScore(x,y){
 
     board[x][y]=2;
 
     if(checkWin(x,y,2)){ board[x][y]=0; return 999999; }
 
+    // 在 (x,y) 附近 5×5 内找"对手(黑棋)下在哪最赚"，拿到对方最有威胁的得分。
     let worst=999999;
 
     for(let i=x-2;i<=x+2;i++){
@@ -1014,6 +1143,9 @@ function minimaxScore(x,y){
 
 }
 
+// 找一个能让给定玩家"一步成五"的位置：遍历所有空位，临时放入 player 色子，
+// 用 checkWin 判断是否立即获胜，命中则返回该坐标；找不到返回 null。
+// aiMove 用它既做"自己能赢"的进攻，也做"对方能赢则封堵"的防守。
 function findBestMove(player){
 
     for(let i=0;i<15;i++){
@@ -1040,6 +1172,8 @@ function findBestMove(player){
 
 }
 
+// 判断 (x,y) 落 player 色后是否形成"活三"：刚好连成 3 子且两端都开放。
+// 活三是极强的威胁——下一手可冲成"活四"（必成五）。先在棋盘试探再还原。
 function isOpenThree(x,y,player){
 
     let old=board[x][y];
@@ -1082,6 +1216,8 @@ function isOpenThree(x,y,player){
 
 }
 
+// 找"双三"落点：某点落子后若同时形成两个活三（countOpenThree≥2），
+// 对手无法同时堵住两处，等于必杀。用于提前识别/抢占这种致命威胁。
 function findDoubleThreatMove(player){
 
     for(let i=0;i<15;i++){
@@ -1108,6 +1244,8 @@ function findDoubleThreatMove(player){
 
 }
 
+// 统计在某点落 player 色后，能在几个方向上同时形成"活三"（最多 4 个方向）。
+// findDoubleThreatMove 用的就是它：≥2 即为双三威胁。
 function countOpenThree(x,y,player){
 
     let count=0, old=board[x][y];
@@ -1148,6 +1286,8 @@ function countOpenThree(x,y,player){
 
 }
 
+// 找一般的"威胁/活三"落点：某点落 player 色后，若能连成 4 子及以上（count≥4）
+// 或形成活三（isOpenThree），即为有价值的威胁点，返回之；找不到返回 null。
 function findThreatMove(player){
 
     for(let i=0;i<15;i++){
@@ -1174,6 +1314,9 @@ function findThreatMove(player){
 
 }
 
+// 获胜后向外部计分服务上报玩家(执黑)的累计黑棋胜场：
+// 把所有模式的 blackWins 求和，再调用 reportScore("gomoku", wins)，
+// 把"游戏名 + 总黑胜场"交给 report.js 里封装的真正上报逻辑。
 // 胜利后发送积分到服务器
 // 胜利后发送积分到服务器
 function addScore(){
@@ -1186,6 +1329,11 @@ function addScore(){
 
 }
 
+// 胜负判定核心：判断落子 (x,y) 的玩家 p 是否连成五子。
+// 四个方向用 dirs 表达（横/竖/主对角/副对角），每个方向向"正、反"两端各数一次：
+//   正方向 = (d[0],d[1])，反方向 = (-d[0],-d[1])。
+// count 初始为 1（当前子），两端相加，若某方向 ≥5 即返回 true；四方向都不满足则未胜。
+// 五子棋不处理"长连/禁手"，只判定"成五及以上"。
 function checkWin(x,y,p){
 
     let dirs=[[1,0],[0,1],[1,1],[1,-1]];
@@ -1206,6 +1354,9 @@ function checkWin(x,y,p){
 
 }
 
+// 从 (x,y) 出发，沿 (dx,dy) 单方向统计连续同色子 p 的个数（不含起点）。
+// 先走一步，只要仍在棋盘内且同色就一直前进；这是 checkWin / maxLine /
+// evaluatePoint 等所有"连子统计"复用的基础函数。
 function countLine(x,y,dx,dy,p){
 
     let count=0;
@@ -1224,6 +1375,7 @@ function countLine(x,y,dx,dy,p){
 
 // ===== 启动游戏 =====
 
+// 页面加载完成后的初始化顺序：建棋盘 → 按空棋盘重绘 → 刷新模式统计 → 设初始提示。
 createBoard();
 
 update();

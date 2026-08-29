@@ -1,4 +1,29 @@
 <!DOCTYPE html>
+<!--
+  ============================================================
+  🎮 手柄测试页（hardware-lab/tests/gamepad.html）
+  ------------------------------------------------------------
+  【测试对象】游戏手柄（Gamepad）：连接检测、按键、摇杆、扳机、震动。
+  【使用的浏览器 API（Gamepad API）】
+    - navigator.getGamepads()                读取当前所有手柄
+    - window "gamepadconnected"              手柄连接事件
+    - window "gamepaddisconnected"           手柄断开事件
+    - Gamepad.buttons[i].pressed / .value    按钮是否按下 / 扳机模拟量(0~1)
+    - Gamepad.axes[i]                        摇杆轴数值(-1~1)
+    - Gamepad.vibrationActuator.playEffect() 触发震动（双马达）
+    - actuator.reset()                       停止震动
+  【测试流程】
+    ① 页面加载 → 注册 gamepadconnected / gamepaddisconnected 监听。
+    ② 捕获到连接手柄后，用 getCurrentGamepad() 拿到当前手柄。
+    ③ update() 主循环通过 requestAnimationFrame 每帧轮询手柄状态，
+       刷新按钮高亮、左右摇杆圆点位置、左右扳机填充比例。
+    ④ 震动区：读取输入的秒数，用 vibrationActuator.playEffect("dual-rumble")
+       触发强/弱/双马达震动，或 reset() 停止。
+  【PASS/FAIL 判定】
+    能检测到手柄并实时反馈按键/摇杆/扳机 → 状态显示「手柄已连接」；
+    手柄任何交互能在页面上高亮/移动 → 该项通过；否则显示「未检测到手柄」。
+  ============================================================
+-->
 <html lang="zh-CN">
 
 <head>
@@ -13,6 +38,8 @@ content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="../hardware.css">
 
 <style>
+/* ==== 浅色模式基础样式（默认外观） ==== */
+/* 说明：按键/摇杆用 .pressed 或圆点位移做实时高亮；扳机用 width 模拟填充 */
 
 body{
     margin:0;
@@ -219,8 +246,10 @@ body.dark-mode .hardware-back{
 <div id="device"></div>
 
 
+<!-- 手柄控制器可视化区域：震动设置 + 按键/摇杆/扳机实时反馈 -->
 <div class="controller">
 
+<!-- ========== 震动控制区：左侧强马达 / 右侧弱马达 / 双马达 / 停止 ========== -->
 <h2>📳 手柄震动</h2>
 
 <p>
@@ -479,9 +508,11 @@ if(localStorage.getItem("theme") === "dark"){
    手柄
 ============================ */
 
+/* 全局手柄引用：连接成功后指向当前使用的 Gamepad 对象 */
 let gamepad = null;
 
 
+/* 手柄连接事件：保存 Gamepad 对象并更新「已连接」状态与设备名 */
 window.addEventListener(
     "gamepadconnected",
     function(event){
@@ -502,6 +533,7 @@ window.addEventListener(
 );
 
 
+/* 手柄断开事件：若断开的是当前手柄则清空引用，并重置状态文本 */
 window.addEventListener(
     "gamepaddisconnected",
     function(event){
@@ -530,6 +562,10 @@ window.addEventListener(
 
 /* ============================
    获取当前手柄
+   ------------------------------------------------------------------
+   逻辑：优先返回 navigator.getGamepads()[gamepad.index]（已连接那只）；
+   若为空则遍历 getGamepads() 找到第一个存在的 pad 作为当前手柄，
+   顺带把状态/设备名更新为「手柄已连接」。找不到则返回 null。
 ============================ */
 
 function getCurrentGamepad(){
@@ -577,7 +613,10 @@ function getCurrentGamepad(){
 
 
 /* ============================
-   震动
+   震动（dual-rumble 双马达驱动）
+   ------------------------------------------------------------------
+   getVibrationActuator()：取当前手柄的震动执行器，
+   未连接或手柄无 vibrationActuator 时弹窗提示并返回 null。
 ============================ */
 
 function getVibrationActuator(){
@@ -608,6 +647,7 @@ function getVibrationActuator(){
 }
 
 
+/* 左/强震动：读取 strongTime 秒数，只驱动强马达（strongMagnitude=1，weak=0） */
 function vibrateStrong(){
 
     const actuator =
@@ -640,6 +680,7 @@ function vibrateStrong(){
 }
 
 
+/* 右/弱震动：读取 weakTime 秒数，只驱动弱马达（weakMagnitude=1，strong=0） */
 function vibrateWeak(){
 
     const actuator =
@@ -672,6 +713,7 @@ function vibrateWeak(){
 }
 
 
+/* 左右同时震动：两马达都满幅，时长取 strong/weak 输入中较大者 */
 function vibrateBoth(){
 
     const actuator =
@@ -714,6 +756,7 @@ function vibrateBoth(){
 }
 
 
+/* 停止震动：调用 actuator.reset() 立刻中止当前震动效果 */
 function stopGamepadVibration(){
 
     const actuator =
@@ -734,6 +777,9 @@ function stopGamepadVibration(){
 
 /* ============================
    按钮
+   ------------------------------------------------------------------
+   updateButton()：根据 pad.buttons[i].pressed 给对应按键元素加/去
+   "pressed" 类，实现按下高亮反馈。元素不存在（非显示按钮）则跳过。
 ============================ */
 
 function updateButton(
@@ -773,6 +819,9 @@ function updateButton(
 
 /* ============================
    摇杆
+   ------------------------------------------------------------------
+   updateStick()：读 pad.axes[x/y]（-1~1），把圆点 dot 移到对应偏移，
+   并在 valueId 里显示 X/Y 数值。x,y 为轴在 axes 数组里的下标。
 ============================ */
 
 function updateStick(
@@ -816,6 +865,9 @@ function updateStick(
 
 /* ============================
    扳机
+   ------------------------------------------------------------------
+   updateTrigger()：读 pad.buttons[index].value（0~1 模拟量），
+   用它设填充条 width 百分比，并显示对应百分比文本。
 ============================ */
 
 function updateTrigger(
@@ -846,7 +898,15 @@ function updateTrigger(
 
 
 /* ============================
-   主循环
+   主循环（核心轮询逻辑）
+   ------------------------------------------------------------------
+   update()：用 requestAnimationFrame 每帧回调自身，形成连续轮询。
+   每帧先 getCurrentGamepad() 拿到当前手柄，若有手柄则逐项刷新：
+     ① 遍历按钮 → updateButton() 高亮按键；
+     ② 左右摇杆 → updateStick() 移动圆点（轴 0/1 = 左摇杆，2/3 = 右摇杆）；
+     ③ 左右扳机 → updateTrigger() 刷新填充（按钮 6 = LT，7 = RT）。
+   手柄为空则不刷新。最后再次 requestAnimationFrame(update) 进入下一帧。
+   【目的】浏览器不会自动推进手柄状态，必须主动轮询才能持续反映变化。
 ============================ */
 
 function update(){

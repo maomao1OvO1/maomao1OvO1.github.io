@@ -1,4 +1,26 @@
 <!DOCTYPE html>
+<!--
+  ============================================================
+  🔦 手电筒 / 闪光灯测试页（hardware-lab/tests/flashlight.html）
+  ------------------------------------------------------------
+  【测试对象】设备后置摄像头的闪光灯 / 手电筒（Torch）。
+  【使用的浏览器 API】
+    - navigator.mediaDevices.getUserMedia()   请求摄像头视频流（getUserMedia）
+    - MediaStream.getVideoTracks()            从视频流中取视频轨
+    - MediaStreamTrack.getCapabilities()      读取轨道能力（含 torch 字段）
+    - MediaStreamTrack.applyConstraints()     通过 torch 开关手电筒
+    - window "pagehide" 事件                  页面离开时做资源清理
+  【测试流程】
+    ① 页面加载 → 自动调用 checkTorch() 检测能力（见下方 JS）。
+    ② getUserMedia 取后置(environment)摄像头 → 读视频轨 → 查 torch 支持。
+    ③ 在「控制方式 / 闪光灯 / 设备支持 / 当前状态」区块展示检测结果。
+    ④ torch 支持则解锁「打开手电筒」按钮，点击走 toggleTorch() 切换。
+    ⑤ 页面离开（pagehide）时关闭手电筒并释放摄像头。
+  【PASS/FAIL 判定】
+    track.getCapabilities().torch === true → 显示「支持手电筒控制」并开放开关（PASS）；
+    否则 → 显示「浏览器未提供控制接口」并禁用开关（FAIL）。
+  ============================================================
+-->
 <html lang="zh-CN">
 
 <head>
@@ -12,6 +34,9 @@ content="width=device-width,initial-scale=1.0">
 <link rel="stylesheet" href="../hardware.css">
 
 <style>
+/* ==== 浅色模式基础样式（页面默认外观） ==== */
+/* 说明：手电筒图标发光效果靠 .flashlight-icon.on 的 drop-shadow 实现 */
+/* 说明：按钮按下的缩放反馈由 button:active 的 transform 提供 */
 
 body{
     margin:0;
@@ -116,6 +141,8 @@ button:active{
 
 
 <style id="flashlight-dark-mode">
+/* ==== 本页深色模式样式（由 applyMainTheme() 切换 body.dark-mode 时生效） ==== */
+/* 说明：深色模式下调整背景/卡片/文字/返回按钮/关闭态按钮的配色 */
 
 body.dark-mode{
     background:#17151c;
@@ -190,6 +217,7 @@ body.dark-mode .hardware-back{
 
 <body>
 
+<!-- 页面主容器：手电筒测试卡片 -->
 <div class="container">
 
 <h1>🔦 手电筒测试</h1>
@@ -199,6 +227,7 @@ body.dark-mode .hardware-back{
 </div>
 
 
+<!-- 操作区卡片：图标 + 检测状态 + 开关按钮 -->
 <div class="card">
 
 <div id="icon"
@@ -220,6 +249,7 @@ class="status">
 
 <div class="card">
 
+<!-- 检测结果信息区：控制方式 / 闪光灯 / 设备支持 / 当前状态 -->
 <div class="info">
 
 <div>
@@ -247,12 +277,14 @@ class="status">
 </div>
 
 
+<!-- 提示信息卡片：显示检测结果 / 权限提示等说明文案 -->
 <div id="message"
 class="card">
 请等待检测完成。
 </div>
 
 
+<!-- 返回硬件大厅按钮 -->
 <button
 class="hardware-back hardware-back"
 onclick="location.href='../index.html'">
@@ -263,6 +295,14 @@ onclick="location.href='../index.html'">
 
 
 <script>
+
+/* ============================================================
+ * 全局状态变量
+ *   stream：当前拿到的人摄像头 MediaStream（用于页面离开时释放）
+ *   track ：当前使用的视频轨 MediaStreamTrack（用于控制 torch）
+ *   torchSupported：浏览器/设备是否暴露 torch 手电筒能力（PAYS/FAIL 依据）
+ *   torchOn：手电筒当前是否点亮
+ * ============================================================ */
 
 let stream=null;
 
@@ -275,6 +315,14 @@ let torchOn=false;
 
 /*
  * 获取后置摄像头。
+ *
+ * 【流程】
+ *   - navigator.mediaDevices.getUserMedia() 申请摄像头视频流；
+ *     facingMode 优先取 "environment"（后置镜头，手电筒通常挂在后置）。
+ *   - audio 设为 false：只要视频，不额外占用麦克风。
+ *   - 从流中 getVideoTracks() 取第一条视频轨存进全局 track。
+ *   - 没有视频轨 → 抛错「没有找到摄像头」。
+ *   - 成功返回该视频轨；失败 console.error 并返回 null（由调用方判定）。
  */
 
 async function getCamera(){
@@ -326,6 +374,17 @@ async function getCamera(){
 
 /*
  * 检测手电筒能力。
+ *
+ * 【用途】页面加载后自动执行，判断当前设备/浏览器能否控制手电筒，
+ *         并把结果写入界面（控制方式 / 闪光灯 / 设备支持 / 当前状态）。
+ * 【流程】
+ *   ① 浏览器不支持 getUserMedia → 提示「当前浏览器不支持摄像头 API」，禁用按钮，直接返回。
+ *   ② 调 getCamera() 拿摄像头轨；拿不到（无摄像头/权限被拒）→ 提示无法访问并禁用。
+ *   ③ 读 track.getCapabilities().torch，得到 torchSupported。
+ *   ④ torchSupported === true → 状态「手电筒可测试」，解锁开关（PASS）。
+ *      否则 → 状态「无法通过浏览器控制」，禁用开关（FAIL）。
+ *   ⑤ 依据检测结果写 message 说明文案。
+ * 【注意】torch 为 false 只代表浏览器未暴露控制接口，不代表手机物理上没有手电筒。
  */
 
 async function checkTorch(){
@@ -479,6 +538,15 @@ async function checkTorch(){
 
 /*
  * 开关手电筒。
+ *
+ * 【流程】
+ *   ① track 不存在或 torch 不支持 → 直接返回，不做任何操作。
+ *   ② 反转 torchOn 状态（true↔false）。
+ *   ③ 用 track.applyConstraints({advanced:[{torch:torchOn}]}) 真正点亮/熄灭闪光灯。
+ *   ④ 更新「当前状态」文字、状态条、图标发光效果与按钮文案/样式。
+ *   ⑤ 失败（浏览器/设备限制，如权限或硬件不支持）→ 重置 torchOn=false，
+ *      提示「手电筒控制失败」并禁用操作。
+ * 【结果判定】torchOn=true → 「手电筒已开启」；torchOn=false → 「手电筒已关闭」。
  */
 
 async function toggleTorch(){
@@ -591,6 +659,12 @@ async function toggleTorch(){
 
 /*
  * 页面离开时关闭摄像头。
+ *
+ * 【用途】页面切走/关闭（pagehide）时释放资源，防止手电筒一直亮、
+ *         摄像头被占用不释放。
+ * 【流程】
+ *   ① 若存在视频轨，先用 applyConstraints([{torch:false}]) 强制熄灭闪光灯。
+ *   ② 再 stream.getTracks() 逐条 stop()，释放摄像头授权占用。
  */
 
 window.addEventListener(
@@ -629,6 +703,7 @@ window.addEventListener(
 );
 
 
+/* 绑定「开关手电筒」按钮的点击事件 → toggleTorch() */
 document.getElementById(
     "toggle"
 ).addEventListener(
@@ -637,12 +712,19 @@ document.getElementById(
 );
 
 
+/* 页面加载后自动执行一次手电筒能力检测 */
 checkTorch();
 
 </script>
 
 
 <script>
+
+/* ============================================================
+ * 深色模式处理（联动主站 localStorage 主题）
+ * 读取 localStorage 的 darkMode / theme 标记，
+ * 给 <body> 加/移除 "dark-mode" 类，控制整体配色。
+ * ============================================================ */
 
 function applyMainTheme(){
 
@@ -657,6 +739,7 @@ function applyMainTheme(){
 
 }
 
+/* 页面加载即应用深色主题 */
 applyMainTheme();
 
 </script>

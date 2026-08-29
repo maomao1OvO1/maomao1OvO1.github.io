@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 
+<!-- ============================================================
+  【文件】camera.html —— 摄像头测试
+  【硬件】设备的摄像头（前置 / 后置摄像头及其拍摄能力）
+  【用途】验证相机能否打开、前后摄像头能否切换、能否正常关闭
+  【浏览器 API】
+    - navigator.mediaDevices.getUserMedia({video:{facingMode}})
+        → 请求摄像头视频轨道（此处为核心 API）
+    - MediaStream.getTracks() / MediaStreamTrack.stop()
+        → 遍历并停止所有媒体轨道，释放相机
+    - localStorage.getItem("theme")
+        → 读取主站主题，跟随深色模式
+  【测试流程】
+    1. 点击「打开摄像头」openCamera() 请求摄像头权限并显示实时画面
+       成功 = 看到实时画面；失败 = 弹窗 alert 提示无法打开
+    2. 点击「切换摄像头」switchCamera() 在 user(前) / environment(后) 切换
+    3. 点击「关闭摄像头」closeCamera() 停止全部轨道并隐藏画面
+  【判定方式】无 PASS/FAIL 文字，以「能否看到实时视频画面」为本测试的通过标准。
+============================================================ -->
+
 <head>
 
 <meta charset="UTF-8">
@@ -13,11 +32,13 @@ content="width=device-width, initial-scale=1.0">
 
 <style>
 
+/* 页面基础样式：内容水平居中 */
 body{
     text-align:center;
     font-family:Arial;
 }
 
+/* 摄像头实时画面：默认隐藏(display:none)，打开后改为 block 显示 */
 video{
     width:90%;
     max-width:500px;
@@ -26,6 +47,7 @@ video{
     display:none;
 }
 
+/* 控制按钮（浅色主题）：圆角 + 底部阴影，白底紫字 */
 button{
     padding:12px 20px;
     margin:8px;
@@ -38,15 +60,18 @@ button{
     cursor:pointer;
 }
 
+/* 按下反馈：轻微的缩放效果 */
 button:active{
     transform:scale(.97);
 }
 
+/* 深色模式：页面底色变深、文字变亮 */
 body.dark-mode{
     background:#121212;
     color:#eee;
 }
 
+/* 深色模式：普通按钮改深色底、白字 */
 body.dark-mode button:not(.hardware-back){
     background:#333;
     color:#fff;
@@ -96,7 +121,7 @@ body.dark-mode .hardware-back{
 
 <h1>📷 摄像头测试</h1>
 
-
+<!-- 控制按钮组：打开 / 切换 / 关闭 摄像头（切换仅在已打开时有效） -->
 <button onclick="openCamera()">
 打开摄像头
 </button>
@@ -112,7 +137,7 @@ body.dark-mode .hardware-back{
 
 <br>
 
-
+<!-- 摄像头实时画面容器：autoplay 自动播放；playsinline 让移动端内嵌播放（不进全屏） -->
 <video
     id="camera"
     autoplay
@@ -122,23 +147,24 @@ body.dark-mode .hardware-back{
 
 <script>
 
-let stream = null;
-
-let facingMode = "user";
+let stream = null;      // 当前摄像头媒体流对象（保存后用于切换/关闭）
+let facingMode = "user"; // 期望的摄像头方向：user=前置(自拍)，environment=后置
 
 
 // ============================
 // 打开摄像头
 // ============================
 
+// 测试：请求用户允许访问摄像头，并把实时画面绑定到 <video>
+// 结果判定：成功 → 画面显示出来；失败（拒绝权限/无摄像头）→ alert 弹出原因
 async function openCamera(){
 
-    closeCamera();
+    closeCamera();  // 先关闭上一次的流，避免重复占用
 
     try{
 
         stream =
-            await navigator.mediaDevices.getUserMedia({
+            await navigator.mediaDevices.getUserMedia({  // 核心API：按 facingMode 请求前置或后置摄像头
 
                 video:{
                     facingMode:facingMode
@@ -151,17 +177,17 @@ async function openCamera(){
             document.getElementById("camera");
 
 
-        video.srcObject =
+        video.srcObject =     // 把媒体流接到 <video> 上显示实时画面
             stream;
 
 
         video.style.display =
-            "block";
+            "block";          // 显示视频元素
 
 
     }catch(error){
 
-        alert(
+        alert(               // 失败提示（如用户拒绝权限、无摄像头硬件）
             "无法打开摄像头：" +
             error
         );
@@ -175,6 +201,8 @@ async function openCamera(){
 // 切换摄像头
 // ============================
 
+// 测试：在前置(user)与后置(environment)之间切换
+// 结果判定：无数值，主要通过「画面是否切换」观察；未打开时提醒先打开
 async function switchCamera(){
 
     if(!stream){
@@ -189,17 +217,17 @@ async function switchCamera(){
     if(facingMode === "user"){
 
         facingMode =
-            "environment";
+            "environment";   // 当前是前置 → 切到后置
 
     }else{
 
         facingMode =
-            "user";
+            "user";          // 当前是后置 → 切回前置
 
     }
 
 
-    await openCamera();
+    await openCamera();      // 用新的 facingMode 重新申请摄像头
 
 }
 
@@ -208,15 +236,17 @@ async function switchCamera(){
 // 关闭摄像头
 // ============================
 
+// 测试：释放摄像头资源
+// 结果判定：遍历停止所有媒体轨道、清空视频源并隐藏画面
 function closeCamera(){
 
     if(stream){
 
         stream
-            .getTracks()
+            .getTracks()                          // 取出所有轨道（视频/音频）
             .forEach(track => {
 
-                track.stop();
+                track.stop();                     // 终止轨道，真正关闭硬件
 
             });
 
@@ -231,11 +261,11 @@ function closeCamera(){
 
 
     video.srcObject =
-        null;
+        null;                                     // 与视频源解绑
 
 
     video.style.display =
-        "none";
+        "none";                                   // 隐藏视频元素
 
 }
 
@@ -244,14 +274,15 @@ function closeCamera(){
 // 跟随主站深色模式
 // ============================
 
+// 功能：读取主站保存的主题，切换本页深色模式
 function applyMainTheme(){
 
     const dark =
-        localStorage.getItem("theme")
+        localStorage.getItem("theme")   // 主站以 theme==="dark" 表示深色
         === "dark";
 
 
-    document.body.classList.toggle(
+    document.body.classList.toggle(     // 根据 dark 值增删 dark-mode 类
         "dark-mode",
         dark
     );
@@ -259,7 +290,7 @@ function applyMainTheme(){
 }
 
 
-applyMainTheme();
+applyMainTheme();  // 页面加载即应用主题
 
 </script>
 

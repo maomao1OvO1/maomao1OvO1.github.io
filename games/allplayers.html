@@ -1,4 +1,23 @@
 <!DOCTYPE html>
+<!--
+    ═══════════════════════════════════════════════════════════════════════
+    文件：games/allplayers.html —— 玩家汇总（全部游戏）
+    ───────────────────────────────────────────────────────────────────────
+    【用途】站长专属页面：把 Firestore 中所有玩家、所有游戏的历史成绩，
+             按「玩家」分组，整理成一张总览表（每行一个玩家、每列一个游戏）。
+    【核心逻辑】
+        1. 登录校验：仅「毛毛」站长账号可查看，其余用户被挡在门 (gate) 之外。
+        2. 数据获取：用 Firestore REST API 拉取 /scores 集合全部文档。
+        3. 文档解析：文档 id 形如 "<游戏Hex>_<玩家名Hex>"，需解码还原，字段里
+           用 score / name 兜底（若文档没名字就用 id 解出的名字）。
+        4. 表格组装：列 = 玩家玩过的游戏（有数据的才展示表头），
+           行 = 玩家，每个格子填该玩家在该游戏的成绩（没玩过显示“—”）。
+        5. 排序：按「已玩游戏数量」降序，数量相同再按名字拼音排序。
+    【游戏玩法】这页不是游戏，是一个成绩汇总仪表盘（只读展示）。
+    【是否上报成绩】本页只「读取」成绩，不上报任何成绩。
+    【安全注意】本文件含 Firestore 读取「密钥」，请勿传播/打印。
+    ═══════════════════════════════════════════════════════════════════════
+-->
 <html>
 
 <head>
@@ -6,20 +25,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>玩家汇总 · 毛毛</title>
 <style>
+/* ===== 页面基础样式：居中布局、背景与标题 ===== */
 body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
 h1 { color:#7C5CBF; }
+/* ===== 门禁卡片：登录校验前显示的提示框，居中卡片样式 ===== */
 .gate { max-width:480px; margin:40px auto; background:#fff; padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
+/* ===== 内容盒子：成绩表格所在的大卡片容器 ===== */
 .box { max-width:900px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
+/* ===== 按钮样式（紫色主题 + 悬停加深）===== */
 button { padding:9px 14px; border:none; border-radius:10px; font-size:15px; margin:4px; background:#7C5CBF; color:#fff; cursor:pointer; }
 button:hover { background:#6543a5; }
+/* ===== 状态/提示文字：普通灰色，错误用红色 ===== */
 .msg { color:#666; margin:6px 0; }
 .msg.err { color:#c94f4f; }
+/* ===== 汇总表格：整宽、格线、居中、表头紫色 ===== */
 table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
 th, td { border:1px solid #e0e0e0; padding:6px 8px; text-align:center; }
 th { background:#f3edff; color:#6543a5; }
+/* 玩家名列左对齐且加粗，便于扫读 */
 th.pname, td.pname { text-align:left; font-weight:bold; }
+/* ===== 返回管理页按钮：固定在右上角 ===== */
 .back-home { position:fixed; top:20px; right:20px; background:#e5dcff; color:#6543a5; padding:10px 15px; border-radius:20px; text-decoration:none; font-size:16px; z-index:9; }
+/* ===== 表格过宽时横向滚动，避免撑破布局 ===== */
 .scroll { overflow-x:auto; }
+/* ===== 深色模式配色（跟随全局 theme 变量）===== */
 body.dark-mode { background:#121212; color:#fff; }
 .dark-mode .box, .dark-mode .gate { background:#1e1e1e; color:#eee; }
 .dark-mode th { background:#2a2438; color:#bb9cff; }
@@ -32,6 +61,8 @@ body.dark-mode { background:#121212; color:#fff; }
 
 <script>
 // ===== 读取深色模式 =====
+// 从 localStorage 读取主题设置；若是 "dark" 就给 body 加 dark-mode 类，
+// 使整站（含本页表格/门禁卡片）切换到深色配色。
 if(localStorage.getItem("theme") === "dark"){
     document.body.classList.add("dark-mode");
 }
@@ -39,12 +70,21 @@ if(localStorage.getItem("theme") === "dark"){
 
 <h1>👥 玩家汇总（全部游戏）</h1>
 
+<!--
+    门禁卡片（gate）：
+    未登录 / 非站长账号时显示此卡片并隐藏数据面板。
+    只有校验通过的玩家才能看到下方的 panel。
+-->
 <div id="gate" class="gate">
     <p>⚠️ 这个页面只有<b>站长（毛毛账号）</b>能用。</p>
     <p id="gateWhy">请先登录毛毛账号。</p>
     <a href="admin.html" class="back-home">⚙️ 回管理页</a>
 </div>
 
+<!--
+    成绩面板（panel）：默认隐藏，站长校验通过后显示。
+    里面放一个表格（thead 放游戏列表头、tbody 放各玩家行）和一个状态消息区。
+-->
 <div id="panel" style="display:none;">
     <div class="box">
         <div class="msg" id="msg">加载中...</div>
@@ -53,12 +93,24 @@ if(localStorage.getItem("theme") === "dark"){
     <a href="admin.html" class="back-home">⚙️ 回管理页</a>
 </div>
 
+<!-- 引入 Firebase 认证（兼容旧版），以及项目自己的 firebase-config 配置 -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="../firebase-config.js"></script>
 <script>
+// ============================================================
+// Firestore REST 读取逻辑（本页核心）
+// ============================================================
+
+// Firestore REST API 的请求根地址：
+// 「projects/maomao-3c9ef/databases/(default)/documents」指向本项目默认数据库。
 const FS_BASE = "https://firestore.googleapis.com/v1/projects/maomao-3c9ef/databases/(default)/documents";
+// Firestore 访问「密钥」（用于 REST 鉴权）。⚠️ 关键值：代码/注释里一律以「密钥」代称，勿打印。
 const FS_KEY = "AIzaSyCa7M7dFqDlilAtniesykU97PWb--S_EX8";
+
+// ===== 游戏清单：id -> 展示信息 =====
+// best 字段标记该游戏「成绩越大越好(max)」还是「越小越好(min)」；unit 是成绩单位。
+// 注意：这里只是汇总展示用的元数据，实际存/取逻辑仍在各游戏内。
 const GAMES = {
     "2048":  { label: "2048",    best: "max", unit: "分" },
     "snake": { label: "贪吃蛇",  best: "max", unit: "分" },
@@ -69,9 +121,18 @@ const GAMES = {
     "fish":  { label: "捕鱼",    best: "max", unit: "分" },
     "go":    { label: "围棋",    best: "max", unit: "目" }
 };
+
+// ===== 站长邮箱（对用户不可见，编码混淆）=====
+// 把一段 base64 字符串逆序后再转回小写，得到站长邮箱；用 try/catch 兜底，
+// 防止在某些环境解码失败时抛异常。它只用于和登录用户比对，不对外展示。
 const OWNER_EMAIL = (function(){ try { return atob("bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft").split("").reverse().join("").toLowerCase(); } catch(e){ return ""; } })();
 
+// ===== 初始化 Firebase（只初始化一次）=====
 if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); }
+
+// ===== 监听登录状态变化：决定放行还是拦截 =====
+// 回调在每次登录状态变更时触发：已登录且邮箱=站长邮箱 → 隐藏门禁、显示数据面板并开始加载；
+// 否则显示门禁，并提示“当前登录的账号”或“请先登录”。
 firebase.auth().onAuthStateChanged(function(user){
     if (user && String(user.email || "").toLowerCase() === OWNER_EMAIL) {
         document.getElementById("gate").style.display = "none";
@@ -86,71 +147,91 @@ firebase.auth().onAuthStateChanged(function(user){
     }
 });
 
+// ===== 解码 Firestore 文档 id =====
+// 文档 id 用下划线拼接两段十六进制：前段=游戏id，后段=玩家名。
+// 这里把 hex 解码回普通字符串（h2s 辅助函数），得到 { game, name }；解码失败返回 null。
 function decodeDocId(docId){
     var i = docId.indexOf("_");
     if (i < 0) return null;
+    // h2s：把「十六进制字符串」逐字节还原成 UTF-8 文本
     function h2s(h){ if (h.length % 2) return ""; var b=[]; for(var j=0;j<h.length;j+=2) b.push(parseInt(h.slice(j,j+2),16)); try{ return new TextDecoder().decode(new Uint8Array(b)); }catch(e){ return ""; } }
     var game = h2s(docId.slice(0,i)), name = h2s(docId.slice(i+1));
     if (!game || !name) return null;
     return { game: game, name: name };
 }
 
+// ============================================================
+// loadAll：拉取全部成绩并组装汇总表
+// ============================================================
 function loadAll(){
     var tbl = document.getElementById("tbl");
     var msg = document.getElementById("msg");
     msg.textContent = "加载中..."; msg.className = "msg";
 
+    // 用 fetch 调用 Firestore REST：GET /scores?key=<密钥> 读取整个集合
     fetch(FS_BASE + "/scores?key=" + FS_KEY)
     .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then(function(data){
         var docs = data.documents || [];
-        var players = {};   // name -> { gameId: score }
-        var usedGames = {}; // gameId -> true
+        var players = {};   // name -> { gameId: score }        （玩家成绩映射）
+        var usedGames = {}; // gameId -> true                   （玩家玩过哪些游戏）
+
+        // ---- 遍历每个成绩文档，解析并录入 players/usedGames ----
         docs.forEach(function(d){
+            // d.name 形如 "…/documents/<id>"，取最后一段作为文档 id 并解码
             var id = decodeDocId(d.name.split("/").pop());
-            if (!id) return;
+            if (!id) return;                       // 解码失败跳过
             var f = d.fields || {};
+            // 成绩优先读 integerValue，读不到再试 doubleValue；没有则视为 NaN
             var score = f.score ? Number(f.score.integerValue || f.score.doubleValue) : NaN;
+            // 玩家名：优先用文档里的 name 字段，没有则退回 id 解出的名字
             var name = f.name ? f.name.stringValue : id.name;
-            if (isNaN(score)) return;
+            if (isNaN(score)) return;              // 无有效成绩跳过
             if (!players[name]) players[name] = {};
-            players[name][id.game] = score;
-            usedGames[id.game] = true;
+            players[name][id.game] = score;        // 记录该玩家在该游戏下的成绩
+            usedGames[id.game] = true;             // 标记该游戏出现过
         });
 
+        // ---- 把 players 对象转成数组，便于排序/渲染 ----
         var rows = Object.keys(players).map(function(name){
             return { name: name, games: players[name] };
         });
         // 有玩过的游戏数（降序）+ 名字
         rows.sort(function(a,b){
             var ca = Object.keys(a.games).length, cb = Object.keys(b.games).length;
-            if (ca !== cb) return cb - ca;
-            return a.name.localeCompare(b.name);
+            if (ca !== cb) return cb - ca;         // 玩得多的排前面
+            return a.name.localeCompare(b.name);   // 数量相同则按拼音排序
         });
 
+        // ---- 组装表头：玩家列 + 每个已玩游戏的列 + “已玩”统计列 ----
         var gids = Object.keys(usedGames);
-        // 表头
         var thead = "<tr><th class='pname'>玩家</th>";
         gids.forEach(function(g){ thead += "<th>" + GAMES[g].label + "<br><small>" + (GAMES[g].unit||"") + "</small></th>"; });
         thead += "<th>已玩</th></tr>";
         tbl.tHead.innerHTML = thead;
 
+        // ---- 组装表格内容：每玩家一行 ----
         var tbody = "";
         rows.forEach(function(p){
+            // 第一列是玩家名（转义后）
             tbody += "<tr><td class='pname'>" + esc(p.name) + "</td>";
+            // 每个游戏列：有成绩显示数字，没玩过显示“—”
             gids.forEach(function(g){
                 var v = p.games[g];
                 tbody += "<td>" + (v === undefined ? "—" : v) + "</td>";
             });
+            // 最后一列显示该玩家玩过的游戏数量
             tbody += "<td>" + Object.keys(p.games).length + "</td></tr>";
         });
         tbl.tBodies[0].innerHTML = tbody;
 
+        // ---- 底部消息：显示玩家总数 ----
         msg.textContent = "共 " + rows.length + " 位玩家";
     })
     .catch(function(e){ msg.textContent = "加载失败:" + e.message; msg.className = "msg err"; });
 }
 
+// ===== HTML 转义：防止玩家名等文本注入 HTML =====
 function esc(s){ return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 </script>
 

@@ -1,6 +1,30 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 
+<!-- ============================================================
+  【文件】network.html —— 网络测试
+  【硬件】设备的网络连接（在线状态、连接方式、网络延迟、下载速度）
+  【用途】显示当前网络状态并实测延迟与下载速度
+  【浏览器 API】
+    - navigator.onLine                                        → 在线/离线状态
+    - navigator.connection / mozConnection / webkitConnection → 网络连接信息
+        (type / effectiveType) → Wi-Fi、移动网络、4G/5G 等
+    - performance.now()                                       → 精确计时延迟
+    - fetch(..., {cache:"no-store", mode:"no-cors", method:"HEAD"})
+        → ping 服务器测延迟
+    - fetch("speedtest.bin?nocache=...") + response.arrayBuffer()
+        → 下载测速文件并计算吞吐量
+    - localStorage.getItem("theme")                           → 跟随主站深色模式
+  【测试流程】
+    1. updateNetworkInfo() 显示在线状态与连接方式
+    2. pingServer() 连续 5 次 HEAD 请求统计平均延迟(RTT)，按区间评级
+    3. downloadTest() 下载 speedtest.bin，按 字节*8/时间 计算 Mbps
+    4. runTest() 串行执行上面三项，完成后提示“测试完成”
+  【判定方式】均以数值 + 等级文字呈现：
+    - 延迟 <50ms 非常快 / <100 很快 / <200 一般 / <500 延迟较高 / 其余 很高
+    - 下载速度 Mbps 数值，并额外显示 MB/s
+============================================================ -->
+
 <head>
 
 <meta charset="UTF-8">
@@ -12,10 +36,12 @@ content="width=device-width, initial-scale=1.0">
 
 <style>
 
+/* 统一盒模型 */
 *{
     box-sizing:border-box;
 }
 
+/* 页面基础：浅色底、居中 */
 body{
     margin:0;
     padding:25px 20px;
@@ -24,10 +50,12 @@ body{
     background:#f5f5f5;
 }
 
+/* 标题 */
 h1{
     margin:20px 0 25px;
 }
 
+/* 卡片容器：分别承载 网络状态 / 延迟 / 下载速度 */
 .card{
     max-width:420px;
     margin:15px auto;
@@ -37,21 +65,25 @@ h1{
     box-shadow:0 5px 20px #0002;
 }
 
+/* 单个数据项 */
 .item{
     margin:20px 0;
 }
 
+/* 数据项标签（如“网络状态”） */
 .label{
     color:#777;
     font-size:14px;
     margin-bottom:6px;
 }
 
+/* 数据项数值（在线/离线、延迟 ms、Mbps） */
 .value{
     font-size:25px;
     font-weight:bold;
 }
 
+/* 开始测试 / 返回按钮 */
 button{
     width:90%;
     max-width:350px;
@@ -64,10 +96,12 @@ button{
     font-size:17px;
 }
 
+/* 按钮按下反馈 */
 button:active{
     transform:scale(.97);
 }
 
+/* 测试过程提示信息（正在测试/测试完成/失败） */
 #message{
     margin:15px;
     color:#666;
@@ -121,7 +155,7 @@ body.dark-mode .hardware-back{
 
 <h1>🌐 网络测试</h1>
 
-
+<!-- 卡片1：网络状态与连接方式（源于 navigator.onLine / navigator.connection） -->
 <div class="card">
 
 <div class="item">
@@ -151,7 +185,7 @@ body.dark-mode .hardware-back{
 
 </div>
 
-
+<!-- 卡片2：延迟与下载速度（点「开始网络测试」后由 JS 填充） -->
 <div class="card">
 
 <div class="item">
@@ -189,7 +223,7 @@ body.dark-mode .hardware-back{
 
 </div>
 
-
+<!-- 触发 runTest()：先测延迟再测下载 -->
 <button onclick="runTest()">
 🚀 开始网络测试
 </button>

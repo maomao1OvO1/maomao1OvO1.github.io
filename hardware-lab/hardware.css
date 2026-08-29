@@ -1,62 +1,97 @@
+/* =========================================================================
+  文件：hardware-lab/hardware.css ｜ 硬件测试板块【共用样式表】
+  用途：被 hardware-lab/ 下所有测试页（camera/vibration/microphone/gamepad/
+        sensors/audio/screen/network/battery/touch/input/device/privacy/
+        performance/flashlight）以及入口页 index.html 一并 <link> 引入。
+        负责两类工作：① 每个测试页都要用到的「主题切换按钮」与
+        「返回硬件大厅」按钮；② 明/暗两套配色中暗色（deep-mode）的
+        颜色覆盖体系。
+  核心逻辑：
+    1. 主题切换按钮 #hardware-theme-toggle 固定定位在页面左上角，是一个
+       圆形小按钮，纯 CSS 只负责外观；点击后由各页 JS 切换 body 的
+       .dark-mode 类，本文件再据该类批量换色。
+    2. 返回按钮 .hardware-back 固定定位在右上角，用 !important 强覆盖
+       页面内其它可能对它生效的规则，保证在所有测试页上都稳定浮在最上层。
+    3. 配色采用「多层覆盖」策略：基础一套暗色（body.dark-mode 系列），
+       历史兼容一套（body.hardware-dark 系列，与旧代码类名 keep 兼容），
+       最后再叠一层「紫调统一覆盖层」，把前两套的灰调统一刷成与主站
+       #7C5CBF 体系一致的淡紫(紫字/紫点)风格。后写的同优先级规则覆盖前
+       面的规则，实现由灰到紫的最终统一。
+  引用资源：本文件被 hardware-lab/index.html 及 tests/ 下各页引用；
+            其中 .controller/.key/.stick/.stick-dot/.trigger 专供
+            tests/gamepad.html（虚拟手柄画布）使用；
+            .hardware-test-box/.hardware-test-button 为各测试页通用测试
+            控件；.hardware-back 跳转回 ../index.html。
+  说明：本文件为纯静态样式表，不依赖任何外部资源与脚本，配色逻辑靠
+        CSS 选择器 + .dark-mode/.hardware-dark 类触发。
+========================================================================= */
+
 /* ===== 硬件测试通用 ===== */
 
+/* ===== 主题切换按钮 ===== */
+/* #hardware-theme-toggle：固定在页面左上角的圆形小按钮。点击它由各页 JS
+   切换 body 上的 .dark-mode 类，从而触发下方整套暗色样式。这里只给外观。 */
 #hardware-theme-toggle{
-    position:fixed;
-    top:20px;
-    left:20px;
-    z-index:9999;
+    position:fixed; /* 相对窗口固定定位，滚动页面时始终锚定在左上角 */
+    top:20px;       /* 距窗口顶部 20px */
+    left:20px;      /* 距窗口左侧 20px */
+    z-index:9999;   /* 大层级，保证不被页面内容遮挡 */
 
     width:45px;
     height:45px;
 
-    padding:0;
-    border:none;
-    border-radius:50%;
+    padding:0;         /* 清掉默认内边距，让圆形按钮尺寸完全由 width/height 决定 */
+    border:none;       /* 去掉默认按钮边框 */
+    border-radius:50%; /* 50% 圆角，把方形按钮变成正圆形 */
 
-    font-size:20px;
+    font-size:20px;    /* 按钮内图标/文字的尺寸 */
 
-    background:#fff;
-    color:#333;
+    background:#fff;   /* 亮色下为白底 */
+    color:#333;        /* 亮色下为深灰图标 */
 
-    box-shadow:0 4px 15px #0002;
+    box-shadow:0 4px 15px #0002; /* 轻微投影，让圆钮浮起来 */
 
-    cursor:pointer;
+    cursor:pointer;    /* 悬停时显示手型，提示可点击 */
 }
 
 
 /* ===== 返回硬件大厅 ===== */
-
+/* .hardware-back：固定在页面右上角的「返回」按钮，跳到上级硬件大厅
+   (../index.html)。由于各测试页可能自带一些会干扰它的样式（例如某些页面
+   也给 button 设置 position/尺寸），这里把几乎所有属性都加上 !important，
+   确保它在任意测试页上都按本文件的设定浮在右上角、不被覆盖。 */
 .hardware-back{
-    position:fixed !important;
+    position:fixed !important;  /* 强制固定定位，避免被页面内其它规则改动 */
 
-    top:20px !important;
-    right:20px !important;
+    top:20px !important;    /* 距窗口顶部 20px */
+    right:20px !important;  /* 锚定右侧 */
 
-    left:auto !important;
-    bottom:auto !important;
+    left:auto !important;   /* 复位其它规则可能设置的 left，只从右锚定 */
+    bottom:auto !important; /* 复位其它规则可能设置的 bottom */
 
-    z-index:99999 !important;
+    z-index:99999 !important; /* 极大层级，始终浮在所有内容之上 */
 
-    width:auto !important;
+    width:auto !important;  /* 宽度跟随文字内容自适应 */
 
     margin:0 !important;
-    padding:10px 16px !important;
+    padding:10px 16px !important; /* 上下 10 / 左右 16 的内边距 */
 
     border:none !important;
-    border-radius:20px !important;
+    border-radius:20px !important; /* 胶囊圆角 */
 
     font-size:16px !important;
 
-    background:#e5dcff !important;
-    color:#6543a4 !important;
+    background:#e5dcff !important; /* 淡紫色底 */
+    color:#6543a4 !important;      /* 深紫色文字 */
 
     box-shadow:0 4px 15px #0002;
 
     cursor:pointer;
 
-    transition:0.2s;
+    transition:0.2s; /* 悬停/按下时的颜色、投影过渡时长 0.2 秒 */
 }
 
+/* 返回按钮按下反馈：整体缩小到 95%，产生按压感 */
 .hardware-back:active{
     transform:scale(0.95);
 }
@@ -65,54 +100,60 @@
 /* ================================================= */
 /*                    深色模式                       */
 /* ================================================= */
+/* 下面一组规则都以 body.dark-mode 为前置选择器：
+   只有当 body 元素带 .dark-mode 类时（由 JS 点击主题按钮切换），这些
+   规则才生效。选择器层级越高（如 body.dark-mode .controller），优先级
+   越高，从而能在不修改页面结构的前提下整体替换配色。这里用 !important
+   是为了稳赢某些测试页内嵌 <style> 里更靠后的同名规则。 */
 
+/* 深色模式基础：整页换成深灰背景 + 近白文字 */
 body.dark-mode{
     background:#121212 !important;
     color:#eee !important;
 }
 
-
+/* 两个主要容器：测试控制台(.controller)与卡片(.card)同步换成深灰底 + 浅色字 */
 body.dark-mode .controller,
 body.dark-mode .card{
     background:#1e1e1e !important;
     color:#eee !important;
 }
 
-
+/* 虚拟手柄的按键(.key)：深灰底 + 浅色字，避免白底刺眼 */
 body.dark-mode .key{
     background:#333 !important;
     color:#eee !important;
 }
 
-
+/* 摇杆外圈(.stick)：深灰底 */
 body.dark-mode .stick{
     background:#333 !important;
 }
 
-
+/* 摇杆圆点(.stick-dot)：改为浅灰，在深灰摇杆上仍清晰可见 */
 body.dark-mode .stick-dot{
     background:#aaa !important;
 }
 
-
+/* 扳机键(.trigger)：深灰底 */
 body.dark-mode .trigger{
     background:#333 !important;
 }
 
-
+/* 除返回按钮外的通用按钮：深灰底 + 浅色字 */
 body.dark-mode button:not(.hardware-back){
     background:#292929 !important;
     color:#eee !important;
 }
 
-
+/* 输入框：深灰底 + 白字 + 深色边框 */
 body.dark-mode input{
     background:#292929 !important;
     color:#fff !important;
     border:1px solid #555;
 }
 
-
+/* 主题切换按钮本体在深色下也换成深灰底 + 白图标 */
 body.dark-mode #hardware-theme-toggle{
     background:#292929 !important;
     color:#fff !important;
@@ -120,7 +161,8 @@ body.dark-mode #hardware-theme-toggle{
 
 
 /* ===== 深色模式返回按钮 ===== */
-
+/* 深色下返回按钮仍保持淡紫底/深紫字（与亮色一致，辨识度高），
+   只是去掉投影（box-shadow:none）使其更扁平。 */
 body.dark-mode .hardware-back{
     background:#e5dcff !important;
     color:#6543a4 !important;
@@ -131,6 +173,10 @@ body.dark-mode .hardware-back{
 /* ================================================= */
 /*                 兼容旧 hardware-dark              */
 /* ================================================= */
+/* 历史版本曾经用 body.hardware-dark 这个类名来标记深色模式。为兼容旧的
+   测试页代码（它们可能还在用 body.classList.add('hardware-dark')），
+   这里把 dark-mode 的整套规则原样复制一份挂到 hardware-dark 上：
+   两者触发的视觉效果完全一致。将来若某页迁移完成，可删掉本段。 */
 
 body.hardware-dark{
     background:#121212 !important;
@@ -186,6 +232,14 @@ body.hardware-dark .hardware-back{
    深色模式 · 紫调统一覆盖层（与主站 UI #7C5CBF 体系一致）
    覆盖前面的灰调(121212/1e1e1e/333)，统一为紫色系。
    ============================================================ */
+/* 设计思路：这是最后书写 / 最后被解析的一组 dark-mode 规则。依照 CSS
+   「同优先级、后写覆盖先写」的级联规则，它会把上面那套「灰调」的
+   dark-mode 深色再刷成与主站一致的「黑底 + 紫色点缀」体系：
+   - 深灰底(1e1e1e/333)基本保留，但把文字统一为 #eeeeee；
+   - 把摇杆圆点、返回按钮文字、主题按钮文字等「点缀色」统一提亮为
+     淡紫色 #bb9cff，呼应主站主色 #7C5CBF；
+   - 所有卡片/测试盒子统一补一条深色边框 border-color:#333333。
+   多数规则加了 !important 以压过前面缓存的 dark-mode 同名规则。 */
 
 body.dark-mode{
     background:#121212 !important;
@@ -197,7 +251,7 @@ body.dark-mode .card,
 body.dark-mode .test-list button{
     background:#1e1e1e !important;
     color:#eeeeee !important;
-    border-color:#333333 !important;
+    border-color:#333333 !important; /* 统一补深色边框，让卡片边界更清晰 */
 }
 
 body.dark-mode .key,
@@ -208,9 +262,10 @@ body.dark-mode .trigger{
 }
 
 body.dark-mode .stick-dot{
-    background:#bb9cff !important;
+    background:#bb9cff !important; /* 摇杆圆点提亮为淡紫 */
 }
 
+/* 返回按钮与主题按钮：深灰底 + 淡紫字 + 深色边框，与主站紫色体系一致 */
 body.dark-mode .hardware-back,
 body.dark-mode #hardware-theme-toggle{
     background:#222222 !important;
@@ -218,6 +273,7 @@ body.dark-mode #hardware-theme-toggle{
     border-color:#333333 !important;
 }
 
+/* 除返回/主题两个按钮外的所有按钮：深灰底 + 浅字 + 稍亮的边框 */
 body.dark-mode button:not(.hardware-back):not(#hardware-theme-toggle){
     background:#333333 !important;
     color:#eeeeee !important;
@@ -230,6 +286,7 @@ body.dark-mode input{
     border-color:#333333 !important;
 }
 
+/* 各测试页通用的「测试盒子」与「测试按钮」：深灰底 + 浅字 + 深色边框 */
 body.dark-mode .hardware-test-box,
 body.dark-mode .hardware-test-button{
     background:#1e1e1e !important;

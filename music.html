@@ -1,30 +1,47 @@
 <!DOCTYPE html>
 <html>
 
+<!-- ════════════════════════════════════════════════════════════
+  文件：music.html —— 音乐收藏页（“媒体作品”分支之一）
+  定位：从主页「🎵 音乐收藏」进入的二级页面。
+  核心功能：展示音乐收藏标题；当前为占位内容「持续更新中」。
+  引用的资源：
+    - style.css（外部全局样式）
+    - body 使用 sub-page 类（二级页面特定样式，如去除顶部大标题样式）
+    - 内联 <script>——读取本地主题，跟随主页的深色模式设置
+  说明：本注释为教学文档，仅插入注释，未改动任何代码行为。
+════════════════════════════════════════════════════════════════ -->
+
 <head>
 <meta charset="UTF-8">
 <title>音乐作品</title>
 
+<!-- 引入全局样式表（与其它页面共用，统一外观） -->
 <link rel="stylesheet" href="style.css">
 
 </head>
 
+<!-- body 带 sub-page 类：表示这是二级子页面（区别于主页，样式更简洁） -->
 <body class="sub-page">
 
+<!-- 右上角固定返回主页链接（跳回 index.html） -->
 <a href="index.html" class="back-home">
 🏠 返回主页
 </a>
 
 
+<!-- 页面主标题 -->
 <h1>🎵 音乐收藏</h1>
 
 
+<!-- 占位说明：内容尚未完成，提示访客等待 -->
 <p>
 持续更新中，敬请期待
 </p>
 
 <script>
 // 深色模式跟随主页设置
+// 从 localStorage 读取主题；若主站选了「深色」，就给当前页 body 加 dark-mode 类，保持风格一致
 if(localStorage.getItem("theme") === "dark"){
     document.body.classList.add("dark-mode");
 }

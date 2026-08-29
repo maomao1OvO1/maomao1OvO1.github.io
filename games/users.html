@@ -1,3 +1,17 @@
+<!--
+文件：games/users.html
+用途：毛毛站点「用户管理」页，仅站长可用。站长登录毛毛账号后，展示系统里所有注册用户（邮箱、登录方式、注册时间、上次登录时间）。
+核心逻辑：
+  1) 用 Firebase Auth 判断当前登录者邮箱是否等于站长邮箱（混淆存储的 OWNER_EMAIL）；
+  2) 匹配则隐藏引导层（#gate）、显示面板（#panel），并取得该用户的 ID Token；
+  3) 带 Bearer 令牌请求后台接口 maomao-admin-api 的 /api/users，获取用户数组；
+  4) 前端把用户数组渲染成表格，并做登录方式中文映射、时间格式化。
+引用资源：
+  - Firebase App / Auth（gstatic CDN v9.23.0 compat 版）；
+  - ../firebase-config.js（Firebase 初始化配置，注入到 window.FIREBASE_CONFIG）；
+  - 后端接口 https://maomao-admin-api.onrender.com/api/users。
+安全注意：站长邮箱做了混淆；接口用 Bearer Token，后端会再次校验站长身份。文中涉及的 key/token 值一律以「密钥」代称，不做打印或改动。
+-->
 <!DOCTYPE html>
 <html>
 
