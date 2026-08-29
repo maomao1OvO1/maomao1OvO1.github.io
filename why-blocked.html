@@ -20,6 +20,11 @@
   .lists{font-size:13px;line-height:1.9;color:#555;background:#f7f4ff;border:1px solid #e5dcff;
     border-radius:14px;padding:14px 18px;min-height:180px}
   .lists a{color:#7c5cbf;word-break:break-all}
+  /* 底部「继续访问」入口：提示 + 蓝色按钮（正常大小，浅色/深色均有适配） */
+  .enter{margin-top:16px;text-align:center}
+  .enter-tip{font-size:12px;color:#888;margin-bottom:10px}
+  .enter-btn{display:inline-block;background:#2563eb;color:#fff;font-size:15px;font-weight:600;
+    text-decoration:none;border-radius:10px;padding:11px 30px;border:none}
   .back{text-align:center;margin-top:18px}
   .back a{display:inline-block;color:#6543a5;font-size:14px;text-decoration:none;
     border:1px solid #c9b8f0;border-radius:999px;padding:8px 22px}
@@ -29,7 +34,9 @@
     .name{color:#bb9cff}.sub{color:#9a92b5}
     .note{background:#3a2220;border-color:#6a3f38;color:#ff9d8a}
     .lists{background:#2a2142;border-color:#4a3a78;color:#b9b3d0}
-    .lists a{color:#bb9cff}.back a{color:#bb9cff;border-color:#5a4b8f}}
+    .lists a{color:#bb9cff}.back a{color:#bb9cff;border-color:#5a4b8f}
+    .enter-tip{color:#9a92b5}
+    .enter-btn{background:#3b82f6}}
 </style>
 </head>
 <body>
@@ -60,6 +67,12 @@
     ⑭ 「竹知了」视频事件（2026 年 8 月）：华为（鸿蒙智行）对相关视频提出侵权投诉并下架（正当维权），媒体有讨论。<a href="https://www.zaobao.com.sg/news/china/story20260803-9461025" target="_blank">联合早报（境外媒体）</a> / <a href="https://m.thepaper.cn/newsDetail_forward_33713612" target="_blank">澎湃新闻</a> / <a href="https://cbgc.scol.com.cn/news/7825001" target="_blank">四川观察</a><br>
     ⑮ 海外 5G 市场：美国、欧盟部分成员国出台限制措施（外国政府立场，华为已否认相关指控）。<a href="https://news.seehua.com/page/22225?author#2" target="_blank">相关报道</a> / <a href="https://onlinelibrary.wiley.com/doi/10.1111/jcms.70140" target="_blank">学术分析</a><br>
     ⑯ 芯片供应：2019 年起部分国家出台出口限制措施（背景信息）。<br><br>
+  </div>
+
+  <!-- 底部「继续访问」入口（按需求置于名单之下的页面底部，点击回首页） -->
+  <div class="enter">
+    <div class="enter-tip">本站主要为桌面端设计，在移动设备上可能显示异常。</div>
+    <a class="enter-btn" href="/">继续访问（体验可能不佳）</a>
   </div>
 
   <div class="back"><a href="javascript:history.back()">← 返回</a></div>
