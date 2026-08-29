@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html>
 
+<!--
+  文件：typing.html —— 打字测试小游戏
+  用途：给定一段文字，玩家在文本框里照着输入，测试打字速度（字/分钟）。
+  核心逻辑：
+      1. 页面加载即把目标文字 words 显示到屏幕上供玩家参照。
+      2. 点击「开始测试」清空输入框并记录开始时间戳，同时挂上 oninput 监听。
+      3. 玩家每次输入都会触发 oninput：一旦输入内容与目标完全一致，
+         就计算耗时，换算成「字/分钟」，即 words.length / 秒数 * 60，并上报成绩。
+  引用资源：
+      - report.js?v=3：完成后调用 reportScore("typing", 速度) 把成绩上报排行榜。
+  视觉特性：
+      - 支持深色模式：读取 localStorage 的 theme，为 dark 时给 body 加 dark-mode 类。
+-->
+
 <head>
 
 <meta charset="UTF-8">
@@ -9,6 +23,7 @@
 
 <style>
 
+/* 全局：页面内容居中，使用无衬线字体 */
 body {
 
     text-align: center;
@@ -19,6 +34,7 @@ body {
 
 /* ===== 返回小游戏按钮 ===== */
 
+/* 固定在右上角，链接回小游戏大厅 */
 .back-home {
 
     position: fixed;
@@ -41,6 +57,7 @@ body {
 
 }
 
+/* 游戏主体卡片：居中、固定宽度、圆角 + 浅灰背景 */
 .game-box {
 
     margin: 80px auto;
@@ -55,6 +72,7 @@ body {
 
 }
 
+/* 输入框：占卡片宽度九成，固定高度并圆角描边，方便多行对照输入 */
 textarea {
 
     width: 90%;
@@ -67,6 +85,7 @@ textarea {
 
 }
 
+/* 「开始测试」按钮：与输入框留出间距，圆角胶囊样式 */
 button {
 
     margin-top: 15px;
@@ -83,6 +102,7 @@ button {
 
 /* ===== 深色模式 ===== */
 
+/* 深色模式：整页背景变深、文字变白 */
 body.dark-mode{
 
     background:#121212;
@@ -91,6 +111,7 @@ body.dark-mode{
 
 }
 
+/* 深色模式下：按钮深灰底白字 */
 .dark-mode button{
 
     background:#333;
@@ -99,12 +120,14 @@ body.dark-mode{
 
 }
 
+/* 深色模式下：卡片背景加深 */
 .dark-mode .game-box{
 
     background:#222;
 
 }
 
+/* 深色模式下：输入框加深背景、白字并描边 */
 .dark-mode textarea{
 
     background:#222;
@@ -125,6 +148,8 @@ body.dark-mode{
 
 // ===== 读取深色模式 =====
 
+// 页面加载即检查本地存储的 theme，若为 dark 就给 body 加 dark-mode 类，实现无闪烁切换深色模式。
+
 if(localStorage.getItem("theme") === "dark"){
 
     document.body.classList.add("dark-mode");
@@ -133,30 +158,36 @@ if(localStorage.getItem("theme") === "dark"){
 
 </script>
 
+<!-- 固定在右上角的返回按钮，链接到小游戏大厅 -->
 <a href="../games.html" class="back-home">
 🎮 返回小游戏
 </a>
 
+<!-- 游戏主体：标题、待打文字、输入框、开始按钮、结果显示 -->
 <div class="game-box">
 
 <h1>⌨️ 打字测试</h1>
 
+<!-- 显示玩家需要照着输入的目标文字 -->
 <p id="text">
 
 正在加载...
 
 </p>
 
+<!-- 玩家打字输入的文本框，在输入时实时判断是否完成 -->
 <textarea id="input" placeholder="开始输入上面的文字"></textarea>
 
 <br>
 
+<!-- 点击后开始计时并监听输入 -->
 <button onclick="startTest()">
 
 开始测试
 
 </button>
 
+<!-- 显示最终速度结果的地方 -->
 <p id="result"></p>
 
 </div>
@@ -165,12 +196,16 @@ if(localStorage.getItem("theme") === "dark"){
 
 <script>
 
+// 待打的目标文字（游戏启动即显示给玩家看）
 let words = "欢迎来到毛毛的个人网站，这是一个自制小游戏";
 
+// 记录点击「开始测试」时的时间戳，用于计算打字耗时
 let startTime = 0;
 
+// 页面加载后立刻把目标文字写入屏幕上的 <p id="text">
 document.getElementById("text").innerHTML = words;
 
+// 开始测试：清空输入框、聚焦、记录开始时刻，并挂上实时输入监听
 function startTest(){
 
     let input = document.getElementById("input");
@@ -179,18 +214,25 @@ function startTest(){
 
     input.focus();
 
+    // 记录开始时间（毫秒时间戳），作为计时起点
     startTime = new Date().getTime();
 
+    // 每次输入内容变化都会执行此回调，实时判断是否已经输入完成
     input.oninput = function(){
 
+        // 输入内容与目标文案完全一致时，判定完成
         if(input.value === words){
 
+            // 记录结束时间点
             let endTime = new Date().getTime();
 
+            // 用时（秒）= 结束时间 - 开始时间，再除以 1000
             let time = (endTime - startTime) / 1000;
 
+            // 打字速度 = 字符数 / 秒数 × 60，即「字/分钟」（向下取整）
             let speed = Math.floor(words.length / time * 60);
 
+            // 显示完成提示与速度，并把成绩上报给排行榜后台
             document.getElementById("result").innerHTML =
 
             "🎉 完成！速度：" + speed + " 字/分钟";

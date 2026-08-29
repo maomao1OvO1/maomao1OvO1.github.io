@@ -1,4 +1,18 @@
 <!DOCTYPE html>
+<!--
+文件：hardware-lab/tests/audio.html
+用途：实时麦克风音频分析测试页。打开页面后点击「开始音频分析」即可申请麦克风
+      权限，并实时展示音量(dB)、实时波形、频谱柱状图、低/中/高频段能量，
+      以及当前峰值/平均音量统计，用于验证设备麦克风与浏览器 Web Audio API。
+核心逻辑：
+  1) audioContext + analyser 负责采集麦克风数据（时域/频域）；
+  2) 用 requestAnimationFrame 驱动的 draw() 主循环，每帧渲染波形与频谱，
+     并计算 RMS(均方根) 换算成 dB 音量；
+  3) 频段能量按频率阈值(250Hz / 4000Hz)划分低中高三个区间做平均；
+  4) 页面同时引用 ../hardware.css，并提供深色模式(黑调覆盖层)。
+引用的资源：浏览器原生 Web Audio API；样式表 ../hardware.css；
+            按钮 onclick 调用的 startAudio / stopAudio；返回 ../index.html。
+-->
 <html lang="zh-CN">
 
 <head>
@@ -12,10 +26,12 @@ content="width=device-width, initial-scale=1.0">
 
 <style>
 
+/* 全局盒模型：统一 border-box，避免 padding 撑大元素宽度 */
 *{
     box-sizing:border-box;
 }
 
+/* 页面主体：居中排版 + 浅色底灰字 */
 body{
     margin:0;
     padding:25px 20px;
@@ -25,15 +41,18 @@ body{
     color:#222;
 }
 
+/* 一级标题 */
 h1{
     margin:20px 0 10px;
 }
 
+/* 描述段落：灰色辅助文字 */
 .desc{
     color:#777;
     margin-bottom:25px;
 }
 
+/* 卡片容器：承装每个测试分区，白底圆角 + 投影 */
 .card{
     max-width:500px;
     margin:15px auto;
@@ -43,12 +62,14 @@ h1{
     box-shadow:0 5px 20px #0002;
 }
 
+/* 大号数值(常用于显示 dB) */
 .value{
     font-size:28px;
     font-weight:bold;
     margin:10px;
 }
 
+/* 字段小标签 */
 .label{
     color:#777;
     font-size:14px;
@@ -68,10 +89,12 @@ button{
     font-size:17px;
 }
 
+/* 按钮按下时轻微缩放，模拟按压反馈 */
 button:active{
     transform:scale(.97);
 }
 
+/* 波形 / 频谱画布：固定高度 + 深色底 */
 canvas{
     width:100%;
     height:160px;
@@ -80,6 +103,7 @@ canvas{
     display:block;
 }
 
+/* 音量进度条外槽 */
 .bar{
     width:100%;
     height:22px;
@@ -89,6 +113,7 @@ canvas{
     margin:15px 0;
 }
 
+/* 音量进度条填充(随音量为 0%~100%) */
 .bar-fill{
     width:0%;
     height:100%;
@@ -97,12 +122,14 @@ canvas{
     transition:width .05s linear;
 }
 
+/* 低/中/高三个频段文字列：横排等宽 */
 .freq{
     display:flex;
     justify-content:space-around;
     gap:8px;
 }
 
+/* 每个频段的底块 */
 .freq div{
     flex:1;
     padding:14px 5px;
@@ -110,12 +137,14 @@ canvas{
     background:#eee;
 }
 
+/* 频段数值(低频/中频/高频的 0~255 能量) */
 .freq-value{
     font-size:20px;
     font-weight:bold;
     margin-top:6px;
 }
 
+/* 页脚状态提示文字 */
 #status{
     color:#777;
     min-height:22px;
@@ -215,6 +244,7 @@ id="volume">
 -- dB
 </div>
 
+<!-- 音量进度条：内嵌填充条 #volumeBar 由 JS 按音量百分比设置宽度 -->
 <div class="bar">
 
 <div class="bar-fill"
@@ -357,6 +387,8 @@ id="average">
 // 深色模式
 // ============================
 
+// 读取 main 站写入的 localStorage「theme」，若为 dark 就给 body 加 dark-mode 类，
+// 交由上方 CSS 覆盖层切到深色外观。
 if(
     localStorage.getItem("theme")
     === "dark"
@@ -373,27 +405,29 @@ if(
 // 全局变量
 // ============================
 
-let audioContext = null;
+// 以下均为跨函数共享的运行时状态，一次性声明便于集中管理。
+let audioContext = null;   // Web Audio 音频上下文(整条音频链的宿主)
 
-let analyser = null;
+let analyser = null;       // 分析节点：负责把时域数据转换成频域数据
 
-let microphone = null;
+let microphone = null;     // 麦克风音源节点(把 MediaStream 接入音频图)
 
-let stream = null;
+let stream = null;         // getUserMedia 返回的媒体流(用于释放占用)
 
-let animationId = null;
+let animationId = null;    // requestAnimationFrame 的句柄(用于停止)
 
-let peakValue = -Infinity;
+let peakValue = -Infinity; // 采样期间的历史最大音量(dB)
 
-let totalVolume = 0;
+let totalVolume = 0;       // 累计音量，用于算平均值
 
-let volumeSamples = 0;
+let volumeSamples = 0;     // 采样次数，与 totalVolume 一起求平均
 
 
 // ============================
 // Canvas
 // ============================
 
+// 取两个 <canvas> 的 2D 绘图上下文，供波形 / 频谱绘制使用。
 const waveCanvas =
     document.getElementById(
         "waveCanvas"
@@ -416,8 +450,11 @@ const spectrumCtx =
 // 开始
 // ============================
 
+// 申请麦克风权限并搭建「麦克风 → 分析节点」的音频链路。
 async function startAudio(){
 
+    // 若上下文已存在：只处理「被系统挂起」的情况(如从后台切回)，
+    // 恢复后直接返回，避免重复申请麦克风。
     if(
         audioContext
     ){
@@ -438,6 +475,7 @@ async function startAudio(){
 
     try{
 
+        // 1) 申请麦克风媒体流(仅音频)
         stream =
             await navigator.mediaDevices
                 .getUserMedia({
@@ -447,6 +485,7 @@ async function startAudio(){
                 });
 
 
+        // 2) 创建音频上下文(兼容 WebKit 前缀)
         audioContext =
             new (
                 window.AudioContext ||
@@ -454,18 +493,23 @@ async function startAudio(){
             )();
 
 
+        // 3) 创建分析节点：负责输出频域数据
         analyser =
             audioContext.createAnalyser();
 
 
+        // fftSize=2048 表示用 2048 个采样点做 FFT，
+        // 频率分辨率 = 采样率 / fftSize，点数越多频域越精细。
         analyser.fftSize =
             2048;
 
 
+        // 平滑系数：0~1，越大频谱时间上越"拖尾"，画面越稳、跟手越慢。
         analyser.smoothingTimeConstant =
             0.75;
 
 
+        // 4) 把麦克风流接入分析节点
         microphone =
             audioContext.createMediaStreamSource(
                 stream
@@ -477,6 +521,7 @@ async function startAudio(){
         );
 
 
+        // 5) 重置统计计数
         peakValue =
             -Infinity;
 
@@ -487,6 +532,7 @@ async function startAudio(){
             0;
 
 
+        // 6) 更新状态提示并启动主循环
         document.getElementById(
             "status"
         ).textContent =
@@ -498,6 +544,7 @@ async function startAudio(){
 
     }catch(error){
 
+        // 权限被拒或环境不支持时的兜底提示
         document.getElementById(
             "status"
         ).textContent =
@@ -514,8 +561,11 @@ async function startAudio(){
 // 停止
 // ============================
 
+// 释放麦克风与音频资源：
+// 先停掉流轨道，再取消动画帧，最后关闭音频上下文。
 function stopAudio(){
 
+    // 停掉所有媒体轨道，真正释放麦克风占用
     if(stream){
 
         stream.getTracks()
@@ -526,6 +576,7 @@ function stopAudio(){
     }
 
 
+    // 取消正在运行的 requestAnimationFrame 主循环
     if(
         animationId
     ){
@@ -537,6 +588,7 @@ function stopAudio(){
     }
 
 
+    // 清空资源引用
     stream =
         null;
 
@@ -570,11 +622,14 @@ function stopAudio(){
 // 主循环
 // ============================
 
+// 用 requestAnimationFrame 每帧驱动所有刷新逻辑。
 function draw(){
 
+    // 停止后 analyser 被清空，提前返回防止空指针
     if(!analyser) return;
 
 
+    // 先注册下一帧(保持循环)，本帧再绘制
     animationId =
         requestAnimationFrame(
             draw
@@ -594,8 +649,10 @@ function draw(){
 // 波形
 // ============================
 
+// 读取时域采样并画成一条折线，直观显示声音的瞬时波形。
 function drawWave(){
 
+    // 时域数据是 fftSize 个 0~255 的字节(128 表示静音)
     const data =
         new Uint8Array(
             analyser.fftSize
@@ -625,6 +682,7 @@ function drawWave(){
     waveCtx.beginPath();
 
 
+    // 逐点连线：x 按索引均摊到宽，y 按采样值(0~255)映射到高
     for(
         let i = 0;
         i < data.length;
@@ -662,6 +720,7 @@ function drawWave(){
     }
 
 
+    // 用主色描边完成波形折线
     waveCtx.strokeStyle =
         "#6543a4";
 

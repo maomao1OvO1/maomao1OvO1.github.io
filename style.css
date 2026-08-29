@@ -1,17 +1,54 @@
+/* =========================================================================
+   毛毛的个人主页 · 站点主样式表
+   ---------------------------------------------------------------
+   说明：整体为「梦幻紫」主题，配合各页面 JS 实现个人主页、音乐播放器、
+   天气查询、酷狗靓号徽章、AI 余额查询、登录系统、账号菜单、硬件测试大厅、
+   柔光星尘粒子、彩蛋弹窗等功能。本文件只负责样式，交互与数据全由 JS 处理。
+
+   文件段落顺序（自上而下阅读）：
+   1.  页面基础样式（body 的 flex 居中布局）
+   2.  个人信息卡片 / 头像 / 标题 / 标签
+   3.  动画效果（卡片悬浮、图片淡入）
+   4.  音乐播放器（fixed 悬浮、封面、歌曲名、进度条、音量、控制键、歌单弹窗）
+   5.  深色模式（body.dark-mode 各组件覆盖，含旧段落）
+   6.  主题切换按钮 / 加载进度条 / 全屏加载界面 / 主页面淡入 / 初始隐藏页面
+   7.  网站状态徽章 / 返回主页按钮
+   8.  天气盒子（fixed 悬浮、标题、城市输入、修改城市按钮）
+   9.  响应式适配（手机端、横屏、宽屏断点）
+   10. 摄影作品瀑布流（CSS columns 多列布局）
+   11. 按钮通用样式 / 返回小游戏大厅按钮
+   12. 彩蛋灵动弹窗（金色扫光 + 大小圆圈动画）
+   13. 柔光星尘粒子（背景漂浮光点）
+   14. 硬件测试大厅（入口卡片 + 控制器/按键深色适配）
+   15. AI 余额查询盒子（tokens）与设置面板（含深色模式）
+   16. 酷狗靓号徽章（过光扫过 + 循环渐变数字）
+   17. 登录系统（登录按钮、登录弹窗、登录门、登录表单）
+   18. 账号按钮 / 账号菜单 / 金色流光用户名 / 联系方式
+   19. 【重点】深色模式 · 黑调统一覆盖层（最后统一兜底，见文末）
+   20. 玩家昵称块（昵称输入与展示）
+
+   维护约定：本文件只允许新增 CSS 注释与只读样式；改动任何选择器、
+   属性或属性值都会影响全站外观，请谨慎编辑。
+   ========================================================================= */
+
 /* ===== 页面基础样式 ===== */
 
+/* 全局 body 铺底：浅紫背景 + 深灰文字，并让整页内容在视口内垂直/水平居中。
+   flex + column 配合 body 作为全页容器：子元素（如 .card）会沿纵向排列，
+   justify-content/align-items 负责双向居中，min-height:100vh 撑满视口高度。
+   height:auto 允许内容超高时自然撑开，避免被固定高度裁剪。 */
 body {
-    background: #eeeaf5;
-    color: #333;
-    font-family: sans-serif;
+    background: #eeeaf5;      /* 浅紫背景（主色调，与各卡片/按钮呼应） */
+    color: #333;              /* 默认正文文字为深灰 */
+    font-family: sans-serif;  /* 无衬线字体，清晰现代 */
 
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: center;  /* 水平方向居中 */
+    align-items: center;      /* 垂直方向居中 */
 
-    flex-direction: column;
+    flex-direction: column;   /* 子元素沿纵向排列 */
 
-    min-height:100vh;
+    min-height:100vh;         /* 至少撑满一屏视口高度 */
 height:auto;
 }
 
@@ -19,6 +56,9 @@ height:auto;
 
 /* ===== 个人信息卡片 ===== */
 
+/* 个人主页的居中名片：白底 + 大圆角 + 柔和投影，是页面主体视觉焦点。
+   width 固定 300px，padding 留白，text-align 让名片内文字居中，
+   box-shadow 用低透明度紫色调营造「从页面浮起」的立体感。 */
 .card {
 
     background: #ffffff;
@@ -27,11 +67,11 @@ height:auto;
 
     padding: 30px;
 
-    border-radius: 20px;
+    border-radius: 20px;   /* 大圆角，整体更柔和可爱 */
 
-    text-align: center;
+    text-align: center;    /* 名片内文字整体居中 */
 
-    box-shadow: 0 10px 30px rgba(100,80,150,0.15);
+    box-shadow: 0 10px 30px rgba(100,80,150,0.15);  /* 下移投影，紫色半透明，制造悬浮感 */
 
 }
 
@@ -39,15 +79,17 @@ height:auto;
 
 /* ===== 图片样式 ===== */
 
+/* 头像图片：强制正方形并裁成圆形，object-fit:cover 保证图片填充不留白不拉伸。
+   注意：本规则作用于全站所有 img，音乐封面等会再单独覆盖。 */
 img {
 
     width: 150px;
 
     height: 150px;
 
-    border-radius: 50%;
+    border-radius: 50%;   /* 切成圆形 */
 
-    object-fit: cover;
+    object-fit: cover;    /* 按比例裁剪填满，不拉伸变形 */
 
 }
 
@@ -55,9 +97,10 @@ img {
 
 /* 标题样式 */
 
+/* 主标题 h1：使用主题紫 #7c5cbf 作为强调色。 */
 h1 {
 
-    color: #7c5cbf;
+    color: #7c5cbf;   /* 主题紫标题 */
 
 |}
 
@@ -65,19 +108,21 @@ h1 {
 
 /* ===== 标签样式 ===== */
 
+/* 技能/兴趣标签：胶囊外形，浅紫底 + 深紫字，inline-block 让标签横向排列，
+   可换行且自带缩进；padding/margin 提供与邻居的呼吸感。 */
 .tags span {
 
-    display: inline-block;
+    display: inline-block;   /* 行内块：可设置宽高，能换行 */
 
-    background: #e5dcff;
+    background: #e5dcff;     /* 浅紫底 */
 
-    color: #6543a5;
+    color: #6543a5;          /* 深紫文字 */
 
     padding: 8px 15px;
 
     margin: 5px;
 
-    border-radius: 20px;
+    border-radius: 20px;     /* 胶囊形圆角 */
 
 }
 
@@ -85,21 +130,25 @@ h1 {
 
 /* ===== 动画效果 ===== */
 
+/* 卡片悬浮：鼠标移上时整体向上平移 10px，产生「被提起」的互动反馈。
+   位移用 transform（合成层属性），比改 top/margin 更流畅。 */
 .card:hover {
     transform: translateY(-10px);
 }
+/* 图片入场淡入：默认 1s 显示 show 动画（复用本文件文件名对应关键帧）。 */
 img {
     animation: show 1s;
 }
 
+/* show 关键帧：纯透明度进出场（0 隐 → 1 显），不改变布局尺寸。 */
 @keyframes show {
 
 from {
-    opacity:0;
+    opacity:0;     /* 起始：完全透明 */
 }
 
 to {
-    opacity:1;
+    opacity:1;     /* 结束：完全不透明 */
 }
 
 }
@@ -109,25 +158,28 @@ to {
 
 /* ===== 音乐播放器 ===== */
 
+/* 音乐播放器主容器：fixed 固定在右下角，悬浮于页面之上。
+   常用技巧：position:fixed + 右/下偏移；背景用半透明白 + 高斯模糊
+   （backdrop-filter:blur）实现「毛玻璃」效果，透过能看到页面内容。 */
 .music-player{
 
-    position:fixed;
+    position:fixed;     /* 固定定位，不随滚动移动 */
 
-    right:20px;
+    right:20px;         /* 距右边缘 20px */
 
-    bottom:20px;
+    bottom:20px;        /* 距底边 20px，即右下角 */
 
     width:280px;
 
-    background:#ffffffcc;
+    background:#ffffffcc;      /* 半透明白（cc≈80% 不透明） */
 
-    backdrop-filter:blur(10px);
+    backdrop-filter:blur(10px);  /* 背景高斯模糊，毛玻璃质感 */
 
     padding:15px;
 
     border-radius:20px;
 
-    box-shadow:0 5px 20px #0003;
+    box-shadow:0 5px 20px #0003;  /* 轻投影，让播放器浮起 */
 
     text-align:center;
 
@@ -137,15 +189,17 @@ to {
 
 /* ===== 音乐封面 ===== */
 
+/* 播放器内的封面图：比页头头像略大，同样切成圆形，底部留白与下方文本隔开。
+   object-fit:cover 防止封面拉伸变形。 */
 .music-player img{
 
     width:180px;
 
     height:180px;
 
-    object-fit:cover;
+    object-fit:cover;       /* 裁剪填满，不变形 */
 
-    border-radius:50%;
+    border-radius:50%;      /* 圆形唱片感 */
 
     margin-bottom:10px;
 
@@ -155,6 +209,8 @@ to {
 
 /* ===== 歌曲名称 ===== */
 
+/* 单行歌曲名：超出容器宽度时用省略号（...）截断，避免破坏布局。
+   关键组合：overflow:hidden + white-space:nowrap + text-overflow:ellipsis。 */
 #songName{
 
     font-size:16px;
@@ -163,11 +219,11 @@ to {
 
     margin:10px;
 
-    overflow:hidden;
+    overflow:hidden;        /* 超出容器隐藏 */
 
-    white-space:nowrap;
+    white-space:nowrap;     /* 强制不换行 */
 
-    text-overflow:ellipsis;
+    text-overflow:ellipsis;  /* 溢出部分显示省略号 */
 
 }
 
@@ -175,11 +231,12 @@ to {
 
 /* ===== 播放进度条 ===== */
 
+/* 播放进度条：即输入型 range，宽度 85%，鼠标可点击拖动（cursor:pointer）。 */
 #progressBar{
 
     width:85%;
 
-    cursor:pointer;
+    cursor:pointer;    /* 手形光标，提示可拖动 */
 
 }
 
@@ -187,15 +244,17 @@ to {
 
 /* ===== 音量区域 ===== */
 
+/* 音量区容器：absolute 定位在播放器内右侧垂直居中。
+   top:50% + translateY(-50%) 是所有「精确垂直居中」的标准手法。 */
 .volume-box{
 
-    position:absolute;
+    position:absolute;   /* 相对最近的定位父级（.music-player）定位 */
 
     right:8px;
 
     top:50%;
 
-    transform:translateY(-50%);
+    transform:translateY(-50%);  /* 上移自身一半高度，实现垂直居中 */
 
     display:flex;
 
@@ -209,11 +268,13 @@ to {
 
 /* ===== 竖向音量条 ===== */
 
+/* 竖向音量条：用纵排书写模式+反向 direction 模拟「下小上大」的竖直滑块。
+   writing-mode:vertical-lr + direction:rtl 是 CSS 实现竖向滑条的经典技巧。 */
 #volumeBar{
 
-    writing-mode:vertical-lr;
+    writing-mode:vertical-lr;  /* 纵向书写（下到上） */
 
-    direction:rtl;
+    direction:rtl;             /* 反向，使数值从下往上递增 */
 
     height:90px;
 
@@ -227,17 +288,18 @@ to {
 
 /* ===== 控制按钮 ===== */
 
+/* 播放器内的圆形控制按钮（上/下一首、播放/暂停等）：去边框、圆形、悬停有手形。 */
 .music-player button{
 
     font-size:18px;
 
     border:none;
 
-    border-radius:50%;
+    border-radius:50%;   /* 圆形按钮 */
 
     padding:8px;
 
-    margin:3px;
+    margin:3px;          /* 按钮之间留距 */
 
     cursor:pointer;
 
@@ -247,33 +309,40 @@ to {
 
 /* ===== 深色模式 ===== */
 
+/* 深色模式下身体背景与正文文字切到近乎纯黑，文字翻白以保证可读。
+   注意：这里用的是 body.dark-mode 类选择器，由 JS 在 body 上切换。 */
 body.dark-mode {
     background: #121212;   /* 紫调深背景（继承主UI紫色系） */
     color: #eeeeee;
 }
 
 
+/* 深色模式：卡片改用深炭紫底，避免刺眼纯黑。 */
 body.dark-mode .card {
     background: #1e1e1e;   /* 紫调深卡片 */
 }
 
 
+/* 深色模式：主标题翻成更亮的淡紫，形成对比。 */
 body.dark-mode h1 {
     color: #bb9cff;
 }
 
 
+/* 深色模式：标签改深紫底 + 淡紫字，保持主色一致。 */
 body.dark-mode .tags span {
     background: #33245c;
     color: #d8c7ff;
 }
 
 
+/* 深色模式：播放器改半透明深底（dd≈87%），仍保留毛玻璃模糊。 */
 body.dark-mode .music-player {
     background: #222222dd;
 }
 
 
+/* 深色模式：网站状态徽章改深紫底 + 淡紫字。 */
 body.dark-mode #status {
 
     background:#33245c;
@@ -286,18 +355,22 @@ body.dark-mode #status {
 
 /* ===== 主题切换按钮 ===== */
 
+/* 主题切换按钮：圆形、无边框，hover/active 时用缩放做出按压反馈。
+   用 transform:scale 而非改 width/height，动画更平滑不触发重排。 */
 #theme-toggle {
     border: none;
-    border-radius: 50%;
+    border-radius: 50%;    /* 圆形按钮 */
     padding: 10px;
     cursor: pointer;
-    font-size: 20px;
+    font-size: 20px;       /* 显示 ☀/🌙 图标 */
 }
 
+/* 悬停：轻微放大 */
 #theme-toggle:hover {
     transform: scale(1.1);
 }
 
+/* 按下：轻微缩小，模拟按压 */
 #theme-toggle:active {
     transform: scale(0.9);
 }
@@ -305,28 +378,31 @@ body.dark-mode #status {
 
 /* ===== 加载进度条 ===== */
 
+/* 进度条外层轨道：固定宽度、圆角、用 overflow:hidden 让内部填充条不溢出圆角。 */
 .progress {
 
     width:200px;
 
     height:10px;
 
-    background:#ddd;
+    background:#ddd;       /* 轨道浅灰 */
 
     border-radius:20px;
 
-    overflow:hidden;
+    overflow:hidden;       /* 裁剪内部填充条 */
 
 }
 
 
+/* 进度条填充条：宽度由 JS 实时写入，transition 让变化平滑。
+   基础宽 0%，最高 100%，颜色沿用主题紫 #7c5cbf。 */
 .progress-bar {
 
     width:0%;
 
     height:100%;
 
-    background:#7c5cbf;
+    background:#7c5cbf;    /* 主题紫填充 */
 
     border-radius:20px;
 
@@ -335,6 +411,7 @@ body.dark-mode #status {
 }
 
 
+/* loading 关键帧：模拟从 0 到 100% 的占位加载进度（宽度动画）。 */
 @keyframes loading {
 
     from{
@@ -351,25 +428,28 @@ body.dark-mode #status {
 
 /* ===== 全屏加载界面 ===== */
 
+/* 全屏加载遮罩：fixed 铺满整个视口，z-index 极高保证盖住所有内容，
+   居中显示加载动画。height:100dvh 用动态视口高（兼容移动端地址栏伸缩）。
+   transition 让加载完成后能平滑淡出。 */
 #loader {
 
     position: fixed;
 
-    z-index:9999;
+    z-index:9999;        /* 极高层级，盖在最顶层 */
 
     top: 0;
     left: 0;
 
     width: 100%;
-    height: 100dvh;
+    height: 100dvh;      /* 动态视口高度，适配移动端地址栏变化 */
 
-    background: #eeeaf5;
+    background: #eeeaf5;  /* 与页面一致的浅紫底，避免闪白 */
     color: #333;
 
     display: flex;
 
     justify-content: center;
-    align-items: center;
+    align-items: center;  /* 让加载动画在屏幕正中 */
 
     flex-direction: column;
 
@@ -381,6 +461,7 @@ body.dark-mode #status {
 
 /* ===== 主页面淡入 ===== */
 
+/* 主体内容加 pageShow 动画：加载完成后整体淡入，避免生硬切换。 */
 .page-show {
 
     animation: pageShow 0.8s;
@@ -388,6 +469,7 @@ body.dark-mode #status {
 }
 
 
+/* pageShow 关键帧：透明度 0→1 的淡入。 */
 @keyframes pageShow {
 
     from {
@@ -409,12 +491,16 @@ body.dark-mode #status {
 
 /* ===== 初始隐藏页面 ===== */
 
+/* 加载中（body.loading）时隐藏除 #loader 外的所有子元素，营造「先显示加载页、
+   就绪后再显示内容」的顺序，避免骨架一闪而过。注意这里依赖选择器的非匹配写法。 */
 body.loading > *:not(#loader){
 
     opacity:0;
 
 }
 
+/* 页面显示后（body.page-show）除 #loader、#weather-box 外所有子元素依次淡入，
+   forwards 让最终状态保持在完全不透明。 */
 body.page-show > *:not(#loader):not(#weather-box){
 
     animation: pageShow 0.8s forwards;
@@ -422,6 +508,7 @@ body.page-show > *:not(#loader):not(#weather-box){
 }
 
 
+/* pageShow 关键帧（页面显示后使用）：透明度 0→1 淡入。 */
 @keyframes pageShow {
 
     from{
@@ -438,17 +525,18 @@ body.page-show > *:not(#loader):not(#weather-box){
 
 /* ===== 网站状态 ===== */
 
+/* 网站状态徽章：浅紫胶囊，inline-block 让其自适应内容宽度并随文本流动。 */
 #status {
 
-    background:#e5dcff;
+    background:#e5dcff;   /* 浅紫底 */
 
-    color:#6543a5;
+    color:#6543a5;        /* 深紫字 */
 
     display:inline-block;
 
     padding:8px 15px;
 
-    border-radius:20px;
+    border-radius:20px;   /* 胶囊形 */
 
 }
 
@@ -456,6 +544,7 @@ body.page-show > *:not(#loader):not(#weather-box){
 
 /* ===== 返回主页按钮 ===== */
 
+/* 返回顶部主页的悬浮按钮：fixed 固定在右上角，浅紫胶囊样式。 */
 .back-home {
 
     position: fixed;
@@ -472,7 +561,7 @@ body.page-show > *:not(#loader):not(#weather-box){
 
     border-radius: 20px;
 
-    text-decoration: none;
+    text-decoration: none;   /* 去掉链接下划线 */
 
     font-size: 16px;
 
@@ -484,6 +573,7 @@ body.page-show > *:not(#loader):not(#weather-box){
 
 /* ===== 深色模式加载界面 ===== */
 
+/* 深色模式：加载遮罩翻成深色，避免加载阶段闪白。 */
 body.dark-mode #loader {
 
     background:#121212;
@@ -491,6 +581,7 @@ body.dark-mode #loader {
 }
 
 
+/* 深色模式：加载遮罩内的标题/正文文字翻白。 */
 body.dark-mode #loader h2,
 body.dark-mode #loader p {
 
@@ -499,6 +590,7 @@ body.dark-mode #loader p {
 }
 
 
+/* 深色模式：进度条轨道翻深灰。 */
 body.dark-mode .progress {
 
     background:#333333;
@@ -506,6 +598,7 @@ body.dark-mode .progress {
 }
 
 
+/* 深色模式：进度条填充翻亮紫，保持对比。 */
 body.dark-mode .progress-bar {
 
     background:#bb9cff;
@@ -517,6 +610,8 @@ body.dark-mode .progress-bar {
 
 /* ===== 天气盒子 ===== */
 
+/* 天气悬浮卡片：fixed 固定在右上角，半透明白 + 毛玻璃模糊，
+   z-index 与非加载相关的悬浮层保持一致（9999）。 */
 #weather-box {
 
     position: fixed;
@@ -527,24 +622,25 @@ body.dark-mode .progress-bar {
 
     z-index: 9999;
 
-    background: #ffffffcc;
+    background: #ffffffcc;       /* 半透明白 */
 
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);  /* 背景高斯模糊（毛玻璃） */
 
     padding: 15px 20px;
 
     border-radius: 20px;
 
-    box-shadow: 0 5px 20px #0002;
+    box-shadow: 0 5px 20px #0002;  /* 轻投影 */
 
     text-align: center;
 
-    min-width: 160px;
+    min-width: 160px;   /* 保证足够宽度容纳天气信息 */
 
 }
 
 
 
+/* 天气标题（如「天气」二字）：加粗突出。 */
 #weather-title {
 
     font-size: 18px;
@@ -555,6 +651,7 @@ body.dark-mode .progress-bar {
 
 
 
+/* 天气地点行：与标题间隔 8px，字号稍小。 */
 #weather-location {
 
     margin-top: 8px;
@@ -565,6 +662,7 @@ body.dark-mode .progress-bar {
 
 
 
+/* 天气信息行（温度/天气描述）：字号更大，突出核心数据。 */
 #weather-info {
 
     margin-top: 8px;
@@ -577,6 +675,7 @@ body.dark-mode .progress-bar {
 
 /* ===== 深色模式天气 ===== */
 
+/* 深色模式：天气卡片翻深底 + 白字，与整体深色基调统一。 */
 body.dark-mode #weather-box {
 
     background: #222222dd;
@@ -589,6 +688,7 @@ body.dark-mode #weather-box {
 
 /* ===== 城市输入 ===== */
 
+/* 城市输入框：宽 120px、圆角、去边框，底部留白与修改按钮间隔。 */
 #city-input {
 
     width: 120px;
@@ -607,6 +707,7 @@ body.dark-mode #weather-box {
 
 /* ===== 修改城市按钮 ===== */
 
+/* 「修改城市」按钮：胶囊圆角、去边框、手形光标。 */
 #change-city {
 
     margin-top: 10px;
@@ -625,14 +726,16 @@ body.dark-mode #weather-box {
 
 /* ===== 手机横屏适配 ===== */
 
+/* 横屏（宽≤900 且 landscape）时把天气盒子改回页面流（static），
+   恢复自适应宽度，避免与其它悬浮按钮堆叠。 */
 @media (max-width:900px) and (orientation:landscape){
 
 
     #weather-box {
 
-        position: static;
+        position: static;      /* 找回文档流 */
 
-        margin: 10px auto;
+        margin: 10px auto;     /* 水平居中 */
 
         min-width: 150px;
 
@@ -646,6 +749,8 @@ body.dark-mode #weather-box {
 
 /* ===== 手机端适配 ===== */
 
+/* 手机端（宽度≤600px）整体适配：重置 body 高度策略并加垂直内边距，
+   把悬浮在右侧的组件下移/缩小，防止内容超出小屏。 */
 @media (max-width: 600px) {
 
 
@@ -653,22 +758,24 @@ body.dark-mode #weather-box {
 
         height: auto;
 
-        min-height: 100vh;
+        min-height: 100vh;   /* 撑满一屏 */
 
-        padding: 20px 0;
+        padding: 20px 0;     /* 上下留白 */
 
     }
 
 
     /* ===== 手机端摄影瀑布流 ===== */
 
+    /* 手机端摄影瀑布流：columns 由 4 降到 2，两列显示更易浏览。 */
     .photo-gallery {
 
-        columns: 2;
+        columns: 2;   /* 降为两列 */
 
     }
 
 
+    /* 卡片在手机上放宽到 85% 并减内边距，适配窄屏。 */
     .card {
 
         width: 85%;
@@ -678,6 +785,7 @@ body.dark-mode #weather-box {
     }
 
 
+    /* 手机端头像缩小到 120px，节省垂直空间。 */
     img {
 
         width: 120px;
@@ -687,6 +795,7 @@ body.dark-mode #weather-box {
     }
 
 
+    /* 手机端主标题字号稍降，避免换行。 */
     h1 {
 
         font-size: 28px;
@@ -694,9 +803,10 @@ body.dark-mode #weather-box {
     }
 
 
+    /* 手机端天气盒子改为页面流并缩窄，占据主内容宽度。 */
     #weather-box {
 
-        position: static !important;
+        position: static !important;   /* 用 !important 压过 fixed 与其它媒体查询 */
 
         margin-top: 20px;
 
@@ -705,17 +815,19 @@ body.dark-mode #weather-box {
     }
 
 
+    /* 手机端播放器缩小并更靠近边角。 */
     .music-player {
 
         right: 10px;
 
         bottom: 10px;
 
-        transform: scale(0.85);
+        transform: scale(0.85);   /* 整体缩小 85% */
 
     }
 
 
+    /* 手机端返回主页按钮更贴近屏幕角落。 */
     .back-home {
 
         top: 10px;
@@ -730,6 +842,7 @@ body.dark-mode #weather-box {
 
 /* ===== 手机横屏适配 ===== */
 
+/* 横屏（宽≤900 且 landscape）时缩小并让天气盒子贴近右上角。 */
 @media (max-width: 900px) and (orientation: landscape) {
 
 
@@ -741,11 +854,12 @@ body.dark-mode #weather-box {
 
         transform: scale(0.85);
 
-        transform-origin: top right;
+        transform-origin: top right;   /* 缩放锚点在右上角 */
 
     }
 
 
+    /* 播放器同样缩小，锚点取右下角，保持贴边。 */
     .music-player {
 
         right: 10px;
@@ -759,6 +873,7 @@ body.dark-mode #weather-box {
     }
 
 
+    /* 卡片加顶部间距并缩小，避免横屏时被顶出视口。 */
     .card {
 
         margin-top: 20px;
@@ -775,18 +890,21 @@ body.dark-mode #weather-box {
 
 /* ===== 横屏手机布局修复 ===== */
 
+/* 横屏（宽≤900 且 landscape）的第二版修复：进一步把天气盒子改为页面流、
+   定宽并取消缩放，播放器和卡片做微调，解决横屏时悬浮组件互相堆叠的问题。
+   位置固定的 weather-box 用 static + 定宽保证不被其它悬浮按钮遮挡。 */
 @media (max-width: 900px) and (orientation: landscape) {
 
 
     #weather-box {
 
-        position: static !important;
+        position: static !important;   /* 强制回到文档流 */
 
         margin: 10px auto;
 
-        width: 220px;
+        width: 220px;                  /* 固定宽度，居中显示 */
 
-        transform: none !important;
+        transform: none !important;    /* 取消之前的缩放 */
 
     }
 
@@ -797,7 +915,7 @@ body.dark-mode #weather-box {
 
         bottom: 10px;
 
-        transform: scale(0.75);
+        transform: scale(0.75);        /* 保持缩小以腾出空间 */
 
         transform-origin: bottom right;
 
@@ -816,28 +934,32 @@ body.dark-mode #weather-box {
 
 /* ===== 摄影作品瀑布流 ===== */
 
+/* 摄影瀑布流容器：用 CSS multicolumn 实现多列瀑布流（默认 4 列），
+   图片高度不一仍能自然错落排布；列间距 20px，四周留白。 */
 .photo-gallery{
 
-    columns: 4;
+    columns: 4;          /* 4 列瀑布流 */
 
-    column-gap: 20px;
+    column-gap: 20px;    /* 列间距 */
 
     padding: 20px;
 
 }
 
 
+/* 瀑布流中的图片：占满所在列宽、下方 20px 间距即形成瀑布错落。
+   display:block 避免行内留白，背景色兜底加载前的占位。 */
 .photo-gallery img{
 
-    width: 100%;
+    width: 100%;         /* 撑满所在列 */
 
-    margin-bottom: 20px;
+    margin-bottom: 20px; /* 上下图的间距 */
 
     border-radius: 15px;
 
-    background: #EEEAF5;
+    background: #EEEAF5;  /* 加载前的浅紫占位 */
 
-    display: block;
+    display: block;       /* 去掉行内图片底部空隙 */
 
 }
 
@@ -845,13 +967,14 @@ body.dark-mode #weather-box {
 
 /* ===== 子页面顶部布局 ===== */
 
+/* 子页面（如关于/作品页）内容顶部对齐：从 body 的垂直居中改为顶部下沉并留白。 */
 .sub-page {
 
-    justify-content: flex-start;
+    justify-content: flex-start;   /* 顶部对齐，不再垂直居中 */
 
     align-items: center;
 
-    padding-top: 80px;
+    padding-top: 80px;             /* 顶部留出导航/标题空间 */
 
 }
 
@@ -859,10 +982,13 @@ body.dark-mode #weather-box {
 
 /* ===== 天气按钮美化 ===== */
 
+/* 「修改城市」/「用 IP 定位」两个天气按钮共用样式：
+   去掉默认外观、半透明白底 + 毛玻璃，文字继承父色，悬停轻微上浮。 */
 #change-city,
 #use-ip-weather {
 
-    appearance: none;
+    appearance: none;              /* 去原生按钮外观 */
+
     -webkit-appearance: none;
 
     border: none;
@@ -877,17 +1003,18 @@ body.dark-mode #weather-box {
 
     cursor: pointer;
 
-    background: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.25);   /* 半透明白底 */
 
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);          /* 毛玻璃模糊 */
 
-    color: inherit;
+    color: inherit;                       /* 继承所在容器文字色 */
 
-    transition: 0.3s;
+    transition: 0.3s;                     /* 悬停过渡 */
 
 }
 
 
+/* 天气按钮悬停：上浮 2px 并加深半透明底，增强可点击感。 */
 #change-city:hover,
 #use-ip-weather:hover {
 
@@ -901,6 +1028,7 @@ body.dark-mode #weather-box {
 
 /* ===== 按钮样式 ===== */
 
+/* 全站通用按钮（无类名的裸 button）：胶囊外形、去边框、手形光标。 */
 button {
     padding: 10px 20px;
     border-radius: 20px;
@@ -913,6 +1041,7 @@ button {
 
 /* ===== 返回小游戏大厅按钮 ===== */
 
+/* 返回小游戏大厅的悬浮按钮：fixed 右上角，浅紫胶囊，去下划线。 */
 .back-games {
 
     position: fixed;
@@ -929,7 +1058,7 @@ button {
 
     border-radius: 20px;
 
-    text-decoration: none;
+    text-decoration: none;   /* 去掉链接下划线 */
 
     font-size: 16px;
 
@@ -940,23 +1069,25 @@ button {
 
 /* ===== 歌曲列表弹窗 ===== */
 
+/* 歌曲列表弹窗：默认隐藏，fixed 居中（top/left 50% + translate 回退自身一半），
+   宽 80% 上限 350px，高度超出 70vh 可在内部滚动，圆角+白底+高层级。 */
 #playlist-window{
 
-    display:none;
+    display:none;              /* 默认隐藏，由 JS 控制显示 */
 
     position:fixed;
 
     top:50%;
-    left:50%;
+    left:50%;                  /* 定位到视口中心 */
 
-    transform:translate(-50%,-50%);
+    transform:translate(-50%,-50%);  /* 再回退自身一半，精确居中 */
 
     width:80%;
     max-width:350px;
 
-    max-height:70vh;
+    max-height:70vh;           /* 最高占一屏的 70% */
 
-    overflow:auto;
+    overflow:auto;             /* 内容超高可滚动 */
 
     background:white;
 
@@ -964,13 +1095,14 @@ button {
 
     border-radius:15px;
 
-    z-index:9999;
+    z-index:9999;              /* 悬浮于常规内容之上 */
 
 }
 
 
 /* ===== 弹窗关闭按钮 ===== */
 
+/* 弹窗内的关闭按钮（子 button）：与上方内容留出间距。 */
 #playlist-window > button{
 
     margin-top:15px;
@@ -980,6 +1112,7 @@ button {
 
 /* ===== 歌曲按钮 ===== */
 
+/* 歌单里每首歌的按钮：整行块级、占满宽度、竖直留白，便于点击。 */
 #playlist button{
 
     display:block;
@@ -1019,9 +1152,11 @@ button {
 
 /* ===== 歌曲列表背景遮罩 ===== */
 
+/* 歌单弹窗背后的半透明黑色遮罩：默认隐藏，fixed 铺满全屏，
+   z-index 高于页面内容但低于弹窗，点击遮罩即可关闭弹窗。 */
 #playlist-mask{
 
-    display:none;
+    display:none;              /* 默认隐藏 */
 
     position:fixed;
 
@@ -1033,15 +1168,17 @@ button {
 
     height:100%;
 
-    background:rgba(0,0,0,0.4);
+    background:rgba(0,0,0,0.4);  /* 半透明黑，遮住背景 */
 
-    z-index:10000;
+    z-index:10000;             /* 比弹窗低 1 层，位于页面与弹窗之间 */
 
 }
 
 
 /* ===== 歌曲列表弹窗 ===== */
 
+/* 歌单弹窗（第二版定义，层级更高）：与前面重复但 z-index 提高到 10001，
+   保证浮在遮罩之上；竖向溢出用 overflow-y:auto。 */
 #playlist-window{
 
     display:none;
@@ -1052,7 +1189,7 @@ button {
 
     left:50%;
 
-    transform:translate(-50%,-50%);
+    transform:translate(-50%,-50%);  /* 居中定位 */
 
     background:white;
 
@@ -1062,13 +1199,13 @@ button {
 
     max-height:70vh;
 
-    overflow-y:auto;
+    overflow-y:auto;           /* 竖向滚动 */
 
     padding:20px;
 
     border-radius:15px;
 
-    z-index:10001;
+    z-index:10001;             /* 高于遮罩 */
 
 }
 

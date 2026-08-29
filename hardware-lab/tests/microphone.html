@@ -1,6 +1,26 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 
+<!-- ============================================================
+  【文件】microphone.html —— 麦克风测试
+  【硬件】设备的麦克风（采集实时音频并显示音量电平）
+  【用途】验证麦克风能否采集声音，并用电平条 + 震动反馈呈现音量
+  【浏览器 API】
+    - navigator.mediaDevices.getUserMedia({audio:true})  → 打开麦克风音频流
+    - AudioContext / webkitAudioContext                  → 音频处理上下文
+    - createMediaStreamSource() / createAnalyser()        → 分析声音强度
+    - analyser.getByteTimeDomainData()                    → 读取时域采样计算 RMS
+    - navigator.vibrate(50)                               → 真实声音时触发震动反馈
+    - requestAnimationFrame / cancelAnimationFrame        → 每帧刷新电平
+    - localStorage.getItem("darkMode"/"theme")            → 跟随主站深色模式
+  【测试流程】
+    1. 点击「打开麦克风」startMic() 授权麦克风并启动分析
+    2. detectSound() 每帧计算音量 RMS → 换算百分比填充电平条
+    3. 音量超过阈值(>15)时调用 navigator.vibrate(50) 提示有声音
+    4. 点击「关闭麦克风」stopMic() 停止流、关闭 AudioContext、停止震动与刷新
+  【判定方式】音量百分比越高代表声音越大；电平条宽度 0~100% 即实时读数。
+============================================================ -->
+
 <head>
 
 <meta charset="UTF-8">
@@ -12,12 +32,14 @@ content="width=device-width, initial-scale=1.0">
 
 <style>
 
+/* 页面基础样式：居中 + 内边距 */
 body{
     text-align:center;
     font-family:Arial,sans-serif;
     padding:30px;
 }
 
+/* 音量电平条的外框容器 */
 #level{
     width:90%;
     max-width:500px;
@@ -28,6 +50,7 @@ body{
     margin:30px auto;
 }
 
+/* 电平条内部填充：宽度随音量从 0% 增长到 100% */
 #bar{
     width:0%;
     height:100%;
@@ -35,11 +58,13 @@ body{
     transition:width 0.05s;
 }
 
+/* 状态文本（麦克风未开启 / 已开启） */
 #status{
     font-size:20px;
     margin:20px;
 }
 
+/* 控制按钮样式 */
 button{
     padding:12px 20px;
     margin:8px;
@@ -97,12 +122,15 @@ body.dark-mode .hardware-back{
 
 <h1>🎤 麦克风测试</h1>
 
+<!-- 状态提示：麦克风是否已开启 -->
 <p id="status">麦克风未开启</p>
 
+<!-- 音量电平条：外层 #level 是轨道，内层 #bar 是随音量变宽的填充 -->
 <div id="level">
     <div id="bar"></div>
 </div>
 
+<!-- 打开 / 关闭 麦克风 -->
 <button onclick="startMic()">
 打开麦克风
 </button>
@@ -120,45 +148,46 @@ body.dark-mode .hardware-back{
 
 <script>
 
-let stream = null;
-let audioContext = null;
-let analyser = null;
-let dataArray = null;
-let animation = null;
+let stream = null;        // 麦克风音频媒体流
+let audioContext = null;  // Web Audio 上下文（用于分析）
+let analyser = null;      // 音频分析器：读取实时采样数据
+let dataArray = null;     // 存放一帧采样数据的数组（Uint8Array）
+let animation = null;     // requestAnimationFrame 的句柄，用于停止刷新
 
 
-// 打开麦克风
+// 打开麦克风：请求权限并启动声音分析
+// 结果判定：成功 → 状态显示“麦克风已开启”并开始分析；失败 → alert 弹出原因
 async function startMic(){
 
     try{
 
-        stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({  // 核心API：只请求音频
             audio:true
         });
 
         audioContext =
-            new (window.AudioContext ||
+            new (window.AudioContext ||                       // 兼容不同内核的 AudioContext 名字
             window.webkitAudioContext)();
 
         const source =
-            audioContext.createMediaStreamSource(stream);
+            audioContext.createMediaStreamSource(stream);     // 把麦克风流接入音频图
 
         analyser =
-            audioContext.createAnalyser();
+            audioContext.createAnalyser();                    // 创建分析器
 
-        analyser.fftSize = 1024;
+        analyser.fftSize = 1024;                              // 采样窗口大小（点数）
 
         dataArray =
             new Uint8Array(
                 analyser.fftSize
             );
 
-        source.connect(analyser);
+        source.connect(analyser);                             // 麦克风 → 分析器 连线
 
         document.getElementById("status")
             .textContent = "🎤 麦克风已开启";
 
-        detectSound();
+        detectSound();                                        // 开始每帧刷新
 
     }catch(error){
 
@@ -169,52 +198,52 @@ async function startMic(){
 }
 
 
-// 实时检测声音
+// 实时检测声音：每帧计算音量 RMS，换算为 0~100% 填充电平条
 function detectSound(){
 
-    analyser.getByteTimeDomainData(dataArray);
+    analyser.getByteTimeDomainData(dataArray);                // 读取时域波形采样（0~255）
 
     let sum = 0;
 
     for(let i = 0; i < dataArray.length; i++){
 
         const value =
-            (dataArray[i] - 128) / 128;
+            (dataArray[i] - 128) / 128;                       // 把 0~255 归一到 -1~1
 
-        sum += value * value;
+        sum += value * value;                                 // 平方累加
 
     }
 
     const rms =
-        Math.sqrt(sum / dataArray.length);
+        Math.sqrt(sum / dataArray.length);                    // 均方根(RMS)音量
 
     const volume =
-        Math.min(rms * 500, 100);
+        Math.min(rms * 500, 100);                             // 放大并限制在 0~100
 
     document.getElementById("bar")
-        .style.width = volume + "%";
+        .style.width = volume + "%";                          // 电平条宽度 = 音量%
 
 
-    // 真实声音达到一定强度才震动
+    // 真实声音达到一定强度才震动（避免静音也震）
     if(volume > 15){
 
-        navigator.vibrate(50);
+        navigator.vibrate(50);                                // 有声音时震动 50ms
 
     }
 
 
     animation =
-        requestAnimationFrame(detectSound);
+        requestAnimationFrame(detectSound);                   // 下一帧继续检测
 
 }
 
 
-// 关闭麦克风
+// 关闭麦克风：停止采样、停止媒体流、关闭音频上下文、停止震动
 function stopMic(){
 
     if(animation){
 
-        cancelAnimationFrame(animation);
+        cancelAnimationFrame(animation);                      // 停止每帧刷新
         animation = null;
 
     }
@@ -222,7 +251,7 @@ function stopMic(){
     if(stream){
 
         stream.getTracks().forEach(track => {
-            track.stop();
+            track.stop();                                     // 停止麦克风轨道
         });
 
         stream = null;
@@ -231,15 +260,15 @@ function stopMic(){
 
     if(audioContext){
 
-        audioContext.close();
+        audioContext.close();                                 // 关闭音频上下文
         audioContext = null;
 
     }
 
-    navigator.vibrate(0);
+    navigator.vibrate(0);                                     // 取消残留震动
 
     document.getElementById("bar")
-        .style.width = "0%";
+        .style.width = "0%";                                  // 电平条清零
 
     document.getElementById("status")
         .textContent = "麦克风未开启";
@@ -267,6 +296,7 @@ onclick="location.href='../index.html'">
 
 <script>
 
+// 跟随主站深色模式：读取主站主题并应用到本页
 function applyMainTheme(){
 
     /*

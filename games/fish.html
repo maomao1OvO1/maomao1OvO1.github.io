@@ -1,11 +1,41 @@
+<!-- ============================================================
+     🐟 大鱼吃小鱼 (Big Fish Eat Small Fish) — 文件头注释
+     ------------------------------------------------------------
+     【玩法】玩家控制一条鱼，通过移动鼠标 / 手指拖动让它游动。
+             吃掉比自己「明显更大」(半径比>1.2) 的小鱼即变大并得分；
+             若碰到比自己大的鱼，则游戏结束。
+     【核心机制】
+       1. 玩家鱼   ：初始半径 20，随吃鱼逐渐增大，上限 maxR=50。
+       2. 鱼群 AI  ：每条 AI 鱼感知视野内其他鱼，
+                    - 比自己大的鱼 → 视为威胁，朝远离方向逃；
+                    - 比自己小的鱼 → 视为猎物，朝其方向追；
+                    并带速度/转向速度/颜色/尾巴摆动相位等属性，
+                    速度与体型成反比（大鱼慢、小鱼快）。
+       3. 发射/命中判定：两鱼圆心距离 < 双方半径之和即触发碰撞；
+                     半径比 > 1.2 判定为「吃掉」或「被吃」，
+                     否则相互推开（可吃=绿光晕，危险=白光晕）。
+       4. 渲染      ：Canvas 2D 绘制简笔画（身体椭圆 + 大尾巴 + 眼睛），
+                     玩家鱼额外绘制发光中心圆点。
+       5. 控制      ：鼠标移动 / 单指拖动设定目标点，玩家鱼平滑移向目标点。
+     【是否上报成绩】⚠️ 会 —— 游戏结束时会调用外部 report.js 提供的
+                   reportScore("fish", score) 上报分数；同时用
+                   localStorage 记录最高分（键名 fish_high_score）。
+     【主题】跟随 <body> 的 dark-mode 类切换深/浅色背景（localStorage 记忆）。
+     ------------------------------------------------------------
+    ============================================================ -->
 <!DOCTYPE html>
 <html>
 
 <head>
     <meta charset="UTF-8">
     <title>🐟 大鱼吃小鱼</title>
+    <!-- ============================================================
+         CSS 样式区：定义页面整体布局、返回按钮、画布、信息栏、
+         按钮以及深色主题（dark-mode）下的配色。
+         ============================================================ -->
     <style>
         body {
+            /* 页面主体：居中对齐、禁用文本选中，背景/文字色带渐变过渡 */
             text-align: center;
             font-family: Arial;
             user-select: none;
@@ -15,6 +45,7 @@
         }
 
         .back-home {
+            /* 右上角固定定位的「返回小游戏」链接按钮 */
             position: fixed;
             top: 20px;
             right: 20px;
@@ -28,11 +59,13 @@
         }
 
         body.dark-mode .back-home {
+            /* 深色模式下返回按钮仍保持同样的浅紫配色 */
             background: #e5dcff;
             color: #6543a5;
         }
 
         canvas {
+            /* 游戏画布：块级居中、浅蓝背景、圆角 + 阴影，禁用触摸滚动手势 */
             display: block;
             margin: 20px auto;
             background: #7ec8e3;
@@ -44,14 +77,17 @@
         }
 
         #info {
+            /* 顶部操作提示文字 */
             font-size: 18px;
             margin: 10px;
         }
         #score {
+            /* 当前分数加粗显示 */
             font-weight: bold;
         }
 
         button {
+            /* 通用按钮：圆角胶囊外观 */
             padding: 10px 20px;
             border-radius: 20px;
             border: none;
@@ -61,18 +97,22 @@
         }
 
         body.dark-mode {
+            /* 深色主题：暗背景 + 白字 */
             background: #121212;
             color: white;
         }
         body.dark-mode canvas {
+            /* 深色主题下的画布底色（深蓝） */
             background: #1a3a4a;
         }
         body.dark-mode button {
+            /* 深色主题下按钮配色 */
             background: #333;
             color: white;
         }
 
         #stats {
+            /* 最高分统计条：内联块布局 */
             margin: 15px auto;
             padding: 10px;
             font-size: 18px;
@@ -87,51 +127,63 @@
 <body>
 
 <script>
+    // 页面加载时读取 localStorage 中的主题设置：若是 dark 则为 <body> 加上深色类
     if (localStorage.getItem("theme") === "dark") {
         document.body.classList.add("dark-mode");
     }
 </script>
 
+<!-- 返回小游戏列表页的链接 -->
 <a href="../games.html" class="back-home">🎮 返回小游戏</a>
 
+<!-- 页面标题与顶部操作提示（移动鼠标/手指可控制鱼） -->
 <h1>🐟 大鱼吃小鱼</h1>
 <p id="info">🖱️ 移动鼠标 / 手指拖动控制鱼 &nbsp;|&nbsp; 分数：<span id="score">0</span></p>
 
+<!-- 最高分统计容器 -->
 <div id="stats"></div>
+<!-- 重置最高分按钮（调用 resetStats），重新开始按钮（调用 restart） -->
 <button onclick="resetStats()" style="background:#ffcccb;color:#a00;">🔄 重置最高分</button>
 <br>
 <button onclick="restart()">🔄 重新开始</button>
 
+<!-- 游戏画布：逻辑尺寸 800x800 -->
 <canvas id="gameCanvas" width="800" height="800"></canvas>
 
+<!-- 引入成绩上报脚本 report.js（供 reportScore 使用） -->
 <script src="report.js?v=3"></script>
 <script>
     // ============================================================
     // 大鱼吃小鱼 - 速度适中版（鱼慢，玩家跟手）
     // ============================================================
 
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const W = 800,
-        H = 800;
+    // ----- 基础对象与画布常量 -----
+    const canvas = document.getElementById('gameCanvas');   // 游戏画布元素
+    const ctx = canvas.getContext('2d');                     // 2D 绘图上下文
+    const W = 800,   // 画布逻辑宽度
+        H = 800;     // 画布逻辑高度
 
     // ----- 统计（最高分）-----
-    const STATS_KEY = 'fish_high_score';
+    const STATS_KEY = 'fish_high_score';  // 最高分在 localStorage 中的存储键名
 
+    // 读取最高分：从 localStorage 读出并转成整数，空值返回 0
     function loadHighScore() {
         let val = localStorage.getItem(STATS_KEY);
         return val ? parseInt(val) : 0;
     }
 
+    // 保存最高分：转为字符串存入 localStorage
     function saveHighScore(val) {
         localStorage.setItem(STATS_KEY, String(val));
     }
 
+    // 更新页面上的最高分显示
     function updateStatsDisplay() {
         let high = loadHighScore();
         document.getElementById('stats').innerHTML = `🏆 最高分：${high}`;
     }
 
+    // 重置最高分（带确认弹窗），清零后刷新显示并提示
     function resetStats() {
         if (confirm('确定重置大鱼吃小鱼的最高分吗？')) {
             saveHighScore(0);
@@ -139,50 +191,57 @@
             alert('统计已重置！');
         }
     }
-    updateStatsDisplay();
+    updateStatsDisplay();  // 页面加载时即刷新一次最高分显示
 
     // ----- 游戏状态 -----
+    // 玩家鱼对象：位置(x,y)、半径 r、最大半径 maxR、朝向 angle
     let player = { x: W / 2, y: H / 2, r: 20, maxR: 50, angle: 0 };
-    let fishes = [];
-    let score = 0;
-    let gameOver = false;
-    let targetX = W / 2,
-        targetY = W / 2;
-    let animId = null;
-    let frame = 0;
+    let fishes = [];            // 鱼群（AI 鱼对象数组）
+    let score = 0;              // 当前得分（吃到一条小鱼 +1）
+    let gameOver = false;       // 游戏是否已结束
+    let targetX = W / 2,        // 玩家目标点 X（由鼠标/触摸决定）
+        targetY = W / 2;        // 玩家目标点 Y
+    let animId = null;          // requestAnimationFrame 的句柄（用于取消动画）
+    let frame = 0;              // 帧计数器（用于尾巴摆动相位计算）
 
     // ----- 生成鱼（速度偏低）-----
+    // 生成一条 AI 鱼并返回其对象
     function createFish() {
-        let minR = 8;
-        let maxR = Math.max(25, player.r * 1.5);
-        maxR = Math.min(maxR, 60);
-        let radius = minR + Math.random() * (maxR - minR);
+        let minR = 8;                                        // 逻辑上的最小鱼半径
+        let maxR = Math.max(25, player.r * 1.5);             // 最大半径随玩家变大而变大
+        maxR = Math.min(maxR, 60);                           // 但钳制上限为 60
+        let radius = minR + Math.random() * (maxR - minR);   // 半径在 [minR, maxR] 之间随机
         if (Math.random() < 0.3 && radius < player.r * 0.8) {
+            // 30% 概率生成「威胁鱼」：把原本偏小的鱼在满足条件时改成比玩家更大的体型
             radius = player.r * (1.0 + Math.random() * 0.8);
         }
-        radius = Math.max(minR, radius);
+        radius = Math.max(minR, radius);                     // 保证不小于最小半径
 
+        // 初始坐标随机，但要避开玩家身边太近（与玩家保持一定距离）
         let x = Math.random() * W;
         let y = Math.random() * H;
         while (Math.hypot(x - player.x, y - player.y) < player.r + radius + 30) {
             x = Math.random() * W;
             y = Math.random() * H;
         }
-        let angle = Math.random() * Math.PI * 2;
+        let angle = Math.random() * Math.PI * 2;             // 随机的初始朝向
         // 速度与体型成反比，但整体降低：最大2.0，最小0.5
         let speed = Math.max(0.5, 2.0 - radius / 15);
         let turnSpeed = 0.015 + Math.random() * 0.025; // 转向更慢
+
+        // 根据体型随机颜色色相：小鱼偏青绿、中鱼偏橙、大鱼偏紫
         let hue;
         if (radius < 15) hue = 160 + Math.random() * 80;
         else if (radius < 25) hue = 30 + Math.random() * 50;
         else hue = 280 + Math.random() * 70;
-        hue += (Math.random() - 0.5) * 30;
-        hue = ((hue % 360) + 360) % 360;
-        let color = `hsl(${hue}, 80%, 55%)`;
-        let tailPhase = Math.random() * Math.PI * 2;
+        hue += (Math.random() - 0.5) * 30;                   // 色相再随机抖动
+        hue = ((hue % 360) + 360) % 360;                     // 色相保证在 [0,360)
+        let color = `hsl(${hue}, 80%, 55%)`;                 // 最终鱼的颜色（HSL）
+        let tailPhase = Math.random() * Math.PI * 2;         // 尾巴摆动相位（错开摆动）
         return { x, y, r: radius, angle, speed, color, turnSpeed, tailPhase };
     }
 
+    // 初始化鱼群：清空后生成 count 条 AI 鱼
     function initFishes(count) {
         fishes = [];
         for (let i = 0; i < count; i++) {
@@ -190,71 +249,78 @@
         }
     }
 
+    // 重新开始 / 初始化整局游戏
     function restart() {
-        if (animId) cancelAnimationFrame(animId);
-        gameOver = false;
-        score = 0;
-        player.x = W / 2;
+        if (animId) cancelAnimationFrame(animId);   // 取消上一次的动画帧，避免重复循环
+        gameOver = false;                            // 重置结束标记
+        score = 0;                                   // 清零得分
+        player.x = W / 2;                            // 玩家位置回到画布中心
         player.y = H / 2;
-        player.r = 20;
-        player.angle = 0;
-        targetX = W / 2;
+        player.r = 20;                               // 半径恢复初始值
+        player.angle = 0;                            // 朝向复位
+        targetX = W / 2;                             // 目标点也复位到中心
         targetY = W / 2;
-        document.getElementById('score').textContent = '0';
-        initFishes(15);
-        updateStatsDisplay();
-        frame = 0;
-        loop();
+        document.getElementById('score').textContent = '0';  // 分数显示清零
+        initFishes(15);                              // 重新生成 15 条 AI 鱼
+        updateStatsDisplay();                        // 刷新最高分显示
+        frame = 0;                                   // 帧计数复位
+        loop();                                      // 启动主循环
     }
 
+    // 主游戏循环：每帧先 update 再 draw，然后注册下一帧
     function loop() {
-        if (gameOver) return;
-        frame++;
-        update();
-        draw();
-        animId = requestAnimationFrame(loop);
+        if (gameOver) return;        // 游戏结束后停止循环
+        frame++;                     // 帧计数 +1
+        update();                    // 更新游戏逻辑（玩家移动/鱼群AI/碰撞判定）
+        draw();                      // 渲染当前帧
+        animId = requestAnimationFrame(loop);  // 请求下一帧，形成持续动画循环
     }
 
     // ----- 更新（玩家更跟手，鱼更慢）-----
+    // 每帧核心逻辑：更新玩家与所有 AI 鱼的位置，并处理碰撞
     function update() {
         // 1. 玩家移动（更跟手：系数0.15，最大速度6）
-        let dx = targetX - player.x;
-        let dy = targetY - player.y;
-        let dist = Math.hypot(dx, dy);
+        let dx = targetX - player.x;                              // 玩家与目标点的水平距离
+        let dy = targetY - player.y;                              // 玩家与目标点的垂直距离
+        let dist = Math.hypot(dx, dy);                            // 距目标点的直线距离
         if (dist > 1) {
-            let speed = Math.min(6, dist * 0.15); // 系数提高
-            player.x += (dx / dist) * speed;
-            player.y += (dy / dist) * speed;
-            player.angle = Math.atan2(dy, dx);
+            // 距离大于 1 时才移动：朝目标点方向移动，距离越远越快，但最大速度 6
+            let speed = Math.min(6, dist * 0.15); // 系数提高（跟手）
+            player.x += (dx / dist) * speed;                      // 按归一化方向 * 速度更新 X
+            player.y += (dy / dist) * speed;                      // 更新 Y
+            player.angle = Math.atan2(dy, dx);                    // 玩家朝向改为移动方向
         }
+        // 玩家位置钳制在画布内（考虑自身半径，不能越界）
         player.x = Math.max(player.r, Math.min(W - player.r, player.x));
         player.y = Math.max(player.r, Math.min(H - player.r, player.y));
 
         // 2. 鱼群AI（追逃）
-        const VIEW_DIST = 180;
+        const VIEW_DIST = 180;                         // 鱼的视野半径
         for (let f of fishes) {
-            let targetAngle = null;
-            let threatDist = Infinity;
-            let preyDist = Infinity;
+            let targetAngle = null;                    // 本帧的转向目标（角度），null 表示没有
+            let threatDist = Infinity;                 // 最近威胁（更大鱼）的距离
+            let preyDist = Infinity;                   // 最近猎物（更小鱼）的距离
 
-            let allFish = [...fishes, player];
+            let allFish = [...fishes, player];         // 视野候选 = 所有 AI 鱼 + 玩家
             for (let other of allFish) {
-                if (other === f) continue;
-                let d = Math.hypot(f.x - other.x, f.y - other.y);
-                if (d > VIEW_DIST) continue;
+                if (other === f) continue;             // 跳过自己
+                let d = Math.hypot(f.x - other.x, f.y - other.y);  // 与目标鱼的距离
+                if (d > VIEW_DIST) continue;           // 超出视野则忽略
 
                 if (other.r > f.r * 1.1) {
+                    // 对方更大 → 威胁：朝远离方向逃，取最近的威胁
                     if (d < threatDist) {
                         threatDist = d;
-                        let angleAway = Math.atan2(f.y - other.y, f.x - other.x);
+                        let angleAway = Math.atan2(f.y - other.y, f.x - other.x); // 远离方向的角度
                         targetAngle = angleAway;
                     }
                 } else if (f.r > other.r * 1.1) {
+                    // 自己更大 → 猎物：朝其方向追，取最近的猎物
                     if (d < preyDist) {
                         preyDist = d;
-                        let angleToward = Math.atan2(other.y - f.y, other.x - f.x);
+                        let angleToward = Math.atan2(other.y - f.y, other.x - f.x); // 朝向猎物的角度
                         if (targetAngle === null) {
-                            targetAngle = angleToward;
+                            targetAngle = angleToward;   // 只有在没有威胁时才转向猎物
                         }
                     }
                 }
@@ -262,79 +328,91 @@
 
             // 速度调节（追逃时加速，但上限2.0）
             if (threatDist < VIEW_DIST) {
+                // 有威胁：加速逃跑，上限 2.0
                 f.speed = Math.min(f.speed * 1.2, 2.0);
             } else if (preyDist < VIEW_DIST && targetAngle !== null) {
+                // 有猎物：加速追捕，上限 2.0
                 f.speed = Math.min(f.speed * 1.1, 2.0);
             } else {
+                // 无威胁无猎物：小概率随机换向，缓慢向基础速度回归（巡游状态）
                 if (Math.random() < 0.02) {
                     f.turnSpeed = (Math.random() < 0.5 ? 1 : -1) * (0.015 + Math.random() * 0.025);
                 }
-                let baseSpeed = Math.max(0.5, 2.0 - f.r / 15);
-                f.speed += (baseSpeed - f.speed) * 0.02;
+                let baseSpeed = Math.max(0.5, 2.0 - f.r / 15); // 基础速度与体型成反比
+                f.speed += (baseSpeed - f.speed) * 0.02;        // 向基础速度渐变
             }
 
             // 转向目标
             if (targetAngle !== null) {
+                // 有目标角：计算与当前朝向的差值，并做角度归一化到 [-π, π]
                 let diff = targetAngle - f.angle;
                 while (diff > Math.PI) diff -= Math.PI * 2;
                 while (diff < -Math.PI) diff += Math.PI * 2;
-                let maxTurn = f.turnSpeed * 1.5;
+                let maxTurn = f.turnSpeed * 1.5;                 // 本帧最大可转角度
                 if (Math.abs(diff) > maxTurn) {
-                    f.angle += Math.sign(diff) * maxTurn;
+                    f.angle += Math.sign(diff) * maxTurn;        // 分批转向（转动有上限）
                 } else {
-                    f.angle = targetAngle;
+                    f.angle = targetAngle;                       // 已在允许范围内则直接对准
                 }
             } else {
-                f.angle += f.turnSpeed;
+                f.angle += f.turnSpeed;                          // 无目标：按转向速度缓慢转弯
             }
 
+            // 依据朝向与速度计算位移量并移动鱼
             let vx = Math.cos(f.angle) * f.speed;
             let vy = Math.sin(f.angle) * f.speed;
             f.x += vx;
             f.y += vy;
 
+            // 出界环绕：鱼超出画布一侧时从另一侧（同侧边缘）重新进入
             if (f.x < -f.r) f.x = W + f.r;
             else if (f.x > W + f.r) f.x = -f.r;
             if (f.y < -f.r) f.y = H + f.r;
             else if (f.y > H + f.r) f.y = -f.r;
         }
 
-        // 3. 碰撞检测
-        for (let i = fishes.length - 1; i >= 0; i--) {
+        // 3. 碰撞检测（玩家与每条 AI 鱼是否相撞）
+        for (let i = fishes.length - 1; i >= 0; i--) {   // 倒序遍历，便于安全 splice 删除
             let f = fishes[i];
-            let d = Math.hypot(player.x - f.x, player.y - f.y);
-            let threshold = player.r + f.r;
-            if (d < threshold) {
+            let d = Math.hypot(player.x - f.x, player.y - f.y);  // 玩家与该鱼的圆心距离
+            let threshold = player.r + f.r;                       // 碰撞判定阈值 = 两半径之和
+            if (d < threshold) {                                 // 发生碰撞
                 if (player.r > f.r * 1.2) {
-                    score++;
-                    document.getElementById('score').textContent = score;
+                    // 玩家明显更大（>1.2倍）→ 吃掉这条鱼：
+                    score++;                                     // 得分 +1
+                    document.getElementById('score').textContent = score;  // 更新分数显示
+                    // 按面积守恒估算新半径（玩家面积 + 该鱼面积*0.3），并钳制到上限
                     let area = Math.PI * player.r * player.r + Math.PI * f.r * f.r * 0.3;
                     let newR = Math.sqrt(area / Math.PI);
                     player.r = Math.min(newR, player.maxR);
-                    fishes.splice(i, 1);
-                    fishes.push(createFish());
+                    fishes.splice(i, 1);                         // 移除被吃的鱼
+                    fishes.push(createFish());                   // 补充一条新鱼
                 } else if (f.r > player.r * 1.2) {
-                    gameOver = true;
-                    let high = loadHighScore();
+                    // 对方明显更大（>1.2倍）→ 玩家被吃，游戏结束：
+                    gameOver = true;                             // 置结束标记
+                    let high = loadHighScore();                  // 读取历史最高分
                     if (score > high) {
+                        // 破了纪录：保存新纪录并提示
                         saveHighScore(score);
                         updateStatsDisplay();
                         alert(`🎉 新纪录！最高分：${score}`);
                     } else {
-                        alert(`😵 游戏结束！得分：${score}`);
+                        alert(`😵 游戏结束！得分：${score}`);     // 未破纪录，普通结束提示
                     }
-                    reportScore("fish", score);
-                    cancelAnimationFrame(animId);
-                    return;
+                    reportScore("fish", score);                  // ⚠️ 上报成绩到 statistics 接口
+                    cancelAnimationFrame(animId);                 // 停止动画循环
+                    return;                                      // 结束本帧 update
                 } else {
-                    let angle = Math.atan2(f.y - player.y, f.x - player.x);
-                    let push = 2;
-                    f.x += Math.cos(angle) * push;
+                    // 体型相近（都不足 1.2 倍）→ 相互推开，不增不减
+                    let angle = Math.atan2(f.y - player.y, f.x - player.x); // 从玩家指向鱼的角
+                    let push = 2;                                // 推开距离
+                    f.x += Math.cos(angle) * push;               // 沿该方向推离鱼
                     f.y += Math.sin(angle) * push;
-                    f.angle += (Math.random() - 0.5) * 0.5;
+                    f.angle += (Math.random() - 0.5) * 0.5;      // 被撞后随机小角度偏转
                 }
             }
         }
+        // 维持鱼群数量：不足 15 条则补充，超过 22 条则随机移除
         while (fishes.length < 15) fishes.push(createFish());
         while (fishes.length > 22) fishes.splice(Math.floor(Math.random() * fishes.length), 1);
     }
@@ -453,19 +531,26 @@
                 clientX = e.touches[0].clientX;
                 clientY = e.touches[0].clientY;
             } else {
-                return;
+                return;   // 多指（如双指缩放/滑动）不响应控制，只认单指拖动
             }
             e.preventDefault();
         } else {
             clientX = e.clientX;
             clientY = e.clientY;
         }
+        // 把「浏览器客户端坐标」换算成「画布逻辑坐标」：
+        // 画布被 CSS 设为 max-width:100% 自适应，实际显示尺寸不一定等于逻辑 800x800，
+        // 所以必须用 逻辑尺寸/显示尺寸 的缩放系数(scaleX/scaleY)折算，
+        // 否则鼠标/手指点击的位置会与玩家鱼实际移动到的位置对不齐。
         let canvasX = (clientX - rect.left) * scaleX;
         let canvasY = (clientY - rect.top) * scaleY;
         targetX = Math.max(player.r, Math.min(W - player.r, canvasX));
         targetY = Math.max(player.r, Math.min(H - player.r, canvasY));
     }
 
+    // 绑定控制事件：移动鼠标或单指拖动都实时刷新「目标点」。
+    // 触摸事件必须用 passive:false，才能在 setTarget 里调用 preventDefault()，
+    // 阻止页面跟随手指滑动（否则玩到一半页面会被拖着走）。
     canvas.addEventListener('mousemove', setTarget);
     canvas.addEventListener('touchstart', setTarget, { passive: false });
     canvas.addEventListener('touchmove', setTarget, { passive: false });

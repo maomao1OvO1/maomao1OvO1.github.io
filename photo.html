@@ -1,29 +1,50 @@
+<!-- =========================================================================
+  文件：photo.html ｜ 摄影作品页面
+  用途：展示本站「摄影作品」子页，以九宫格相册形式呈现作者拍摄/收藏的照片。
+  核心逻辑：
+    1. 纯静态展示页，无后端请求；图片走本地 photoz/ 目录。
+    2. 复用主站样式表 style.css（.sub-page / .back-home / .photo-gallery 等类）。
+    3. 页面底部的内联脚本读取 localStorage 中的主题设置，判定深色模式，
+       从而给 <body> 挂上 .dark-mode 类，使相册配色与主站保持一致。
+  引用资源：style.css（继承全部样式）、photoz/*.jpg（十张图片素材）、
+            index.html（返回主页跳转）。
+  注意：图片均叠加 loading="lazy" + decoding="async"，按需加载并异步解码，
+        以提升首屏性能。
+========================================================================= -->
 <!DOCTYPE html
 <html>
 
 <head>
+<!-- 声明文档字符编码为 UTF-8，确保中文内容正常显示 -->
 <meta charset="UTF-8">
+<!-- 页面标题：显示为浏览器标签页标题 -->
 <title>摄影作品</title>
 
+<!-- 引入主站的全局样式表（含深色模式、布局、按钮等通用样式） -->
 <link rel="stylesheet" href="style.css">
 
 </head>
 
 
+<!-- body 挂 sub-page 类，复用主站「子页面」布局样式（背景、间距、返回链接等） -->
 <body class="sub-page">
 
 
+<!-- 返回主页链接：跳回 index.html，class=back-home 走主站固定右上角样式 -->
 <a href="index.html" class="back-home">
 🏠 返回主页
 </a>
 
 
+<!-- 页面主标题：带相机 emoji 的「摄影作品」 -->
 <h1>📷 摄影作品</h1>
 
 <!-- ===== 摄影作品展示 ===== -->
 
+<!-- 相册容器：包裹下方所有图片，由 style.css 的 .photo-gallery 负责网格/弹性布局 -->
 <div class="photo-gallery">
 
+    <!-- 前八张为朋友圈截图系列：命名格式 mmexport<时间戳>.jpg -->
     <img src="photoz/mmexport1785609902846.jpg" alt="朋友圈置顶" loading="lazy" decoding="async">
 
     <img src="photoz/mmexport1785609905271.jpg" alt="同上" loading="lazy" decoding="async">
@@ -40,17 +61,22 @@
 
     <img src="photoz/mmexport1785609927419.jpg" alt="同上" loading="lazy" decoding="async">
 
+    <!-- 后两张为真实摄影作品：景色实拍，alt 描述了画面内容 -->
     <img src="photoz/IMG20260801182016.jpg" alt="阳光从云缝里射下来，像聚光灯一样照在两栋楼中间" loading="lazy" decoding="async">
 
     <img src="photoz/IMG20260729191744.jpg" alt="傍晚的云彩镶着粉边，底下是树和路灯的黑影" loading="lazy" decoding="async">
 </div>
 
+<!-- 页脚提示：相册会陆续追加内容 -->
 <p>
 持续更新中，敬请期待
 </p>
 
 <script>
 // 深色模式跟随主页设置
+// 逻辑：读取 localStorage 中的 "theme" 字段，若为 "dark" 则给 body 加 .dark-mode 类，
+//       这样 style.css 中的深色样式（黑底浅字、暗色卡片等）会自动生效，
+//       实现与主页完全一致的「是否深色」体验。
 if(localStorage.getItem("theme") === "dark"){
     document.body.classList.add("dark-mode");
 }

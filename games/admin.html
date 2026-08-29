@@ -1,4 +1,21 @@
 <!DOCTYPE html>
+<!-- ============================================================================
+    admin.html —— 排行榜管理页（站长专用）
+    这页是「排行榜后台」：站长登录后可以查看 / 修改 / 删除 / 添加排行榜记录，
+    还能维护「呼吸灯名单」。普通玩家访问会被拦在登录门（gate）外，看不到管理面板。
+
+    【站长专属逻辑】用 Firebase Auth 登录校验：只有邮箱匹配 OWNER_EMAIL（站长邮箱
+    混淆存储，见下方）的账号才放行到管理面板；否则显示「请先登录毛毛账号」并禁用整个面板。
+    删除等敏感操作还额外要求携带站长登录后的 ID token（Bearer 头），由 Firestore 安全
+    规则判定「仅站长可删」。
+
+    【数据来源】Firestore REST API（FS_BASE），集合 /scores（成绩）、/special/vips（呼吸灯名单）。
+    新增/修改成绩走公开写（与 report.js 一致）；删除走需要站长 token 的 DELETE。
+
+    【安全点】仅站长可见（gate 拦截 + Firestore 规则）；玩家名在浏览器用 textContent 写入
+    （不做 innerHTML）以规避 XSS；删除按钮用事件委托 + dataset，避免把玩家名拼进内联 onclick。
+    页面里的 FS_KEY 为 Web API 密钥（记为「密钥」，勿外泄）。
+============================================================================ -->
 <html>
 
 <head>
@@ -39,6 +56,7 @@ body.dark-mode { background:#121212; color:#fff; }
 
 <body>
 
+<!-- 深色模式：读取本地主题设置，若是 dark 就给 body 加 dark-mode class（见上方 CSS） -->
 <script>
 // ===== 读取深色模式 =====
 if(localStorage.getItem("theme") === "dark"){
@@ -48,13 +66,16 @@ if(localStorage.getItem("theme") === "dark"){
 
 <h1>🏆 排行榜管理</h1>
 
+<!-- 登录门 gate：未登录 or 非站长账号时显示这里，阻止进入管理面板 -->
 <div id="gate" class="gate">
     <p>⚠️ 这个页面只有<b>站长（毛毛账号）</b>能用。</p>
     <p id="gateWhy">请先登录毛毛账号。</p>
     <a href="../index.html" class="back-home">🏠 回主页</a>
 </div>
 
+<!-- 管理主面板 panel：站长登录成功后才显示，包含四大块：查看/改/删、添加记录、删除玩家、呼吸灯名单 -->
 <div id="panel" style="display:none;">
+    <!-- 第一块：选游戏 → 拉全部成绩 → 按所选游戏渲染列表，每行带「改/删」按钮 -->
     <div class="box">
         <div class="sec-title">🎮 选择游戏　查看/改/删</div>
         <select id="gameSel"></select>
@@ -63,6 +84,7 @@ if(localStorage.getItem("theme") === "dark"){
         <div id="list"></div>
     </div>
 
+    <!-- 第二块：为当前所选游戏添加/覆盖一条记录（公开写，与 report.js 同样的文档 ID 规则） -->
     <div class="box">
         <div class="sec-title">➕ 添加 / 覆盖一条记录（用当前所选游戏）</div>
         <input id="addName" placeholder="玩家名" style="width:46%">
@@ -70,12 +92,14 @@ if(localStorage.getItem("theme") === "dark"){
         <button onclick="addScore()">添加 / 覆盖</button>
     </div>
 
+    <!-- 第三块：按名字删除某玩家【全部】记录（跨所有游戏），需站长 token -->
     <div class="box">
         <div class="sec-title">🗑️ 按名字删除某玩家【全部】记录（跨所有游戏）</div>
         <input id="delName" placeholder="玩家名" style="width:70%">
         <button class="danger" onclick="deletePlayerAll()">删除该玩家全部记录</button>
     </div>
 
+    <!-- 第四块：呼吸灯名单（special/vips）——彩色特效名单的读/加/删。站长自己无论叫什么都自动亮，这里授权的人也会亮 -->
     <div class="box">
         <div class="sec-title">🎨 呼吸灯名单（排行榜彩色特效 · 你 + 授权的人）</div>
         <div class="msg" id="vipMsg"></div>
@@ -95,13 +119,22 @@ if(localStorage.getItem("theme") === "dark"){
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="../firebase-config.js"></script>
 <script>
+// ============================================================================
+// 配置区（与 report.js / ranking.html 保持一致）
+// FS_BASE：Firestore REST API 基础地址（项目 + 数据库路径）
+// FS_KEY ：Web API 密钥（记为「密钥」，拼接在 query 上放行读写，勿外泄）
+// OWNER_EMAIL：站长邮箱，用 atob + reverse + toLowerCase 混淆存储，防爬虫直接
+//             读到明文；与 login.js 写法一致。
+// GAMES：游戏 id → 展示名/最优方向/单位。best=min 表示分数越小越好（如猜数字），
+//        max 表示越大越好；排序时用到。
+// ============================================================================
 // ===== 配置（与 report.js / ranking.html 一致）=====
-const FS_BASE = "https://firestore.googleapis.com/v1/projects/maomao-3c9ef/databases/(default)/documents";
-const FS_KEY = "AIzaSyCa7M7dFqDlilAtniesykU97PWb--S_EX8";
+const FS_BASE = "https://firestore.googleapis.com/v1/projects/maomao-3c9ef/databases/(default)/documents"; // Firestore REST 基础地址
+const FS_KEY = "AIzaSyCa7M7dFqDlilAtniesykU97PWb--S_EX8"; // Web API 密钥（记为「密钥」，勿外泄）
 // 站长邮箱（混淆存储，防爬虫；与 login.js 相同写法）
 var OWNER_EMAIL = (function(){ try { return atob("bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft").split("").reverse().join("").toLowerCase(); } catch(e){ return ""; } })();
-var OWNER_EMAILS = [OWNER_EMAIL];
-const GAMES = {
+var OWNER_EMAILS = [OWNER_EMAIL];   // 站长邮箱数组，方便扩展多个站长
+const GAMES = {   // 游戏定义表：label=展示名；best=max 越大越好 / min 越小越好；unit=分数单位
     "2048":  { label: "2048",    best: "max", unit: "分" },
     "snake": { label: "贪吃蛇",  best: "max", unit: "分" },
     "typing":{ label: "打字",    best: "max", unit: "字/分" },
@@ -112,27 +145,37 @@ const GAMES = {
     "go":    { label: "围棋",    best: "max", unit: "目" }
 };
 
+// ============================================================================
+// 站长校验（Firebase Auth）
+// __idToken：站长登录后拿到的 ID token（用于删除等需要权限的操作）
+// __owner  ：是否为站长站内标记
+// firebase.initializeApp 只初始化一次，避免重复初始化报错。
+// onAuthStateChanged 监听登录状态变化：是站长 → 显示面板、拉 ID token、初始化；
+// 否则显示 gate 并提示「不是站长账号 / 请先登录」。
+// ============================================================================
+
 // ===== Firebase Auth：站长校验（删除凭据）=====
-let __idToken = null;          // 站长登录后拿到的 ID token（用于删除）
-let __owner = false;
+let __idToken = null;          // 站长登录后拿到的 ID token（用于删除操作鉴权）
+let __owner = false;           // 是否为站长的布尔标记
 
-if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); }
+if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); } // 只初始化一次 Firebase
 
+// 登录状态变化回调：决定放行还是拦截
 firebase.auth().onAuthStateChanged(function(user){
     if (user && OWNER_EMAILS.indexOf(String(user.email || "").toLowerCase()) >= 0) {
-        __owner = true;
-        document.getElementById("gate").style.display = "none";
-        document.getElementById("panel").style.display = "block";
-        user.getIdToken().then(function(t){ __idToken = t; });
-        init();
+        __owner = true;        // 是站长：解锁面板
+        document.getElementById("gate").style.display = "none";   // 隐藏登录门
+        document.getElementById("panel").style.display = "block"; // 显示管理面板
+        user.getIdToken().then(function(t){ __idToken = t; });    // 取 ID token 供删除用
+        init();                                                   // 初始化游戏下拉并加载数据
     } else {
-        __owner = false;
-        document.getElementById("gate").style.display = "block";
-        document.getElementById("panel").style.display = "none";
+        __owner = false;       // 非站长：保持锁定
+        document.getElementById("gate").style.display = "block";   // 显示登录门
+        document.getElementById("panel").style.display = "none";   // 隐藏面板
         var why = document.getElementById("gateWhy");
         why.textContent = user
-            ? "当前登录：" + user.email + "（不是站长账号，无法进入）"
-            : "请先登录毛毛账号（邮箱/Google 登录均可）。";
+            ? "当前登录：" + user.email + "（不是站长账号，无法进入）"  // 已登录但不是站长
+            : "请先登录毛毛账号（邮箱/Google 登录均可）。";            // 完全未登录
     }
 });
 

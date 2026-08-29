@@ -1,115 +1,168 @@
 <!DOCTYPE html>
 <html>
 
+<!-- ════════════════════════════════════════════════════════════════════
+  文件：index.html —— 毛毛的个人主页（网站首页）
+  定位：整个网站的主入口页面，访客打开域名后首先看到的就是它。
+  核心功能：
+    1. 网页访问人数统计（拉取 Cloudflare Worker 计数接口）
+    2. 天气盒子（IP 定位 / 城市查询，依赖 weather.js）
+    3. AI 余额查询（访客自填自己的 API Key，Key 只留在本地浏览器）
+    4. 实时时钟、随机一句话、网站运行计时
+    5. 音乐播放器（自带进度条、音量、循环、歌单弹窗）
+    6. 作品入口（摄影 / 视频 / 音乐）、小游戏大厅入口、硬件测试大厅入口
+    7. 账号系统（Firebase Auth：谷歌 / GitHub / 邮箱登录，含账号菜单）
+  引用的资源：
+    - manifest.json、icon.png、style.css?v=33   —— 页面配置与全局样式
+    - weather.js   —— 天气数据逻辑（IP 定位 / 城市搜索）
+    - tokens.js?v=3 —— 第三方 AI 余额查询
+    - player.js?v=3  —— 音乐播放器逻辑
+    - main.js?v=7    —— 主页主逻辑（交互增强）
+    - Firebase Auth SDK + firebase-config.js?v=2 + login.js?v=19 —— 登录体系
+    - images/FLXE-001.jpg、maomao.jpg           —— 封面与头像图片
+  说明：本注释为教学文档，仅插入注释，未改动任何代码行为。
+═════════════════════════════════════════════════════════════════════ -->
+
 <head>
 
+<!-- head 区：存放页面元信息（编码、图标、标题、样式），不直接显示在页面上 -->
 <meta charset="UTF-8">
 
+<!-- 声明页面为 PWA 应用（可安装到桌面）的清单文件 -->
 <link rel="manifest" href="manifest.json">
 
+<!-- 浏览器标签页 / 收藏夹里显示的网站图标（PNG） -->
 <link rel="icon" type="image/png" href="icon.png">
 
+<!-- 浏览器标签页标题：浏览器窗口顶部显示的文字 -->
 <title>毛毛的个人主页</title>
 
-<link rel="stylesheet" href="style.css?v=32">
+<!-- 全局样式表；v=32 是版本号，改样式时递增即可强制浏览器重新下载（避免缓存旧版） -->
+<link rel="stylesheet" href="style.css?v=33">
 
 </head>
 
+<!-- body 带有 loading 类：页面隐藏加载动画，等资源就绪后再显示主体内容 -->
 <body class="loading">
 
+<!-- 网站大标题 → 唯一一个 h1，作为本页面的语义主标题 -->
 <h1>毛毛的网站</h1>
 
+<!-- 访问人数区块：文字「本站累计访问人数」 + 一个用于填入数字的 span -->
 <p>
 👥 本站累计访问人数：
+<!-- id=visitor 的占位符，初始显示「加载中...」，收到接口数据后替换成具体数字 -->
 <span id="visitor">加载中...</span>
 </p>
 
-
+<!-- 内联脚本：拉取访问人数计数接口
+     fetch 请求一个 Cloudflare Worker 返回的 JSON，
+     then 链把返回的 visitors 数字写进 span，catch 捕获网络/接口失败时提示「获取失败」 -->
 <script>
 fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 .then(response => response.json())
 .then(data => {
+    // 拿到 JSON 后把 visitor 数字填进 id=visitor 的 span
     document.getElementById("visitor").innerText = data.visitors;
 })
 .catch(() => {
+    // 请求失败（网络/接口异常）显示友好提示，避免空白
     document.getElementById("visitor").innerText = "获取失败";
 });
 </script>
 
 <!-- ===== 天气盒子 ===== -->
+<!-- 天气盒子：整个天气信息区块的容器，包含标题、地点、天气数据、城市输入和两个按钮 -->
 
 <div id="weather-box">
 
+    <!-- 天气标题行：显示「🌤 天气」 -->
     <div id="weather-title">
         🌤 天气
     </div>
 
+    <!-- 地点行：默认显示「📍 正在获取位置...」，由 weather.js 根据 IP 或所选城市更新 -->
     <div id="weather-location">
         📍 正在获取位置...
     </div>
 
+    <!-- 天气详情行：默认占位「等待天气数据...」，weather.js 请求天气 API 成功后填入温度/天气描述 -->
     <div id="weather-info">
         等待天气数据...
     </div>
 
-
-
-
+<!-- 城市输入框：访客输入城市名，配合下方「修改城市」按钮查询指定城市的天气 -->
 <input id="city-input" placeholder="输入城市名">
 
+<!-- 修改城市按钮：点击后根据输入框的城市名重新查询天气（逻辑在 weather.js） -->
 <button id="change-city">
     修改城市
 </button>
 
 <br>
 
+<!-- 使用IP地址天气按钮：点击后按访客当前 IP 定位并显示所在地天气 -->
 <button id="use-ip-weather">
     📍 使用IP地址天气
 </button>
 
 </div>
 
+<!-- 加载 weather.js（defer：HTML 解析完后再执行，保证 id=weather-box 已存在） -->
 <script src="weather.js" defer></script>
 
 <!-- ===== AI 余额盒子（自助查询，每个访客用自己的 Key） ===== -->
+<!-- AI 余额查询区块：访客自己粘贴自己的 API Key 来查询余额。
+     说明：Key 只保存在浏览器本地(localStorage)，不会上传到服务器，安全性由前端设计保证 -->
 
 <div id="tokens-box">
 
+    <!-- 区块标题 -->
     <div id="tokens-title">
         🤖 AI 余额
     </div>
 
+    <!-- 提示文字：告诉访客这是自助查询、Key 只本地保存不上传 -->
     <div id="tokens-sub">
         输入你自己的 Key，查询你的 AI 余额（Key 只保存在你浏览器本地，不上传）
     </div>
 
+    <!-- 下拉框：选择要查询的 AI 服务商（DeepSeek / Moonshot/Kimi / OpenAI） -->
     <select id="tokens-provider">
         <option value="DeepSeek">DeepSeek</option>
         <option value="Moonshot/Kimi">Moonshot/Kimi</option>
         <option value="OpenAI">OpenAI</option>
     </select>
 
+    <!-- 密码输入框：粘贴 API Key，type=password 让输入内容以圆点隐藏，避免被旁人看到 -->
     <input id="tokens-key" type="password" placeholder="粘贴你的 API Key">
 
+    <!-- 查询按钮：点击触发 checkBalance()（在 tokens.js 中定义）查询所选服务商余额 -->
     <button id="tokens-check" onclick="checkBalance()">
         🔍 查询我的余额
     </button>
 
+    <!-- 刷新按钮：同上调用 checkBalance()，用于重新查询最新余额 -->
     <button id="tokens-refresh" onclick="checkBalance()">
         🔄 刷新
     </button>
 
+    <!-- 清除按钮：点击触发 clearTokensState()（在 tokens.js 中定义），清空本地保存的 Key -->
     <button id="tokens-clear" onclick="clearTokensState()">
         🧹 清除
     </button>
 
+    <!-- 查询结果展示区：checkBalance() 把查询结果显示到这里的 div -->
     <div id="tokens-result"></div>
 
 </div>
 
-<script src="tokens.js?v=2" defer></script>
+<!-- 加载 tokens.js（v=2 为版本号），defer 延迟执行；随页面优先加载查询逻辑 -->
+<script src="tokens.js?v=3" defer></script>
 
 <!-- ===== 加载动画 ===== -->
+<!-- 加载动画：初始盖住页面的「正在加载...」提示，配合 body.loading 使用；
+     页面资源就绪后由 main.js 移除 loading 并隐藏它，避免一进入就白屏/跳帧 -->
 
 <div id="loader">
 
@@ -118,17 +171,22 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
     <p>正在加载...</p>
 
     <div class="progress">
+        <!-- 进度条填充块：宽度由 CSS 动画驱动，模拟加载进度 -->
         <div class="progress-bar"></div>
     </div>
 
 </div>
 
 
+<!-- 主内容卡片：把头像、彩蛋、时间、介绍等个人信息统一装进一个容器，便于整体排版 -->
 <div class="card">
 
 <!-- ===== 彩蛋触发头像 ===== -->
+<!-- 头像：150x150px；decoding=async 让浏览器异步解码图片，不阻塞页面渲染 -->
 <img id="avatar" src="maomao.jpg" width="150" height="150" decoding="async">
 
+<!-- 彩蛋元素：显示「彩蛋 😋」提示 + CSS 绘制的一大一小两个圆；
+     点击头像会触发某个彩蛋效果/弹窗（交互逻辑在 main.js） -->
 <div id="easter-egg">
     <span>彩蛋 😋</span>
 
@@ -136,36 +194,49 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
     <div class="small-circle"></div>
 </div>
 
+<!-- 主题切换按钮：初始显示 🌙，点击在浅色/深色主题间切换（逻辑在 main.js） -->
 <button id="theme-toggle">🌙</button>
 
+<!-- 昵称标题 -->
 <h1>毛毛</h1>
 
+<!-- 实时时钟：下方内联脚本会每秒往这个 div 里写入当前日期与时间 -->
 <div id="time"></div>
+<!-- 内联脚本：showTime() 读取现在并格式化为「X年X月X日 hh:mm:ss」；
+     setInterval 每 1000ms(1秒) 刷新一次，末尾先手动调用一次让页面立刻有值 -->
 <script>
 function showTime(){
     let now = new Date();
 
+    // 取当前日期各部分
     let year = now.getFullYear();
-    let month = now.getMonth() + 1;
+    let month = now.getMonth() + 1;      // getMonth() 从 0 开始，所以要 +1 才是真实月份
     let day = now.getDate();
 
+    // 取当前时间各部分
     let hour = now.getHours();
     let minute = now.getMinutes();
     let second = now.getSeconds();
 
+    // 拼成中文风格时间串，写进 id=time 的 div
     document.getElementById("time").innerHTML =
         year + "年" + month + "月" + day + "日 " +
         hour + ":" + minute + ":" + second;
 }
 
+// 每 1 秒刷新一次
 setInterval(showTime, 1000);
+// 页面刚加载时立刻显示一次，避免开头 1 秒空白
 showTime();
 </script>
 
+<!-- 一句话自我介绍 -->
 <p>对未来有着无限憧憬的学生</p>
 
+<!-- 分隔提示线（纯装饰） -->
 <p>===========================</p>
 
+<!-- 免责声明：提示外部资源可能受网络影响、推荐用 Chrome 查看 -->
 <p>
     外部资源加载可能受网络环境影响<br>
     如显示异常请稍后刷新或更换网络<br>
@@ -174,17 +245,23 @@ showTime();
 
 </div>
 
+<!-- 水平分隔线，区分主卡片与下方音乐播放器区块 -->
 <hr>
 
+<!-- 音乐播放器容器：包含封面、歌名、进度条、音量条、上一首/播放/下一首/循环按钮 -->
 <div class="music-player">
 
+<!-- 专辑封面图：loading=lazy 延迟到临近视口才加载，省流量；decoding=async 异步解码 -->
 <img src="images/FLXE-001.jpg" loading="lazy" decoding="async">
 
+<!-- 当前歌名：默认「正在加载...」，由 player.js 在歌曲就绪后填入歌名 -->
 <div id="songName">正在加载...</div>
 
 
 <!-- ===== 播放进度条 ===== -->
 
+<!-- 播放进度条：range 滑杆，min=0 max=100 对应 0~100% 播放进度，
+     拖动或自动更新由 player.js 驱动 -->
 <input 
 id="progressBar"
 type="range"
@@ -196,6 +273,7 @@ value="0"
 
 <!-- ===== 音量控制 ===== -->
 
+<!-- 音量控制：一个喇叭图标 + 音量滑杆，min=0 max=1 step=0.01（0~100% 音量） -->
 <div class="volume-box">
 
 <span>🔊</span>
@@ -211,19 +289,23 @@ value="1"
 
 </div>
 
-
+<!-- 上一首：调用 player.js 的 prevSong() -->
 <button onclick="prevSong()">⏮</button>
 
+<!-- 播放/暂停：调用 playPause()；id=playBtn 用于切换图标（▶/⏸） -->
 <button onclick="playPause()" id="playBtn">
 ▶
 </button>
 
+<!-- 下一首：调用 nextSong() -->
 <button onclick="nextSong()">⏭</button>
 
+<!-- 循环模式：调用 toggleLoop()；id=loopBtn 用于高亮当前循环状态 -->
 <button onclick="toggleLoop()" id="loopBtn">
 🔁
 </button>
 
+<!-- 歌曲列表：点击弹出/收起歌单弹窗（调用 togglePlaylist()） -->
 <button onclick="togglePlaylist()">
 🎵 歌曲列表
 </button>
@@ -233,10 +315,13 @@ value="1"
 
 <!-- 歌曲列表弹窗 -->
 
+<!-- 半透明遮罩：遮住背景、聚焦弹窗，点击也可关闭（逻辑在 player.js） -->
 <div id="playlist-mask"></div>
 
+<!-- 歌单弹窗主体：内嵌 VIP 靓号徽章、标题、动态歌单和关闭按钮 -->
 <div id="playlist-window">
 
+    <!-- VIP 徽章：展示酷狗靓号（仅作展示，非真实权益） -->
     <div id="vip-badge">
         <span class="vip-label">酷狗靓号</span>
         <span class="vip-num">20100304</span>
@@ -245,8 +330,10 @@ value="1"
 
     <h3>🎵 歌曲列表</h3>
 
+    <!-- 歌单容器：player.js 会把歌曲列表渲染到这里 -->
     <div id="playlist"></div>
 
+    <!-- 关闭按钮：再次调用 togglePlaylist() 收起弹窗 -->
     <button onclick="togglePlaylist()">
         关闭
     </button>
@@ -255,6 +342,7 @@ value="1"
 
 <h2>👤 关于我</h2>
 
+<!-- 个人爱好简介 -->
 <p>
 喜欢摄影、音乐、游戏和技术折腾
 </p>
@@ -263,12 +351,14 @@ value="1"
 
 <h2>💬 今日一句</h2>
 
+<!-- 一句话占位：默认「正在加载...」，由 main.js/接口随机返回一句名言并替换 -->
 <p id="quote">
 正在加载...
 </p>
 
 <h2>🎮 游戏</h2>
 
+<!-- 游戏偏好说明 -->
 <p>
 原神/单机游戏
 
@@ -276,28 +366,34 @@ value="1"
 
 <!-- ===== 自制小游戏入口 ===== -->
 
+<!-- 跳到小游戏大厅的入口：用 <a> 包裹 <button>，整块可点击跳转 games.html -->
 <a href="games.html">
     <button>
         🎮 自制小游戏
     </button>
 </a>
 
+<!-- 玩家昵称盒子：记录并保存访客昵称（保存在 localStorage，见 main.js 的 saveNickname） -->
 <div class="nickname-box">
 
 <h3>🎮 玩家昵称</h3>
 
+<!-- 昵称输入框 -->
 <input id="nickname" placeholder="输入昵称">
 
+<!-- 保存按钮：点击触发 saveNickname() 把昵称存到本地 -->
 <button onclick="saveNickname()">
 保存
 </button>
 
+<!-- 已保存昵称的回显位置：saveNickname() 会把昵称显示在这里 -->
 <p id="nicknameShow"></p>
 
 </div>
 
 <h2>🔧 我的技能</h2>
 
+<!-- 技能列表：无序列表，逐项列出掌握的技能（多为「有涉猎」程度） -->
 <ul>
 <li>Photoshop</li>
 <li>After Effects</li>
@@ -311,10 +407,12 @@ value="1"
 
 <!-- ===== 硬件测试大厅 ===== -->
 
+<!-- 硬件测试入口盒子：介绍 + 跳转按钮 -->
 <div class="hardware-test-box">
 
 <h2>📱 硬件测试</h2>
 
+<!-- 跳转按钮：点击跳转到 hardware-lab/ 子目录（硬件测试大厅） -->
 <button
     class="hardware-test-button"
     onclick="location.href='hardware-lab/'">
@@ -324,25 +422,30 @@ value="1"
 </div>
 
 <h2>🎵 音乐</h2>
+<!-- 音乐爱好说明 -->
 <p>喜欢高质量音频<br>
 收藏实体专辑</p>
 
 <h2>🎨 我的作品</h2>
 
+<!-- 作品入口盒子：三个跳转按钮分别进摄影 / 视频 / 音乐子页 -->
 <div class="works">
 
+<!-- 摄影作品 → photo.html -->
 <button onclick="location.href='photo.html'">
 📷 摄影作品
 </button>
 
 <br>
 
+<!-- 视频剪辑 → video.html -->
 <button onclick="location.href='video.html'">
 🎬 视频剪辑
 </button>
 
 <br>
 
+<!-- 音乐收藏 → music.html -->
 <button onclick="location.href='music.html'">
 🎵 音乐收藏
 </button>
@@ -351,6 +454,7 @@ value="1"
 
 <h2>📮 联系方式</h2>
 
+<!-- 联系方式：默认锁状态「请登录后查看」，登录后由 main.js 填入真实邮箱 -->
 <p>
 <span id="contactEmail" class="contact-locked">🔒 请登录后查看</span>
 </p>
@@ -359,6 +463,7 @@ value="1"
 
 <h2>🌐 网站状态</h2>
 
+<!-- 网站在线状态：默认显示绿点「正常运行」 -->
 <p id="status">
 🟢 网站运行正常
 </p>
@@ -367,27 +472,32 @@ value="1"
 
 <h2>🕒 访问记录</h2>
 
+<!-- 最后访问时间：由 main.js 记录并显示访客上次访问的时间 -->
 <p id="last-time">
 正在记录...
 </p>
 
 <!-- ===== 网站运行时间 ===== -->
 
+<!-- 运行计时占位：下面内联脚本会把「本站已运行X年X天...」写进这里 -->
 <p id="runtime"></p>
 
+<!-- 内联脚本：计算网站从上线时间(startTime)到现在的时长，逐级拆成年/天/时/分/秒 -->
 <script>
+// 上线起始时间（网站「生日」），用它作为计时基准
 let startTime = new Date("2026-07-30T15:00:00")
 function updateTime() {
     let now = new Date();
-    let diff = now - startTime;
+    let diff = now - startTime;   // 距今的毫秒差
 
     let seconds = Math.floor(diff / 1000);
-    let years = Math.floor(seconds / 31536000); // 365天
-    let days = Math.floor((seconds % 31536000) / 86400); 
-    let hours = Math.floor((seconds % 86400) / 3600);
-    let minutes = Math.floor((seconds % 3600) / 60);
-    let sec = seconds % 60;
+    let years = Math.floor(seconds / 31536000); // 一年按 365 天算
+    let days = Math.floor((seconds % 31536000) / 86400); // 除掉整年后剩的天
+    let hours = Math.floor((seconds % 86400) / 3600);   // 天数里剩的小时
+    let minutes = Math.floor((seconds % 3600) / 60);    // 小时里剩的分钟
+    let sec = seconds % 60;                            // 分钟里剩的秒
 
+    // 拼成「本站已运行X年X天X小时X分X秒」显示
     document.getElementById("runtime").innerHTML =
     "本站已运行：" +
     years + "年 " +
@@ -397,7 +507,9 @@ function updateTime() {
     sec + "秒";
 }
 
+// 每 1 秒刷新一次计时
 setInterval(updateTime, 1000);
+// 页面加载后立刻显示一次
 updateTime();
 
 
@@ -405,38 +517,58 @@ updateTime();
 
 <!-- ===== 功能脚本 ===== -->  
   
-<script src="./player.js?v=2"></script>
+<!-- 音乐播放器主逻辑（进度、音量、播放控制、歌单） -->
+<script src="./player.js?v=3"></script>
 
-<script src="./main.js?v=6"></script>
+<!-- 主页交互主逻辑（昵称、主题、彩蛋、登录后展示邮箱等） -->
+<script src="./main.js?v=7"></script>
 
 <!-- ===== 登录门（加载条结束后弹出） ===== -->
+<!-- 登录门/登录弹窗：页面加载完成后弹出的全屏遮罩登录框（逻辑在 login.js）。
+     它有两个步骤：gateStep1 是「登录 / 游客进入」选择页；gateStep2 是具体登录方式页面 -->
 
 <div id="loginGate">
     <div class="gate-card">
+        <!-- 第 1 步：登录入口选择页（默认 display:block 显示） -->
         <div id="gateStep1" style="display:block;">
             <h2>🌐 毛毛的网站</h2>
             <p>登录后进入，或直接以游客身份浏览</p>
+            <!-- 走登录流程（切到 gateStep2） -->
             <button class="gate-main" onclick="gateLogin()">🔐 登录</button>
+            <!-- 以游客身份直接进入（不登录） -->
             <button class="gate-main guest" onclick="gateGuest()">👤 不登录，直接进入</button>
         </div>
+        <!-- 第 2 步：选择登录方式页（默认隐藏，点「登录」后显示） -->
         <div id="gateStep2" style="display:none;">
             <h3>选择登录方式</h3>
+            <!-- Google OAuth 登录 -->
             <button class="lg-btn google" onclick="loginProvider('google')">谷歌 登录</button>
+            <!-- GitHub OAuth 登录 -->
             <button class="lg-btn github" onclick="loginProvider('github')">GitHub 登录</button>
+            <!-- 「或」分隔条 -->
             <div class="lg-divider"><span>或</span></div>
+            <!-- 邮箱输入框 -->
             <input id="lgEmail" class="lg-input" type="email" placeholder="邮箱">
+            <!-- 密码输入框（带小眼睛切换显示/隐藏） -->
             <div class="lg-pass-wrap">
                 <input id="lgPass" class="lg-input" type="password" placeholder="密码">
+                <!-- 显示/隐藏密码小眼睛，togglePassEye('lgPass', this) -->
                 <button type="button" class="lg-eye" onclick="togglePassEye('lgPass', this)" aria-label="显示/隐藏密码">👁</button>
             </div>
+            <!-- 确认密码框：仅注册模式下显示（display:none 默认隐藏） -->
             <div class="lg-pass-wrap" id="lgPass2Wrap" style="display:none;">
                 <input id="lgPass2" class="lg-input" type="password" placeholder="确认密码" autocomplete="new-password">
                 <button type="button" class="lg-eye" onclick="togglePassEye('lgPass2', this)" aria-label="显示/隐藏密码">👁</button>
             </div>
+            <!-- 密码规则提示：两遍密码需一致且至少 6 位（注册时才显示） -->
             <div class="lg-pass-hint" id="lgPassHint" style="display:none;">🔒 密码至少 6 位，两遍输入需保持一致</div>
+            <!-- 邮箱登录按钮：根据 emailMode 的 data-mode 判断是「登录」还是「注册」 -->
             <button class="lg-btn email" id="lgSubmit" onclick="emailLogin(document.getElementById('lgEmail').value, document.getElementById('lgPass').value, document.getElementById('emailMode').getAttribute('data-mode')==='signup')">邮箱登录</button>
+            <!-- 邮箱验证提示：提醒用户去邮箱点确认链接，没收到查垃圾箱 -->
             <div class="lg-pass-hint" id="emailVerifyHint">📩 邮箱+密码登录需先在邮箱里点「确认」链接，验证通过后才能登进；没收到就翻♻️垃圾箱。</div>
+            <!-- 登录/注册切换按钮：点击在「登录」和「注册」之间切换 toggleEmailMode() -->
             <button id="emailMode" class="lg-link" data-mode="login" onclick="toggleEmailMode()">没有账号?注册</button>
+            <!-- 返回上一步（回到 gateStep1） -->
             <button class="gate-back" onclick="gateBack()">← 返回</button>
         </div>
     </div>
@@ -444,17 +576,24 @@ updateTime();
 
 <!-- ===== 账号按钮 + 账号菜单 ===== -->
 
+<!-- 登录后才显示的账号按钮（默认 display:none 隐藏）：左下/固定角显示头像、昵称、角色和下拉箭头 -->
 <button id="accountBtn" style="display:none;" onclick="toggleAccountMenu(event)">
+    <!-- 用户头像（登录后填 src） -->
     <img id="accPhoto" width="26" height="26" style="border-radius:50%;object-fit:cover;">
+    <!-- 头像旁的文字列：昵称 + 角色 + （管理员才出现的「用户管理」链接） -->
     <span id="accLabelWrap" style="display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.2;">
         <span id="accName">游客</span>
         <span id="accRole">开发者</span>
+        <!-- 管理员专属入口（display:none 默认隐藏，管理员时显示）；stopPropagation 防止点击冒泡触发按钮菜单 -->
         <a id="accUserAdmin" href="games/users.html" target="_blank" rel="noopener" style="display:none;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">用户管理</a>
     </span>
+    <!-- 下拉箭头指示 -->
     <span id="accCaret">▾</span>
 </button>
 
+<!-- 账号菜单（默认 display:none 隐藏，点账号按钮弹出）：含用户信息、绑定、改密、退出等 -->
 <div id="accountMenu" style="display:none;">
+    <!-- 菜单头部：显示当前登录者的头像、昵称和邮箱 -->
     <div class="acc-header">
         <img id="menuPhoto" width="42" height="42" style="border-radius:50%;object-fit:cover;">
         <div>
@@ -463,14 +602,17 @@ updateTime();
         </div>
     </div>
 
+    <!-- 站长工具区块：只有管理员才显示（display:none 默认隐藏），跳到 Firebase 后台用户管理 -->
     <div class="acc-section" id="userAdminWrap" style="display:none;">
         <div class="acc-title">🗂️ 站长工具</div>
         <a class="acc-small" style="text-decoration:none;" href="https://console.firebase.google.com/project/maomao-3c9ef/authentication/users" target="_blank" rel="noopener">用户管理</a>
     </div>
 
+    <!-- 绑定其他登录方式区块 -->
     <div class="acc-section">
         <div class="acc-title">🎛️ 绑定其他登录方式</div>
         <div id="bindList"></div>
+        <!-- 绑定邮箱表单（默认隐藏） -->
         <div id="bindEmailBox" style="display:none;">
             <input id="bindEmail" type="email" placeholder="邮箱">
             <input id="bindPass" type="password" placeholder="密码">
@@ -479,30 +621,38 @@ updateTime();
         </div>
     </div>
 
+    <!-- 账号安全区块：更改密码入口 -->
     <div class="acc-section">
         <div class="acc-title">🔐 账号安全</div>
+        <!-- 更改密码按钮（默认隐藏，登录且有密码时才显示） -->
         <button class="acc-small" id="changePassBtn" onclick="showChangePassword()" style="display:none;">更改密码</button>
+        <!-- 更改密码表单（默认隐藏） -->
         <div id="changePassBox" style="display:none;">
             <div class="acc-row" style="margin-top:8px;">
                 <label class="acc-label">更改密码</label>
             </div>
+            <!-- 当前密码 -->
             <div class="lg-pass-wrap">
                 <input id="changeOldPass" class="lg-input" type="password" placeholder="当前密码">
                 <button type="button" class="lg-eye" onclick="togglePassEye('changeOldPass', this)" aria-label="显示/隐藏密码">👁</button>
             </div>
+            <!-- 新密码 -->
             <div class="lg-pass-wrap">
                 <input id="changeNewPass" class="lg-input" type="password" placeholder="新密码（至少 6 位）">
                 <button type="button" class="lg-eye" onclick="togglePassEye('changeNewPass', this)" aria-label="显示/隐藏密码">👁</button>
             </div>
+            <!-- 确认新密码 -->
             <div class="lg-pass-wrap">
                 <input id="changeNewPass2" class="lg-input" type="password" placeholder="确认新密码">
                 <button type="button" class="lg-eye" onclick="togglePassEye('changeNewPass2', this)" aria-label="显示/隐藏密码">👁</button>
             </div>
+            <!-- 确认修改按钮 -->
             <button class="acc-small" onclick="changePassword()">确认修改</button>
             <div class="acc-hint">⚠️ 需要输入当前密码验证身份</div>
         </div>
     </div>
 
+    <!-- 底部：切换账号 + 退出登录 -->
     <div class="acc-section">
         <div class="acc-btns">
             <button class="acc-small" onclick="switchAccount()">切换账号</button>
@@ -512,10 +662,12 @@ updateTime();
 </div>
 
 <!-- ===== Firebase Auth SDK ===== -->
+<!-- 防火墙后端认证依赖：firebase-app-compat(核心) + firebase-auth-compat(认证)；
+     加上项目各自的 firebase-config.js 与登录逻辑 login.js（defer 延迟执行） -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="firebase-config.js?v=2"></script>
-<script src="login.js?v=18" defer></script>
+<script src="login.js?v=19" defer></script>
 
 </body>
 

@@ -1,6 +1,26 @@
 <!DOCTYPE html>
 <html>
 
+<!--
+  文件：snake.html —— 贪吃蛇小游戏
+  用途：经典的贪吃蛇玩法。20×20 的格子网格上，蛇按固定周期自动前进，
+        玩家用方向键（或屏幕按钮）转向；吃到食物蛇身变长并加分，撞墙或撞到
+        自己身体则游戏结束。带本地最高分统计（localStorage）与排行榜上报。
+  核心逻辑（移动是核心）：
+      - 蛇身用「坐标数组 snake 表示，索引 0 是蛇头」；每一帧基于当前方向
+        推算新蛇头坐标，把新蛇头 unshift 到数组头。
+      - 若新蛇头吃到食物：加分、重新生成食物、身体保留（相当于长一格）；
+        否则把蛇尾 pop 掉，使整条蛇向前游动一格。
+      - 死亡判定：新蛇头越出边界（撞墙），或与「除去蛇尾后」的任一身体坐标
+        重合（撞自身）。撞尾不算死，因为尾巴此刻正在移走。
+      - 方向防反转：changeDir 里禁止蛇直接掉头，防止穿身自杀。
+  引用资源：
+      - report.js?v=3：游戏结束调用 reportScore("snake", 分数) 上报排行榜。
+  视觉特性：
+      - 深色模式：读取 localStorage 的 theme，为 dark 时给 body 加 dark-mode 类；
+      - 蛇头用 outline 高亮、蛇尾用稍深色区分，食物为圆形红点。
+-->
+
 <head>
 
 <meta charset="UTF-8">
@@ -9,6 +29,7 @@
 
 <style>
 
+/* 全局：页面内容居中，使用无衬线字体 */
 body {
 
     text-align: center;
@@ -19,6 +40,7 @@ body {
 
 /* ===== 返回小游戏按钮 ===== */
 
+/* 固定在右上角，链接回小游戏大厅 */
 .back-home {
 
     position: fixed;
@@ -43,6 +65,7 @@ body {
 
 /* ===== 游戏区域 ===== */
 
+/* 游戏画布：320px 见方，用 CSS Grid 切成 20×20 的格子（每列 1fr 均分 20 份） */
 #game {
 
     width: 320px;
@@ -63,6 +86,7 @@ body {
 
 }
 
+/* 单个格子：由 JS 动态创建，填满所在网格单元并描出细边框 */
 .cell {
 
     width: 100%;
@@ -75,6 +99,7 @@ body {
 
 }
 
+/* 蛇身主体：绿色圆角方块 */
 .snake {
 
     background: #7bdc6c;
@@ -85,6 +110,7 @@ body {
 
 /* 蛇头：用 outline 代替 border，不占格子空间，线就不会动 */
 
+/* 蛇头样式：更亮的绿色 + 白色描边 + 发光，便于一眼认出方向 */
 .snake-head {
 
     background: #5fdd3d;
@@ -101,6 +127,7 @@ body {
 
 /* 蛇尾样式 */
 
+/* 蛇尾用稍暗的绿色，与身体形成区分，观感更像一条蛇 */
 .snake-tail {
 
     background: #5cb85c;
@@ -109,6 +136,7 @@ body {
 
 }
 
+/* 食物：红色圆点 */
 .food {
 
     background: #ff6b6b;
@@ -117,6 +145,7 @@ body {
 
 }
 
+/* 方向控制按钮：方块大按钮，便于手机点按 */
 button {
 
     width: 60px;
@@ -135,6 +164,7 @@ button {
 
 }
 
+/* 「重新开始」按钮：更宽、字号较小 */
 .restart {
 
     width: 130px;
@@ -145,6 +175,7 @@ button {
 
  /* ===== 深色模式 ===== */
 
+/* 深色模式：整页背景变深、文字变白 */
 body.dark-mode{
 
     background:#121212;
@@ -153,6 +184,7 @@ body.dark-mode{
 
 }
 
+/* 深色模式下：按钮深灰底白字 */
 .dark-mode button{
 
     background:#333;
@@ -162,6 +194,8 @@ body.dark-mode{
 }
 
 /* ===== 统计显示 ===== */
+
+/* 统计条：居中、半透明背景，用来显示最高分 */
 #stats{
     margin:15px auto;
     padding:10px;
@@ -170,6 +204,8 @@ body.dark-mode{
     border-radius:10px;
     display:inline-block;
 }
+
+/* 深色模式下统计条背景更透明，弱化对比 */
 .dark-mode #stats{
     background:rgba(255,255,255,0.05);
 }
