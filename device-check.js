@@ -45,9 +45,10 @@
         // 简短的 UA 摘要，展示在提示页中（只保留一段，无信息泄露）
         var uaShort = ua.replace(/\s+/g, " ").slice(0, 90);
 
-        // 「常见问题」入口：仅华为/鸿蒙设备可见（跳转到独立说明页 why-blocked.html，免责声明置顶）
-        var whyBlock = isHmHw
-            ? '<div class="why"><a href="/why-blocked.html">❓ 为什么我被拦截？</a></div>'
+        // 「常见问题」入口：所有被拦截设备均可看到（华为/鸿蒙→16 条说明页；苹果→通用适配说明页）
+        var whyPage = isHmHw ? "/why-blocked.html" : "/why-blocked-apple.html";
+        var whyBlock = notAdapted
+            ? '<div class="why"><a href="' + whyPage + '">❓ 为什么我被拦截？</a></div>'
             : '';
 
         // 随机延时 100-300ms 后给出适配提示（模拟设备能力检测耗时）

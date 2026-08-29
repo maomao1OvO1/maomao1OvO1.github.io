@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>为什么我被拦截？ - 毛毛的个人主页</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:linear-gradient(135deg,#e5dcff 0%,#ffffff 55%,#7c5cbf26 100%);color:#333}
+  .card{width:100%;max-width:480px;background:#ffffffd9;border:1px solid #e5dcff;border-radius:26px;
+    box-shadow:0 20px 60px rgba(101,67,165,.20);backdrop-filter:blur(6px);padding:28px 24px}
+  .logo{font-size:44px;line-height:1;margin-bottom:10px;text-align:center}
+  .name{font-size:20px;font-weight:800;color:#6543a5;text-align:center;margin-bottom:4px}
+  .sub{font-size:13px;color:#888;text-align:center;margin-bottom:18px}
+  /* 免责声明：置顶红色加粗（与主说明页同款） */
+  .note{font-weight:800;font-size:16px;color:#b0503c;background:#fff3f0;border:2px solid #e89a87;
+    border-radius:12px;padding:14px 18px;margin-bottom:18px;line-height:1.9;text-align:left}
+  .lists{font-size:15px;line-height:2.2;color:#555;background:#f7f4ff;border:1px solid #e5dcff;
+    border-radius:14px;padding:18px 20px;min-height:120px}
+  /* 底部「继续访问」入口 */
+  .enter{margin-top:16px;text-align:center}
+  .enter-tip{font-size:12px;color:#888;margin-bottom:10px}
+  .enter-btn{display:inline-block;background:#2563eb;color:#fff;font-size:15px;font-weight:600;
+    text-decoration:none;border-radius:10px;padding:11px 30px;border:none}
+  .back{text-align:center;margin-top:18px}
+  .back a{display:inline-block;color:#6543a5;font-size:14px;text-decoration:none;
+    border:1px solid #c9b8f0;border-radius:999px;padding:8px 22px}
+  @media (prefers-color-scheme:dark){
+    body{background:linear-gradient(135deg,#2a2140 0%,#14121e 55%,#1e1830 100%);color:#eee}
+    .card{background:#201a30dd;border-color:#4a3a78}
+    .name{color:#bb9cff}.sub{color:#9a92b5}
+    .note{background:#3a2220;border-color:#6a3f38;color:#ff9d8a}
+    .lists{background:#2a2142;border-color:#4a3a78;color:#b9b3d0}
+    .enter-tip{color:#9a92b5}.enter-btn{background:#3b82f6}
+    .back a{color:#bb9cff;border-color:#5a4b8f}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">❓</div>
+  <div class="name">为什么我被拦截？</div>
+  <div class="sub">毛毛的个人主页 · 设备限制说明</div>
+
+  <!-- 免责声明置顶：本站不作价值评价 -->
+  <div class="note">⚠️ 本站不对以下内容作任何价值评价；本站为个人站点，设备适配策略以站长说明为准。</div>
+
+  <div class="lists">
+    本站主要为桌面端设计，暂未适配 iOS / Mac 系统。<br>
+    建议使用 Windows 电脑或安卓设备访问，体验最佳。<br>
+    如您已在移动设备上继续访问，部分功能可能无法正常显示。<br>
+    感谢理解与支持。 🙏
+  </div>
+
+  <!-- 底部「继续访问」入口 -->
+  <div class="enter">
+    <div class="enter-tip">本站主要为桌面端设计，在移动设备上可能显示异常。</div>
+    <a class="enter-btn" href="/">继续访问（体验可能不佳）</a>
+  </div>
+
+  <div class="back"><a href="javascript:history.back()">← 返回</a></div>
+</div>
+</body>
+</html>
