@@ -1,32 +1,50 @@
 <!DOCTYPE html>
 <html>
 
+<!-- ════════════════════════════════════════════════════════════
+  文件：games.html —— 毛毛的自制小游戏（小游戏大厅）
+  定位：主页「🎮 自制小游戏」入口点击后进入的大厅页，集中列出所有自制小游戏入口卡片。
+  核心功能：以卡片形式展示 8 个小游戏（排行榜 / 猜数字 / 打字测试 / 2048 /
+            贪吃蛇 / 大鱼吃小鱼 / 五子棋 / 国际象棋 / 围棋），每张卡片可点击跳转到对应游戏子页。
+  引用的资源：
+    - 内联 <style>   —— 本页专属样式（卡片、按钮、深色模式、返回主页）
+    - games/ 子目录  —— ranking.html、guess.html、typing.html、2048.html、
+                        snake.html、fish.html、gomoku.html、chess.html、go/index.html
+  说明：本注释为教学文档，仅插入注释，未改动任何代码行为。
+════════════════════════════════════════════════════════════════ -->
+
 <head>
 <meta charset="UTF-8">
 <title>毛毛的自制小游戏</title>
 
+<!-- 本页内联样式：只影响这个小游戏大厅，不污染其他页面 -->
 <style>
 
+/* 全局基础样式：文字居中、默认字体 Arial */
 body {
     text-align: center;
     font-family: Arial;
 }
 
+/* 游戏卡片里的标题：去掉默认上边距、固定下方 12px 间距、字号 20px */
 .game-card h2{
     margin: 0 0 12px;
     font-size:20px;
 }
 
+/* 游戏卡片里的描述文字：去下边距、灰色、字号 14px */
 .game-card p{
     margin: 0 0 16px;
     color:#666;
     font-size:14px;
 }
 
+/* 游戏卡片里的按钮：顶部留 2px，让按钮不紧贴文字 */
 .game-card button{
     margin-top: 2px;
 }
 
+/* 游戏卡片容器：居中、内边距、宽度自适应(最小280px)、圆角、浅灰背景、柔和阴影 */
 .game-card {
     margin: 20px auto;
     padding: 26px 18px;
@@ -37,6 +55,7 @@ body {
     text-align: center;
 }
 
+/* 通用按钮样式：内边距、圆角、去边框、手型光标 */
 button {
     padding: 10px 26px;
     border-radius: 20px;
@@ -46,6 +65,7 @@ button {
 
 /* ===== 返回主页按钮 ===== */
 
+/* 固定在页面右上角的返回主页链接（视觉上做成按钮样式） */
 .back-home {
 
     position: fixed;
@@ -68,6 +88,7 @@ button {
 
 }
 
+/* 深色模式下的 body：深色背景 + 白字 */
 body.dark-mode{
 
     background:#121212;
@@ -76,12 +97,14 @@ body.dark-mode{
 
 }
 
+/* 深色模式下卡片背景变深 */
 .dark-mode .game-card{
 
     background:#222;
 
 }
 
+/* 深色模式下按钮背景变深、文字变白 */
 .dark-mode button{
 
     background:#333;
@@ -96,10 +119,12 @@ body.dark-mode{
 
 <body>
 
+<!-- 内联脚本：读取本地存储的主题设置。若用户在主站选了「深色」，
+     就给 body 加上 dark-mode 类，让本页也进入深色模式 -->
 <script>
 
 // ===== 读取深色模式 =====
-
+// 从 localStorage 取 theme，值为 "dark" 时给 body 添加 dark-mode 类
 if(localStorage.getItem("theme") === "dark"){
 
     document.body.classList.add("dark-mode");
@@ -108,8 +133,10 @@ if(localStorage.getItem("theme") === "dark"){
 
 </script>
 
+<!-- 页面主标题 -->
 <h1>🎮 毛毛的自制小游戏</h1>
 
+<!-- 游戏卡片 1：排行榜 → 跳转 games/ranking.html -->
 <div class="game-card">
 
 <h2>🏆 排行榜</h2>
@@ -124,10 +151,12 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+<!-- 固定右上角的返回主页链接（跳回 index.html） -->
 <a href="index.html" class="back-home">
 🏠 返回主页
 </a>
 
+<!-- 游戏卡片 2：猜数字 → games/guess.html -->
 <div class="game-card">
 
 <h2>猜数字</h2>
@@ -142,6 +171,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+<!-- 游戏卡片 3：打字测试 → games/typing.html -->
 <div class="game-card">
 
 <h2>打字测试</h2>
@@ -156,6 +186,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+<!-- 游戏卡片 4：2048 → games/2048.html -->
 <div class="game-card">
 
 <h2>🧩 2048</h2>
@@ -170,6 +201,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+<!-- 游戏卡片 5：贪吃蛇 → games/snake.html -->
 <div class="game-card">
 
 <h2>🐍 贪吃蛇</h2>
@@ -184,6 +216,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+<!-- 游戏卡片 6：大鱼吃小鱼 → games/fish.html -->
 <div class="game-card">
 
 <h2>🐟 大鱼吃小鱼</h2>
@@ -198,6 +231,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+<!-- 游戏卡片 7：五子棋 → games/gomoku.html -->
 <div class="game-card">
 
 <h2>⚫ 五子棋</h2>
@@ -212,6 +246,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+<!-- 游戏卡片 8：国际象棋 → games/chess.html -->
 <div class="game-card">
 
 <h2>♟️ 国际象棋</h2>
@@ -226,6 +261,7 @@ if(localStorage.getItem("theme") === "dark"){
 
 </div>
 
+<!-- 游戏卡片 9：围棋 → games/go/index.html（放在子目录里） -->
 <div class="game-card">
 
 <h2>⚫⚪ 围棋</h2>

@@ -1,22 +1,73 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 
+<!--
+  ════════════════════════════════════════════════════════════════════
+  📄 文件说明 —— 设备信息检测页 (device.html)
+  ════════════════════════════════════════════════════════════════════
+
+  【测试什么硬件】
+    本页通过浏览器提供的 Web API 读取并展示当前"设备 / 系统 / 浏览器"
+    维度的信息，帮助用户了解自己的运行环境，包括：
+    · 基本信息：设备平台、浏览器名称、语言、时区、在线状态
+    · 屏幕信息：CSS 分辨率、设备像素比 DPR、物理像素估算、窗口尺寸、
+                颜色深度、屏幕方向
+    · 性能信息：CPU 逻辑核心数、设备内存
+    · API 支持：摄像头、麦克风、手柄、振动、触摸、地理定位、电池
+    · 浏览器能力：LocalStorage、SessionStorage、Cookie、Service Worker
+    · User Agent：浏览器完整的 UA 字符串
+    · 电池实时状态：电量百分比、是否充电（浏览器支持时）
+
+  【用了哪些浏览器 API】
+    · navigator 对象：platform / userAgent / language / onLine /
+                       hardwareConcurrency / deviceMemory / cookieEnabled /
+                       getGamepads / vibrate / geolocation / getBattery /
+                       permissions(权限状态)
+    · screen 对象：width / height / colorDepth / orientation(屏幕方向)
+    · window 对象：devicePixelRatio(像素比) / innerWidth / innerHeight /
+                   addEventListener(在线离线事件监听)
+    · 存储类：localStorage / sessionStorage / cookie
+    · Service Worker 能力探测："serviceWorker" in navigator
+    · Intl.DateTimeFormat：读取时区
+    · navigator.permissions.query()：查询摄像头/麦克风授权状态
+    · screen.orientation：监听屏幕旋转变化
+
+  【测试流程】
+    1. 页面加载后(深色模式判断之后)执行底部 <script> 中的检测逻辑；
+    2. 先调用 set() 工具函数，把读取到的值写入对应 id 的 DOM 元素；
+    3. 基本信息类直接同步读取并写入；
+    4. 权限类(摄像头/麦克风)与电池为异步读取，通过 await / Promise 处理；
+    5. 其余能力用"特性探测"(in 操作符)判断某个 API 是否存在；
+    6. 存储类通过"写入→删除"试探是否抛错，从而判断是否可用；
+    7. 对可能抛出异常的操作统一用 try/catch 兜底，失败时写入"不可用"；
+    8. 页面还注册了"在线/离线""屏幕旋转""电池变化"等事件监听，
+       状态变化时实时更新页面。
+-->
+
+
 <head>
 
 <meta charset="UTF-8">
 
+<!-- 视口设置：让页面按设备宽度自适应缩放；initial-scale=1.0 表示初始缩放比例 1 -->
 <meta name="viewport"
 content="width=device-width,initial-scale=1.0">
 
 <title>ℹ️ 设备信息</title>
 <link rel="stylesheet" href="../hardware.css">
 
+<!--
+  CSS 样式表（默认浅色主题 + 卡片/按钮外观）。
+  下方另有一段"深色模式·黑调覆盖层"样式，用于适配主站深色体系。
+-->
 <style>
 
+/* ── 全局盒模型：所有元素宽度都按"边框+内边距"计入（content-box → border-box）── */
 *{
     box-sizing:border-box;
 }
 
+/* ── 页面主体：居中布局、浅色背景与默认文字色 ── */
 body{
     margin:0;
     padding:20px 10px;
@@ -26,15 +77,19 @@ body{
     color:#222;
 }
 
+/* ── 一级标题：上下留白，突出"设备信息" ── */
 h1{
     margin:15px 0 8px;
 }
 
+/* ── 副标题(.desc)：灰色功能说明文字，底部留白与卡片拉开距离 ── */
 .desc{
     color:#777;
     margin-bottom:20px;
 }
 
+/* ── 卡片(.card)：信息分区的白底圆角容器，水平居中、限宽 700px，
+      box-shadow 阴影用半透黑(#0002)呈"轻浮起"卡片质感 ── */
 .card{
     width:100%;
     max-width:700px;
@@ -46,12 +101,15 @@ h1{
     text-align:left;
 }
 
+/* ── 卡片标题(.card h2)：居中、加粗，成为每个分区的小标题 ── */
 .card h2{
     margin:0 0 15px;
     text-align:center;
     font-size:20px;
 }
 
+/* ── 信息行(.item)：flex 布局让"左侧标签 / 右侧值"两端对齐，
+      中间 gap 留空隙，底部用细线分隔相邻条目 ── */
 .item{
     display:flex;
     justify-content:space-between;
@@ -61,21 +119,25 @@ h1{
     border-bottom:1px solid #0001;
 }
 
+/* ── 每组最后一条不画分割线，避免与卡片底边重影 ── */
 .item:last-child{
     border-bottom:none;
 }
 
+/* ── 标签(.label)：左侧灰色字段名，固定最小宽度保证列表对齐 ── */
 .label{
     color:#777;
     min-width:120px;
 }
 
+/* ── 数值(.value)：右侧加粗，word-break:break-all 允许长 UA 串换行 ── */
 .value{
     font-weight:bold;
     text-align:right;
     word-break:break-all;
 }
 
+/* ── 状态色：ok=绿(可用/已允许)、no=红(不可用/已拒绝) ── */
 .ok{
     color:#27ae60;
 }
@@ -84,10 +146,12 @@ h1{
     color:#e74c3c;
 }
 
+/* ── 状态色：warn=橙(未询问/尽力提供/警告性结果) ── */
 .warn{
     color:#f39c12;
 }
 
+/* ── 交互按钮：白底紫字、圆角、限宽并居中，按下有缩小回馈 ── */
 button{
     width:90%;
     max-width:350px;
@@ -101,10 +165,12 @@ button{
     font-size:17px;
 }
 
+/* ── 按钮按下反馈：整体略微缩小(scale .97)，给用户"真的按到了"的触感 ── */
 button:active{
     transform:scale(.97);
 }
 
+/* ── 深色模式基础切换：深底 + 浅字（下方叠加层再强制细节）── */
 body.dark-mode{
     background:#121212;
     color:#eee;
@@ -126,6 +192,7 @@ body.dark-mode .label{
     color:#aaa;
 }
 
+/* ── 普通按钮在深色下变暗；返回按钮(.hardware-back)仍保持紫色高亮 ── */
 body.dark-mode button:not(.hardware-back){
     background:#333;
     color:#fff;
@@ -141,11 +208,17 @@ body.dark-mode button:not(.hardware-back){
 
 
 <style>
-/* ==== 深色模式·黑调覆盖层(主站深色体系) ==== */
+/* ==== 深色模式·黑调覆盖层(主站深色体系) ====
+   这段样式在 body 带有 .dark-mode 类时生效，用 !important 覆盖上方"基础主题"
+   里的浅色规则，保证与主站深色体系一致。 */
+
+/* ── 深色模式主背景：纯黑底 + 亮字 ── */
 body.dark-mode{
     background:#121212 !important;
     color:#eeeeee !important;
 }
+
+/* ── 深色模式下，所有"白底黑字"容器统一压暗成深灰卡片 ── */
 body.dark-mode .card,
 body.dark-mode .desc,
 body.dark-mode .note,
@@ -158,13 +231,19 @@ body.dark-mode select{
     color:#eeeeee !important;
     border-color:#333333 !important;
 }
+
+/* ── 深色下标题以浅紫色(#bb9cff)呈现，突出主站品牌色 ── */
 body.dark-mode .label,
 body.dark-mode h1,body.dark-mode h2,body.dark-mode h3{
     color:#bb9cff !important;
 }
+
+/* ── 正文/列表项/说明文字用中灰，避免刺眼 ── */
 body.dark-mode p,body.dark-mode li,body.dark-mode .desc p{
     color:#aaaaaa !important;
 }
+
+/* ── 返回按钮在深色下用更深的底，但文字保持品牌紫，便于辨认 ── */
 body.dark-mode .hardware-back{
     background:#222222 !important;
     color:#bb9cff !important;
@@ -175,15 +254,17 @@ body.dark-mode .hardware-back{
 
 <body>
 
+<!-- 页面标题：说明本页用途 -->
 <h1>ℹ️ 设备信息</h1>
 
+<!-- 页面副标题：说明本页能获取到的信息范围 -->
 <p class="desc">
 查看浏览器能够获取的设备与系统信息
 </p>
 
 
 <!-- ============================ -->
-<!-- 基本信息 -->
+<!-- 基本信息：设备平台 / 浏览器 / 语言 / 时区 / 在线状态 -->
 <!-- ============================ -->
 
 <div class="card">
@@ -219,7 +300,7 @@ body.dark-mode .hardware-back{
 
 
 <!-- ============================ -->
-<!-- 屏幕 -->
+<!-- 屏幕：CSS 分辨率 / DPR / 物理像素估算 / 窗口尺寸 / 颜色深度 / 方向 -->
 <!-- ============================ -->
 
 <div class="card">
@@ -260,7 +341,7 @@ body.dark-mode .hardware-back{
 
 
 <!-- ============================ -->
-<!-- 性能 -->
+<!-- 性能：CPU 逻辑核心数 / 设备内存（浏览器尽力提供，不一定可用） -->
 <!-- ============================ -->
 
 <div class="card">
@@ -281,7 +362,7 @@ body.dark-mode .hardware-back{
 
 
 <!-- ============================ -->
-<!-- API 支持 -->
+<!-- API 支持：摄像头 / 麦克风 / 手柄 / 振动 / 触摸 / 地理定位 / 电池 -->
 <!-- ============================ -->
 
 <div class="card">
@@ -327,7 +408,7 @@ body.dark-mode .hardware-back{
 
 
 <!-- ============================ -->
-<!-- 存储 -->
+<!-- 浏览器能力：LocalStorage / SessionStorage / Cookie / Service Worker -->
 <!-- ============================ -->
 
 <div class="card">
@@ -358,7 +439,7 @@ body.dark-mode .hardware-back{
 
 
 <!-- ============================ -->
-<!-- User Agent -->
+<!-- User Agent：展示浏览器完整的 UA 字符串（多行小字展示） -->
 <!-- ============================ -->
 
 <div class="card">
@@ -379,12 +460,14 @@ color:#777;
 </div>
 
 
+<!-- 刷新按钮：重新加载本页，触发重新检测 -->
 <button onclick="location.reload()">
 🔄 刷新设备信息
 </button>
 
 <br>
 
+<!-- 返回按钮：跳回硬件大厅首页 -->
 <button onclick="location.href='../index.html'" class="hardware-back">
 ← 返回硬件大厅
 </button>
@@ -395,6 +478,8 @@ color:#777;
 // ============================
 // 深色模式
 // ============================
+// 读取 localStorage 中保存的主题值；若为 "dark" 则给 body 加上 dark-mode 类，
+// 使页面切换到深色外观（对应上方"深色模式·黑调覆盖层"样式）。
 
 if(
     localStorage.getItem("theme")
@@ -412,6 +497,12 @@ if(
 // 工具
 // ============================
 
+// 通用写入函数：把检测结果 text 写入 id 对应的元素，并设置其状态样式 class。
+//   id   —— 要写入的目标元素 id
+//   text —— 要显示的文本内容
+//   type —— 状态 class 后缀："ok"(可用/绿)、"no"(不可用/红)、"warn"(警告/橙)、空字符串(默认)
+// 说明：本页所有"把检测值填充进页面"的动作都走这一个入口，统一管理
+//       显示文本、颜色语义，避免逐处手写 getElementById 造成重复。
 function set(
     id,
     text,
@@ -424,12 +515,18 @@ function set(
     el.textContent =
         text;
 
+    // 每次重写后都覆盖成 "value + 状态后缀"，
+    // 这样同一个元素能根据检测结果切绿/红/橙/默认四种样式。
     el.className =
         "value " + type;
 
 }
 
 
+// 布尔转显示：根据 condition 是否为真，返回 [显示文本, 状态class]。
+// 真 → ["可用","ok"]；假 → ["不可用","no"]。
+// 设计成一个函数返回"文本 + 状态色"两个值(RPG里的二元组)，
+// 以便调用处 pair 拆开后同时喂给 set() 的 text 和 type 两个参数。
 function yesNo(
     condition
 ){
@@ -444,7 +541,9 @@ function yesNo(
 // ============================
 // 基本信息
 // ============================
+// 依次读取并写入：设备平台 / 浏览器 / 语言 / 时区 / 在线状态。
 
+// 设备平台：navigator.platform 返回操作系统平台标识，取不到则显示"不可用"。
 set(
     "platform",
     navigator.platform ||
@@ -452,6 +551,17 @@ set(
 );
 
 
+// 浏览器识别：根据 UA 字符串中的关键字判断当前浏览器品牌。
+// 【判定思路】按"更特例 → 更通用"的顺序逐一过滤，命中即返回：
+//   1. 先查 "Edg/" —— 因为 Edge 的 UA 里同时含有 "Chrome/"（它基于 Chromium），
+//      必须放在 Chrome 之前查，否则会被误判成 Chrome；
+//   2. 再查 "Chrome/" —— 普通 Chromium 系（Chrome、部分国产套壳浏览器）；
+//   3. 再查 "Firefox/" —— Firefox 内核；
+//   4. 最后查 "Safari/" 且 "不含 Chrome/" —— Safari 的 UA 也含 "Safari/" 但
+//      其旧版 UA 同样可能带 "Chrome/"，所以用 "!ua.includes('Chrome/')" 排除干扰；
+//   5. 都不命中回退成"未知浏览器"。
+// 这套【先特征性强的关键字、用取反排除同串】的判断顺序是本函数的核心，
+// 顺序一旦颠倒(如把 Chrome 放最前)就会把 Edge 误判成 Chrome。
 function detectBrowser(){
 
     const ua =
@@ -510,6 +620,8 @@ set(
 );
 
 
+// 时区：通过 Intl.DateTimeFormat().resolvedOptions().timeZone 读取系统时区。
+// 某些环境可能不支持，因此用 try/catch 兜底，失败则显示"不可用"。
 try{
 
     set(
@@ -545,6 +657,8 @@ set(
 // 屏幕
 // ============================
 
+// CSS 分辨率：screen.width/height 返回的是"逻辑像素(CSS px)"，
+// 即浏览器渲染视图的尺寸，与真实物理像素不同。
 set(
     "screenSize",
     screen.width +
@@ -555,12 +669,17 @@ set(
 
 
 
+// 设备像素比 DPR：window.devicePixelRatio 表示"1 个 CSS 像素对应几个物理像素"。
+// 例如 DPR=3 表示一个 CSS 像素被 3×3 个物理像素渲染（常见于高分辨率手机屏）。
 set(
     "dpr",
     window.devicePixelRatio ||
     "不可用"
 );
 
+// 【物理像素估算】核心公式：物理像素 ≈ CSS 像素 × DPR。
+// 用 Math.round 四舍五入（不一定是整数，因缩放/系统 DPI 会带小数）。
+// 只有当 DPR 存在时才做估算，否则 DPR 缺失直接提示"无法估算"。
 if(window.devicePixelRatio){
 
     set(
@@ -588,6 +707,8 @@ if(window.devicePixelRatio){
 }
 
 
+// 窗口尺寸：window.innerWidth/Height 是当前"可视窗口"的 CSS 像素尺寸，
+// 注意它可能小于 screen 尺寸（浏览器窗口没占满屏幕时）。
 set(
     "windowSize",
     window.innerWidth +
@@ -597,6 +718,8 @@ set(
 );
 
 
+// 颜色深度：screen.colorDepth 记录每个像素用多少 bit 表示颜色（一般 24/32），
+// 数值越大能表现的色彩越丰富。
 set(
     "colorDepth",
     screen.colorDepth +
@@ -604,6 +727,8 @@ set(
 );
 
 
+// 屏幕方向：screen.orientation.type 返回横屏/竖屏等方向（如 "portrait-primary"）。
+// 旧版浏览器可能没有该 API，因此用 try/catch 兜底，取不到就显示"不可用"。
 try{
 
     set(
@@ -625,6 +750,8 @@ try{
 // 性能
 // ============================
 
+// CPU 逻辑核心：navigator.hardwareConcurrency 暴露"可用于运算的 CPU 逻辑核数"。
+// 注意：这是浏览器尽力提供的参考值，虚机/省电模式下可能被缩小，并非物理核数。
 set(
     "cores",
     navigator.hardwareConcurrency
@@ -634,6 +761,8 @@ set(
 );
 
 
+// 设备内存：navigator.deviceMemory 返回内存大小(GB)，属于"提示性"信息，
+// 只对 HTTPS 环境有效，且多数浏览器出于隐私会统一取整(常见 2/4/8)，仅供参考。
 set(
     "memory",
     navigator.deviceMemory
@@ -646,27 +775,33 @@ set(
 // ============================
 // API 支持
 // ============================
+// 【特性探测思路】用 "API名" in <宿主对象> 判断能力是否存在——只要该属性在对应
+// 对象上存在就认为可用，无需真正调用。下面逐个探测：
+//   手柄 getGamepads / 振动 vibrate / 触摸 / 地理定位 / 电池 getBattery。
 
-
-
-
+// 手柄：navigator.getGamepads 存在即支持 Gamepad API。
 const gamepad =
     "getGamepads" in navigator;
 
 
+// 振动：navigator.vibrate 存在即支持（Android/多数移动浏览器可用，桌面通常不支持）。
 const vibration =
     "vibrate" in navigator;
 
 
+// 触摸：布尔或——要么 window 上有 "ontouchstart" 触摸事件，
+// 要么 maxTouchPoints>0(最多同时支持的触点)，任一成立即视为支持触摸。
 const touch =
     "ontouchstart" in window ||
     navigator.maxTouchPoints > 0;
 
 
+// 地理定位：navigator.geolocation 对象存在即支持(需浏览器授权后才能拿到坐标)。
 const geolocation =
     "geolocation" in navigator;
 
 
+// 电池 API：navigator.getBattery 存在即支持(下方"电池"小节会做更深层读取)。
 const batteryAPI =
     "getBattery" in navigator;
 
