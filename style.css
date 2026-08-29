@@ -2877,6 +2877,18 @@ body.dark-mode .acc-hint{
     margin:4px 0;
 }
 
+/* ===== 账号菜单 按钮组（切换账号/退出登录，防重叠） ===== */
+.acc-btns{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+}
+.acc-btns .acc-small{
+    margin:0;
+    white-space:nowrap;
+}
+
 /* ============================================================
    深色模式 · 黑调统一覆盖层（原站点深色体系）
    追加层级覆盖，统一 body 下所有组件，避免灰调(121212/222)
