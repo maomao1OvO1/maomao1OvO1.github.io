@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>设备限制提示 - 毛毛的个人主页</title>
+<!--
+  文件：device-blocked.html —— 设备限制提示页（独立页面，专写界面，不与网站内容堆叠）
+  作用：device-check.js 检测到未适配设备（华为/鸿蒙、苹果 Mac、苹果手机/平板）时，
+        会把当前页面重定向到本页（URL 带 ?type=hw / mac / apple，按设备分流文案）。
+  注意：本页【不】挂 device-check.js / anti-bot.js —— 否则会无限跳转循环。
+  说明：文案与样式沿用 v14 提示页（浅紫渐变卡片 + 暗色适配），纯静态零依赖。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #e5dcff 0%, #ffffff 55%, #7c5cbf26 100%);
+    color: #333;
+  }
+  .card {
+    text-align: center; padding: 40px 30px; width: 100%; max-width: 400px;
+    background: #ffffffd9; border: 1px solid #e5dcff; border-radius: 26px;
+    box-shadow: 0 20px 60px rgba(101, 67, 165, .20); backdrop-filter: blur(6px);
+  }
+  .logo { font-size: 56px; line-height: 1; margin-bottom: 12px; }
+  .name { font-size: 22px; font-weight: 800; color: #6543a5; margin-bottom: 6px; }
+  .sub { font-size: 14px; color: #888; margin-bottom: 20px; }
+  .tag {
+    display: inline-block; padding: 7px 16px; border-radius: 999px;
+    font-size: 13px; font-weight: 700; background: #ffefdd; color: #c56a00; margin-bottom: 16px;
+  }
+  .lists {
+    text-align: left; font-size: 14px; line-height: 2; color: #555;
+    background: #f7f4ff; border: 1px solid #e5dcff; border-radius: 14px;
+    padding: 14px 18px; margin-bottom: 18px;
+  }
+  .info { font-size: 11px; color: #aaa; word-break: break-all; line-height: 1.6; margin-bottom: 14px; }
+  .foot { font-size: 12px; color: #997dcc; }
+  .why { margin-top: 8px; }
+  .why a {
+    display: inline-block; color: #7c5cbf; font-size: 13px; text-decoration: none;
+    border-bottom: 1px dashed #7c5cbf; padding-bottom: 1px; cursor: pointer;
+    margin-top: 4px;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: linear-gradient(135deg, #2a2140 0%, #14121e 55%, #1e1830 100%); color: #eee; }
+    .card { background: #201a30dd; border-color: #4a3a78; }
+    .name { color: #bb9cff; } .sub { color: #9a92b5; }
+    .lists { background: #2a2142; border-color: #4a3a78; color: #b9b3d0; }
+    .tag { background: #3a2a1a; color: #ffb25e; }
+    .info { color: #6d6690; } .foot { color: #8f7ac2; }
+    .why a { color: #bb9cff; border-color: #bb9cff; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🚧</div>
+    <div class="name">设备限制提示</div>
+    <div class="sub" id="sub">本站暂不支持你的设备，请使用安卓手机/平板或Windows电脑访问。</div>
+    <div class="tag" id="tag">已检测到你的系统</div>
+    <div class="lists">
+      · 请改用安卓手机 / 安卓平板 / Windows 电脑打开<br>
+      · 若你是在微信内打开的，请点右上角在浏览器打开
+    </div>
+    <div class="info" id="info"></div>
+    <div class="foot">毛毛的个人主页 · maomaowang.top</div>
+    <div class="why"><a id="why" href="/why-blocked.html">❓ 为什么我被拦截？</a></div>
+  </div>
+
+  <script>
+  // 按 device-check.js 传入的 ?type=… 参数分流文案与说明页链接（华为 → 16 条说明页；苹果/Mac → 通用说明页）
+  (function () {
+    var t = "hw";
+    var m = (location.search || "").match(/[?&]type=([a-z]+)/);
+    if (m) t = m[1];
+    var sub = document.getElementById("sub");
+    var tag = document.getElementById("tag");
+    var why = document.getElementById("why");
+    var info = document.getElementById("info");
+    if (t === "mac") {
+      sub.textContent = "本站暂不支持 Mac 系统，请使用 Windows 电脑访问。";
+      tag.textContent = "已检测到你的系统：苹果 Mac 电脑";
+      why.href = "/why-blocked-apple.html";
+    } else if (t === "apple") {
+      tag.textContent = "已检测到你的系统：苹果系统（iOS / iPadOS）";
+      why.href = "/why-blocked-apple.html";
+    } else {
+      tag.textContent = "已检测到你的系统：华为 / 鸿蒙设备";
+      why.href = "/why-blocked.html";
+    }
+    // UA 摘要（只展示一小段，无信息泄露）
+    info.textContent = "UA: " + (navigator.userAgent || "").replace(/\s+/g, " ").slice(0, 90);
+  })();
+  </script>
+</body>
+</html>

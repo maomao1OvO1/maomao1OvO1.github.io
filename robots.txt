@@ -1,0 +1,21 @@
+# robots.txt —— 爬虫访问协议（毛毛的个人主页）
+# 作用：告诉「守规矩的爬虫」哪些路径别碰（搜索引擎收录基于此规则）。
+# 注意：恶意爬虫根本不读这个文件——它们由 anti-bot.js 负责拦截。
+
+User-agent: *
+Allow: /
+Disallow: /games/admin.html
+Disallow: /games/users.html
+Disallow: /games/allplayers.html
+Disallow: /games/go/katago-test/
+Disallow: /games/stockfish/
+
+# 搜索引擎爬虫（再次显式放行，防止上面规则误伤收录）
+User-agent: Googlebot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: Bingbot
+Allow: /
