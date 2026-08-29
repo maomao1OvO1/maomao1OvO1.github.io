@@ -1,11 +1,13 @@
 /*
  * 文件：device-check.js —— 设备系统检测（站点门禁）
  * 功能：在页面加载最早期检测访客设备系统。
- *   【白名单规则】只有「安卓（Android）」和「Windows」设备放行访问；
- *   其余一切系统（苹果 iOS/iPadOS/Mac、鸿蒙 HarmonyOS、Linux 桌面等）一律拦截，
- *   立即用 document.write 整页替换为「设备限制提示页」（不进入网站任何内容）。
+ *   【白名单规则】放行：安卓 Android、Windows、Linux 桌面（含国产 UOS/麒麟/deepin）、
+ *   BSD（FreeBSD/OpenBSD/NetBSD）、Chrome OS（Chromebook）、小众设备（智能电视 Tizen/
+ *   webOS/Android TV、游戏机 Switch/PS/Xbox、KaiOS 功能机、搜索引擎爬虫 Googlebot 等）；
+ *   拦截：苹果三兄弟（iPhone/iPad/iPadOS/Mac 电脑）+ 鸿蒙（HarmonyOS 3/4/NEXT/OpenHarmony）。
+ *   命中拦截时立即用 document.write 整页替换为「设备限制提示页」（不进入网站任何内容）。
  * 定位：站内每个 HTML 页面的 <head> 内同步引入（<script src="/device-check.js?v=N"></script>），
- *       保证在任何内容渲染之前就完成拦截，不支持的设备不会看到页面资源。
+ *       保证在任何内容渲染之前就完成拦截，被拦设备不会看到页面资源。
  * 说明：纯 ES5 语法 + 零外部依赖，老浏览器/系统也能执行；本文件为教学文档，无敏感信息。
  */
 (function () {
@@ -17,16 +19,25 @@
     /* ── 2. 系统识别与白名单判定（放行条件） ── */
     // 鸿蒙：UA 含 HarmonyOS/Harmony/OpenHarmony（鸿蒙 3/4 的 UA 里会写 "Android 12"，那是伪装字样）
     var isHarmony = /HarmonyOS|Harmony|OpenHarmony/i.test(ua);
-    // 安卓：UA 含 "Android"，且排除鸿蒙 UA 里的 Android 伪装字样
-    var isAndroid = /Android/i.test(ua) && !isHarmony;
-    // Windows：UA 含 "Windows"（Windows 电脑/平板浏览器命中）
+    // 安卓：UA 含 "Android"（手机/平板/安卓微信/Android TV 均命中；鸿蒙伪装由 !isHarmony 排除）
+    var isAndroid = /Android/i.test(ua);
+    // Windows：UA 含 "Windows"（电脑/平板；老 Windows Phone 也含，均已停产可放行）
     var isWin = /Windows/i.test(ua);
-    // 放行 = 安卓或 Windows；其他全部拦截（Macintosh → Mac 电脑/iPad 伪装也拦）
-    var allowed = isAndroid || isWin;
+    // Linux 桌面：UA 带 X11 / Ubuntu / Fedora / Debian 等特征（含国产 UOS/麒麟，UA 里就是 Linux）
+    var isLinux = /X11|Ubuntu|Fedora|Debian|SteamOS|Linux/i.test(ua);
+    // BSD：FreeBSD / OpenBSD / NetBSD（macOS 的 UA 是 "Mac OS X"，不会误判）
+    var isBsd = /FreeBSD|OpenBSD|NetBSD/i.test(ua);
+    // Chrome OS：谷歌 Chromebook（UA 带 CrOS / Chrome OS）
+    var isChromeOs = /CrOS|Chrome OS/i.test(ua);
+    // 小众设备 & 程序发起方：智能电视（Tizen/webOS）、游戏机（Switch/PlayStation/Xbox）、
+    // 功能机（KaiOS）、搜索引擎爬虫（Googlebot/百度蜘蛛/必应）等——都放行
+    var isOther = /Tizen|webOS|KaiOS|Nintendo Switch|PlayStation|Xbox|Googlebot|Baiduspider|bingbot|JinaBot/i.test(ua);
+    // 放行 = 上述任一命中 且 不是鸿蒙（鸿蒙 UA 里也带 Android/Linux 字样，必须先排除）
+    var allowed = (isAndroid || isWin || isLinux || isBsd || isChromeOs || isOther) && !isHarmony;
 
     /* ── 3. 系统名识别（仅用于提示页展示） ── */
     // iPadOS 13+ Safari 把 UA 伪装成 Mac（Macintosh），用触屏点数>1 识别真 iPad；
-    // Mac 电脑无触屏（maxTouchPoints=0），但按白名单同样拦截。
+    // Mac 电脑无触屏（maxTouchPoints=0），同样拦截。
     var isIOS = /iPhone|iPad|iPod/i.test(ua) ||
         (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
     var isMac = /Macintosh/i.test(ua);
