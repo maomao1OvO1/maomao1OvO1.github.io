@@ -2643,6 +2643,8 @@ body.dark-mode .gate-main.guest{
     pointer-events:none;
     opacity:0;
     transform:scale(.7);
+    visibility:hidden;
+    transition:transform .22s ease-out, opacity .22s ease-out, visibility 0s linear .22s;
 }
 #accountBtn img{
     display:inline-block;
