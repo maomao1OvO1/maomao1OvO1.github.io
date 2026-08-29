@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>访问验证 - 毛毛的个人主页</title>
+<!--
+  文件：ab-blocked.html —— 访问验证页（独立页面）
+  作用：当 anti-bot.js 检测到「自动化访问」时，会把当前页面重定向到这个独立页面；
+        本页独占整个浏览器窗口，不会与网站内容堆叠。
+  按钮：「我是真人，放我进去」→ 写入 sessionStorage 放行标记（本会话内有效）
+        然后跳回被拦前的来源页（anti-bot.js 拦截时存放在 mm_ab_from，无来源则回首页）。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #0f172a;          /* 深色背景，与主页暗色风格一致 */
+    color: #e2e8f0;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px;
+  }
+  .card {
+    max-width: 420px; width: 100%;
+    text-align: center;
+    background: #1e293b;
+    border-radius: 16px;
+    padding: 36px 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .35);
+  }
+  .icon { font-size: 44px; margin-bottom: 12px; }
+  h1 { font-size: 20px; margin-bottom: 12px; color: #38bdf8; }
+  p  { font-size: 14px; line-height: 1.9; color: #94a3b8; margin-bottom: 24px; }
+  button {
+    background: #38bdf8; color: #0f172a; border: none;
+    border-radius: 8px; padding: 12px 26px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { background: #7dd3fc; }
+  .hint { margin-top: 16px; font-size: 12px; color: #64748b; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🧐</div>
+    <h1>访问验证</h1>
+    <p>检测到当前访问可能来自自动化采集工具（爬虫 / 无头浏览器）。<br>
+       本站内容欢迎真人浏览，请用正常浏览器打开 😊<br>
+       如果你就是真人：点击下方按钮即可进入。</p>
+    <button onclick="try{sessionStorage.setItem('mm_ab_bypass','1');var f=sessionStorage.getItem('mm_ab_from');location.href=(f&&f.indexOf('http')===0)?f:'/'}catch(e){location.href='/'}">
+      我是真人，放我进去
+    </button>
+    <div class="hint">放行标记仅本次会话有效，不影响下次访问</div>
+  </div>
+</body>
+</html>

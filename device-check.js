@@ -1,14 +1,16 @@
 /*
- * 文件：device-check.js —— 移动端适配检测（页面加载早期执行）
+ * 文件：device-check.js —— 移动端适配检测 v15（页面加载早期执行）
  * 功能：在页面渲染前检查访客设备，做「移动端适配提示」。
- *   匹配以下情况的设备会看到「设备限制提示」页（提示改用安卓/Windows 访问）：
+ *   匹配以下情况的设备会跳转到独立的提示页 /device-blocked.html（独占窗口，不与内容堆叠）：
  *     a) 系统标识包含 HarmonyOS / Harmony / OpenHarmony / Huawei；
- *     b) UA 为 Macintosh 且不含 iPhone/iPad 字样（即桌面 Mac，含伪装成 Mac 的平板之外的真实 Mac）；
+ *     b) UA 为 Macintosh 且不含 iPhone/iPad 字样（即桌面 Mac）；
  *     c) UA 含 iPhone / iPad / iPod 字样（苹果手机/平板）。
  *   其余设备（安卓/Windows/Linux/BSD/Chrome OS 等）正常运行网站。
- * 定位：站内每个 HTML 页面的 <head> 内同步引入（<script src="/device-check.js?v=N"></script>），
- *       保证在任何内容渲染之前就完成适配提示。
- * 说明：纯 ES5 语法 + 零外部依赖；提示附带随机延时（100-300ms）模拟设备能力检测耗时。
+ * 定位：站内每个 HTML 页面的 <head> 内同步引入（<script src="/device-check.js?v=15"></script>）。
+ * 说明：纯 ES5 语法 + 零外部依赖。
+ * v15 变更（2026-08-30）：原 v14 用 document.write 整页替换提示，实测移动端会写成「插入页面流」的
+ *   卡片堆叠（用户截图确认）——改为 location.replace 跳转独立页 /device-blocked.html?type=…，
+ *   文案按 type 分流（hw=华为/鸿蒙、mac=桌面 Mac、apple=iPhone/iPad），与 v14 体验一致。
  */
 (function () {
     "use strict";
@@ -26,78 +28,13 @@
     // 未适配 = 三者任一命中；安卓（不含上述字样）/Windows/其他设备自然放行
     var notAdapted = isHmHw || isMacPure || isApple;
 
-    /* ── 3. 提示用系统名（仅用于提示页展示） ── */
-    var sysName;
-    if (isHmHw) {
-        sysName = "华为 / 鸿蒙设备";
-    } else if (isMacPure) {
-        sysName = "苹果 Mac 电脑";
-    } else {
-        sysName = "苹果系统（iOS / iPadOS）";
-    }
-
-    /* ── 4. 未适配：整页替换为提示页 ── */
+    /* ── 3. 未适配：跳转到独立的设备限制提示页（按设备类型分流文案） ── */
     if (notAdapted) {
-        // 提示文案（按设备类型区分）
-        var msg = isMacPure
-            ? "本站暂不支持 Mac 系统，请使用 Windows 电脑访问。"
-            : "本站暂不支持你的设备，请使用安卓手机/平板或Windows电脑访问。";
-        // 简短的 UA 摘要，展示在提示页中（只保留一段，无信息泄露）
-        var uaShort = ua.replace(/\s+/g, " ").slice(0, 90);
-
-        // 「常见问题」入口：所有被拦截设备均可看到（华为/鸿蒙→16 条说明页；苹果→通用适配说明页）
-        var whyPage = isHmHw ? "/why-blocked.html" : "/why-blocked-apple.html";
-        var whyBlock = notAdapted
-            ? '<div class="why"><a href="' + whyPage + '">❓ 为什么我被拦截？</a></div>'
-            : '';
-
-        // 随机延时 100-300ms 后给出适配提示（模拟设备能力检测耗时）
-        var delay = 100 + Math.floor(Math.random() * 200);
-        setTimeout(function () {
-            document.write(
-                '<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8">' +
-                '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-                '<title>设备限制提示 - 毛毛的个人主页</title>' +
-                '<style>' +
-                '*{margin:0;padding:0;box-sizing:border-box}' +
-                'body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;' +
-                'min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;' +
-                'background:linear-gradient(135deg,#e5dcff 0%,#ffffff 55%,#7c5cbf26 100%);color:#333}' +
-                '.card{text-align:center;padding:40px 30px;width:100%;max-width:400px;' +
-                'background:#ffffffd9;border:1px solid #e5dcff;border-radius:26px;' +
-                'box-shadow:0 20px 60px rgba(101,67,165,.20);backdrop-filter:blur(6px)}' +
-                '.logo{font-size:56px;line-height:1;margin-bottom:12px}' +
-                '.name{font-size:22px;font-weight:800;color:#6543a5;margin-bottom:6px}' +
-                '.sub{font-size:14px;color:#888;margin-bottom:20px}' +
-                '.tag{display:inline-block;padding:7px 16px;border-radius:999px;font-size:13px;font-weight:700;' +
-                'background:#ffefdd;color:#c56a00;margin-bottom:16px}' +
-                '.lists{text-align:left;font-size:14px;line-height:2;color:#555;background:#f7f4ff;' +
-                'border:1px solid #e5dcff;border-radius:14px;padding:14px 18px;margin-bottom:18px}' +
-                '.info{font-size:11px;color:#aaa;word-break:break-all;line-height:1.6;margin-bottom:14px}' +
-                '.foot{font-size:12px;color:#997dcc}' +
-                '.why{margin-top:2px}.why a{display:inline-block;color:#7c5cbf;font-size:13px;text-decoration:none;' +
-                'border-bottom:1px dashed #7c5cbf;padding-bottom:1px;cursor:pointer}' +
-                '@media (prefers-color-scheme:dark){' +
-                'body{background:linear-gradient(135deg,#2a2140 0%,#14121e 55%,#1e1830 100%);color:#eee}' +
-                '.card{background:#201a30dd;border-color:#4a3a78}' +
-                '.name{color:#bb9cff}.sub{color:#9a92b5}.lists{background:#2a2142;border-color:#4a3a78;color:#b9b3d0}' +
-                '.tag{background:#3a2a1a;color:#ffb25e}.info{color:#6d6690}.foot{color:#8f7ac2}' +
-                '.why a{color:#bb9cff;border-color:#bb9cff}}' +
-                '</style></head><body>' +
-                '<div class="card">' +
-                '<div class="logo">🚧</div>' +
-                '<div class="name">设备限制提示</div>' +
-                '<div class="sub">' + msg + '</div>' +
-                '<div class="tag">已检测到你的系统：' + sysName + '</div>' +
-                '<div class="lists">' +
-                '· 请改用安卓手机 / 安卓平板 / Windows 电脑打开<br>' +
-                '· 若你是在微信内打开的，请点右上角在浏览器打开</div>' +
-                '<div class="info">UA: ' + uaShort + '</div>' +
-                '<div class="foot">毛毛的个人主页 · maomaowang.top</div>' +
-                whyBlock +
-                '</div></body></html>'
-            );
-            document.close(); // 结束写入：后续页面内容一律不加载
-        }, delay);
+        var type = isHmHw ? "hw" : (isMacPure ? "mac" : "apple");
+        try {
+            // location.replace = 不留历史记录的直接跳转（被拦设备无法用「返回」绕开）
+            window.location.replace("/device-blocked.html?type=" + type);
+        } catch (e) {}
     }
+    /* 适配设备：什么都不做，正常继续渲染页面 */
 })();
