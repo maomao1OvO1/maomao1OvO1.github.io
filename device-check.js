@@ -57,6 +57,11 @@
         // 简短的 UA 摘要，展示在提示页中让访客知道「为什么被拦」（只保留一段，无信息泄露）
         var uaShort = ua.replace(/\s+/g, " ").slice(0, 90);
 
+        // 「为什么我被拦截？」按钮：只有鸿蒙设备能点（点击跳转到独立说明页 why-blocked.html，免责声明置顶）
+        var whyBlock = isHarmony
+            ? '<div class="why"><a href="/why-blocked.html">❓ 为什么我被拦截？</a></div>'
+            : '';
+
         // 提示页：整屏紫渐变卡片 + 3 条说明 + 设备信息，样式全部内联，不依赖 CSS/JS
         document.write(
             '<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8">' +
@@ -79,11 +84,20 @@
             'border:1px solid #e5dcff;border-radius:14px;padding:14px 18px;margin-bottom:18px}' +
             '.info{font-size:11px;color:#aaa;word-break:break-all;line-height:1.6;margin-bottom:14px}' +
             '.foot{font-size:12px;color:#997dcc}' +
+            '.why{margin-top:2px}.why a{display:inline-block;color:#7c5cbf;font-size:13px;text-decoration:none;' +
+            'border-bottom:1px dashed #7c5cbf;padding-bottom:1px;cursor:pointer}' +
+            '.whyBox{display:none;text-align:left;font-size:13px;line-height:1.9;color:#666;background:#f7f4ff;' +
+            'border:1px solid #e5dcff;border-radius:12px;padding:12px 16px;margin-top:14px;max-height:300px;overflow-y:auto}' +
+            '.whyBox a{color:#7c5cbf;word-break:break-all}' +
+            '.note{font-weight:bold;font-size:15px;color:#b0503c;background:#fff3f0;border:1px solid #f0c8bd;' +
+            'border-radius:12px;padding:10px 14px;margin-top:16px;line-height:1.9}' +
             '@media (prefers-color-scheme:dark){' +
             'body{background:linear-gradient(135deg,#2a2140 0%,#14121e 55%,#1e1830 100%);color:#eee}' +
             '.card{background:#201a30dd;border-color:#4a3a78}' +
             '.name{color:#bb9cff}.sub{color:#9a92b5}.lists{background:#2a2142;border-color:#4a3a78;color:#b9b3d0}' +
-            '.tag{background:#3a2a1a;color:#ffb25e}.info{color:#6d6690}.foot{color:#8f7ac2}}' +
+            '.tag{background:#3a2a1a;color:#ffb25e}.info{color:#6d6690}.foot{color:#8f7ac2}' +
+            '.note{background:#3a2220;border-color:#6a3f38;color:#ff9d8a}' +
+            '.why a{color:#bb9cff;border-color:#bb9cff}.whyBox{background:#2a2142;border-color:#4a3a78;color:#b9b3d0}}' +
             '</style></head><body>' +
             '<div class="card">' +
             '<div class="logo">🚧</div>' +
@@ -96,6 +110,7 @@
             '· 若你是在微信内打开的，请点右上角在浏览器打开</div>' +
             '<div class="info">UA: ' + uaShort + '</div>' +
             '<div class="foot">毛毛的个人主页 · maomaowang.top</div>' +
+            whyBlock +
             '</div></body></html>'
         );
         document.close(); // 结束写入：后续页面内容一律不加载
