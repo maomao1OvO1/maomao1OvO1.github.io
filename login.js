@@ -280,12 +280,18 @@ function toggleAccountMenu(event){
     if(!m) return;
     const show = m.style.display !== "block";
     m.style.display = show ? "block" : "none";
+    // 菜单打开时隐藏底部账号卡片，避免互相盖住（菜单自带头像/名字/邮箱）
+    const btn = document.getElementById("accountBtn");
+    if(btn) btn.style.visibility = show ? "hidden" : "visible";
     if(show) updateAccountMenu(auth && auth.currentUser);
 }
 
 function hideAccountMenu(){
     const m = document.getElementById("accountMenu");
     if(m) m.style.display = "none";
+    // 关闭菜单时恢复账号卡片显示
+    const btn = document.getElementById("accountBtn");
+    if(btn) btn.style.visibility = "visible";
     // 收起展开的表单（更改密码/绑定邮箱），避免下次打开残留
     ["changePassBox","bindEmailBox"].forEach(function(id){
         const box = document.getElementById(id);
