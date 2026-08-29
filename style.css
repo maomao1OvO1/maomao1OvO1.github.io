@@ -2630,6 +2630,16 @@ body.dark-mode .gate-main.guest{
     background:#fff;
     border:none;
     border-radius:26px;
+    transform-origin:bottom left;
+    transition:transform .2s ease, opacity .2s ease, visibility .2s;
+}
+/* 隐藏态：从大变小+淡出（配合过渡动画） */
+#accountBtn.card-hide{
+    visibility:hidden;
+    opacity:0;
+    transform:scale(.6);
+    transition:transform .2s ease, opacity .2s ease, visibility 0s linear .2s;
+}
     box-shadow:0 4px 14px #0002;
     cursor:pointer;
     font-size:14px;
