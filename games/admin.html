@@ -482,7 +482,12 @@ function loadMessages(){
   var box = document.getElementById("msgList");
   if(!box) return;
   box.textContent = "加载中…";
-  fetch(FS_BASE + "/contact_messages").then(function(r){ if(!r.ok) throw new Error("http_"+r.status); return r.json(); })
+  var cur = (typeof firebase !== "undefined" && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
+  if(!cur){ box.textContent = "请先登录站长账号后再看留言"; return; }
+  cur.getIdToken().then(function(tk){
+    return fetch(FS_BASE + "/contact_messages", { headers: { Authorization: "Bearer " + tk } })
+    .then(function(r){ if(!r.ok) throw new Error("http_"+r.status); return r.json(); });
+  })
   .then(function(d){
     var docs = (d.documents || []).map(function(x){
       var f = x.fields || {};
