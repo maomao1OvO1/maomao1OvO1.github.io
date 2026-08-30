@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>为什么我被拦截？ - 毛毛的个人主页</title>
+<!--
+  文件：why-blocked-apple.html —— 为什么被拦截？（通用说明页）
+  内容：纯设备适配通用说明，不涉及任何厂商相关内容/敏感内容（2026-08-30 与 why-blocked.html 统一为同款通用版）。
+-->
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
@@ -14,12 +18,10 @@
   .logo{font-size:44px;line-height:1;margin-bottom:10px;text-align:center}
   .name{font-size:20px;font-weight:800;color:#6543a5;text-align:center;margin-bottom:4px}
   .sub{font-size:13px;color:#888;text-align:center;margin-bottom:18px}
-  /* 免责声明：置顶红色加粗（与主说明页同款） */
   .note{font-weight:800;font-size:16px;color:#b0503c;background:#fff3f0;border:2px solid #e89a87;
     border-radius:12px;padding:14px 18px;margin-bottom:18px;line-height:1.9;text-align:left}
   .lists{font-size:15px;line-height:2.2;color:#555;background:#f7f4ff;border:1px solid #e5dcff;
     border-radius:14px;padding:18px 20px;min-height:120px}
-  /* 底部「继续访问」入口 */
   .enter{margin-top:16px;text-align:center}
   .enter-tip{font-size:12px;color:#888;margin-bottom:10px}
   .enter-btn{display:inline-block;background:#2563eb;color:#fff;font-size:15px;font-weight:600;
@@ -43,17 +45,17 @@
   <div class="name">为什么我被拦截？</div>
   <div class="sub">毛毛的个人主页 · 设备限制说明</div>
 
-  <!-- 免责声明置顶：本站不作价值评价 -->
-  <div class="note">⚠️ 本站不对以下内容作任何价值评价；本站为个人站点，设备适配策略以站长说明为准。</div>
+  <!-- 免责声明置顶（温和版） -->
+  <div class="note">⚠️ 本站为个人站点，设备适配策略以站长说明为准。</div>
 
   <div class="lists">
-    本站主要为桌面端设计，暂未适配 iOS / Mac 系统。<br>
+    本站主要为桌面端设计，暂未适配部分设备的浏览器环境。<br>
     建议使用 Windows 电脑或安卓设备访问，体验最佳。<br>
     如您已在移动设备上继续访问，部分功能可能无法正常显示。<br>
     感谢理解与支持。 🙏
   </div>
 
-  <!-- 底部「继续访问」入口（苹果设备弹一次后放行：点击写 mm_dc_continue 标记，本会话内不再拦截） -->
+  <!-- 底部「继续访问」入口（弹一次后放行：点击写标记，之后不再拦截） -->
   <div class="enter">
     <div class="enter-tip">本站主要为桌面端设计，在移动设备上可能显示异常。</div>
     <a class="enter-btn" href="/?dc_ok=1" onclick="try{localStorage.setItem('mm_dc_pass','1')}catch(e){};try{sessionStorage.setItem('mm_dc_continue','1')}catch(e){}">继续访问（体验可能不佳）</a>
