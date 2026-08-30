@@ -53,10 +53,10 @@
     感谢理解与支持。 🙏
   </div>
 
-  <!-- 底部「继续访问」入口 -->
+  <!-- 底部「继续访问」入口（苹果设备弹一次后放行：点击写 mm_dc_continue 标记，本会话内不再拦截） -->
   <div class="enter">
     <div class="enter-tip">本站主要为桌面端设计，在移动设备上可能显示异常。</div>
-    <a class="enter-btn" href="/">继续访问（体验可能不佳）</a>
+    <a class="enter-btn" href="/" onclick="try{sessionStorage.setItem('mm_dc_continue','1')}catch(e){}">继续访问（体验可能不佳）</a>
   </div>
 
   <div class="back"><a href="javascript:history.back()">← 返回</a></div>
