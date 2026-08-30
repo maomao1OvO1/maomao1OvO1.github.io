@@ -456,10 +456,32 @@ value="1"
 
 <h2>📮 联系方式</h2>
 
-<!-- 联系方式：默认锁状态「请登录后查看」，登录后由 main.js 填入真实邮箱 -->
+<!-- 联系方式（2026-08-30 站长决定：邮箱下线，改留言箱；Firestore 直连国内不可达=天然筛选，规避风险） -->
 <p>
-<span id="contactEmail" class="contact-locked">🔒 请登录后查看</span>
+<button class="lg-btn" onclick="openContact()">💬 联系我</button>
+<span id="contactEmail" style="display:none"></span>
 </p>
+
+<!-- 留言弹窗（默认隐藏；需登录 + Firestore 直连；含蜜罐防机器人） -->
+<div id="contactBox" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:20px;">
+  <div style="max-width:420px;width:100%;background:#1e293b;border-radius:16px;padding:24px;color:#e2e8f0;box-shadow:0 8px 32px rgba(0,0,0,.35);">
+    <h3 style="margin:0 0 10px;color:#38bdf8;">💬 给站长留言</h3>
+    <p style="font-size:12px;color:#94a3b8;margin:0 0 14px;line-height:1.8;">
+      留言直达站长后台（Firebase）。需登录后发送；本机需能访问 Google 服务，部分网络环境可能暂时无法发送（会存本机稍后自动补发）。
+    </p>
+    <input id="contactName" maxlength="20" placeholder="你的昵称"
+      style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;">
+    <textarea id="contactText" maxlength="500" rows="4" placeholder="想说什么…"
+      style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;resize:vertical;"></textarea>
+    <!-- 蜜罐：真人不填、机器人必填（填了=静默失败） -->
+    <input id="contactHoney" type="text" tabindex="-1" autocomplete="off"
+      style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+    <div style="text-align:right;">
+      <button class="lg-btn" onclick="closeContact()" style="margin-right:8px;">取消</button>
+      <button class="lg-btn" onclick="subContact()">发送</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== 网站状态 ===== -->
 
@@ -670,6 +692,7 @@ updateTime();
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="firebase-config.js?v=2"></script>
 <script src="login.js?v=19" defer></script>
+<script src="contact.js?v=1" defer></script>
 
 </body>
 
