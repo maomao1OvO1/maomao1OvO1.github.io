@@ -67,10 +67,12 @@ if(localStorage.getItem("theme") === "dark"){
         <div class="scroll">
             <table id="tbl">
                 <thead><tr>
-                    <th>邮箱</th>
+                    <th>邮箱/账号</th>
                     <th>登录方式</th>
                     <th>注册时间</th>
                     <th>上次登录</th>
+                    <th>IP</th>
+                    <th>游客编号</th>
                 </tr></thead>
                 <tbody id="tbody"></tbody>
             </table>
@@ -136,11 +138,13 @@ function renderUsers(users){
     tbody.innerHTML = "";
     users.forEach(function(u){
         var tr = document.createElement("tr");
-        var td1 = document.createElement("td"); td1.className = "mail"; td1.textContent = u.email || u.displayName || "(无名)";
+        var td1 = document.createElement("td"); td1.className = "mail"; td1.textContent = u.email || u.displayName || u.guestName || "(无名)";
         var td2 = document.createElement("td"); td2.textContent = provLabel(u.providers);
         var td3 = document.createElement("td"); td3.textContent = fmtTime(u.createdAt);
         var td4 = document.createElement("td"); td4.textContent = fmtTime(u.lastSignInAt);
-        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+        var td5 = document.createElement("td"); td5.textContent = u.ip || "-";
+        var td6 = document.createElement("td"); td6.textContent = u.guestName || "-";
+        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4); tr.appendChild(td5); tr.appendChild(td6);
         tbody.appendChild(tr);
     });
 }
