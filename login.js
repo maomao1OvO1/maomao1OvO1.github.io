@@ -143,6 +143,12 @@ function gateGuest(){
     hideLoginGate();
     showUserBox("游客", "", null);
     updateContactEmail(null);
+    // 真实游客登录（匿名 Firebase 账号）：触发登录上报（IP/设备码/游客编号），失败不影响游客模式
+    try{
+        if(auth && firebase.auth && firebase.auth().signInAnonymously){
+            firebase.auth().signInAnonymously().catch(function(){});
+        }
+    }catch(e){}
 }
 
 // ===================== 登录方式(登录门第二步) =====================
@@ -308,10 +314,11 @@ function pickAvatar(user){
 //           移除游客标记，渲染账号按钮并恢复联系方式；最后强制隐藏登录门。
 function showLoginState(user, loggedIn){
     if(loggedIn && user){
-        const name = user.displayName || user.email;
+        const isGuest = !!(user.isAnonymous);          // 匿名账号 = 游客
+        const name = isGuest ? "游客" : (user.displayName || user.email);
         const photo = pickAvatar(user);
-        localStorage.setItem("authUser", JSON.stringify({name: name, email: user.email, photo: photo}));
-        localStorage.removeItem("guestMode");
+        localStorage.setItem("authUser", JSON.stringify({name: name, email: isGuest ? "" : user.email, photo: photo}));
+        if(isGuest){ localStorage.setItem("guestMode", "1"); } else { localStorage.removeItem("guestMode"); }
         showUserBox(name, photo, user);
         updateContactEmail(user);
     }
