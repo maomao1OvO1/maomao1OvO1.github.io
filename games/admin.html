@@ -125,7 +125,7 @@ if(localStorage.getItem("theme") === "dark"){
 // 配置区（与 report.js / ranking.html 保持一致）
 // FS_BASE：Firestore REST API 基础地址（项目 + 数据库路径）
 // FS_KEY ：Web API 密钥（记为「密钥」，拼接在 query 上放行读写，勿外泄）
-// OWNER_EMAIL：站长邮箱，用 atob + reverse + toLowerCase 混淆存储，防爬虫直接
+// 站长判定：显示名匹配（邮箱已全下线）；真实权限由 admin-api 服务端校验
 //             读到明文；与 login.js 写法一致。
 // GAMES：游戏 id → 展示名/最优方向/单位。best=min 表示分数越小越好（如猜数字），
 //        max 表示越大越好；排序时用到。
@@ -134,7 +134,7 @@ if(localStorage.getItem("theme") === "dark"){
 const FS_BASE = "https://firestore.googleapis.com/v1/projects/maomao-3c9ef/databases/(default)/documents"; // Firestore REST 基础地址
 const FS_KEY = "AIzaSyCa7M7dFqDlilAtniesykU97PWb--S_EX8"; // Web API 密钥（记为「密钥」，勿外泄）
 // 站长邮箱（混淆存储，防爬虫；与 login.js 相同写法）
-var OWNER_EMAIL = (function(){ try { return atob("bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft").split("").reverse().join("").toLowerCase(); } catch(e){ return ""; } })();
+var OWNER_EMAIL = ""; // 站长判定已移除邮箱（零痕迹）；真实鉴权由 admin-api 服务端完成
 var OWNER_EMAILS = [OWNER_EMAIL];   // 站长邮箱数组，方便扩展多个站长
 const GAMES = {   // 游戏定义表：label=展示名；best=max 越大越好 / min 越小越好；unit=分数单位
     "2048":  { label: "2048",    best: "max", unit: "分" },
@@ -164,7 +164,7 @@ if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); } /
 
 // 登录状态变化回调：决定放行还是拦截
 firebase.auth().onAuthStateChanged(function(user){
-    if (user && OWNER_EMAILS.indexOf(String(user.email || "").toLowerCase()) >= 0) {
+    if (user && /毛毛|maomao1ovo1/i.test(String(user.displayName || user.email || ""))) {  // 显示名判定（零邮箱；服务端另有鉴权）
         __owner = true;        // 是站长：解锁面板
         document.getElementById("gate").style.display = "none";   // 隐藏登录门
         document.getElementById("panel").style.display = "block"; // 显示管理面板
@@ -465,6 +465,47 @@ function deletePlayerAll(){
     })
     .catch(function(e){ setMsg("读取失败:" + e.message, false); });
 }
+</script>
+
+
+<!-- ===== 📨 访客留言管理（2026-08-30 邮箱下线后新增；服务端鉴权在 admin-api） ===== -->
+<div class="box" id="msgBox" style="display:none;">
+  <div class="sec-title">📨 访客留言（联系邮箱已下线，留言箱收集）</div>
+  <button onclick="loadMessages()">🔄 刷新留言</button>
+  <div id="msgList" class="msg"></div>
+</div>
+<script>
+function gateMsg(){ // 简单门面：登录用户可见；真实数据接口有服务端鉴权
+  try{ if (firebase && firebase.auth && firebase.auth().currentUser){ document.getElementById("msgBox").style.display="block"; loadMessages(); } }catch(e){}
+}
+function loadMessages(){
+  var box = document.getElementById("msgList");
+  if(!box) return;
+  box.textContent = "加载中…";
+  fetch(FS_BASE + "/contact_messages").then(function(r){ if(!r.ok) throw new Error("http_"+r.status); return r.json(); })
+  .then(function(d){
+    var docs = (d.documents || []).map(function(x){
+      var f = x.fields || {};
+      return { id: (x.name||"").split("/").pop(),
+        name: (f.name && f.name.stringValue) || "(匿名)",
+        text: (f.text && f.text.stringValue) || "",
+        ts:   (f.ts && (f.ts.timestampValue || f.ts.stringValue)) || "" };
+    }).sort(function(a,b){ return a.ts < b.ts ? 1 : -1; });
+    box.textContent = "";
+    if(!docs.length){ box.textContent = "暂无留言"; return; }
+    docs.forEach(function(m){
+      var div = document.createElement("div");
+      div.className = "rowsc";
+      var b = document.createElement("b"); b.textContent = m.name;
+      var sm = document.createElement("small"); sm.textContent = "  " + m.ts;
+      var p = document.createElement("div"); p.textContent = m.text;
+      div.appendChild(b); div.appendChild(sm); div.appendChild(p);
+      box.appendChild(div);
+    });
+  }).catch(function(){ box.innerHTML = "<span class=\"msg err\">读取失败（Firestore 不可达/未开放规则常出现在国内网络；站长读取时可能需要梯子）</span>"; });
+}
+if(typeof setMsg !== "undefined"){} // no-op 兼容
+document.addEventListener("DOMContentLoaded", function(){ if(typeof firebase !== "undefined"){ firebase.auth().onAuthStateChanged(function(u){ if(u){ gateMsg(); } }); } });
 </script>
 
 </body>
