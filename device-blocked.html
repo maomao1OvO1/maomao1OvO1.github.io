@@ -77,7 +77,7 @@
     </div>
     <div class="info" id="info"></div>
     <div class="foot">毛毛的个人主页 · maomaowang.top</div>
-    <div class="enter" id="enter" style="display:none"><a class="enter-btn" href="/" onclick="try{sessionStorage.setItem('mm_dc_continue','1')}catch(e){}">🔓 继续访问（体验可能不佳）</a></div>
+    <div class="enter" id="enter"><a class="enter-btn" href="/" onclick="try{sessionStorage.setItem('mm_dc_continue','1')}catch(e){}">🔓 继续访问（体验可能不佳）</a></div>
     <div class="why"><a id="why" href="/why-blocked.html">❓ 为什么我被拦截？</a></div>
   </div>
 
@@ -102,9 +102,9 @@
       tag.textContent = "已检测到你的系统：华为 / 鸿蒙设备";
       why.href = "/why-blocked.html";
     }
-    // 「继续访问」按钮：仅苹果（mac/apple）显示——华为/鸿蒙每次必拦，不提供入口（用户要求）
+    // 「继续访问」按钮：华为/苹果统一显示（v17 起所有设备都可点「继续访问」进站）
     var enter = document.getElementById("enter");
-    if (t !== "hw" && enter) enter.style.display = "";
+    if (enter) enter.style.display = "";
     // UA 摘要：只展示前 90 字符（避免超长换行刷屏），截断处加「…」不显示半截字符
     var uaTxt = (navigator.userAgent || "").replace(/\s+/g, " ");
     info.textContent = "UA: " + (uaTxt.length > 90 ? uaTxt.slice(0, 90) + "…" : uaTxt);
