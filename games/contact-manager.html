@@ -124,5 +124,12 @@ function loadMessages() {
   });
 }
 </script>
+<script>
+// 深色模式：与主站同一主题键 localStorage["theme"]，打开时自动应用
+try {
+  if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark-mode");
+} catch (e) {}
+</script>
+
 </body>
 </html>
