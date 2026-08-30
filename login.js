@@ -256,6 +256,18 @@ function updateContactEmail(user){
     }catch(e){}
 }
 
+
+// 「开发者 ▾」折叠子菜单：点一下展开/收起「用户管理 / 站长留言箱」（仅站长可见）
+function toggleDevSub(e) {
+    if (e && e.stopPropagation) e.stopPropagation();   // 别把账号菜单点关了
+    var sub = document.getElementById("devSubMenu");
+    if (!sub) return;
+    var open = sub.style.display === "block";
+    sub.style.display = open ? "none" : "block";
+    var c = document.getElementById("accDevCaret");
+    if (c) c.textContent = open ? "▾" : "▴";
+}
+
 // 头像选择：Google 优先 → GitHub 其次 → 邮箱(无头像) → 灰色默认
 function pickAvatar(user){
     try{
@@ -317,16 +329,16 @@ function showUserBox(name, photo, user){
             if(role) role.style.display = "inline";
             const ua = document.getElementById("userAdminWrap");
             if(ua) ua.style.display = "block";
-            const una = document.getElementById("accUserAdmin");
-            if(una) una.style.display = "inline-block";
+            const devsub = document.getElementById("devSubMenu");
+            if(devsub) devsub.style.display = "none";   // 默认收起，点「开发者 ▾」展开（仅站长）
         }else{
             n.classList.remove("gold-name");
             const role = document.getElementById("accRole");
             if(role) role.style.display = "none";
             const ua = document.getElementById("userAdminWrap");
             if(ua) ua.style.display = "none";
-            const una = document.getElementById("accUserAdmin");
-            if(una) una.style.display = "none";
+            const devsub = document.getElementById("devSubMenu");
+            if(devsub) devsub.style.display = "none";
         }
     }
     const img = document.getElementById("accPhoto");
