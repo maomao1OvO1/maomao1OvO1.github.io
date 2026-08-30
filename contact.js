@@ -10,7 +10,7 @@
 (function () {
     "use strict";
 
-    var FS_BASE = "https://firestore.googleapis.com/v1/projects/maomao-3c9ef/databases/(default)/documents";
+    var API_BASE = "https://maomao-admin-api.onrender.com";   // 留言收发走官方后台 API（服务端 Admin SDK 连 Firestore，前端不再直连 Google）
     var KEY_QUEUE = "mm_contact_queue";   // 本地待发队列
     var KEY_LIMIT = "mm_contact_last";    // 上次发送时间戳（限频用）
     var LIMIT_MS = 5 * 60 * 1000;         // 5 分钟 1 条
@@ -60,36 +60,39 @@
         var cu = (window.firebase && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
         if (!cu) { alert("登录状态已失效，请重新登录后再留言"); return; }
         cu.getIdToken().then(function (tk) {
-            return fetch(FS_BASE + "/contact_messages", {
+            return fetch(API_BASE + "/api/feedback/send", {
                 method: "POST",
-                headers: { Authorization: "Bearer " + tk },
-                body: JSON.stringify({ fields: fields })
+                headers: { Authorization: "Bearer " + tk, "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name, text: text })
             });
-        }).then(function (r) { if (!r.ok) throw new Error("http_" + r.status); return r.json(); })
-        .then(function () {
-            alert("✅ 留言已发送，感谢！站长后台可见。");
+        }).then(function (r) {
+            if (r.status === 401) { throw new Error("auth_fail"); }
+            if (!r.ok) throw new Error("http_" + r.status);
+            return r.json();
+        }).then(function () {
+            alert("✅ 留言已发送，站长后台可见。");
             closeContact();
-        }).catch(function () {
-            // 失败 → 入本地队列，稍后自动补发
+        }).catch(function (e) {
+            if (e && e.message === "auth_fail") { alert("登录已过期，请重新登录后再留言"); return; }
             var q = getQueue();
             q.push({ name: name, text: text, ts: new Date().toISOString() });
             saveQueue(q);
-            alert("⚠️ 当前网络暂时连不上留言服务（本地网络通往 Google 受限很常见）。\n已存本机，下次打开页面会自动补发。");
+            alert("⚠️ 暂时连不上留言服务（网络波动），已存本机，下次打开页面会自动补发。");
             closeContact();
         });
     }
 
-    /* ── 自动补发本地队列（页面加载时尝试） ── */
+    /* ── 自动补发本地队列（页面加载时尝试，经后台 API） ── */
     function flushQueue() {
         var q = getQueue();
         if (!q.length) return;
         var cu2 = (window.firebase && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
-        if (!cu2) return;   // 未登录状态不留着补发
+        if (!cu2) return;
         cu2.getIdToken().then(function (tk) {
-            return fetch(FS_BASE + "/contact_messages", {
+            return fetch(API_BASE + "/api/feedback/send", {
                 method: "POST",
-                headers: { Authorization: "Bearer " + tk },
-                body: JSON.stringify({ fields: { name: { stringValue: q[0].name }, text: { stringValue: q[0].text }, ts: { timestampValue: q[0].ts } } })
+                headers: { Authorization: "Bearer " + tk, "Content-Type": "application/json" },
+                body: JSON.stringify({ name: q[0].name, text: q[0].text })
             });
         }).then(function (r) { if (!r.ok) throw new Error("http_" + r.status); return r.json(); })
         .then(function () {
@@ -122,17 +125,19 @@ function loadMailbox() {
     var cur = (window.firebase && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
     if (!cur) { box.textContent = "请先登录站长账号（仅站长可看留言）"; return; }
     cur.getIdToken().then(function (tk) {
-        return fetch(FS_BASE + "/contact_messages", { headers: { Authorization: "Bearer " + tk } })
-        .then(function (r) { if (!r.ok) throw new Error("http_" + r.status); return r.json(); });
+        return fetch(API_BASE + "/api/feedback/list", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + tk, "Content-Type": "application/json" },
+            body: "{}"
+        });
+    }).then(function (r) {
+        if (r.status === 403) { throw new Error("forbidden"); }
+        if (!r.ok) throw new Error("http_" + r.status);
+        return r.json();
     }).then(function (d) {
-        var docs = (d.documents || []).map(function (x) {
-            var f = x.fields || {};
-            return {
-                name: (f.name && f.name.stringValue) || "(匿名)",
-                text: (f.text && f.text.stringValue) || "",
-                ts:   (f.ts && (f.ts.timestampValue || f.ts.stringValue)) || ""
-            };
-        }).sort(function (a, b) { return a.ts < b.ts ? 1 : -1; });
+        var docs = (d.messages || []).map(function (m) {
+            return { id: m.id, name: m.name || "(匿名)", text: m.text || "", ts: m.ts || "" };
+        });
         box.textContent = "";
         if (!docs.length) { box.textContent = "暂无留言"; return; }
         docs.forEach(function (m) {
@@ -144,8 +149,10 @@ function loadMailbox() {
             div.appendChild(b); div.appendChild(sm); div.appendChild(p);
             box.appendChild(div);
         });
-    }).catch(function () {
-        box.textContent = "读取失败：仅站长可读 / 或当前网络连不上 Firestore（需能访问 Google）";
+    }).catch(function (e) {
+        box.textContent = (e && e.message === "forbidden")
+            ? "仅站长可读（当前登录账号不是站长邮箱）"
+            : "读取失败：网络异常或后台服务未就绪（请稍后再试）";
     });
 }
 window.toggleMailBox = toggleMailBox;
