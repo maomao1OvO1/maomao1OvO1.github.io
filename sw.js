@@ -19,6 +19,7 @@ const CORE_ASSETS = [                      // 预缓存清单：SW 安装时一�
     "/device-blocked.html",               // 设备限制提示页（门禁拦截跳转目标）
     "/anti-bot.js?v=4",                    // 反爬虫守卫（自动化访问检测）
     "/ab-blocked.html",                     // 访问验证页（反爬拦截跳转目标）
+    "/contact.js?v=2",                     // 联系留言箱（Firestore 直连）
     "/why-blocked.html",
     "/why-blocked-apple.html",                  // 设备系统检测门禁（安卓/Windows 白名单版）
     "/maomao.jpg"                          // 网站封面/头像
