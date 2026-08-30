@@ -18,10 +18,12 @@
     <script src="/anti-bot.js?v=4"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
 <title>站长留言箱 · 毛毛</title>
 <style>
 body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
 h1 { color:#7C5CBF; }
+.hd { color:#6543a5; }
 .gate { max-width:480px; margin:40px auto; background:#fff; padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
 .box { max-width:640px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
 button { padding:9px 14px; border:none; border-radius:10px; font-size:15px; margin:4px; background:#7C5CBF; color:#fff; cursor:pointer; }
@@ -35,8 +37,14 @@ button.sec { background:#e5dcff; color:#6543a5; }
 .item small { color:#997dcc; }
 .item .txt { margin-top:3px; color:#444; word-break:break-word; }
 .back-home { position:fixed; top:20px; right:20px; background:#e5dcff; color:#6543a5; padding:10px 15px; border-radius:20px; text-decoration:none; font-size:16px; z-index:9; }
+/* ===== 深色模式（主题键=dark 或系统深色，与主站同款紫白风）===== */
 body.dark-mode { background:#121212; color:#fff; }
+body.dark-mode h1 { color:#bb9cff; }
+.dark-mode .hd { color:#bb9cff; }
 .dark-mode .box, .dark-mode .gate { background:#1e1e1e; color:#eee; }
+.dark-mode .msg { color:#bbb; }
+.dark-mode .msg.err { color:#ff8a8a; }
+.dark-mode .msg.ok { color:#7be08a; }
 .dark-mode .item { background:#2a2142; border-color:#4a3a78; }
 .dark-mode .item b { color:#bb9cff; }
 .dark-mode .item small { color:#8f7ac2; }
@@ -51,14 +59,14 @@ body.dark-mode { background:#121212; color:#fff; }
 <h1>📨 站长留言箱</h1>
 
 <div class="gate" id="gate">
-  <h1 style="color:#6543a5;">🔐 仅站长可用</h1>
+  <h1 class="hd">🔐 仅站长可用</h1>
   <p class="msg">登录站长账号后即可查看访客留言。</p>
   <button onclick="location.reload()">我已经登录，刷新</button>
 </div>
 
 <div class="box" id="panel" style="display:none;">
   <div style="display:flex;justify-content:space-between;align-items:center;">
-    <b style="color:#6543a5;">访客留言</b>
+    <b class="hd">访客留言</b>
     <button onclick="loadMessages()">🔄 刷新</button>
   </div>
   <div id="msg" class="msg">加载中…</div>
@@ -125,9 +133,17 @@ function loadMessages() {
 }
 </script>
 <script>
-// 深色模式：与主站同一主题键 localStorage["theme"]，打开时自动应用
+// 深色模式：优先跟随主站主题键 localStorage["theme"]；未设置过则跟随系统深色；实时响应切换
 try {
-  if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark-mode");
+  var mq = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+  function applyTheme() {
+    var t = localStorage.getItem("theme");
+    var dark = t ? t === "dark" : !!(mq && mq.matches);
+    document.body.classList.toggle("dark-mode", dark);
+  }
+  applyTheme();
+  if (mq && mq.addEventListener) mq.addEventListener("change", applyTheme);
+  window.addEventListener("storage", applyTheme); // 主站其他标签页切主题时同步
 } catch (e) {}
 </script>
 
