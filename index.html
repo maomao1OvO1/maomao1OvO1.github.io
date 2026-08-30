@@ -459,11 +459,10 @@ value="1"
 <!-- 联系方式（2026-08-30 站长决定：邮箱下线，改留言箱；Firestore 直连国内不可达=天然筛选，规避风险） -->
 <p>
 <button class="lg-btn" onclick="openContact()">💬 联系我</button>
-<button class="lg-btn" id="mailBoxBtn" onclick="toggleMailBox()" style="margin-left:6px;">📨 站长留言箱</button>
 <span id="contactEmail" style="display:none"></span>
 </p>
 
-<!-- 站长留言箱（查看访客留言，仅站长可读；默认隐藏，点按钮展开） -->
+<!-- 站长留言箱面板（仅站长可读；入口在账号菜单「开发者▾」子项，普通访客看不到） -->
 <div id="mailBox" class="mail-panel" style="display:none;">
   <div>
     <div style="display:flex;justify-content:space-between;align-items:center;">
