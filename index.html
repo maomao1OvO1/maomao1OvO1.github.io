@@ -619,9 +619,12 @@ updateTime();
     <!-- 头像旁的文字列：昵称 + 角色 + （管理员才出现的「用户管理」链接） -->
     <span id="accLabelWrap" style="display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.2;">
         <span id="accName">游客</span>
-        <span id="accRole">开发者</span>
+        <span id="accRole" style="display:none;">开发者 <span id="accDevCaret" onclick="toggleDevSub(event)" style="cursor:pointer;font-size:10px;color:#7C5CBF;">▾</span></span>
         <!-- 管理员专属入口（display:none 默认隐藏，管理员时显示）；stopPropagation 防止点击冒泡触发按钮菜单 -->
-        <a id="accUserAdmin" href="games/users.html" target="_blank" rel="noopener" style="display:none;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">用户管理</a>
+        <span id="devSubMenu" style="display:none;">
+          <a id="accUserAdmin" href="games/users.html" target="_blank" rel="noopener" style="display:block;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">用户管理</a>
+          <a id="accMsgLink" href="#mailbox" style="display:block;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">站长留言箱</a>
+        </span>
     </span>
     <!-- 下拉箭头指示 -->
     <span id="accCaret">▾</span>
