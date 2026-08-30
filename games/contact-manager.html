@@ -36,6 +36,7 @@ button.sec { background:#e5dcff; color:#6543a5; }
 .item b { color:#6543a5; }
 .item small { color:#997dcc; }
 .item .txt { margin-top:3px; color:#444; word-break:break-word; }
+.item .del { margin-left:10px; margin-top:2px; padding:2px 9px; font-size:12px; background:#fff; color:#c94f4f; border:1px solid #c94f4f; border-radius:8px; cursor:pointer; }
 .back-home { position:fixed; top:20px; right:20px; background:#e5dcff; color:#6543a5; padding:10px 15px; border-radius:20px; text-decoration:none; font-size:16px; z-index:9; }
 /* ===== 深色模式（主题键=dark 或系统深色，与主站同款紫白风）===== */
 body.dark-mode { background:#121212; color:#fff; }
@@ -49,6 +50,7 @@ body.dark-mode h1 { color:#bb9cff; }
 .dark-mode .item b { color:#bb9cff; }
 .dark-mode .item small { color:#8f7ac2; }
 .dark-mode .item .txt { color:#ccc; }
+.dark-mode .item .del { background:#2a2142; }
 .dark-mode button.sec { background:#333; color:#bb9cff; }
 .dark-mode .back-home { background:#333; color:#bb9cff; }
 </style>
@@ -119,8 +121,12 @@ function loadMessages() {
       div.className = "item";
       var b = document.createElement("b"); b.textContent = m.name || "(匿名)";
       var sm = document.createElement("small"); sm.textContent = "  " + (m.ts || "");
+      var ip = document.createElement("small"); ip.textContent = "  IP：" + (m.ip || "未记录");
+      var del = document.createElement("button"); del.className = "del"; del.textContent = "🗑 删除";
+      del.onclick = function () { deleteMessage(m.id, m.name || "(匿名)"); };
       var t = document.createElement("div"); t.className = "txt"; t.textContent = m.text || "";
-      div.appendChild(b); div.appendChild(sm); div.appendChild(t);
+      div.appendChild(b); div.appendChild(sm); div.appendChild(ip); div.appendChild(del);
+      div.appendChild(t);
       list.appendChild(div);
     });
   }).catch(function (e) {
@@ -129,6 +135,26 @@ function loadMessages() {
     msg.textContent = (e && e.message === "forbidden")
       ? "仅站长可用（当前登录账号不是站长）"
       : "读取失败：网络异常或后台服务未就绪（请稍后再试）";
+  });
+}
+
+// 删除留言（仅站长，后端二次校验；confirm 防误删）
+function deleteMessage(id, name) {
+  if (!window.confirm("确定删除「" + name + "」的这条留言吗？")) return;
+  var cur = firebase.auth().currentUser;
+  if (!cur) return;
+  cur.getIdToken().then(function (tk) {
+    return fetch(API_BASE + "/api/feedback/delete", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + tk, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: id })
+    });
+  }).then(function (r) {
+    if (r.status === 403) throw new Error("forbidden");
+    if (!r.ok) throw new Error("http_" + r.status);
+    loadMessages();
+  }).catch(function (e) {
+    alert(e && e.message === "forbidden" ? "仅站长可用" : "删除失败：网络异常或后台服务未就绪（请稍后再试）");
   });
 }
 </script>
