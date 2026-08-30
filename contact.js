@@ -102,7 +102,16 @@
         }).catch(function () { /* 连不上就下次再试 */ });
     }
 
-    document.addEventListener("DOMContentLoaded", flushQueue);
+    document.addEventListener("DOMContentLoaded", function(){ flushQueue(); onHashMailbox(); });
+    window.addEventListener("hashchange", onHashMailbox);
+    function onHashMailbox(){
+        if(location.hash !== "#mailbox") return;
+        var box = document.getElementById("mailBox");
+        if(!box) return;
+        box.style.display = "block";
+        loadMailbox();
+        box.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
 
     // 暴露到全局（index.html 按钮 onclick 使用）
     window.openContact = openContact;
