@@ -464,32 +464,30 @@ value="1"
 </p>
 
 <!-- 站长留言箱（查看访客留言，仅站长可读；默认隐藏，点按钮展开） -->
-<div id="mailBox" style="display:none;max-width:620px;margin:12px auto;text-align:left;">
-  <div style="background:#1e293b;border-radius:12px;padding:14px 16px;color:#e2e8f0;">
+<div id="mailBox" class="mail-panel" style="display:none;">
+  <div>
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <b style="color:#38bdf8;">📨 访客留言（站长视角）</b>
+      <b class="mail-head">📨 访客留言（站长视角）</b>
       <button class="lg-btn" onclick="loadMailbox()">🔄 刷新</button>
     </div>
-    <div id="mailList" style="margin-top:10px;font-size:14px;line-height:1.8;">点击刷新加载…</div>
+    <div id="mailList" class="mail-list">点击刷新加载…</div>
   </div>
 </div>
 
 <!-- 留言弹窗（默认隐藏；需登录 + Firestore 直连；含蜜罐防机器人） -->
-<div id="contactBox" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:20px;">
-  <div style="max-width:420px;width:100%;background:#1e293b;border-radius:16px;padding:24px;color:#e2e8f0;box-shadow:0 8px 32px rgba(0,0,0,.35);">
-    <h3 style="margin:0 0 10px;color:#38bdf8;">💬 给站长留言</h3>
-    <p style="font-size:12px;color:#94a3b8;margin:0 0 14px;line-height:1.8;">
+<div id="contactBox" class="mail-overlay" style="display:none;">
+  <div class="mail-card">
+    <h3>💬 给站长留言</h3>
+    <p class="mail-hint">
       留言直达站长后台（Firebase）。需登录后发送；本机需能访问 Google 服务，部分网络环境可能暂时无法发送（会存本机稍后自动补发）。
     </p>
-    <input id="contactName" maxlength="20" placeholder="你的昵称"
-      style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;">
-    <textarea id="contactText" maxlength="500" rows="4" placeholder="想说什么…"
-      style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;resize:vertical;"></textarea>
+    <input id="contactName" class="lg-input" maxlength="20" placeholder="你的昵称" style="width:100%;margin-bottom:10px;">
+    <textarea id="contactText" class="lg-input" maxlength="500" rows="4" placeholder="想说什么…" style="width:100%;resize:vertical;"></textarea>
     <!-- 蜜罐：真人不填、机器人必填（填了=静默失败） -->
     <input id="contactHoney" type="text" tabindex="-1" autocomplete="off"
       style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
-    <div style="text-align:right;">
-      <button class="lg-btn" onclick="closeContact()" style="margin-right:8px;">取消</button>
+    <div class="mail-ops">
+      <button class="lg-btn sec" onclick="closeContact()">取消</button>
       <button class="lg-btn" onclick="subContact()">发送</button>
     </div>
   </div>
