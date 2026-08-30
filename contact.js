@@ -57,9 +57,14 @@
             text: { stringValue: text },
             ts:   { timestampValue: new Date().toISOString() }
         };
-        fetch(FS_BASE + "/contact_messages", {
-            method: "POST",
-            body: JSON.stringify({ fields: fields })
+        var cu = (window.firebase && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
+        if (!cu) { alert("登录状态已失效，请重新登录后再留言"); return; }
+        cu.getIdToken().then(function (tk) {
+            return fetch(FS_BASE + "/contact_messages", {
+                method: "POST",
+                headers: { Authorization: "Bearer " + tk },
+                body: JSON.stringify({ fields: fields })
+            });
         }).then(function (r) { if (!r.ok) throw new Error("http_" + r.status); return r.json(); })
         .then(function () {
             alert("✅ 留言已发送，感谢！站长后台可见。");
@@ -78,9 +83,14 @@
     function flushQueue() {
         var q = getQueue();
         if (!q.length) return;
-        fetch(FS_BASE + "/contact_messages", {
-            method: "POST",
-            body: JSON.stringify({ fields: { name: { stringValue: q[0].name }, text: { stringValue: q[0].text }, ts: { timestampValue: q[0].ts } } })
+        var cu2 = (window.firebase && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
+        if (!cu2) return;   // 未登录状态不留着补发
+        cu2.getIdToken().then(function (tk) {
+            return fetch(FS_BASE + "/contact_messages", {
+                method: "POST",
+                headers: { Authorization: "Bearer " + tk },
+                body: JSON.stringify({ fields: { name: { stringValue: q[0].name }, text: { stringValue: q[0].text }, ts: { timestampValue: q[0].ts } } })
+            });
         }).then(function (r) { if (!r.ok) throw new Error("http_" + r.status); return r.json(); })
         .then(function () {
             q.shift();
