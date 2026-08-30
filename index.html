@@ -459,8 +459,20 @@ value="1"
 <!-- 联系方式（2026-08-30 站长决定：邮箱下线，改留言箱；Firestore 直连国内不可达=天然筛选，规避风险） -->
 <p>
 <button class="lg-btn" onclick="openContact()">💬 联系我</button>
+<button class="lg-btn" id="mailBoxBtn" onclick="toggleMailBox()" style="margin-left:6px;">📨 站长留言箱</button>
 <span id="contactEmail" style="display:none"></span>
 </p>
+
+<!-- 站长留言箱（查看访客留言，仅站长可读；默认隐藏，点按钮展开） -->
+<div id="mailBox" style="display:none;max-width:620px;margin:12px auto;text-align:left;">
+  <div style="background:#1e293b;border-radius:12px;padding:14px 16px;color:#e2e8f0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <b style="color:#38bdf8;">📨 访客留言（站长视角）</b>
+      <button class="lg-btn" onclick="loadMailbox()">🔄 刷新</button>
+    </div>
+    <div id="mailList" style="margin-top:10px;font-size:14px;line-height:1.8;">点击刷新加载…</div>
+  </div>
+</div>
 
 <!-- 留言弹窗（默认隐藏；需登录 + Firestore 直连；含蜜罐防机器人） -->
 <div id="contactBox" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:20px;">

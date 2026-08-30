@@ -468,50 +468,7 @@ function deletePlayerAll(){
 </script>
 
 
-<!-- ===== 📨 访客留言管理（2026-08-30 邮箱下线后新增；服务端鉴权在 admin-api） ===== -->
-<div class="box" id="msgBox" style="display:none;">
-  <div class="sec-title">📨 访客留言（联系邮箱已下线，留言箱收集）</div>
-  <button onclick="loadMessages()">🔄 刷新留言</button>
-  <div id="msgList" class="msg"></div>
-</div>
-<script>
-function gateMsg(){ // 简单门面：登录用户可见；真实数据接口有服务端鉴权
-  try{ if (firebase && firebase.auth && firebase.auth().currentUser){ document.getElementById("msgBox").style.display="block"; loadMessages(); } }catch(e){}
-}
-function loadMessages(){
-  var box = document.getElementById("msgList");
-  if(!box) return;
-  box.textContent = "加载中…";
-  var cur = (typeof firebase !== "undefined" && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
-  if(!cur){ box.textContent = "请先登录站长账号后再看留言"; return; }
-  cur.getIdToken().then(function(tk){
-    return fetch(FS_BASE + "/contact_messages", { headers: { Authorization: "Bearer " + tk } })
-    .then(function(r){ if(!r.ok) throw new Error("http_"+r.status); return r.json(); });
-  })
-  .then(function(d){
-    var docs = (d.documents || []).map(function(x){
-      var f = x.fields || {};
-      return { id: (x.name||"").split("/").pop(),
-        name: (f.name && f.name.stringValue) || "(匿名)",
-        text: (f.text && f.text.stringValue) || "",
-        ts:   (f.ts && (f.ts.timestampValue || f.ts.stringValue)) || "" };
-    }).sort(function(a,b){ return a.ts < b.ts ? 1 : -1; });
-    box.textContent = "";
-    if(!docs.length){ box.textContent = "暂无留言"; return; }
-    docs.forEach(function(m){
-      var div = document.createElement("div");
-      div.className = "rowsc";
-      var b = document.createElement("b"); b.textContent = m.name;
-      var sm = document.createElement("small"); sm.textContent = "  " + m.ts;
-      var p = document.createElement("div"); p.textContent = m.text;
-      div.appendChild(b); div.appendChild(sm); div.appendChild(p);
-      box.appendChild(div);
-    });
-  }).catch(function(){ box.innerHTML = "<span class=\"msg err\">读取失败（Firestore 不可达/未开放规则常出现在国内网络；站长读取时可能需要梯子）</span>"; });
-}
-if(typeof setMsg !== "undefined"){} // no-op 兼容
-document.addEventListener("DOMContentLoaded", function(){ if(typeof firebase !== "undefined"){ firebase.auth().onAuthStateChanged(function(u){ if(u){ gateMsg(); } }); } });
-</script>
+
 
 </body>
 </html>

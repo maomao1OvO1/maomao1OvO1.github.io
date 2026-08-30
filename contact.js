@@ -106,3 +106,47 @@
     window.closeContact = closeContact;
     window.subContact = subContact;
 })();
+
+
+/* ===================== 站长留言箱（首页直接查看，仅站长可读） ===================== */
+function toggleMailBox() {
+    var box = document.getElementById("mailBox");
+    if (!box) return;
+    box.style.display = (box.style.display === "none" || !box.style.display) ? "block" : "none";
+    if (box.style.display === "block") loadMailbox();
+}
+function loadMailbox() {
+    var box = document.getElementById("mailList");
+    if (!box) return;
+    box.textContent = "加载中…";
+    var cur = (window.firebase && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
+    if (!cur) { box.textContent = "请先登录站长账号（仅站长可看留言）"; return; }
+    cur.getIdToken().then(function (tk) {
+        return fetch(FS_BASE + "/contact_messages", { headers: { Authorization: "Bearer " + tk } })
+        .then(function (r) { if (!r.ok) throw new Error("http_" + r.status); return r.json(); });
+    }).then(function (d) {
+        var docs = (d.documents || []).map(function (x) {
+            var f = x.fields || {};
+            return {
+                name: (f.name && f.name.stringValue) || "(匿名)",
+                text: (f.text && f.text.stringValue) || "",
+                ts:   (f.ts && (f.ts.timestampValue || f.ts.stringValue)) || ""
+            };
+        }).sort(function (a, b) { return a.ts < b.ts ? 1 : -1; });
+        box.textContent = "";
+        if (!docs.length) { box.textContent = "暂无留言"; return; }
+        docs.forEach(function (m) {
+            var div = document.createElement("div");
+            div.style.cssText = "border:1px solid #334155;border-radius:8px;padding:8px 10px;margin-bottom:8px;";
+            var b = document.createElement("b"); b.textContent = m.name;
+            var sm = document.createElement("small"); sm.textContent = "  " + m.ts; sm.style.color = "#94a3b8";
+            var p = document.createElement("div"); p.textContent = m.text; p.style.marginTop = "4px";
+            div.appendChild(b); div.appendChild(sm); div.appendChild(p);
+            box.appendChild(div);
+        });
+    }).catch(function () {
+        box.textContent = "读取失败：仅站长可读 / 或当前网络连不上 Firestore（需能访问 Google）";
+    });
+}
+window.toggleMailBox = toggleMailBox;
+window.loadMailbox = loadMailbox;
