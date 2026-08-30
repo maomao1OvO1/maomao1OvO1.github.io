@@ -1,0 +1,128 @@
+<!--
+文件：games/contact-manager.html —— 站长留言箱（独立管理页）
+用途：仅站长可用。站长登录后，展示访客留言（昵称/内容/时间）。
+核心逻辑：
+  1) Firebase Auth 判断已登录并取得 ID Token（站长身份校验在后台服务端完成，本页不涉及任何邮箱信息）；
+  2) 带 Bearer 令牌请求 maomao-admin-api 的 /api/feedback/list（服务端校验站长邮箱后返回留言列表）；
+  3) 403 = 非站长 → 提示「仅站长可用」；网络失败 → 提示后台未就绪（不涉及 Google 直连，前端零邮箱）。
+引用资源：
+  - Firebase App / Auth（gstatic CDN v9.23.0 compat 版）；
+  - ../firebase-config.js（Firebase 初始化配置）；
+  - 后端接口 https://maomao-admin-api.onrender.com/api/feedback/list。
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+<script src="/device-check.js?v=18"></script>
+    <script src="/anti-bot.js?v=4"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>站长留言箱 · 毛毛</title>
+<style>
+body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
+h1 { color:#7C5CBF; }
+.gate { max-width:480px; margin:40px auto; background:#fff; padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
+.box { max-width:640px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
+button { padding:9px 14px; border:none; border-radius:10px; font-size:15px; margin:4px; background:#7C5CBF; color:#fff; cursor:pointer; }
+button:hover { background:#6543a5; }
+button.sec { background:#e5dcff; color:#6543a5; }
+.msg { color:#666; margin:6px 0; }
+.msg.err { color:#c94f4f; }
+.msg.ok { color:#2a8a3f; }
+.item { border:1px solid #e5dcff; border-radius:12px; padding:9px 12px; margin-bottom:8px; background:#f7f4ff; text-align:left; }
+.item b { color:#6543a5; }
+.item small { color:#997dcc; }
+.item .txt { margin-top:3px; color:#444; word-break:break-word; }
+.back-home { position:fixed; top:20px; right:20px; background:#e5dcff; color:#6543a5; padding:10px 15px; border-radius:20px; text-decoration:none; font-size:16px; z-index:9; }
+body.dark-mode { background:#121212; color:#fff; }
+.dark-mode .box, .dark-mode .gate { background:#1e1e1e; color:#eee; }
+.dark-mode .item { background:#2a2142; border-color:#4a3a78; }
+.dark-mode .item b { color:#bb9cff; }
+.dark-mode .item small { color:#8f7ac2; }
+.dark-mode .item .txt { color:#ccc; }
+.dark-mode button.sec { background:#333; color:#bb9cff; }
+.dark-mode .back-home { background:#333; color:#bb9cff; }
+</style>
+</head>
+
+<body>
+<a class="back-home" href="../" >🏠 回主页</a>
+<h1>📨 站长留言箱</h1>
+
+<div class="gate" id="gate">
+  <h1 style="color:#6543a5;">🔐 仅站长可用</h1>
+  <p class="msg">登录站长账号后即可查看访客留言。</p>
+  <button onclick="location.reload()">我已经登录，刷新</button>
+</div>
+
+<div class="box" id="panel" style="display:none;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <b style="color:#6543a5;">访客留言</b>
+    <button onclick="loadMessages()">🔄 刷新</button>
+  </div>
+  <div id="msg" class="msg">加载中…</div>
+  <div id="list"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script>
+const API_BASE = "https://maomao-admin-api.onrender.com";   // 站长后台 API（maomao-admin-api）
+if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); }
+
+firebase.auth().onAuthStateChanged(function (user) {
+  if (user) {
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("panel").style.display = "block";
+    loadMessages();
+  } else {
+    document.getElementById("gate").style.display = "block";
+    document.getElementById("panel").style.display = "none";
+  }
+});
+
+function loadMessages() {
+  var msg = document.getElementById("msg");
+  var list = document.getElementById("list");
+  msg.style.display = "block";
+  msg.className = "msg";
+  msg.textContent = "加载中…";
+  list.innerHTML = "";
+  var cur = firebase.auth().currentUser;
+  if (!cur) return;
+  cur.getIdToken().then(function (tk) {
+    return fetch(API_BASE + "/api/feedback/list", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + tk, "Content-Type": "application/json" },
+      body: "{}"
+    });
+  }).then(function (r) {
+    if (r.status === 403) { throw new Error("forbidden"); }
+    if (!r.ok) throw new Error("http_" + r.status);
+    return r.json();
+  }).then(function (d) {
+    var docs = (d.messages || []);
+    msg.style.display = "none";
+    if (!docs.length) { msg.style.display = "block"; msg.textContent = "暂无留言"; return; }
+    docs.forEach(function (m) {
+      var div = document.createElement("div");
+      div.className = "item";
+      var b = document.createElement("b"); b.textContent = m.name || "(匿名)";
+      var sm = document.createElement("small"); sm.textContent = "  " + (m.ts || "");
+      var t = document.createElement("div"); t.className = "txt"; t.textContent = m.text || "";
+      div.appendChild(b); div.appendChild(sm); div.appendChild(t);
+      list.appendChild(div);
+    });
+  }).catch(function (e) {
+    msg.style.display = "block";
+    msg.className = "msg err";
+    msg.textContent = (e && e.message === "forbidden")
+      ? "仅站长可用（当前登录账号不是站长）"
+      : "读取失败：网络异常或后台服务未就绪（请稍后再试）";
+  });
+}
+</script>
+</body>
+</html>

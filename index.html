@@ -462,16 +462,6 @@ value="1"
 <span id="contactEmail" style="display:none"></span>
 </p>
 
-<!-- 站长留言箱面板（仅站长可读；入口在账号菜单「开发者▾」子项，普通访客看不到） -->
-<div id="mailBox" class="mail-panel" style="display:none;">
-  <div>
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <b class="mail-head">📨 访客留言（站长视角）</b>
-      <button class="lg-btn" onclick="loadMailbox()">🔄 刷新</button>
-    </div>
-    <div id="mailList" class="mail-list">点击刷新加载…</div>
-  </div>
-</div>
 
 <!-- 留言弹窗（默认隐藏；需登录 + Firestore 直连；含蜜罐防机器人） -->
 <div id="contactBox" class="mail-overlay" style="display:none;">
@@ -620,7 +610,7 @@ updateTime();
         <!-- 管理员专属入口（display:none 默认隐藏，管理员时显示）；stopPropagation 防止点击冒泡触发按钮菜单 -->
         <span id="devSubMenu" style="display:none;">
           <a id="accUserAdmin" href="games/users.html" target="_blank" rel="noopener" style="display:block;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">用户管理</a>
-          <a id="accMsgLink" href="#mailbox" style="display:block;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">站长留言箱</a>
+          <a id="accMsgLink" href="games/contact-manager.html" target="_blank" rel="noopener" style="display:block;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">站长留言箱</a>
         </span>
     </span>
     <!-- 下拉箭头指示 -->
@@ -704,7 +694,7 @@ updateTime();
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="firebase-config.js?v=2"></script>
 <script src="login.js?v=19" defer></script>
-<script src="contact.js?v=3" defer></script>
+<script src="contact.js?v=4" defer></script>
 
 </body>
 

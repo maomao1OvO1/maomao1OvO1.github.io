@@ -102,16 +102,7 @@
         }).catch(function () { /* 连不上就下次再试 */ });
     }
 
-    document.addEventListener("DOMContentLoaded", function(){ flushQueue(); onHashMailbox(); });
-    window.addEventListener("hashchange", onHashMailbox);
-    function onHashMailbox(){
-        if(location.hash !== "#mailbox") return;
-        var box = document.getElementById("mailBox");
-        if(!box) return;
-        box.style.display = "block";
-        loadMailbox();
-        box.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    document.addEventListener("DOMContentLoaded", flushQueue);
 
     // 暴露到全局（index.html 按钮 onclick 使用）
     window.openContact = openContact;
@@ -120,49 +111,3 @@
 })();
 
 
-/* ===================== 站长留言箱（首页直接查看，仅站长可读） ===================== */
-function toggleMailBox() {
-    var box = document.getElementById("mailBox");
-    if (!box) return;
-    box.style.display = (box.style.display === "none" || !box.style.display) ? "block" : "none";
-    if (box.style.display === "block") loadMailbox();
-}
-function loadMailbox() {
-    var box = document.getElementById("mailList");
-    if (!box) return;
-    box.textContent = "加载中…";
-    var cur = (window.firebase && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
-    if (!cur) { box.textContent = "请先登录站长账号（仅站长可看留言）"; return; }
-    cur.getIdToken().then(function (tk) {
-        return fetch(API_BASE + "/api/feedback/list", {
-            method: "POST",
-            headers: { Authorization: "Bearer " + tk, "Content-Type": "application/json" },
-            body: "{}"
-        });
-    }).then(function (r) {
-        if (r.status === 403) { throw new Error("forbidden"); }
-        if (!r.ok) throw new Error("http_" + r.status);
-        return r.json();
-    }).then(function (d) {
-        var docs = (d.messages || []).map(function (m) {
-            return { id: m.id, name: m.name || "(匿名)", text: m.text || "", ts: m.ts || "" };
-        });
-        box.textContent = "";
-        if (!docs.length) { box.textContent = "暂无留言"; return; }
-        docs.forEach(function (m) {
-            var div = document.createElement("div");
-            div.style.cssText = "border:1px solid #334155;border-radius:8px;padding:8px 10px;margin-bottom:8px;";
-            var b = document.createElement("b"); b.textContent = m.name;
-            var sm = document.createElement("small"); sm.textContent = "  " + m.ts; sm.style.color = "#94a3b8";
-            var p = document.createElement("div"); p.textContent = m.text; p.style.marginTop = "4px";
-            div.appendChild(b); div.appendChild(sm); div.appendChild(p);
-            box.appendChild(div);
-        });
-    }).catch(function (e) {
-        box.textContent = (e && e.message === "forbidden")
-            ? "仅站长可读（当前登录账号不是站长邮箱）"
-            : "读取失败：网络异常或后台服务未就绪（请稍后再试）";
-    });
-}
-window.toggleMailBox = toggleMailBox;
-window.loadMailbox = loadMailbox;
