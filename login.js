@@ -51,6 +51,21 @@ function initFirebase(){
     auth = firebase.auth();
     auth.onAuthStateChanged(function(user){
         if(user){
+            // 登录上报（静默）：记录 IP / 设备码 / 登录时间 / 游客编号（同 IP 且设备码或浏览器相同=同一游客）；失败不影响使用
+            if(user.getIdToken){
+                var did = "";
+                try{
+                    did = localStorage.getItem("__did");
+                    if(!did){ did = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); localStorage.setItem("__did", did); }
+                }catch(e){}
+                user.getIdToken().then(function(tk){
+                    return fetch("https://maomao-admin-api.onrender.com/api/hello", {
+                        method: "POST",
+                        headers: { "Authorization": "Bearer " + tk, "Content-Type": "application/json" },
+                        body: JSON.stringify({ device: did })
+                    });
+                }).catch(function(){});
+            }
             showLoginState(user, true);
         }else{
             // 未登录/已退出：按本地缓存恢复账号按钮(游客或上次登录信息), 不清掉登录门逻辑
