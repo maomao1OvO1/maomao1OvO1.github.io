@@ -36,9 +36,18 @@
     text-align: left; font-size: 14px; line-height: 2; color: #555;
     background: #f7f4ff; border: 1px solid #e5dcff; border-radius: 14px;
     padding: 14px 18px; margin-bottom: 18px;
+    word-break: keep-all;          /* 中文按词断行，避免「安卓平板」被拆成「安卓平/板」 */
+    overflow-wrap: break-word;     /* 兜底：英文/长串仍可折行 */
   }
   .info { font-size: 11px; color: #aaa; word-break: break-all; line-height: 1.6; margin-bottom: 14px; }
   .foot { font-size: 12px; color: #997dcc; }
+  .enter { margin-top: 14px; }
+  .enter-btn {
+    display: inline-block; background: #2563eb; color: #fff;
+    font-size: 14px; font-weight: 600; border-radius: 8px;
+    padding: 10px 22px; text-decoration: none;
+  }
+  .enter-btn:hover { background: #1d4ed8; }
   .why { margin-top: 8px; }
   .why a {
     display: inline-block; color: #7c5cbf; font-size: 13px; text-decoration: none;
@@ -68,6 +77,7 @@
     </div>
     <div class="info" id="info"></div>
     <div class="foot">毛毛的个人主页 · maomaowang.top</div>
+    <div class="enter" id="enter" style="display:none"><a class="enter-btn" href="/" onclick="try{sessionStorage.setItem('mm_dc_continue','1')}catch(e){}">🔓 继续访问（体验可能不佳）</a></div>
     <div class="why"><a id="why" href="/why-blocked.html">❓ 为什么我被拦截？</a></div>
   </div>
 
@@ -92,8 +102,12 @@
       tag.textContent = "已检测到你的系统：华为 / 鸿蒙设备";
       why.href = "/why-blocked.html";
     }
-    // UA 摘要（只展示一小段，无信息泄露）
-    info.textContent = "UA: " + (navigator.userAgent || "").replace(/\s+/g, " ").slice(0, 90);
+    // 「继续访问」按钮：仅苹果（mac/apple）显示——华为/鸿蒙每次必拦，不提供入口（用户要求）
+    var enter = document.getElementById("enter");
+    if (t !== "hw" && enter) enter.style.display = "";
+    // UA 摘要：只展示前 90 字符（避免超长换行刷屏），截断处加「…」不显示半截字符
+    var uaTxt = (navigator.userAgent || "").replace(/\s+/g, " ");
+    info.textContent = "UA: " + (uaTxt.length > 90 ? uaTxt.slice(0, 90) + "…" : uaTxt);
   })();
   </script>
 </body>
