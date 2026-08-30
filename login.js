@@ -241,10 +241,31 @@ const DEFAULT_AVATAR = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
 // 联系方式解锁：仅«毛毛»账号登录显示真邮箱, 游客/其他人显示"请登录后查看"
 // 联系邮箱 · 混淆存储（倒序+Base64 双重编码, 源码/爬虫搜不到明文邮箱）
 // 解码函数: 只在毛毛账号登录时才执行
-var CONTACT_EMAIL_ENC = "bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft";              // 主人邮箱(编码)
-var CONTACT_EMAIL_163_ENC = "bW9jLjM2MUAxb3ZvMW9hbW9hbQ==";          // 备用邮箱(编码)
+// 主人邮箱 · 8 层洋葱混淆存储（ROT13→Base64→反转→XOR滚动密钥→Base64→反转→Unicode转义→HTML实体化）
+// 密文分三段存放（静态爬虫抓到的只是碎片），运行时拼回解码；源码中无明文邮箱。
+var CONTACT_EMAIL_ENC_A = "&#92;&#117;&#48;&#48;&#51;&#100;&#92;&#117;&#48;&#48;&#54;&#51;&#92;&#117;&#48;&#48;&#53;&#52;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#55;&#57;&#92;&#117;&#48;&#48;&#52;&#49;&#92;&#117;&#48;&#48;&#52;&#52;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#51;&#49;&#92;&#117;&#48;&#48;&#53;&#49;&#92;&#117;&#48;&#48;&#54;&#97;&#92;&#117;&#48;&#48;&#52;&#100;&#92;&#117;&#48;&#48;&#54;&#99;&#92;&#117;&#48;&#48;&#52;&#50;&#92;&#117;&#48;&#48;&#53;&#52;&#92;&#117;&#48;&#48;&#53;&#97;&#92;&#117;&#48;&#48;&#55;&#55;&#92;&#117;&#48;&#48;&#52;&#53;&#92;&#117;&#48;&#48;&#53;&#55;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#51;&#49;&#92;&#117;&#48;&#48;&#52;&#57;&#92;&#117;&#48;&#48;&#55;&#97;&#92;&#117;&#48;&#48;&#53;&#57;&#92;&#117;&#48;&#48;&#51;&#50;&#92;&#117;&";
+var CONTACT_EMAIL_ENC_B = "#48;&#48;&#52;&#53;&#92;&#117;&#48;&#48;&#54;&#97;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#51;&#52;&#92;&#117;&#48;&#48;&#54;&#51;&#92;&#117;&#48;&#48;&#52;&#52;&#92;&#117;&#48;&#48;&#52;&#100;&#92;&#117;&#48;&#48;&#51;&#48;&#92;&#117;&#48;&#48;&#52;&#57;&#92;&#117;&#48;&#48;&#54;&#100;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#51;&#49;&#92;&#117;&#48;&#48;&#52;&#49;&#92;&#117;&#48;&#48;&#55;&#97;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#55;&#57;&#92;&#117;&#48;&#48;&#52;&#100;&#92;&#117;&#48;&#48;&#52;&#55;&#92;&#117;&#48;&#48;&#52;&#100;&#92;&#117;&#48;&#48;&#54;&#100;&#92;&#117;&#48;&#48;&#52;&#50;&#92;&#117;&#48;&#48;&#54;&#97;&#92;&#117;&#48;&#48;&#53;&#57;&#92;&#117;&#48;&#48;&#55;&#57;&#92;&#117;&#48;&#48;&#53;&#57;&#92;&#117;&#48;&#48;";
+var CONTACT_EMAIL_ENC_C = "&#53;&#55;&#92;&#117;&#48;&#48;&#52;&#100;&#92;&#117;&#48;&#48;&#51;&#53;&#92;&#117;&#48;&#48;&#52;&#100;&#92;&#117;&#48;&#48;&#53;&#52;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#51;&#48;&#92;&#117;&#48;&#48;&#54;&#55;&#92;&#117;&#48;&#48;&#53;&#52;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#51;&#53;&#92;&#117;&#48;&#48;&#53;&#53;&#92;&#117;&#48;&#48;&#53;&#52;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#51;&#48;&#92;&#117;&#48;&#48;&#52;&#53;&#92;&#117;&#48;&#48;&#53;&#52;&#92;&#117;&#48;&#48;&#52;&#101;&#92;&#117;&#48;&#48;&#51;&#52;&#92;&#117;&#48;&#48;&#52;&#57;&#92;&#117;&#48;&#48;&#54;&#97;&#92;&#117;&#48;&#48;&#53;&#57;&#92;&#117;&#48;&#48;&#55;&#57;&#92;&#117;&#48;&#48;&#52;&#57;&#92;&#117;&#48;&#48;&#51;&#50;&#92;&#117;&#48;&#48;&#52;&#101;";
+var CONTACT_EMAIL_ENC = CONTACT_EMAIL_ENC_A + CONTACT_EMAIL_ENC_B + CONTACT_EMAIL_ENC_C;
+var _CONTACT_KEY = "Mao2026!Lock"; // 解码滚动密钥（与编码生成器一致；在浏览器中仅参与解码运算）
 function decodeContactEmail(s){
-    try{ return atob(s).split("").reverse().join(""); }catch(e){ return ""; }
+    try{
+        var t = s.replace(/&#(\d+);/g, function(_, n){ return String.fromCharCode(parseInt(n, 10)); });
+        t = t.replace(/\\u([0-9a-f]{4})/g, function(_, n){ return String.fromCharCode(parseInt(n, 16)); });
+        t = t.split("").reverse().join("");
+        t = atob(t);
+        var out = "";
+        for(var i = 0; i < t.length; i += 2){
+            out += String.fromCharCode(parseInt(t.substr(i, 2), 16) ^ _CONTACT_KEY.charCodeAt((i / 2) % _CONTACT_KEY.length));
+        }
+        out = out.split("").reverse().join("");
+        out = atob(out);
+        out = out.replace(/[a-zA-Z]/g, function(c){
+            var base = c <= "Z" ? 65 : 97;
+            return String.fromCharCode((c.charCodeAt(0) - base + 13) % 26 + base);
+        });
+        return out;
+    }catch(e){ return ""; }
 }
 
 // 功能：更新「持有者邮箱」显示区域
@@ -257,11 +278,10 @@ function updateContactEmail(user){
         const el = document.getElementById("contactEmail");
         if(!el) return;
         const MAIL = decodeContactEmail(CONTACT_EMAIL_ENC);
-        const MAIL2 = decodeContactEmail(CONTACT_EMAIL_163_ENC);
         let isMaoMao = false;
         if(user && user.email){
             const m = String(user.email).toLowerCase().trim();
-            isMaoMao = (m === MAIL || m === MAIL2);
+            isMaoMao = (m === MAIL);
         }
         if(isMaoMao){
             el.textContent = MAIL;
@@ -326,10 +346,13 @@ function showUserBox(name, photo, user){
     if(n){
         n.textContent = name;
         // 金色用户名：仅«毛毛»账号生效（名字/邮箱匹配；其他访客名字保持原样）
+        const OWNER_MAIL = decodeContactEmail(CONTACT_EMAIL_ENC).toLowerCase();
+        let au = null;
+        try{ au = JSON.parse(localStorage.getItem("authUser") || "null"); }catch(e){}
+        const emailChk = String((this?.user && this.user.email) || (au && au.email) || "").toLowerCase().trim();
         const isMaoMao = /毛毛/i.test(String(name || ""))
             || /maomao1ovo1/i.test(String(name || ""))
-            || /maomao1ovo1@(gmail|163)\.com$/i.test(String(this?.user?.email || ""))
-            || /maomao1ovo1@(gmail|163)\.com$/i.test(String(localStorage.getItem("authUser") || ""));
+            || emailChk === OWNER_MAIL;
         if(isMaoMao){
             n.classList.add("gold-name");
             const role = document.getElementById("accRole");
