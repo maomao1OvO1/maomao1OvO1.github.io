@@ -196,6 +196,8 @@ function startAnim(){
     if(ANIM) clearInterval(ANIM);
     dispW = 0;
     ANIM = setInterval(function(){
+        if (!isFinite(progTarget) || progTarget < 0) progTarget = 5;   // NaN 兜底
+        if (!isFinite(dispW) || dispW < 0) dispW = 0;
         // 平滑逼近目标；至少有 0.6% 的推进量 = 永远在动（假动到 90% 封顶，完成后即刻 100%）
         var step = Math.max((progTarget - dispW) * 0.15, 0.6);
         dispW = Math.min(progTarget < 95 ? progTarget : (dispW + step > 90 ? 90 : dispW + step), dispW + step);
@@ -203,7 +205,7 @@ function startAnim(){
         document.getElementById("progBar").style.width = dispW + "%";
     }, 450);
 }
-function fmtSec(s){ return s >= 60 ? Math.floor(s/60) + " 分 " + (s%60) + " 秒" : s + " 秒"; }
+function fmtSec(s){ s = Number(s); if (!isFinite(s) || s < 0) return "--"; s = Math.round(s); return s >= 60 ? Math.floor(s/60) + " 分 " + (s%60) + " 秒" : s + " 秒"; }
 function getToken(){
     var u = firebase.auth().currentUser;
     if (!u || !u.getIdToken) return Promise.resolve("");
