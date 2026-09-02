@@ -94,8 +94,9 @@ if(localStorage.getItem("theme") === "dark"){ document.body.classList.add("dark-
         <button id="go">⚡ 合成并试听</button>
         <button id="wake" style="padding:11px 14px;font-size:14px;">📡 唤醒云端</button>
         <div id="progWrap" style="display:none;margin-top:8px;">
-            <div style="background:#efe9ff;border-radius:8px;height:14px;overflow:hidden;">
-                <div id="progBar" style="height:100%;width:0%;background:#7C5CBF;transition:width .4s;"></div>
+            <div style="background:#efe9ff;border-radius:10px;height:22px;overflow:hidden;position:relative;border:1px solid #d9d0ee;">
+                <div id="progBar" style="height:100%;width:0%;background:linear-gradient(90deg,#7C5CBF,#9d7ce0);transition:width .3s;"></div>
+                <div id="progPct" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.5);">0%</div>
             </div>
             <div class="msg" id="progTxt"></div>
         </div>
@@ -210,6 +211,8 @@ function startAnim(){
             dispW = Math.max(1, Math.min(99, progTarget + breath));
         }
         document.getElementById("progBar").style.width = dispW + "%";
+        var pr = document.getElementById("progPct");
+        if (pr) pr.textContent = Math.round(dispW) + "%";
     }, 300);
 }
 function fmtSec(s){ s = Number(s); if (!isFinite(s) || s < 0) return "--"; s = Math.round(s); return s >= 60 ? Math.floor(s/60) + " 分 " + (s%60) + " 秒" : s + " 秒"; }
