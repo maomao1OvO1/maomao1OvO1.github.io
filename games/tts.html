@@ -266,6 +266,7 @@ document.getElementById("go").addEventListener("click", function(ev){
                     stopPoll();
                     progTarget = 100; dispW = 100;
                     bar.style.width = "100%";
+                    btn.disabled = false;          // ★ 合成完成立即恢复按钮（不等音频取回）
                     var secUsed = Math.round((Date.now() - T0) / 1000);
                     txt.textContent = "✅ 完成，正在取回音频...（实际生成 " + fmtSec(secUsed) + "）";
                     getToken().then(function(tok){
