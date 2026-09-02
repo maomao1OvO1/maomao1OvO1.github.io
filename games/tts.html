@@ -1,0 +1,184 @@
+<!--
+文件：games/tts.html
+用途：毛毛站点「声库实验室」页——本地女声合成（仅站长可用）。
+核心逻辑：
+  1) Firebase Auth 判断当前登录者邮箱是否等于站长邮箱（混淆存储的 OWNER_EMAIL，与 users.html 一致）；
+  2) 匹配则显示面板；否则显示引导层；
+  3) 面板文字/语速/音量提交到「手机本机」的本地合成服务 http://127.0.0.1:3081/api/synth
+     （服务只监听 127.0.0.1，别人访问不到 = 仅我可见）；合成 mp3 自动存到手机 Download。
+安全注意：站长邮箱混淆处理；本地服务端口仅本机可达。
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+<script src="/device-check.js?v=18"></script>
+<script src="/anti-bot.js?v=4"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>声库实验室 · 毛毛</title>
+<style>
+body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
+h1 { color:#7C5CBF; }
+.gate { max-width:480px; margin:40px auto; background:#fff; padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
+.box { max-width:700px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
+button { padding:11px 16px; border:none; border-radius:10px; font-size:16px; margin:6px 4px; background:#7C5CBF; color:#fff; cursor:pointer; }
+button:hover { background:#6543a5; }
+button:disabled { background:#b9a7e0; cursor:wait; }
+.msg { color:#666; margin:6px 0; font-size:14px; }
+.msg.ok { color:#2e8b57; }
+.msg.err { color:#c94f4f; }
+textarea { width:100%; box-sizing:border-box; min-height:110px; font-size:16px; border:1px solid #d9d0ee; border-radius:10px; padding:10px; background:#faf8ff; color:#333; resize:vertical; }
+.ctl { display:flex; align-items:center; gap:10px; margin:8px 0; flex-wrap:wrap; }
+.ctl label { font-size:14px; color:#555; min-width:52px; }
+.ctl input[type=range] { flex:1; min-width:150px; accent-color:#7C5CBF; }
+.ctl b { min-width:44px; text-align:right; font-size:14px; color:#6543a5; }
+audio { width:100%; margin-top:8px; }
+.fileinfo { font-size:13px; color:#777; word-break:break-all; }
+.back-home { position:fixed; top:20px; right:20px; background:#e5dcff; color:#6543a5; padding:10px 15px; border-radius:20px; text-decoration:none; font-size:16px; z-index:9; }
+.note { font-size:12px; color:#999; margin-top:6px; }
+body.dark-mode { background:#121212; color:#fff; }
+.dark-mode .box, .dark-mode .gate { background:#1e1e1e; color:#eee; }
+.dark-mode textarea { background:#2a2a2a; color:#eee; border-color:#444; }
+.dark-mode .ctl label { color:#bbb; }
+.dark-mode .fileinfo { color:#999; }
+.dark-mode .note { color:#888; }
+.dark-mode .back-home { background:#333; color:#bb9cff; }
+</style>
+</head>
+
+<body>
+
+<script>
+if(localStorage.getItem("theme") === "dark"){ document.body.classList.add("dark-mode"); }
+</script>
+
+<h1>🎙️ 声库实验室</h1>
+
+<div id="gate" class="gate">
+    <p>⚠️ 这个页面只有<b>站长（毛毛账号）</b>能用。</p>
+    <p id="gateWhy">请先登录毛毛账号。</p>
+    <a href="../index.html" class="back-home">🏠 回主页</a>
+</div>
+
+<div id="panel" style="display:none;">
+    <div class="box">
+        <div class="msg" id="hint">✏️ 输入文字，调好语速音量，点「合成」——mp3 自动存到手机 Download，并可直接试听。</div>
+
+        <textarea id="text" placeholder="例如：大家好，我是毛毛的声音，欢迎来到我的声库实验室。"></textarea>
+
+        <div class="ctl">
+            <label>语速</label>
+            <input type="range" id="speed" min="0.6" max="1.6" step="0.05" value="1.0">
+            <b id="speedV">1.00×</b>
+        </div>
+        <div class="ctl">
+            <label>音量</label>
+            <input type="range" id="volume" min="1" max="8" step="0.5" value="4">
+            <b id="volumeV">4.0×</b>
+        </div>
+
+        <button id="go">⚡ 合成并试听</button>
+        <div class="msg" id="status"></div>
+        <div id="playerWrap" style="display:none;">
+            <audio id="player" controls></audio>
+            <div class="fileinfo" id="fileinfo"></div>
+            <button id="dl" style="margin-top:10px;">⬇️ 满意，下载到 Download</button>
+            <div class="msg" id="dlStatus"></div>
+        </div>
+        <div class="note">本地合成（MeloTTS · MIT 可商用）· 全部在你的手机里完成，不出网 · 服务端口仅本机可见</div>
+    </div>
+    <a href="../index.html" class="back-home">🏠 回主页</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script>
+// ===== 站长判定（与 users.html 一致）=====
+const OWNER_EMAIL = (function(){ try { return atob("bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft").split("").reverse().join("").toLowerCase(); } catch(e){ return ""; } })();
+if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); }
+// 本地模式（127.0.0.1/localhost）= 只有手机本机可达 = 天然仅站长可见，免登录直接用
+var IS_LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname || "");
+firebase.auth().onAuthStateChanged(function(user){
+    var ok = IS_LOCAL || (user && String(user.email || "").toLowerCase() === OWNER_EMAIL);
+    document.getElementById("gate").style.display = ok ? "none" : "block";
+    document.getElementById("panel").style.display = ok ? "block" : "none";
+    if (!ok) {
+        document.getElementById("gateWhy").textContent = user
+            ? "当前登录：" + user.email + "（不是站长账号）"
+            : "请先登录毛毛账号。";
+    }
+});
+
+// ===== 滑块显示 =====
+var speedEl = document.getElementById("speed"), volumeEl = document.getElementById("volume");
+speedEl.addEventListener("input", function(){ document.getElementById("speedV").textContent = parseFloat(speedEl.value).toFixed(2) + "×"; });
+volumeEl.addEventListener("input", function(){ document.getElementById("volumeV").textContent = parseFloat(volumeEl.value).toFixed(1) + "×"; });
+
+// ===== 合成 =====
+var API = "http://127.0.0.1:3081";
+document.getElementById("go").addEventListener("click", function(ev){
+    ev.preventDefault();
+    var text = document.getElementById("text").value.trim();
+    var st = document.getElementById("status");
+    if (!text) { st.textContent = "⚠️ 先输入文字"; st.className = "msg err"; return; }
+    var btn = document.getElementById("go");
+    btn.disabled = true; st.textContent = "⏳ 合成中（约 5~10 秒）..."; st.className = "msg";
+    fetch(API + "/api/synth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text, speed: parseFloat(speedEl.value), volume: parseFloat(volumeEl.value) })
+    })
+    .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+    .then(function(res){
+        btn.disabled = false;
+        if (res.ok && res.d && res.d.ok) {
+            st.textContent = "✅ 合成完成，先试听，满意再下载"; st.className = "msg ok";
+            var p = document.getElementById("playerWrap");
+            p.style.display = "block";
+            document.getElementById("player").src = API + "/audio/" + res.d.file;
+            document.getElementById("fileinfo").textContent = "本次文件：" + res.d.file;
+            document.getElementById("dlStatus").textContent = "";
+            document.getElementById("dl").disabled = false;
+            document.getElementById("player").play();
+        } else {
+            st.textContent = "❌ " + ((res.d && res.d.error) || "合成失败") + "（本地服务未启动？）";
+            st.className = "msg err";
+        }
+    })
+    .catch(function(e){
+        btn.disabled = false;
+        st.textContent = "❌ 无法连接本地合成服务（" + e + "）——请确认手机上的声库服务在运行";
+        st.className = "msg err";
+    });
+});
+
+// ===== 下载（试听满意后）=====
+document.getElementById("dl").addEventListener("click", function(){
+    var btn = this, st = document.getElementById("dlStatus");
+    var file = (document.getElementById("player").src.split("/").pop() || "");
+    if (!file) { st.textContent = "⚠️ 请先合成一次"; st.className = "msg err"; return; }
+    btn.disabled = true; st.textContent = "⏳ 保存中..."; st.className = "msg";
+    fetch(API + "/api/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file: file })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        btn.disabled = false;
+        if (d && d.ok) {
+            st.textContent = "✅ 已保存：手机 Download/" + d.file; st.className = "msg ok";
+        } else {
+            st.textContent = "❌ " + ((d && d.error) || "保存失败"); st.className = "msg err";
+        }
+    })
+    .catch(function(){
+        btn.disabled = false;
+        st.textContent = "❌ 网络错误"; st.className = "msg err";
+    });
+});
+</script>
+</body>
+</html>
