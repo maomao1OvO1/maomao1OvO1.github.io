@@ -3,3 +3,4 @@ node_modules/
 tokens-config.json
 
 typescript
+tts_server.log
