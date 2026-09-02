@@ -49,6 +49,11 @@ function initFirebase(){
     if(!isConfigReady() || !firebase) return;
     firebase.initializeApp(window.FIREBASE_CONFIG);
     auth = firebase.auth();
+    // ★ 本地站长模式（127.0.0.1 镜像由服务端注入 __LOCAL_MODE__）：不搞在线登录，直接以站长身份渲染
+    if(window.__LOCAL_MODE__){
+        showLoginState({ displayName:"毛毛", email:"", photoURL:null, isAnonymous:false, providerData:[] }, true);
+        return;
+    }
     auth.onAuthStateChanged(function(user){
         if(user){
             // 登录上报（静默）：记录 IP / 设备码 / 登录时间 / 游客编号（同 IP 且设备码或浏览器相同=同一游客）；失败不影响使用
