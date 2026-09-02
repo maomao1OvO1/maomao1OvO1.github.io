@@ -265,8 +265,9 @@ function clearWakeMsg(){
 document.getElementById("wake").addEventListener("click", function(){
     var b = this, st = document.getElementById("status");
     b.disabled = true;
-    st.textContent = "⏳ 正在唤醒云端（首次会过一道安全验证，约 10~30 秒）...";
+    st.textContent = "⏳ 正在唤醒云端（首次约 10~30 秒，睡死时可达 1~3 分钟）...";
     st.className = "msg";
+    startWaitTxt("⏳ 正在唤醒云端", "睡死时起床约 1~3 分钟");
     var ac = new AbortController();
     setTimeout(function(){ ac.abort(); }, 15000);   // 15 秒超时
     setTimeout(function(){ b.disabled = false; }, 30000);   // 30 秒硬恢复按钮
@@ -274,6 +275,7 @@ document.getElementById("wake").addEventListener("click", function(){
     .then(function(r){ return r.text(); })
     .then(function(txt){
         b.disabled = false;
+        stopWaitTxt();   // ★ 唤醒完成，停倒计时
         clearWakeMsg();
         if (txt.indexOf('"ok"') >= 0) {
             st.textContent = "✅ 云端已唤醒在线，可以合成了！"; st.className = "msg ok";
@@ -283,6 +285,7 @@ document.getElementById("wake").addEventListener("click", function(){
     })
     .catch(function(){
         b.disabled = false;
+        stopWaitTxt();
         st.textContent = "⚠️ 唤醒中（实例起床 + 安全验证，约 30 秒），之后直接合成即可"; st.className = "msg";
         clearWakeMsg();
     });
@@ -312,6 +315,19 @@ var API = (location.hostname === "127.0.0.1" || location.hostname === "localhost
 var POLL = null, ANIM = null;
 var dispW = 0, progTarget = 0;
 function stopPoll(){ if(POLL){ clearInterval(POLL); POLL = null; } if(ANIM){ clearInterval(ANIM); ANIM = null; } }
+// ★ 等待倒计时：不让用户干等，每秒显示已等待秒数
+var WAIT_TMR = null;
+function startWaitTxt(label, note){
+    stopWaitTxt();
+    var t0 = Date.now();
+    var el = document.getElementById("status");
+    WAIT_TMR = setInterval(function(){
+        var s = Math.floor((Date.now() - t0) / 1000);
+        el.textContent = label + "（已等待 " + s + " 秒" + (note ? "，" + note : "") + "）...";
+        el.className = "msg";
+    }, 1000);
+}
+function stopWaitTxt(){ if (WAIT_TMR) { clearInterval(WAIT_TMR); WAIT_TMR = null; } }
 function startAnim(){
     if(ANIM) clearInterval(ANIM);
     dispW = 0;
@@ -353,10 +369,9 @@ document.getElementById("go").addEventListener("click", function(ev){
     T0 = Date.now();              // 基准时刻：无论成败都从此算起
     var n0 = text.length;
     var submitEst = Math.max(10, Math.round(n0 * 0.3 / parseFloat(speedEl.value)));   // 本地实测速度保守估：0.3 秒/字
-    st.textContent = "⏳ 正在提交任务（预计整体约 " + (submitEst >= 60 ? Math.floor(submitEst/60) + " 分 " + (submitEst%60) + " 秒" : submitEst + " 秒") + "，长文本请耐心，进度条会实时走）...";
     st.className = "msg";
-    st.textContent = "⏳ 正在提交任务（预计整体约 " + (submitEst >= 60 ? Math.floor(submitEst/60) + " 分 " + (submitEst%60) + " 秒" : submitEst + " 秒") + "，进度条实时走）...";
-    st.textContent = "⏳ 正在提交任务（云端若在睡觉/首次拉模型，这次等待可达 1~3 分钟，请耐心）...";
+    st.textContent = "⏳ 正在提交任务（预计整体约 " + (submitEst >= 60 ? Math.floor(submitEst/60) + " 分 " + (submitEst%60) + " 秒" : submitEst + " 秒") + "，云端若在睡觉/首次拉模型需 1~3 分钟）...";
+    startWaitTxt("⏳ 正在提交任务", "云端起床/首次拉模型大约 1~3 分钟");
     var ac = new AbortController();
     setTimeout(function(){ ac.abort(); }, 240000);   // ★ 4 分钟超时（云端冷启动/首次拉模型等待）
     getToken().then(function(tok){
@@ -378,6 +393,7 @@ document.getElementById("go").addEventListener("click", function(ev){
     })
     .then(function(res){
         if (res.json && res.json.ok && res.status === 200) return res.json;
+        stopWaitTxt();   // ★ 失败也停倒计时
         var msg = (res.json && res.json.error) ? res.json.error :
                   (res.text.indexOf("Just a moment") >= 0 ? "返回了 Cloudflare 安全验证页（非 JSON）" :
                    (res.text ? "返回非 JSON 内容（前 80 字）：" + res.text.slice(0, 80).replace(/\s+/g," ") : "服务器未返回任何内容"));
@@ -386,6 +402,7 @@ document.getElementById("go").addEventListener("click", function(ev){
     })
     .then(function(res){
         if (!res) return;
+        stopWaitTxt();   // ★ 任务已创建，进入轮询（轮询里有真实进度/已用时间）
         var pw = document.getElementById("progWrap");
         pw.style.display = "block";
         document.getElementById("progBar").style.width = "0%";   // 新任务立即归零
@@ -481,6 +498,7 @@ document.getElementById("go").addEventListener("click", function(ev){
     })
     .catch(function(e){
         // 自动重试：唤醒期/首访挑战通常 1~2 次自动恢复
+        stopWaitTxt();   // ★ 请求失败：停倒计时（重试时重新开始）
         var tries = this._tries || 0;
         if (tries < 3) {
             this._tries = tries + 1;
