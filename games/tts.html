@@ -178,7 +178,15 @@ speedEl.addEventListener("input", updateEta);
 volumeEl.addEventListener("input", function(){ document.getElementById("volumeV").textContent = parseFloat(volumeEl.value).toFixed(1) + "×"; });
 pitchEl.addEventListener("input", function(){ document.getElementById("pitchV").textContent = pitchLabel(pitchEl.value); });
 document.getElementById("pLow").addEventListener("click", function(){ pitchEl.value = 0.85; pitchEl.dispatchEvent(new Event("input")); });
-document.getElementById("pNor").addEventListener("click", function(){ pitchEl.value = 1.0; pitchEl.dispatchEvent(new Event("input")); });
+document.getElementById("pNor").addEventListener("click", function(){
+    // ★ 恢复原声 = 全部音效回到出厂默认（音色/语速/音量/情绪/韵律/句间停顿）
+    pitchEl.value = 1.0; pitchEl.dispatchEvent(new Event("input"));
+    speedEl.value = 1.0; speedEl.dispatchEvent(new Event("input"));
+    volumeEl.value = 4; volumeEl.dispatchEvent(new Event("input"));
+    noiseEl.value = 0.8; noiseEl.dispatchEvent(new Event("input"));
+    noiseWEl.value = 0.95; noiseWEl.dispatchEvent(new Event("input"));
+    sillEl.value = 0.2; sillEl.dispatchEvent(new Event("input"));
+});
 document.getElementById("pHigh").addEventListener("click", function(){ pitchEl.value = 1.2; pitchEl.dispatchEvent(new Event("input")); });
 function pitchLabel(v){ v = parseFloat(v); if (Math.abs(v-1.0) < 0.03) return "原声"; return v < 1 ? "低沉" + v.toFixed(2) + "×" : "清脆" + v.toFixed(2) + "×"; }
 
