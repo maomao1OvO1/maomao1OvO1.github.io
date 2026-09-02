@@ -44,6 +44,8 @@ body.dark-mode { background:#121212; color:#fff; }
 .dark-mode .fileinfo { color:#999; }
 .dark-mode .note { color:#888; }
 .dark-mode .back-home { background:#333; color:#bb9cff; }
+#progWrap .msgi, #progTxt { margin-top:4px; }
+.dark-mode #progWrap > div > div { background:#333 !important; }
 </style>
 </head>
 
@@ -88,6 +90,12 @@ if(localStorage.getItem("theme") === "dark"){ document.body.classList.add("dark-
         <div class="msg" id="eta">预计生成时间：—</div>
 
         <button id="go">⚡ 合成并试听</button>
+        <div id="progWrap" style="display:none;margin-top:8px;">
+            <div style="background:#efe9ff;border-radius:8px;height:14px;overflow:hidden;">
+                <div id="progBar" style="height:100%;width:0%;background:#7C5CBF;transition:width .4s;"></div>
+            </div>
+            <div class="msg" id="progTxt"></div>
+        </div>
         <div class="msg" id="status"></div>
         <div id="playerWrap" style="display:none;">
             <audio id="player" controls></audio>
@@ -142,8 +150,11 @@ function updateEta(){
 document.getElementById("text").addEventListener("input", updateEta);
 updateEta();
 
-// ===== 合成 =====
+// ===== 合成（异步任务 + 进度条）=====
 var API = "http://127.0.0.1:3081";
+var POLL = null;
+function stopPoll(){ if(POLL){ clearInterval(POLL); POLL = null; } }
+function fmtSec(s){ return s >= 60 ? Math.floor(s/60) + " 分 " + (s%60) + " 秒" : s + " 秒"; }
 document.getElementById("go").addEventListener("click", function(ev){
     ev.preventDefault();
     var text = document.getElementById("text").value.trim();
@@ -161,27 +172,56 @@ document.getElementById("go").addEventListener("click", function(ev){
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: text, speed: parseFloat(speedEl.value), volume: parseFloat(volumeEl.value), pitch: parseFloat(pitchEl.value) })
     })
-    .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+    .then(function(r){ return r.json(); })
     .then(function(res){
-        btn.disabled = false;
-        if (res.ok && res.d && res.d.ok) {
-            var secUsed = Math.round((Date.now() - T0) / 1000);
-            var dur = res.d.duration || 0;
-            var dm = Math.floor(dur/60), ds = Math.round(dur % 60);
-            var use = secUsed >= 60 ? Math.floor(secUsed/60) + " 分 " + (secUsed%60) + " 秒" : secUsed + " 秒";
-            st.textContent = "✅ 完成（" + (res.d.chunks || 1) + " 段合并，音频 " + (dm ? dm + " 分 " : "") + ds + " 秒，实际生成 " + use + "）";
-            st.className = "msg ok";
-            var p = document.getElementById("playerWrap");
-            p.style.display = "block";
-            document.getElementById("player").src = API + "/audio/" + res.d.file;
-            document.getElementById("fileinfo").textContent = "本次文件：" + res.d.file;
-            document.getElementById("dlStatus").textContent = "";
-            document.getElementById("dl").disabled = false;
-            document.getElementById("player").play();
-        } else {
-            st.textContent = "❌ " + ((res.d && res.d.error) || "合成失败") + "（本地服务未启动？）";
-            st.className = "msg err";
-        }
+        if (!res || !res.ok) { btn.disabled = false; st.textContent = "❌ " + (res.error || "启动合成失败"); st.className = "msg err"; return; }
+        var pw = document.getElementById("progWrap");
+        pw.style.display = "block";
+        document.getElementById("progBar").style.width = "0%";
+        document.getElementById("progTxt").textContent = "⏳ 已开始，正在切分文本...";
+        var t0 = Date.now();
+        stopPoll();
+        POLL = setInterval(function(){
+            fetch(API + "/api/progress?task=" + encodeURIComponent(res.task))
+            .then(function(r2){ return r2.json(); })
+            .then(function(p){
+                if (!p || !p.ok) return;
+                var bar = document.getElementById("progBar");
+                var txt = document.getElementById("progTxt");
+                if (p.status === "done") {
+                    stopPoll();
+                    bar.style.width = "100%";
+                    var secUsed = Math.round((Date.now() - t0) / 1000);
+                    var use = fmtSec(secUsed);
+                    txt.textContent = "✅ 完成（" + (p.total || 1) + " 段合并，实际生成 " + use + "）";
+                    pw.style.display = "none";
+                    st.textContent = "✅ 合成完成，先试听，满意再下载"; st.className = "msg ok";
+                    var pp = document.getElementById("playerWrap");
+                    pp.style.display = "block";
+                    document.getElementById("player").src = API + "/audio/" + p.file;
+                    document.getElementById("fileinfo").textContent = "本次文件：" + p.file;
+                    document.getElementById("dlStatus").textContent = "";
+                    document.getElementById("dl").disabled = false;
+                    document.getElementById("player").play();
+                    btn.disabled = false;
+                } else if (p.status === "error") {
+                    stopPoll();
+                    pw.style.display = "none";
+                    btn.disabled = false;
+                    st.textContent = "❌ 合成出错：" + (p.error || "未知"); st.className = "msg err";
+                } else {
+                    var pct = p.total ? Math.round(p.done / p.total * 100) : 0;
+                    bar.style.width = pct + "%";
+                    if (p.phase === "convert") {
+                        txt.textContent = "🎧 合成完毕，正在转码（" + pct + "%）...";
+                    } else if (p.total > 0) {
+                        var el = Math.max(2, Math.round((Date.now() - t0) / Math.max(1, p.done) * (p.total - p.done)));
+                        txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 段（" + pct + "%），预计剩余 " + fmtSec(el);
+                        bar.style.width = pct + "%";
+                    }
+                }
+            }).catch(function(){});
+        }, 1200);
     })
     .catch(function(e){
         btn.disabled = false;
