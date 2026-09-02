@@ -153,6 +153,14 @@ document.getElementById("text").addEventListener("input", updateEta);
 updateEta();
 
 // ===== 手动唤醒云端 =====
+function clearWakeMsg(){
+    setTimeout(function(){
+        var st = document.getElementById("status");
+        if (st && (st.textContent.indexOf("唤醒") >= 0 || st.textContent.indexOf("云端已唤醒") >= 0)) {
+            st.textContent = ""; st.className = "msg";
+        }
+    }, 4000);
+}
 document.getElementById("wake").addEventListener("click", function(){
     var b = this, st = document.getElementById("status");
     b.disabled = true;
@@ -165,6 +173,7 @@ document.getElementById("wake").addEventListener("click", function(){
     .then(function(r){ return r.text(); })
     .then(function(txt){
         b.disabled = false;
+        clearWakeMsg();
         if (txt.indexOf('"ok"') >= 0) {
             st.textContent = "✅ 云端已唤醒在线，可以合成了！"; st.className = "msg ok";
         } else {
@@ -174,6 +183,7 @@ document.getElementById("wake").addEventListener("click", function(){
     .catch(function(){
         b.disabled = false;
         st.textContent = "⚠️ 唤醒中（实例起床 + 安全验证，约 30 秒），之后直接合成即可"; st.className = "msg";
+        clearWakeMsg();
     });
 });
 
@@ -318,10 +328,11 @@ document.getElementById("go").addEventListener("click", function(ev){
                         var el = Math.max(2, est - used);
                         txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 段（" + pct + "%）｜已用 " + fmtSec(used) + "｜预计剩余 " + fmtSec(el);
                     } else if (p.total > 0) {
-                        progTarget = Math.max(progTarget, Math.min(10, progTarget + 2));
-                        var used = Math.round((Date.now() - T0) / 1000);
+                        var usedAll = (Date.now() - T0) / 1000;
+                        progTarget = Math.round(Math.min(99, usedAll / 20 * (100 / Math.max(1, p.total))));
+                        var used = Math.round(usedAll);
                         var segSec = Math.max(10, Math.round(est / Math.max(1, p.total)));
-                        txt.textContent = "📝 首段合成中（已用 " + fmtSec(used) + " / 共 " + p.total + " 段 / 每段预计约 " + segSec + " 秒，第 1 段完成后即可看到准确进度）...";
+                        txt.textContent = "📝 首段合成中（已用 " + fmtSec(used) + " / 共 " + p.total + " 段 / 每段预计约 " + segSec + " 秒）...";
                     }
                 }
             }).catch(function(){});
