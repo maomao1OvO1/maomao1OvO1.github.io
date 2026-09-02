@@ -339,7 +339,8 @@ document.getElementById("go").addEventListener("click", function(ev){
                         txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 段（" + pct + "%）｜已用 " + fmtSec(used) + "｜预计剩余 " + fmtSec(el);
                     } else if (p.total > 0) {
                         var usedAll = (Date.now() - T0) / 1000;
-                        progTarget = Math.round(Math.min(99, usedAll / 20 * (100 / Math.max(1, p.total))));
+                        var segSecQ = Math.max(10, Math.round(submitEst / Math.max(1, p.total)));
+                        progTarget = Math.round(Math.min(99, usedAll / segSecQ * 99));
                         var used = Math.round(usedAll);
                         var segSec = Math.max(10, Math.round(submitEst / Math.max(1, p.total)));
                         txt.textContent = "📝 首段合成中（已用 " + fmtSec(used) + " / 共 " + p.total + " 段 / 每段预计约 " + segSec + " 秒）...";
