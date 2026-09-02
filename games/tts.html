@@ -307,14 +307,20 @@ document.getElementById("go").addEventListener("click", function(ev){
                         progTarget = Math.max(progTarget, 93);
                         txt.textContent = "🎧 全部段落合成完毕，正在转码 mp3...";
                     } else if (p.total > 0 && p.done >= 1) {
-                        progTarget = Math.round(p.done / p.total * 100);
+                        // 段内按预计时长匀速推进（20秒/段基准），段间不再静止
+                        var SEG_S = 20;
+                        var base = Math.round(p.done / p.total * 100);
+                        var elapsedSeg = (Date.now() - T0) / 1000 - p.done * SEG_S;
+                        var inSeg = Math.min(1, Math.max(0, elapsedSeg / SEG_S)) * (100 / p.total);
+                        progTarget = Math.round(Math.min(base + inSeg, 99));
                         var used = Math.round((Date.now() - T0) / 1000);
                         var el = Math.max(2, est - used);
                         txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 段（" + pct + "%）｜已用 " + fmtSec(used) + "｜预计剩余 " + fmtSec(el);
                     } else if (p.total > 0) {
                         progTarget = Math.max(progTarget, Math.min(10, progTarget + 2));
                         var used = Math.round((Date.now() - T0) / 1000);
-                        txt.textContent = "📝 首段合成中（已用 " + fmtSec(used) + "，共 " + p.total + " 段，每段约几十秒）...";
+                        var segSec = Math.max(10, Math.round(est / Math.max(1, p.total)));
+                        txt.textContent = "📝 首段合成中（已用 " + fmtSec(used) + " / 共 " + p.total + " 段 / 每段预计约 " + segSec + " 秒，第 1 段完成后即可看到准确进度）...";
                     }
                 }
             }).catch(function(){});
