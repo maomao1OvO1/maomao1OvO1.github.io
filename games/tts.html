@@ -215,12 +215,18 @@ document.getElementById("go").addEventListener("click", function(ev){
         });
     })
     .then(function(r){
-        return r.json().then(function(j){ return { status: r.status, body: j }; });
+        return r.text().then(function(txt){
+            var j = null;
+            try { j = JSON.parse(txt); } catch (e) {}
+            return { status: r.status, text: txt, json: j };
+        });
     })
     .then(function(res){
-        if (res.body && res.body.ok && res.status === 200) return res.body;
-        var msg = (res.body && res.body.error) || "服务器未返回错误说明";
-        st.textContent = "❌ 真实报错：HTTP " + res.status + " — " + msg;
+        if (res.json && res.json.ok && res.status === 200) return res.json;
+        var msg = (res.json && res.json.error) ? res.json.error :
+                  (res.text.indexOf("Just a moment") >= 0 ? "返回了 Cloudflare 安全验证页（非 JSON）" :
+                   (res.text ? "返回非 JSON 内容（前 80 字）：" + res.text.slice(0, 80).replace(/\s+/g," ") : "服务器未返回任何内容"));
+        st.textContent = "❌ 真实报错：HTTP " + res.status + " — " + msg + "（可先点「📡 唤醒云端」再试）";
         st.className = "msg err"; btn.disabled = false; return null;
     })
     .then(function(res){
@@ -233,9 +239,15 @@ document.getElementById("go").addEventListener("click", function(ev){
         POLL = setInterval(function(){
             getToken().then(function(tok){
                 return fetch(API + "/api/tts/progress?task=" + encodeURIComponent(res.task), { credentials: "include", headers: { "Authorization": "Bearer " + tok } });
-            }).then(function(r2){ return r2.json(); })
+            }).then(function(r2){ return r2.text().then(function(x){ var j=null; try{j=JSON.parse(x);}catch(e){} return {st: r2.status, j: j, x: x}; }); })
             .then(function(p){
-                if (!p || !p.status) return;
+                if (!p.j || !p.j.status) {
+                    if (p && p.st && p.st >= 400 && p.x && p.x.indexOf("Just a moment") >= 0) {
+                        document.getElementById("progTxt").textContent = "⚠️ 查询被安全验证拦截（HTTP " + p.st + "），等待自动重试...";
+                    }
+                    return;
+                }
+                var p = p.j;
                 var bar = document.getElementById("progBar");
                 var txt = document.getElementById("progTxt");
                 if (p.status === "done") {
