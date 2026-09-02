@@ -151,7 +151,7 @@ document.getElementById("text").addEventListener("input", updateEta);
 updateEta();
 
 // ===== 合成（异步任务 + 进度条）=====
-var API = "http://127.0.0.1:3081";
+var API = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? "" : "http://127.0.0.1:3081";
 var POLL = null;
 function stopPoll(){ if(POLL){ clearInterval(POLL); POLL = null; } }
 function fmtSec(s){ return s >= 60 ? Math.floor(s/60) + " 分 " + (s%60) + " 秒" : s + " 秒"; }
