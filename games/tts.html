@@ -156,7 +156,10 @@ document.getElementById("wake").addEventListener("click", function(){
     b.disabled = true;
     st.textContent = "⏳ 正在唤醒云端（首次会过一道安全验证，约 10~30 秒）...";
     st.className = "msg";
-    fetch(API + "/api/health", { credentials: "include" })
+    var ac = new AbortController();
+    setTimeout(function(){ ac.abort(); }, 15000);   // 15 秒超时
+    setTimeout(function(){ b.disabled = false; }, 30000);   // 30 秒硬恢复按钮
+    fetch(API + "/api/health", { credentials: "include", signal: ac.signal })
     .then(function(r){ return r.text(); })
     .then(function(txt){
         b.disabled = false;
@@ -173,7 +176,7 @@ document.getElementById("wake").addEventListener("click", function(){
 });
 
 // ===== 合成（云端异步任务 + 进度条 + 账号绑定）=====
-var API = "https://maomao-admin-api.onrender.com";
+var API = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? "" : "https://maomao-admin-api.onrender.com";
 var POLL = null, ANIM = null;
 var dispW = 0, progTarget = 0;
 function stopPoll(){ if(POLL){ clearInterval(POLL); POLL = null; } if(ANIM){ clearInterval(ANIM); ANIM = null; } }
