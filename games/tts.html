@@ -150,6 +150,7 @@ document.getElementById("text").addEventListener("input", updateEta);
 updateEta();
 
 // ===== 合成（云端异步任务 + 进度条 + 账号绑定）=====
+var API = "https://maomao-admin-api.onrender.com";
 var POLL = null;
 function stopPoll(){ if(POLL){ clearInterval(POLL); POLL = null; } }
 function fmtSec(s){ return s >= 60 ? Math.floor(s/60) + " 分 " + (s%60) + " 秒" : s + " 秒"; }
