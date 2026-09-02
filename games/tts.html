@@ -89,7 +89,34 @@ if(localStorage.getItem("theme") === "dark"){ document.body.classList.add("dark-
             <button id="pNor" style="padding:5px 8px;font-size:12px;">原声</button>
             <button id="pHigh" style="padding:5px 8px;font-size:12px;">清脆</button>
         </div>
+        <div class="ctl">
+            <label>🎭 情绪</label>
+            <input type="range" id="noise" min="0.4" max="1.1" step="0.05" value="0.8">
+            <b id="noiseV">80</b>
+            <span class="note" style="margin:0;">低=板正播音，高=情绪外放（改变后首句重载约 15 秒）</span>
+        </div>
+        <div class="ctl">
+            <label>🌀 韵律</label>
+            <input type="range" id="noiseW" min="0.4" max="1.2" step="0.05" value="0.95">
+            <b id="noiseWV">95</b>
+            <span class="note" style="margin:0;">低=平淡，高=抑扬顿挫</span>
+        </div>
+        <div class="ctl">
+            <label>⏸ 句间停顿</label>
+            <input type="range" id="silence" min="0.08" max="0.6" step="0.02" value="0.2">
+            <b id="silenceV">20</b>
+            <span class="note" style="margin:0;">句号后停顿长短</span>
+        </div>
         <div class="msg" id="eta">预计生成时间：—</div>
+
+        <div id="lexBox" style="display:none;margin-top:10px;">
+            <div class="msg" style="color:#6543a5;background:#f3eeff;border-radius:8px;padding:6px 10px;">
+                🛠 读音纠正（多音字）：每行一条 <b>词=带调拼音</b>，如 <b>还书=huan2 shu1</b>、<b>重庆=chong2 qing4</b>（轻声写 0 或 5）。保存后引擎热重载约 10~15 秒，之后合成生效。
+            </div>
+            <textarea id="lexText" style="width:100%;box-sizing:border-box;min-height:90px;" placeholder="还书=huan2 shu1&#10;觉得=jue2 de0&#10;重庆=chong2 qing4"></textarea>
+            <button id="lexSave">💾 保存读音纠正</button>
+            <span class="msg" id="lexMsg"></span>
+        </div>
 
         <button id="go">⚡ 合成并试听</button>
         <button id="wake" style="padding:11px 14px;font-size:14px;">📡 唤醒云端</button>
@@ -107,7 +134,7 @@ if(localStorage.getItem("theme") === "dark"){ document.body.classList.add("dark-
             <button id="dl" style="margin-top:10px;" disabled>⬇️ 满意，下载 mp3 到手机（Download）</button>
             <div class="msg" id="dlStatus"></div>
         </div>
-        <div class="note">云端合成（MeloTTS · MIT 可商用）· 必须站长账号登录（账号绑定）· 首次合成需云端预热 1~3 分钟 · 音色调节：音调越低越低沉，越高越清脆</div>
+        <div class="note">本地合成：Kokoro-82M（Apache-2.0 · 可商用）默认 · MeloTTS（MIT）备用 · 首次合成需引擎加载约 10~30 秒（之后常驻）· 读音纠正保存后引擎热重载再等一次 · 线上模式（站长账号登录）= 云端合成</div>
     </div>
     <a href="../index.html" class="back-home">🏠 回主页</a>
 </div>
@@ -135,6 +162,10 @@ firebase.auth().onAuthStateChanged(function(user){
 
 // ===== 滑块显示 =====
 var speedEl = document.getElementById("speed"), volumeEl = document.getElementById("volume"), pitchEl = document.getElementById("pitch");
+var noiseEl = document.getElementById("noise"), noiseWEl = document.getElementById("noiseW"), sillEl = document.getElementById("silence");
+noiseEl.addEventListener("input", function(){ document.getElementById("noiseV").textContent = String(Math.round(noiseEl.value * 100)); });
+noiseWEl.addEventListener("input", function(){ document.getElementById("noiseWV").textContent = String(Math.round(noiseWEl.value * 100)); });
+sillEl.addEventListener("input", function(){ document.getElementById("silenceV").textContent = String(Math.round(sillEl.value * 100)); });
 speedEl.addEventListener("input", updateEta);
 volumeEl.addEventListener("input", function(){ document.getElementById("volumeV").textContent = parseFloat(volumeEl.value).toFixed(1) + "×"; });
 pitchEl.addEventListener("input", function(){ document.getElementById("pitchV").textContent = pitchLabel(pitchEl.value); });
@@ -142,6 +173,57 @@ document.getElementById("pLow").addEventListener("click", function(){ pitchEl.va
 document.getElementById("pNor").addEventListener("click", function(){ pitchEl.value = 1.0; pitchEl.dispatchEvent(new Event("input")); });
 document.getElementById("pHigh").addEventListener("click", function(){ pitchEl.value = 1.2; pitchEl.dispatchEvent(new Event("input")); });
 function pitchLabel(v){ v = parseFloat(v); if (Math.abs(v-1.0) < 0.03) return "原声"; return v < 1 ? "低沉" + v.toFixed(2) + "×" : "清脆" + v.toFixed(2) + "×"; }
+
+// ===== 音效设置自动保存（本地：服务端文件；线上：localStorage 兜底；账号绑定接口预留）=====
+var PREFS_KEYS = ["speed", "volume", "pitch", "noise", "noiseW", "silence"];
+var prefTimer = null;
+function savePrefs(){
+    if (prefTimer) { clearTimeout(prefTimer); }
+    prefTimer = setTimeout(function(){
+        var p = {};
+        PREFS_KEYS.forEach(function(k){
+            if (k === "speed") p[k] = parseFloat(speedEl.value);
+            else if (k === "volume") p[k] = parseFloat(volumeEl.value);
+            else if (k === "pitch") p[k] = parseFloat(pitchEl.value);
+            else if (k === "noise") p[k] = parseFloat(noiseEl.value);
+            else if (k === "noiseW") p[k] = parseFloat(noiseWEl.value);
+            else if (k === "silence") p[k] = parseFloat(sillEl.value);
+        });
+        try { localStorage.setItem("ttsPrefs", JSON.stringify(p)); } catch(e){}
+        // 本地：存本机服务端；线上：存云端（Firestore 按账号 uid，跨设备同步）
+        getToken().then(function(tok){
+            var opt = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) };
+            if (!API) { opt.credentials = "include"; }
+            else { opt.headers["Authorization"] = "Bearer " + tok; }
+            return fetch((API || "") + "/api/prefs", opt).catch(function(){});
+        });
+    }, 800);
+}
+sillEl.addEventListener("change", savePrefs);
+noiseEl.addEventListener("change", savePrefs);
+noiseWEl.addEventListener("change", savePrefs);
+speedEl.addEventListener("change", savePrefs);
+volumeEl.addEventListener("change", savePrefs);
+pitchEl.addEventListener("change", savePrefs);
+document.getElementById("pLow").addEventListener("click", savePrefs);
+document.getElementById("pNor").addEventListener("click", savePrefs);
+document.getElementById("pHigh").addEventListener("click", savePrefs);
+function applyPrefs(p){
+    if (!p) return;
+    if (isFinite(p.speed)) speedEl.value = p.speed;
+    if (isFinite(p.volume)) volumeEl.value = p.volume;
+    if (isFinite(p.pitch)) pitchEl.value = p.pitch;
+    if (isFinite(p.noise)) noiseEl.value = p.noise;
+    if (isFinite(p.noiseW)) noiseWEl.value = p.noiseW;
+    if (isFinite(p.silence)) sillEl.value = p.silence;
+    document.getElementById("speedV").textContent = parseFloat(speedEl.value).toFixed(2) + "×";
+    document.getElementById("volumeV").textContent = parseFloat(volumeEl.value).toFixed(1) + "×";
+    document.getElementById("pitchV").textContent = pitchLabel(pitchEl.value);
+    document.getElementById("noiseV").textContent = String(Math.round(noiseEl.value * 100));
+    document.getElementById("noiseWV").textContent = String(Math.round(noiseWEl.value * 100));
+    document.getElementById("silenceV").textContent = String(Math.round(sillEl.value * 100));
+    updateEta();
+}
 var T0 = 0;
 function updateEta(){
     document.getElementById("speedV").textContent = parseFloat(speedEl.value).toFixed(2) + "×";
@@ -192,6 +274,25 @@ document.getElementById("wake").addEventListener("click", function(){
 
 // ===== 合成（云端异步任务 + 进度条 + 账号绑定）=====
 var API = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? "" : "https://maomao-admin-api.onrender.com";
+// 音效设置恢复：本地=本机服务端；线上=云端 Firestore（按账号 uid）+ localStorage 兜底
+(function(){
+    var done = false;
+    function fallback(){ if (done) return; done = true; try { applyPrefs(JSON.parse(localStorage.getItem("ttsPrefs") || "null")); } catch(e){} }
+    if (!API) {
+        fetch("/api/prefs", { credentials: "include" })
+        .then(function(r){ return r.json(); })
+        .then(function(j){ if (j && j.ok) applyPrefs(j.prefs); })
+        .catch(fallback);
+    } else {
+        getToken().then(function(tok){
+            if (!tok) { fallback(); return; }
+            fetch(API + "/api/prefs", { headers: { "Authorization": "Bearer " + tok } })
+            .then(function(r){ return r.json(); })
+            .then(function(j){ if (j && j.ok) applyPrefs(j.prefs); })
+            .catch(fallback);
+        }).catch(fallback);
+    }
+})();
 var POLL = null, ANIM = null;
 var dispW = 0, progTarget = 0;
 function stopPoll(){ if(POLL){ clearInterval(POLL); POLL = null; } if(ANIM){ clearInterval(ANIM); ANIM = null; } }
@@ -201,14 +302,11 @@ function startAnim(){
     ANIM = setInterval(function(){
         if (!isFinite(progTarget) || progTarget < 0) progTarget = 5;   // NaN 兜底
         if (!isFinite(dispW) || dispW < 0) dispW = 0;
-        // 平滑逼近目标；到达后呼吸脉动（永远在动）; 完成即 100%
-        var step = Math.max((progTarget - dispW) * 0.15, 0.6);
-        dispW = Math.min(progTarget < 95 ? progTarget : (dispW + step > 90 ? 90 : dispW + step), dispW + step);
+        // ★ v7 真实进度：只平滑逼近真实目标，不越位、不呼吸假动；完成即 100%
         if (progTarget >= 100) { dispW = 100; }
-        else if (Math.abs(dispW - progTarget) < 2 && progTarget > 0) {
-            // 到位后 呼吸脉动（±4%，肉眼可见），永不静止
-            var breath = (Date.now() % 4000) / 4000 * 8 - 4;
-            dispW = Math.max(1, Math.min(99, progTarget + breath));
+        else {
+            var step = Math.max((progTarget - dispW) * 0.15, 0.5);
+            dispW = Math.min(progTarget, dispW + step);
         }
         setProgW(dispW);
     }, 300);
@@ -250,7 +348,8 @@ document.getElementById("go").addEventListener("click", function(ev){
             signal: ac.signal,
             credentials: "include",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
-            body: JSON.stringify({ text: text, speed: parseFloat(speedEl.value), volume: parseFloat(volumeEl.value), pitch: parseFloat(pitchEl.value) })
+            body: JSON.stringify({ text: text, speed: parseFloat(speedEl.value), volume: parseFloat(volumeEl.value), pitch: parseFloat(pitchEl.value),
+                                   noise: parseFloat(noiseEl.value), noiseW: parseFloat(noiseWEl.value), silence: parseFloat(sillEl.value) })
         });
     })
     .then(function(r){
@@ -329,32 +428,22 @@ document.getElementById("go").addEventListener("click", function(ev){
                     st.textContent = "❌ 云端任务失败（真实原因）：" + (p.error || "未返回错误信息"); st.className = "msg err";
                 } else {
                     setProgW(progTarget || 0);   // 轮询直接驱动（保底）
-                    var pct = p.total ? Math.round(p.done / p.total * 100) : 0;
                     if (p.phase === "warmup") {
                         // 预热：真进度没数据 -> 按预计时间拟真爬升（假动到 90% 封顶）
                         var warmEst = Math.max(60, Math.round((Date.now() - T0) * 1.2));
                         progTarget = Math.min(90, Math.round((Date.now() - T0) / warmEst * 90));
                         txt.textContent = "🔥 云端正在下载/加载 167MB 模型（首次，约 1~3 分钟，进度按时间拟真）...";
                     } else if (p.phase === "convert") {
-                        progTarget = Math.max(progTarget, 93);
-                        txt.textContent = "🎧 全部段落合成完毕，正在转码 mp3...";
-                    } else if (p.total > 0 && p.done >= 1) {
-                        // 段内按预计时长匀速推进（20秒/段基准），段间不再静止
-                        var SEG_S = 20;
-                        var base = Math.round(p.done / p.total * 100);
-                        var elapsedSeg = (Date.now() - T0) / 1000 - p.done * SEG_S;
-                        var inSeg = Math.min(1, Math.max(0, elapsedSeg / SEG_S)) * (100 / p.total);
-                        progTarget = Math.round(Math.min(base + inSeg, 99));
+                        // v7 真实进度：全部批次合成完（done==total）即 100%，转码只是最后一步
+                        progTarget = 100;
+                        txt.textContent = "🎧 全部段落合成完毕（100%），正在转码 mp3...";
+                    } else if (p.total > 0) {
+                        // ★ v7 真实进度：done/total 真实百分比直接驱动（不用时间公式、不拟真）
+                        var realPct = Math.round((p.done || 0) / p.total * 100);
+                        progTarget = Math.min(99, realPct);
                         var used = Math.round((Date.now() - T0) / 1000);
                         var el = Math.max(2, submitEst - used);
-                        txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 段（" + pct + "%）｜已用 " + fmtSec(used) + "｜预计剩余 " + fmtSec(el);
-                    } else if (p.total > 0) {
-                        var usedAll = (Date.now() - T0) / 1000;
-                        var segSecQ = Math.max(10, Math.round(submitEst / Math.max(1, p.total)));
-                        progTarget = Math.round(Math.min(99, usedAll / segSecQ * 99));
-                        var used = Math.round(usedAll);
-                        var segSec = Math.max(10, Math.round(submitEst / Math.max(1, p.total)));
-                        txt.textContent = "📝 首段合成中（已用 " + fmtSec(used) + " / 共 " + p.total + " 段 / 每段预计约 " + segSec + " 秒）...";
+                        txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 批（真实进度 " + realPct + "%）｜已用 " + fmtSec(used) + "｜预计剩余 " + fmtSec(el);
                     }
                 }
             }).catch(function(){});
@@ -377,6 +466,50 @@ document.getElementById("go").addEventListener("click", function(ev){
         st.className = "msg err";
     });
 });
+
+// ===== 读音纠正（多音字注音；本地 /api/lexicon · 线上 /api/tts/lexicon 云端账号绑定）=====
+(function(){
+    var box = document.getElementById("lexBox");
+    if (!box) return;
+    box.style.display = "block";
+    var ta = document.getElementById("lexText"), msgEl = document.getElementById("lexMsg");
+    var LEX_URL = (API || "") + (API ? "/api/tts/lexicon" : "/api/lexicon");
+    function lexFetch(url, opt){
+        return getToken().then(function(tok){
+            opt = opt || {};
+            var headers = opt.headers || {};
+            if (API) headers["Authorization"] = "Bearer " + tok;
+            else opt.credentials = "include";
+            return fetch(url, Object.assign({}, opt, { headers: headers }));
+        });
+    }
+    lexFetch(LEX_URL, {}).then(function(r){ return r.json(); }).then(function(j){
+        if (j && j.ok) ta.value = j.entries || "";
+    }).catch(function(){});
+    document.getElementById("lexSave").addEventListener("click", function(){
+        var b = this;
+        b.disabled = true;
+        msgEl.textContent = "⏳ 正在保存..."; msgEl.className = "msg";
+        lexFetch(LEX_URL, { method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ entries: ta.value }) })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+            b.disabled = false;
+            if (j.ok) {
+                msgEl.textContent = "✅ 已保存 " + j.count + " 条读音纠正（引擎重载中，约 10~15 秒后新合成生效）" +
+                    (j.errors && j.errors.length ? " ⚠️ 无效行：" + j.errors.join("；") : "");
+                msgEl.className = "msg ok";
+            } else {
+                msgEl.textContent = "❌ " + (j.error || "保存失败"); msgEl.className = "msg err";
+            }
+        })
+        .catch(function(e){
+            b.disabled = false;
+            msgEl.textContent = "❌ 保存失败：" + (e && e.message ? e.message : e); msgEl.className = "msg err";
+        });
+    });
+})();
 
 // ===== 下载（试听满意后，浏览器存到手机 Download）=====
 document.getElementById("dl").addEventListener("click", function(){
