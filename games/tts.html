@@ -5,7 +5,7 @@
   1) Firebase Auth 判断当前登录者邮箱是否等于站长邮箱（混淆存储的 OWNER_EMAIL，与 users.html 一致）；
   2) 匹配则显示面板；否则显示引导层；
   3) 面板文字/语速/音量提交到「手机本机」的本地合成服务 http://127.0.0.1:3081/api/synth
-     （服务只监听 127.0.0.1，别人访问不到 = 仅我可见）；合成 mp3 自动存到手机 Download。
+     （服务只在本机 127.0.0.1，且页面必须站长账号登录 = 账号+设备双绑）；合成 mp3 自动存到手机 Download。
 安全注意：站长邮箱混淆处理；本地服务端口仅本机可达。
 -->
 <!DOCTYPE html>
@@ -115,10 +115,9 @@ if(localStorage.getItem("theme") === "dark"){ document.body.classList.add("dark-
 // ===== 站长判定（与 users.html 一致）=====
 const OWNER_EMAIL = (function(){ try { return atob("bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft").split("").reverse().join("").toLowerCase(); } catch(e){ return ""; } })();
 if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); }
-// 本地模式（127.0.0.1/localhost）= 只有手机本机可达 = 天然仅站长可见，免登录直接用
-var IS_LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname || "");
+// 账号绑死：只有站长邮箱登录后才能使用（本地/线上一致，别的账号一律拒绝）
 firebase.auth().onAuthStateChanged(function(user){
-    var ok = IS_LOCAL || (user && String(user.email || "").toLowerCase() === OWNER_EMAIL);
+    var ok = user && String(user.email || "").toLowerCase() === OWNER_EMAIL;
     document.getElementById("gate").style.display = ok ? "none" : "block";
     document.getElementById("panel").style.display = ok ? "block" : "none";
     if (!ok) {
