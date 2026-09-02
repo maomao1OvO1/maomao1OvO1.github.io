@@ -609,6 +609,7 @@ updateTime();
         <span id="accRole" style="display:none;">开发者 <span id="accDevCaret" onclick="toggleDevSub(event)" style="cursor:pointer;font-size:10px;color:#7C5CBF;">▾</span></span>
         <!-- 管理员专属入口（display:none 默认隐藏，管理员时显示）；stopPropagation 防止点击冒泡触发按钮菜单 -->
         <span id="devSubMenu" style="display:none;">
+          <a id="accTTSLab" href="games/tts.html" target="_blank" rel="noopener" style="display:block;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">🎙️ 声库实验室</a>
           <a id="accUserAdmin" href="games/users.html" target="_blank" rel="noopener" style="display:block;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">用户管理</a>
           <a id="accMsgLink" href="games/contact-manager.html" target="_blank" rel="noopener" style="display:block;font-size:9px;line-height:1.4;font-weight:600;letter-spacing:1px;color:#7C5CBF;text-decoration:none;margin-top:2px;" onclick="event.stopPropagation()">站长留言箱</a>
         </span>
@@ -631,6 +632,7 @@ updateTime();
     <!-- 站长工具区块：只有管理员才显示（display:none 默认隐藏），跳到 Firebase 后台用户管理 -->
     <div class="acc-section" id="userAdminWrap" style="display:none;">
         <div class="acc-title">🗂️ 站长工具</div>
+        <a class="acc-small" style="text-decoration:none;" href="games/tts.html" target="_blank" rel="noopener">🎙️ 声库实验室</a>
         <a class="acc-small" style="text-decoration:none;" href="https://console.firebase.google.com/project/maomao-3c9ef/authentication/users" target="_blank" rel="noopener">用户管理</a>
     </div>
 
