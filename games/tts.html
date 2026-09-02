@@ -101,7 +101,7 @@ if(localStorage.getItem("theme") === "dark"){ document.body.classList.add("dark-
         <div id="playerWrap" style="display:none;">
             <audio id="player" controls></audio>
             <div class="fileinfo" id="fileinfo"></div>
-            <button id="dl" style="margin-top:10px;">⬇️ 满意，下载 mp3 到手机（Download）</button>
+            <button id="dl" style="margin-top:10px;" disabled>⬇️ 满意，下载 mp3 到手机（Download）</button>
             <div class="msg" id="dlStatus"></div>
         </div>
         <div class="note">云端合成（MeloTTS · MIT 可商用）· 必须站长账号登录（账号绑定）· 首次合成需云端预热 1~3 分钟 · 音色调节：音调越低越低沉，越高越清脆</div>
@@ -206,6 +206,7 @@ document.getElementById("go").addEventListener("click", function(ev){
     if (!text) { st.textContent = "⚠️ 先输入文字"; st.className = "msg err"; return; }
     var btn = document.getElementById("go");
     btn.disabled = true;
+    setTimeout(function(){ btn.disabled = false; }, 300000);   // 5 分钟硬恢复（真死锁兜底）
     T0 = Date.now();              // 基准时刻：无论成败都从此算起
     var n0 = text.length;
     var est = Math.max(10, Math.round(n0 * 0.3 / parseFloat(speedEl.value)));   // 本地实测速度保守估：0.3 秒/字
