@@ -5,7 +5,7 @@
   1) Firebase Auth 判断当前登录者邮箱是否等于站长邮箱（混淆存储的 OWNER_EMAIL，与 users.html 一致）；
   2) 匹配则显示面板；否则显示引导层；
   3) 面板文字/语速/音量提交到「手机本机」的本地合成服务 http://127.0.0.1:3081/api/synth
-     （服务只在本机 127.0.0.1，且页面必须站长账号登录 = 账号+设备双绑）；合成 mp3 自动存到手机 Download。
+     （云端合成 + 服务端验证站长账号 = 账号绑定，换设备登录同一账号同样可用）；合成 mp3 点下载保存。
 安全注意：站长邮箱混淆处理；本地服务端口仅本机可达。
 -->
 <!DOCTYPE html>
@@ -103,7 +103,7 @@ if(localStorage.getItem("theme") === "dark"){ document.body.classList.add("dark-
             <button id="dl" style="margin-top:10px;">⬇️ 满意，下载到 Download</button>
             <div class="msg" id="dlStatus"></div>
         </div>
-        <div class="note">本地合成（MeloTTS · MIT 可商用）· 全部在手机里完成，不出网 · 服务端口仅本机可见 · 音色调节：音调越低越低沉，越高越清脆</div>
+        <div class="note">云端合成（MeloTTS · MIT 可商用）· 必须站长账号登录（账号绑定）· 首次合成需云端预热 1~3 分钟 · 音色调节：音调越低越低沉，越高越清脆</div>
     </div>
     <a href="../index.html" class="back-home">🏠 回主页</a>
 </div>
@@ -149,11 +149,15 @@ function updateEta(){
 document.getElementById("text").addEventListener("input", updateEta);
 updateEta();
 
-// ===== 合成（异步任务 + 进度条）=====
-var API = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? "" : "http://127.0.0.1:3081";
+// ===== 合成（云端异步任务 + 进度条 + 账号绑定）=====
 var POLL = null;
 function stopPoll(){ if(POLL){ clearInterval(POLL); POLL = null; } }
 function fmtSec(s){ return s >= 60 ? Math.floor(s/60) + " 分 " + (s%60) + " 秒" : s + " 秒"; }
+function getToken(){
+    var u = firebase.auth().currentUser;
+    if (!u || !u.getIdToken) return Promise.resolve("");
+    return u.getIdToken().catch(function(){ return ""; });
+}
 document.getElementById("go").addEventListener("click", function(ev){
     ev.preventDefault();
     var text = document.getElementById("text").value.trim();
@@ -163,47 +167,60 @@ document.getElementById("go").addEventListener("click", function(ev){
     btn.disabled = true;
     var n0 = text.length;
     var est = Math.max(5, Math.round(n0 * 0.08 / parseFloat(speedEl.value)));
-    st.textContent = "⏳ 合成中（预计约 " + (est >= 60 ? Math.floor(est/60) + " 分 " + (est%60) + " 秒" : est + " 秒") + "），请保持页面打开...";
+    st.textContent = "⏳ 提交云端合成（预计约 " + (est >= 60 ? Math.floor(est/60) + " 分 " + (est%60) + " 秒" : est + " 秒") + "）...";
     st.className = "msg";
     T0 = Date.now();
-    fetch(API + "/api/synth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text, speed: parseFloat(speedEl.value), volume: parseFloat(volumeEl.value), pitch: parseFloat(pitchEl.value) })
+    getToken().then(function(tok){
+        return fetch(API + "/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+            body: JSON.stringify({ text: text, speed: parseFloat(speedEl.value), volume: parseFloat(volumeEl.value), pitch: parseFloat(pitchEl.value) })
+        });
     })
     .then(function(r){ return r.json(); })
     .then(function(res){
-        if (!res || !res.ok) { btn.disabled = false; st.textContent = "❌ " + (res.error || "启动合成失败"); st.className = "msg err"; return; }
+        if (!res || !res.ok) { btn.disabled = false; st.textContent = "❌ " + (res.error || "提交失败"); st.className = "msg err"; return; }
         var pw = document.getElementById("progWrap");
-        T0 = Date.now();
         pw.style.display = "block";
         document.getElementById("progBar").style.width = "0%";
-        document.getElementById("progTxt").textContent = "⏳ 已开始，正在切分文本...";
-        var t0 = Date.now();
+        document.getElementById("progTxt").textContent = "⏳ 云端已接收，正在启动/合成...";
         stopPoll();
         POLL = setInterval(function(){
-            fetch(API + "/api/progress?task=" + encodeURIComponent(res.task))
-            .then(function(r2){ return r2.json(); })
+            getToken().then(function(tok){
+                return fetch(API + "/api/tts/progress?task=" + encodeURIComponent(res.task), { headers: { "Authorization": "Bearer " + tok } });
+            }).then(function(r2){ return r2.json(); })
             .then(function(p){
-                if (!p || !p.ok) return;
+                if (!p || !p.status) return;
                 var bar = document.getElementById("progBar");
                 var txt = document.getElementById("progTxt");
                 if (p.status === "done") {
                     stopPoll();
                     bar.style.width = "100%";
-                    var secUsed = Math.round((Date.now() - t0) / 1000);
-                    var use = fmtSec(secUsed);
-                    txt.textContent = "✅ 完成（" + (p.total || 1) + " 段合并，实际生成 " + use + "）";
-                    pw.style.display = "none";
-                    st.textContent = "✅ 合成完成，先试听，满意再下载"; st.className = "msg ok";
-                    var pp = document.getElementById("playerWrap");
-                    pp.style.display = "block";
-                    document.getElementById("player").src = API + "/audio/" + p.file;
-                    document.getElementById("fileinfo").textContent = "本次文件：" + p.file;
-                    document.getElementById("dlStatus").textContent = "";
-                    document.getElementById("dl").disabled = false;
-                    document.getElementById("player").play();
-                    btn.disabled = false;
+                    var secUsed = Math.round((Date.now() - T0) / 1000);
+                    txt.textContent = "✅ 完成，正在取回音频...（实际生成 " + fmtSec(secUsed) + "）";
+                    getToken().then(function(tok){
+                        return fetch(API + "/api/tts/audio?task=" + encodeURIComponent(res.task), { headers: { "Authorization": "Bearer " + tok } });
+                    }).then(function(r3){
+                        if (!r3.ok) throw new Error("取回失败");
+                        return r3.blob();
+                    }).then(function(blob){
+                        var url = URL.createObjectURL(blob);
+                        var a = document.getElementById("player");
+                        a.src = url;
+                        document.getElementById("dl").dataset.url = url;
+                        document.getElementById("dl").dataset.file = "maomao_tts_" + Date.now().toString(36) + ".mp3";
+                        document.getElementById("dl").disabled = false;
+                        document.getElementById("dlStatus").textContent = "";
+                        document.getElementById("playerWrap").style.display = "block";
+                        document.getElementById("fileinfo").textContent = "本次音频（" + Math.round(blob.size/1024) + " KB）";
+                        pw.style.display = "none";
+                        st.textContent = "✅ 合成完成，先试听，满意再下载"; st.className = "msg ok";
+                        btn.disabled = false;
+                        a.play();
+                    }).catch(function(e){
+                        btn.disabled = false;
+                        st.textContent = "❌ " + e.message; st.className = "msg err";
+                    });
                 } else if (p.status === "error") {
                     stopPoll();
                     pw.style.display = "none";
@@ -212,7 +229,9 @@ document.getElementById("go").addEventListener("click", function(ev){
                 } else {
                     var pct = p.total ? Math.round(p.done / p.total * 100) : 0;
                     bar.style.width = pct + "%";
-                    if (p.phase === "convert") {
+                    if (p.phase === "warmup") {
+                        txt.textContent = "🔥 云端首次预热中（模型加载约 1~3 分钟）...";
+                    } else if (p.phase === "convert") {
                         txt.textContent = "🎧 合成完毕，正在转码（" + pct + "%）...";
                     } else if (p.total > 0 && p.done >= 1) {
                         var el = Math.max(2, Math.round((Date.now() - T0) / p.done * (p.total - p.done)));
@@ -224,39 +243,24 @@ document.getElementById("go").addEventListener("click", function(ev){
                     }
                 }
             }).catch(function(){});
-        }, 1200);
+        }, 1500);
     })
     .catch(function(e){
         btn.disabled = false;
-        st.textContent = "❌ 无法连接本地合成服务（" + e + "）——请确认手机上的声库服务在运行";
+        st.textContent = "❌ 无法连接云端合成服务（" + e + "）——确认线上后端已部署，稍后再试";
         st.className = "msg err";
     });
 });
 
-// ===== 下载（试听满意后）=====
+// ===== 下载（试听满意后，浏览器存到手机 Download）=====
 document.getElementById("dl").addEventListener("click", function(){
     var btn = this, st = document.getElementById("dlStatus");
-    var file = (document.getElementById("player").src.split("/").pop() || "");
-    if (!file) { st.textContent = "⚠️ 请先合成一次"; st.className = "msg err"; return; }
-    btn.disabled = true; st.textContent = "⏳ 保存中..."; st.className = "msg";
-    fetch(API + "/api/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file: file })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-        btn.disabled = false;
-        if (d && d.ok) {
-            st.textContent = "✅ 已保存：手机 Download/" + d.file; st.className = "msg ok";
-        } else {
-            st.textContent = "❌ " + ((d && d.error) || "保存失败"); st.className = "msg err";
-        }
-    })
-    .catch(function(){
-        btn.disabled = false;
-        st.textContent = "❌ 网络错误"; st.className = "msg err";
-    });
+    var url = btn.dataset.url, file = btn.dataset.file;
+    if (!url) { st.textContent = "⚠️ 请先合成一次"; st.className = "msg err"; return; }
+    var a = document.createElement("a");
+    a.href = url; a.download = file || "maomao_tts.mp3";
+    document.body.appendChild(a); a.click(); a.remove();
+    st.textContent = "⬇️ 已触发下载（手机浏览器保存到 Download）"; st.className = "msg ok";
 });
 </script>
 </body>
