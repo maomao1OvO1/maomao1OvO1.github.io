@@ -16,6 +16,14 @@
 <html>
 
 <head>
+<script>
+// #maomao-lc-redirect 域名大小写统一：GitHub Pages 大小写同站，但 Firebase 授权域名区分大小写 → 强制全小写
+if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== location.hostname.toLowerCase()) {
+  var __i = location.href.indexOf(location.host);
+  location.replace(location.href.slice(0, __i) + location.hostname.toLowerCase() + location.href.slice(__i + location.host.length));
+}
+</script>
+
 <script src="/device-check.js?v=18"></script>
     <script src="/anti-bot.js?v=4"></script>
 <meta charset="UTF-8">
