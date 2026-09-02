@@ -238,6 +238,7 @@ document.getElementById("go").addEventListener("click", function(ev){
         if (!res) return;
         var pw = document.getElementById("progWrap");
         pw.style.display = "block";
+        document.getElementById("progBar").style.width = "0%";   // 新任务立即归零
         progTarget = 3; startAnim();
         document.getElementById("progTxt").textContent = "⏳ 任务已提交云端，等待接收（若还在休眠正在唤醒）...";
         stopPoll();
