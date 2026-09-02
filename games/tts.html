@@ -176,6 +176,7 @@ document.getElementById("go").addEventListener("click", function(ev){
     .then(function(res){
         if (!res || !res.ok) { btn.disabled = false; st.textContent = "❌ " + (res.error || "启动合成失败"); st.className = "msg err"; return; }
         var pw = document.getElementById("progWrap");
+        T0 = Date.now();
         pw.style.display = "block";
         document.getElementById("progBar").style.width = "0%";
         document.getElementById("progTxt").textContent = "⏳ 已开始，正在切分文本...";
@@ -214,10 +215,13 @@ document.getElementById("go").addEventListener("click", function(ev){
                     bar.style.width = pct + "%";
                     if (p.phase === "convert") {
                         txt.textContent = "🎧 合成完毕，正在转码（" + pct + "%）...";
-                    } else if (p.total > 0) {
-                        var el = Math.max(2, Math.round((Date.now() - t0) / Math.max(1, p.done) * (p.total - p.done)));
+                    } else if (p.total > 0 && p.done >= 1) {
+                        var el = Math.max(2, Math.round((Date.now() - T0) / p.done * (p.total - p.done)));
                         txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 段（" + pct + "%），预计剩余 " + fmtSec(el);
                         bar.style.width = pct + "%";
+                    } else if (p.total > 0) {
+                        txt.textContent = "📝 正在合成第 1 段（已开始）...";
+                        bar.style.width = "8%";
                     }
                 }
             }).catch(function(){});
