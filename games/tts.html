@@ -116,9 +116,11 @@ if(localStorage.getItem("theme") === "dark"){ document.body.classList.add("dark-
 // ===== 站长判定（与 users.html 一致）=====
 const OWNER_EMAIL = (function(){ try { return atob("bW9jLmxpYW1nQDFvdm8xb2Ftb2Ft").split("").reverse().join("").toLowerCase(); } catch(e){ return ""; } })();
 if (!firebase.apps.length) { firebase.initializeApp(window.FIREBASE_CONFIG); }
-// 账号绑死：只有站长邮箱登录后才能使用（本地/线上一致，别的账号一律拒绝）
+// 本地模式（127.0.0.1/localhost）= 仅本机可达 = 天然仅站长可用 → 免登录直接用；
+// 线上（github.io）= 账号绑死：站长邮箱登录后才可用
+var IS_LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname || "");
 firebase.auth().onAuthStateChanged(function(user){
-    var ok = user && String(user.email || "").toLowerCase() === OWNER_EMAIL;
+    var ok = IS_LOCAL || (user && String(user.email || "").toLowerCase() === OWNER_EMAIL);
     document.getElementById("gate").style.display = ok ? "none" : "block";
     document.getElementById("panel").style.display = ok ? "block" : "none";
     if (!ok) {
