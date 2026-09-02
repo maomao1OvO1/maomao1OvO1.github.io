@@ -186,6 +186,7 @@ document.getElementById("go").addEventListener("click", function(ev){
     getToken().then(function(tok){
         return fetch(API + "/api/tts", {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
             body: JSON.stringify({ text: text, speed: parseFloat(speedEl.value), volume: parseFloat(volumeEl.value), pitch: parseFloat(pitchEl.value) })
         });
@@ -208,7 +209,7 @@ document.getElementById("go").addEventListener("click", function(ev){
         stopPoll();
         POLL = setInterval(function(){
             getToken().then(function(tok){
-                return fetch(API + "/api/tts/progress?task=" + encodeURIComponent(res.task), { headers: { "Authorization": "Bearer " + tok } });
+                return fetch(API + "/api/tts/progress?task=" + encodeURIComponent(res.task), { credentials: "include", headers: { "Authorization": "Bearer " + tok } });
             }).then(function(r2){ return r2.json(); })
             .then(function(p){
                 if (!p || !p.status) return;
@@ -221,7 +222,7 @@ document.getElementById("go").addEventListener("click", function(ev){
                     var secUsed = Math.round((Date.now() - T0) / 1000);
                     txt.textContent = "✅ 完成，正在取回音频...（实际生成 " + fmtSec(secUsed) + "）";
                     getToken().then(function(tok){
-                        return fetch(API + "/api/tts/audio?task=" + encodeURIComponent(res.task), { headers: { "Authorization": "Bearer " + tok } });
+                        return fetch(API + "/api/tts/audio?task=" + encodeURIComponent(res.task), { credentials: "include", headers: { "Authorization": "Bearer " + tok } });
                     }).then(function(r3){
                         if (!r3.ok) throw new Error("取回失败");
                         return r3.blob();
@@ -271,8 +272,18 @@ document.getElementById("go").addEventListener("click", function(ev){
         }, 1500);
     })
     .catch(function(e){
+        // 自动重试：唤醒期/首访挑战通常 1~2 次自动恢复
+        var tries = this._tries || 0;
+        if (tries < 3) {
+            this._tries = tries + 1;
+            st.textContent = "⚠️ 云端响应中（可能是唤醒/安全验证），自动重试 " + (tries + 1) + "/3 ...";
+            st.className = "msg";
+            setTimeout(function(){ document.getElementById("go").click(); }, 12000);
+            return;
+        }
+        this._tries = 0;
         btn.disabled = false;
-        st.textContent = "❌ 网络请求失败（" + (e && e.message ? e.message : e) + "）\n可能原因：云端免费实例休眠中（等 30~60 秒唤醒后重试）、或域名不可达";
+        st.textContent = "❌ 网络请求失败（" + (e && e.message ? e.message : e) + "）——三次自动重试仍失败，可能：实例在重启/CF 拦截/域名问题";
         st.className = "msg err";
     });
 });
