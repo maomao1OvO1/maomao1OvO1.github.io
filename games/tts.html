@@ -206,12 +206,12 @@ document.getElementById("go").addEventListener("click", function(ev){
     if (!text) { st.textContent = "⚠️ 先输入文字"; st.className = "msg err"; return; }
     var btn = document.getElementById("go");
     btn.disabled = true;
+    T0 = Date.now();              // 基准时刻：无论成败都从此算起
     var n0 = text.length;
-    var est = Math.max(5, Math.round(n0 * 0.08 / parseFloat(speedEl.value)));
+    var est = Math.max(10, Math.round(n0 * 0.3 / parseFloat(speedEl.value)));   // 本地实测速度保守估：0.3 秒/字
     st.textContent = "⏳ 正在提交任务（预计整体约 " + (est >= 60 ? Math.floor(est/60) + " 分 " + (est%60) + " 秒" : est + " 秒") + "，长文本请耐心，进度条会实时走）...";
     st.className = "msg";
-    T0 = Date.now();
-    setTimeout(function(){ btn.disabled = false; }, 300000);   // 5 分钟硬恢复（长文本正常合成也可维持禁用；真死锁恢复）
+    st.textContent = "⏳ 正在提交任务（预计整体约 " + (est >= 60 ? Math.floor(est/60) + " 分 " + (est%60) + " 秒" : est + " 秒") + "，进度条实时走）...";
     var ac = new AbortController();
     setTimeout(function(){ ac.abort(); }, 60000);
     getToken().then(function(tok){
@@ -244,7 +244,8 @@ document.getElementById("go").addEventListener("click", function(ev){
         pw.style.display = "block";
         document.getElementById("progBar").style.width = "0%";   // 新任务立即归零
         progTarget = 3; startAnim();
-        document.getElementById("progTxt").textContent = "⏳ 任务已提交云端，等待接收（若还在休眠正在唤醒）...";
+        document.getElementById("progTxt").textContent = "⏳ 任务已提交，等待云端接收...";
+        st.textContent = "⏳ " + (est >= 60 ? Math.floor(est/60) + " 分 " + (est%60) + " 秒" : est + " 秒") + "后应有声音，进度条实时走";
         stopPoll();
         POLL = setInterval(function(){
             getToken().then(function(tok){
@@ -306,10 +307,11 @@ document.getElementById("go").addEventListener("click", function(ev){
                         txt.textContent = "🎧 全部段落合成完毕，正在转码 mp3...";
                     } else if (p.total > 0 && p.done >= 1) {
                         progTarget = Math.round(p.done / p.total * 100);
-                        var el = Math.max(2, Math.round((Date.now() - T0) / p.done * (p.total - p.done)));
-                        txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 段（" + pct + "%），预计剩余 " + fmtSec(el);
+                        var used = Math.round((Date.now() - T0) / 1000);
+                        var el = Math.max(2, est - used);
+                        txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 段（" + pct + "%）｜已用 " + fmtSec(used) + "｜预计剩余 " + fmtSec(el);
                     } else if (p.total > 0) {
-                        progTarget = Math.max(progTarget, Math.min(30, progTarget + 3));
+                        progTarget = Math.max(progTarget, Math.min(10, progTarget + 2));
                         var used = Math.round((Date.now() - T0) / 1000);
                         txt.textContent = "📝 首段合成中（已用 " + fmtSec(used) + "，共 " + p.total + " 段，每段约几十秒）...";
                     }
