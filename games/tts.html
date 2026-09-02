@@ -151,8 +151,20 @@ updateEta();
 
 // ===== 合成（云端异步任务 + 进度条 + 账号绑定）=====
 var API = "https://maomao-admin-api.onrender.com";
-var POLL = null;
-function stopPoll(){ if(POLL){ clearInterval(POLL); POLL = null; } }
+var POLL = null, ANIM = null;
+var dispW = 0, progTarget = 0;
+function stopPoll(){ if(POLL){ clearInterval(POLL); POLL = null; } if(ANIM){ clearInterval(ANIM); ANIM = null; } }
+function startAnim(){
+    if(ANIM) clearInterval(ANIM);
+    dispW = 0;
+    ANIM = setInterval(function(){
+        // 平滑逼近目标；至少有 0.6% 的推进量 = 永远在动（假动到 90% 封顶，完成后即刻 100%）
+        var step = Math.max((progTarget - dispW) * 0.15, 0.6);
+        dispW = Math.min(progTarget < 95 ? progTarget : (dispW + step > 90 ? 90 : dispW + step), dispW + step);
+        if (progTarget >= 100) dispW = 100;
+        document.getElementById("progBar").style.width = dispW + "%";
+    }, 450);
+}
 function fmtSec(s){ return s >= 60 ? Math.floor(s/60) + " 分 " + (s%60) + " 秒" : s + " 秒"; }
 function getToken(){
     var u = firebase.auth().currentUser;
@@ -183,7 +195,7 @@ document.getElementById("go").addEventListener("click", function(ev){
         if (!res || !res.ok) { btn.disabled = false; st.textContent = "❌ " + (res.error || "提交失败"); st.className = "msg err"; return; }
         var pw = document.getElementById("progWrap");
         pw.style.display = "block";
-        document.getElementById("progBar").style.width = "0%";
+        progTarget = 3; startAnim();
         document.getElementById("progTxt").textContent = "⏳ 云端已接收，正在启动/合成...";
         stopPoll();
         POLL = setInterval(function(){
@@ -196,6 +208,7 @@ document.getElementById("go").addEventListener("click", function(ev){
                 var txt = document.getElementById("progTxt");
                 if (p.status === "done") {
                     stopPoll();
+                    progTarget = 100; dispW = 100;
                     bar.style.width = "100%";
                     var secUsed = Math.round((Date.now() - T0) / 1000);
                     txt.textContent = "✅ 完成，正在取回音频...（实际生成 " + fmtSec(secUsed) + "）";
@@ -229,18 +242,21 @@ document.getElementById("go").addEventListener("click", function(ev){
                     st.textContent = "❌ 合成出错：" + (p.error || "未知"); st.className = "msg err";
                 } else {
                     var pct = p.total ? Math.round(p.done / p.total * 100) : 0;
-                    bar.style.width = pct + "%";
                     if (p.phase === "warmup") {
+                        // 预热：真进度没数据 -> 按预计时间拟真爬升（假动到 90% 封顶）
+                        var est = Math.max(60, Math.round((Date.now() - T0) * 1.2));
+                        progTarget = Math.min(90, Math.round((Date.now() - T0) / est * 90));
                         txt.textContent = "🔥 云端首次预热中（模型加载约 1~3 分钟）...";
                     } else if (p.phase === "convert") {
-                        txt.textContent = "🎧 合成完毕，正在转码（" + pct + "%）...";
+                        progTarget = Math.max(progTarget, 93);
+                        txt.textContent = "🎧 合成完毕，正在转码...";
                     } else if (p.total > 0 && p.done >= 1) {
+                        progTarget = Math.round(p.done / p.total * 100);
                         var el = Math.max(2, Math.round((Date.now() - T0) / p.done * (p.total - p.done)));
                         txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 段（" + pct + "%），预计剩余 " + fmtSec(el);
-                        bar.style.width = pct + "%";
                     } else if (p.total > 0) {
+                        progTarget = Math.max(progTarget, Math.min(20, progTarget + 2));
                         txt.textContent = "📝 正在合成第 1 段（已开始）...";
-                        bar.style.width = "8%";
                     }
                 }
             }).catch(function(){});
