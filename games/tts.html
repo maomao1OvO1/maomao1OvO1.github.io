@@ -15,6 +15,8 @@
 <script src="/device-check.js?v=18"></script>
 <script src="/anti-bot.js?v=4"></script>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>声库实验室 · 毛毛</title>
 <style>
@@ -198,10 +200,15 @@ function startAnim(){
     ANIM = setInterval(function(){
         if (!isFinite(progTarget) || progTarget < 0) progTarget = 5;   // NaN 兜底
         if (!isFinite(dispW) || dispW < 0) dispW = 0;
-        // 平滑逼近目标；至少有 0.6% 的推进量 = 永远在动（假动到 90% 封顶，完成后即刻 100%）
+        // 平滑逼近目标；到达后呼吸脉动（永远在动）; 完成即 100%
         var step = Math.max((progTarget - dispW) * 0.15, 0.6);
         dispW = Math.min(progTarget < 95 ? progTarget : (dispW + step > 90 ? 90 : dispW + step), dispW + step);
-        if (progTarget >= 100) dispW = 100;
+        if (progTarget >= 100) { dispW = 100; }
+        else if (Math.abs(dispW - progTarget) < 1 && progTarget > 0) {
+            // 到位后 微幅呼吸（±1.5%），永不静止
+            var breath = (Date.now() % 6000) / 6000 * 3 - 1.5;
+            dispW = Math.max(1, Math.min(99, progTarget + breath));
+        }
         document.getElementById("progBar").style.width = dispW + "%";
     }, 450);
 }
