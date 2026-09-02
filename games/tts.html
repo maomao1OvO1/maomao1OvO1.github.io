@@ -222,7 +222,7 @@ document.getElementById("go").addEventListener("click", function(ev){
     T0 = Date.now();              // 基准时刻：无论成败都从此算起
     var n0 = text.length;
     var submitEst = Math.max(10, Math.round(n0 * 0.3 / parseFloat(speedEl.value)));   // 本地实测速度保守估：0.3 秒/字
-    st.textContent = "⏳ 正在提交任务（预计整体约 " + (est >= 60 ? Math.floor(est/60) + " 分 " + (est%60) + " 秒" : est + " 秒") + "，长文本请耐心，进度条会实时走）...";
+    st.textContent = "⏳ 正在提交任务（预计整体约 " + (submitEst >= 60 ? Math.floor(submitEst/60) + " 分 " + (submitEst%60) + " 秒" : submitEst + " 秒") + "，长文本请耐心，进度条会实时走）...";
     st.className = "msg";
     st.textContent = "⏳ 正在提交任务（预计整体约 " + (submitEst >= 60 ? Math.floor(submitEst/60) + " 分 " + (submitEst%60) + " 秒" : submitEst + " 秒") + "，进度条实时走）...";
     var ac = new AbortController();
@@ -258,7 +258,7 @@ document.getElementById("go").addEventListener("click", function(ev){
         document.getElementById("progBar").style.width = "0%";   // 新任务立即归零
         progTarget = 3; startAnim();
         document.getElementById("progTxt").textContent = "⏳ 任务已提交，等待云端接收...";
-        st.textContent = "⏳ " + (est >= 60 ? Math.floor(est/60) + " 分 " + (est%60) + " 秒" : est + " 秒") + "后应有声音，进度条实时走";
+        st.textContent = "⏳ " + (submitEst >= 60 ? Math.floor(submitEst/60) + " 分 " + (submitEst%60) + " 秒" : submitEst + " 秒") + "后应有声音，进度条实时走";
         stopPoll();
         POLL = setInterval(function(){
             getToken().then(function(tok){
