@@ -210,10 +210,17 @@ function startAnim(){
             var breath = (Date.now() % 4000) / 4000 * 8 - 4;
             dispW = Math.max(1, Math.min(99, progTarget + breath));
         }
-        document.getElementById("progBar").style.width = dispW + "%";
-        var pr = document.getElementById("progPct");
-        if (pr) pr.textContent = Math.round(dispW) + "%";
+        setProgW(dispW);
     }, 300);
+}
+function setProgW(v){
+    try {
+        v = isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
+        var b = document.getElementById("progBar");
+        if (b) b.style.width = v + "%";
+        var p = document.getElementById("progPct");
+        if (p) p.textContent = Math.round(v) + "%";
+    } catch(e){}
 }
 function fmtSec(s){ s = Number(s); if (!isFinite(s) || s < 0) return "--"; s = Math.round(s); return s >= 60 ? Math.floor(s/60) + " 分 " + (s%60) + " 秒" : s + " 秒"; }
 function getToken(){
@@ -288,7 +295,7 @@ document.getElementById("go").addEventListener("click", function(ev){
                 if (p.status === "done") {
                     stopPoll();
                     progTarget = 100; dispW = 100;
-                    bar.style.width = "100%";
+                    setProgW(100);
                     btn.disabled = false;          // ★ 合成完成立即恢复按钮（不等音频取回）
                     var secUsed = Math.round((Date.now() - T0) / 1000);
                     txt.textContent = "✅ 完成，正在取回音频...（实际生成 " + fmtSec(secUsed) + "）";
@@ -321,6 +328,7 @@ document.getElementById("go").addEventListener("click", function(ev){
                     btn.disabled = false;
                     st.textContent = "❌ 云端任务失败（真实原因）：" + (p.error || "未返回错误信息"); st.className = "msg err";
                 } else {
+                    setProgW(progTarget || 0);   // 轮询直接驱动（保底）
                     var pct = p.total ? Math.round(p.done / p.total * 100) : 0;
                     if (p.phase === "warmup") {
                         // 预热：真进度没数据 -> 按预计时间拟真爬升（假动到 90% 封顶）
