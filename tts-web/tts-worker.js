@@ -94,9 +94,9 @@ self.onmessage = function (ev) {
     try {
       // 幂等：旧文件先删（重复投递 / 上次残留都不怕）
       try { Module.FS_unlink('/' + name); } catch (e) {}
-      Module.FS_createPreloadedFile('/', name, new Uint8Array(msg.buffer), true, false, null, function (e) {
-        console.error('preload error', name, e);
-      });
+      // 零拷贝写入（canOwn=true：文件数据直接进 MEMFS，不触发 write 复制路径）
+      Module.FS_createPreloadedFile('/', name, new Uint8Array(msg.buffer), true, false, null, null, false, true);
+      console.log('preloaded', name, msg.buffer ? msg.buffer.byteLength : 'NO-BUFFER');
       if (pending[name] && Module.removeRunDependency) {
         Module.removeRunDependency(pending[name]);
         delete pending[name];
@@ -109,9 +109,8 @@ self.onmessage = function (ev) {
     } catch (e) {
       var detail = '';
       try { detail = JSON.stringify(e, Object.getOwnPropertyNames(e)); } catch (x) { detail = String(e); }
-      var fsList = '';
-      try { fsList = ' | FS:/[' + Module.FS.readdir('/').join(',') + ']'; } catch (x) { fsList = ' | FS:err'; }
-      post({ type: 'synth-err', message: '写入模型失败（' + name + '）：' + detail + fsList });
+      var mbuf = msg.buffer ? (Object.prototype.toString.call(msg.buffer) + ' len=' + msg.buffer.byteLength) : 'buffer=MISSING';
+      post({ type: 'synth-err', message: '写入模型失败（' + name + '）：' + mbuf + ' || ' + detail });
     }
     return;
   }
