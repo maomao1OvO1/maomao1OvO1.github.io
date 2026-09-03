@@ -489,7 +489,6 @@ document.getElementById("go").addEventListener("click", function(ev){
                         txt.textContent = "⏳ 云端已接收任务，正在准备（已等待 " + fmtSec(usedW) + "）...";
                     }
                 }
-                }
             }).catch(function(e){
                 // ★ 真实报错：轮询请求本身失败（网络/超时/断开）
                 var ptxt = document.getElementById("progTxt");
