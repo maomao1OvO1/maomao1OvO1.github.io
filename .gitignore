@@ -5,3 +5,4 @@ tokens-config.json
 typescript
 tts_server.log
 tts-web/assets/
+!tts-web/sherpa-onnx-wasm-main-tts.wasm
