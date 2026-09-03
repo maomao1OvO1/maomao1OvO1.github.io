@@ -482,10 +482,17 @@
     });
   }
 
-  // ================= 启动：引擎就绪链路 → 下载模型（状态机等双方）=================
-  loadEngine().then(function () {
-    downloadModels();
-  }).catch(function (e) {
-    setStatus('❌ 引擎加载失败：' + String(e && (e.message || e.toString()) || e), 'err');
-  });
+  // ================= 启动：模型下载与引擎加载【并行】，状态机等双方就绪 =================
+  downloadModels();
+  (function loadEngineRetry(tries) {
+    loadEngine().catch(function (e) {
+      var msg = String(e && (e.message || e.toString()) || e);
+      if (tries < 3) {
+        setStatus('⚠️ 引擎加载失败（' + msg + '），' + (tries + 1) + ' 秒后自动重试…', 'err');
+        setTimeout(function () { loadEngineRetry((tries || 0) + 1); }, (tries + 1) * 1000);
+      } else {
+        setStatus('❌ 引擎加载失败：' + msg + '（请下拉刷新页面重试）', 'err');
+      }
+    });
+  })(0);
 })();
