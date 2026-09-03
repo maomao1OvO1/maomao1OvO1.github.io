@@ -45,21 +45,29 @@
   var IS_LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   var MODEL_BASE = IS_LOCAL ? './assets/' : './models/';
   var MODEL_FILES = IS_LOCAL ? [
-    { name: 'model.onnx', size: 170429550 },
-    { name: 'lexicon.txt', size: 6838024 },
-    { name: 'tokens.txt', size: 655 },
-    { name: 'date.fst', size: 59154 },
-    { name: 'number.fst', size: 64482 },
-    { name: 'phone.fst', size: 88630 },
-    { name: 'new_heteronym.fst', size: 21974 }
+    { name: 'model.onnx', size: 325630829 },
+    { name: 'voices.bin', size: 27678720 },
+    { name: 'tokens.txt', size: 687 },
+    { name: 'lexicon-zh.txt', size: 2364959 },
+    { name: 'date-zh.fst', size: 59154 },
+    { name: 'number-zh.fst', size: 64482 },
+    { name: 'phone-zh.fst', size: 88630 },
+    { name: 'dict/jieba.dict.utf8', size: 5071204 },
+    { name: 'dict/hmm_model.utf8', size: 519739 },
+    { name: 'dict/idf.utf8', size: 5998717 },
+    { name: 'dict/stop_words.utf8', size: 8974 }
   ] : [
-    { name: 'model.onnx', parts: ['model.part1', 'model.part2'], size: 170429550 },
-    { name: 'lexicon.txt', size: 6838024 },
-    { name: 'tokens.txt', size: 655 },
-    { name: 'date.fst', size: 59154 },
-    { name: 'number.fst', size: 64482 },
-    { name: 'phone.fst', size: 88630 },
-    { name: 'new_heteronym.fst', size: 21974 }
+    { name: 'model.onnx', parts: ['model.part1', 'model.part2', 'model.part3', 'model.part4'], size: 325630829 },
+    { name: 'voices.bin', size: 27678720 },
+    { name: 'tokens.txt', size: 687 },
+    { name: 'lexicon-zh.txt', size: 2364959 },
+    { name: 'date-zh.fst', size: 59154 },
+    { name: 'number-zh.fst', size: 64482 },
+    { name: 'phone-zh.fst', size: 88630 },
+    { name: 'dict/jieba.dict.utf8', size: 5071204 },
+    { name: 'dict/hmm_model.utf8', size: 519739 },
+    { name: 'dict/idf.utf8', size: 5998717 },
+    { name: 'dict/stop_words.utf8', size: 8974 }
   ];
   var MODEL_TOTAL = MODEL_FILES.reduce(function (a, f) { return a + f.size; }, 0);
 
@@ -132,19 +140,28 @@
     try {
       for (var i = 0; i < MODEL_FILES.length; i++) {
         var f = MODEL_FILES[i];
+        var dirs = f.name.split('/');
+        var name = dirs.pop();
+        var parent = dirs.length ? '/' + dirs.join('/') : '/';
+        if (dirs.length) {
+          try { Module.FS_createPath(dirs.join('/'), name === f.name ? '' : name, true, true); } catch (e) {}
+          try { Module.FS_createPath(parent, dirs.join('/'), true, true); } catch (e) {}
+          try { Module.FS_createPath('/', dirs.join('/'), true, true); } catch (e) {}
+          try { Module.FS_createPath('/', dirs.join('/'), true, true); } catch (e2) {}
+        }
         try { Module.FS_unlink('/' + f.name); } catch (e) {}
-        Module.FS_createDataFile('/', f.name, pendingModels[f.name], true, false);
+        Module.FS_createDataFile(parent, name, pendingModels[f.name], true, false);
       }
       tts = createOfflineTts(Module, {
         offlineTtsModelConfig: {
-          offlineTtsVitsModelConfig: {
-            model: './model.onnx', lexicon: './lexicon.txt', tokens: './tokens.txt',
-            dataDir: '', noiseScale: parseFloat(noiseEl.value),
-            noiseScaleW: parseFloat(noiseWEl.value), lengthScale: 1.0
+          offlineTtsKokoroModelConfig: {
+            model: './model.onnx', voices: './voices.bin', tokens: './tokens.txt',
+            dataDir: '', dictDir: './dict',
+            lengthScale: 1.0, lexicon: './lexicon-zh.txt', lang: 'zh'
           },
           numThreads: 1, debug: false, provider: 'cpu'
         },
-        ruleFsts: './date.fst,./number.fst,./phone.fst,./new_heteronym.fst',
+        ruleFsts: './date-zh.fst,./number-zh.fst,./phone-zh.fst',
         ruleFars: '', maxNumSentences: 1, silenceScale: parseFloat(silenceEl.value)
       });
       built = true;
