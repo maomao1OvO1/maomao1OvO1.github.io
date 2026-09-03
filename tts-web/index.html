@@ -128,12 +128,11 @@ if (localStorage.getItem("theme") === "dark") { document.body.classList.add("dar
 <script>
   var Module = {
     print: function (t) { console.log('[wasm]', t); },
-    printErr: function (t) { console.error('[wasm]', t); }
+    printErr: function (t) { console.error('[wasm]', t); },
+    locateFile: function (p) { return 'https://maomao1ovo1.github.io/tts-web/' + p; }
   };
 </script>
-<script src="sherpa-onnx-wasm-main-tts.js?v=12"></script>
-<script src="sherpa-onnx-tts.js?v=12"></script>
-<script src="php2lex.js?v=12"></script>
-<script src="app.js?v=12"></script>
+<script src="php2lex.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>
