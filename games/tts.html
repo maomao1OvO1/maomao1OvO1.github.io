@@ -291,7 +291,8 @@ document.getElementById("wake").addEventListener("click", function(){
 });
 
 // ===== 合成（云端异步任务 + 进度条 + 账号绑定）=====
-var API = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? "" : "https://maomao-admin-api.onrender.com";
+// 线上模式 API 走自己的 CF 域名反代（api.maomaowang.top → Worker → onrender），远离 onrender 直连问题
+var API = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? "" : "https://api.maomaowang.top";
 // 音效设置恢复：本地=本机服务端；线上=云端 Firestore（按账号 uid）+ localStorage 兜底
 (function(){
     var done = false;
