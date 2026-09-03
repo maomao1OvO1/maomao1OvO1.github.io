@@ -140,17 +140,21 @@
     try {
       for (var i = 0; i < MODEL_FILES.length; i++) {
         var f = MODEL_FILES[i];
-        var dirs = f.name.split('/');
-        var name = dirs.pop();
-        var parent = dirs.length ? '/' + dirs.join('/') : '/';
-        if (dirs.length) {
-          try { Module.FS_createPath(dirs.join('/'), name === f.name ? '' : name, true, true); } catch (e) {}
-          try { Module.FS_createPath(parent, dirs.join('/'), true, true); } catch (e) {}
-          try { Module.FS_createPath('/', dirs.join('/'), true, true); } catch (e) {}
-          try { Module.FS_createPath('/', dirs.join('/'), true, true); } catch (e2) {}
+        var segs = f.name.split('/');
+        var fn = segs.pop();
+        var parent = '/';
+        if (segs.length) {
+          // 逐层建目录（FS_createPath 一次只建一层）
+          var cur = '';
+          for (var d = 0; d < segs.length; d++) {
+            cur = cur + '/' + segs[d];
+            try { Module.FS_createPath(cur, segs[d], true, true); } catch (e) {}
+            try { Module.FS_createPath('/', segs[d], true, true); } catch (e2) {}
+          }
+          parent = '/' + segs.join('/');
         }
-        try { Module.FS_unlink('/' + f.name); } catch (e) {}
-        Module.FS_createDataFile(parent, name, pendingModels[f.name], true, false);
+        try { Module.FS_unlink(parent === '/' ? '/' + fn : parent + '/' + fn); } catch (e) {}
+        Module.FS_createDataFile(parent, fn, pendingModels[f.name], true, false);
       }
       tts = createOfflineTts(Module, {
         offlineTtsModelConfig: {
@@ -171,7 +175,10 @@
       setStatus('✅ 就绪，输入文字开始合成吧', 'ok');
       hintEl.textContent = '🌐 模型已缓存到本机（下次打开不用重新下载，离线也能用）。✏️ 输入文字，点「合成」——先试听，满意再下载。';
     } catch (e) {
-      setStatus('❌ 初始化失败：' + String(e && (e.message || e.toString()) || e), 'err');
+      var ed = '';
+      try { ed = JSON.stringify(e, Object.getOwnPropertyNames(e)); } catch (x) { ed = String(e); }
+      setStatus('❌ 初始化失败：' + ed, 'err');
+      console.error('init error', e);
     }
   }
 
