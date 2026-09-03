@@ -231,10 +231,14 @@
   }
 
   function startWorker() {
-    worker = new Worker('tts-worker.js?v=5');
+    worker = new Worker('tts-worker.js?v=6');
     worker.onmessage = function (ev) {
       var m = ev.data || {};
       if (m.type === 'need-models') { downloadModels(); return; }
+      if (m.type === 'stage') {
+        progTxt.textContent = '⚙️ ' + m.msg;
+        return;
+      }
       if (m.type === 'progress' && m.file && m.total) {
         progTxt.textContent = '📥 模型已写入 ' + m.got + '/' + m.total + '（正在初始化引擎…）';
         return;
