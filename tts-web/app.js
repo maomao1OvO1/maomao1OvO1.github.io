@@ -36,42 +36,30 @@
     return fetchBytes(ENGINE_BASE + 'sherpa-onnx-wasm-main-tts.wasm')
       .then(function (buf) {
         Module.wasmBinary = buf;   // 引擎直接用内置字节，跳过自身 wasm 下载
-        return insertScript('sherpa-onnx-wasm-main-tts.js?v=19');
+        return insertScript('sherpa-onnx-wasm-main-tts.js?v=13');
       })
-      .then(function () { return insertScript('sherpa-onnx-tts.js?v=19'); })
+      .then(function () { return insertScript('sherpa-onnx-tts.js?v=13'); })
       .then(function () { progTxt.textContent = '⚙️ 引擎已加载，等待初始化…'; });
   }
-
-  // 引擎 C++ 侧输出转发到页面（定位 createOfflineTts 内部失败原因）
-  Module.print = function (t) { console.log('[wasm]', t); try { progTxt.textContent = '⚙️ ' + t; } catch (e) {} };
-  Module.printErr = function (t) { console.error('[wasm]', t); try { progTxt.textContent = '⚙️[wasm] ' + t; } catch (e) {} };
 
   var IS_LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   var MODEL_BASE = IS_LOCAL ? './assets/' : './models/';
   var MODEL_FILES = IS_LOCAL ? [
-    { name: 'model.onnx', size: 325630829 },
-    { name: 'voices.bin', size: 27678720 },
-    { name: 'tokens.txt', size: 687 },
-    { name: 'lexicon-zh.txt', size: 2364959 },
-    { name: 'date-zh.fst', size: 59154 },
-    { name: 'number-zh.fst', size: 64482 },
-    { name: 'phone-zh.fst', size: 88630 },
-    { name: 'dict/jieba.dict.utf8', size: 5071204 },
-    { name: 'dict/hmm_model.utf8', size: 519739 },
-    { name: 'dict/idf.utf8', size: 5998717 },
-    { name: 'dict/stop_words.utf8', size: 8974 }
+    { name: 'model.onnx', size: 170429550 },
+    { name: 'lexicon.txt', size: 6838024 },
+    { name: 'tokens.txt', size: 655 },
+    { name: 'date.fst', size: 59154 },
+    { name: 'number.fst', size: 64482 },
+    { name: 'phone.fst', size: 88630 },
+    { name: 'new_heteronym.fst', size: 21974 }
   ] : [
-    { name: 'model.onnx', parts: ['model.part1', 'model.part2', 'model.part3', 'model.part4'], size: 325630829 },
-    { name: 'voices.bin', size: 27678720 },
-    { name: 'tokens.txt', size: 687 },
-    { name: 'lexicon-zh.txt', size: 2364959 },
-    { name: 'date-zh.fst', size: 59154 },
-    { name: 'number-zh.fst', size: 64482 },
-    { name: 'phone-zh.fst', size: 88630 },
-    { name: 'dict/jieba.dict.utf8', size: 5071204 },
-    { name: 'dict/hmm_model.utf8', size: 519739 },
-    { name: 'dict/idf.utf8', size: 5998717 },
-    { name: 'dict/stop_words.utf8', size: 8974 }
+    { name: 'model.onnx', parts: ['model.part1', 'model.part2'], size: 170429550 },
+    { name: 'lexicon.txt', size: 6838024 },
+    { name: 'tokens.txt', size: 655 },
+    { name: 'date.fst', size: 59154 },
+    { name: 'number.fst', size: 64482 },
+    { name: 'phone.fst', size: 88630 },
+    { name: 'new_heteronym.fst', size: 21974 }
   ];
   var MODEL_TOTAL = MODEL_FILES.reduce(function (a, f) { return a + f.size; }, 0);
 
@@ -144,31 +132,19 @@
     try {
       for (var i = 0; i < MODEL_FILES.length; i++) {
         var f = MODEL_FILES[i];
-        var segs = f.name.split('/');
-        var fn = segs.pop();
-        var parent = '/';
-        if (segs.length) {
-          // 逐层建目录（FS_createPath 一次只建一层）
-          var cur = '';
-          for (var d = 0; d < segs.length; d++) {
-            cur = cur + '/' + segs[d];
-            try { Module.FS_createPath(cur, segs[d], true, true); } catch (e) {}
-            try { Module.FS_createPath('/', segs[d], true, true); } catch (e2) {}
-          }
-          parent = '/' + segs.join('/');
-        }
-        try { Module.FS_unlink(parent === '/' ? '/' + fn : parent + '/' + fn); } catch (e) {}
-        Module.FS_createDataFile(parent, fn, pendingModels[f.name], true, false);
+        try { Module.FS_unlink('/' + f.name); } catch (e) {}
+        Module.FS_createDataFile('/', f.name, pendingModels[f.name], true, false);
       }
       tts = createOfflineTts(Module, {
         offlineTtsModelConfig: {
-          offlineTtsKokoroModelConfig: {
-            model: './model.onnx', voices: './voices.bin', tokens: './tokens.txt',
-            dataDir: '', dictDir: '', lengthScale: 1.0, lexicon: './lexicon-zh.txt', lang: ''
+          offlineTtsVitsModelConfig: {
+            model: './model.onnx', lexicon: './lexicon.txt', tokens: './tokens.txt',
+            dataDir: '', noiseScale: parseFloat(noiseEl.value),
+            noiseScaleW: parseFloat(noiseWEl.value), lengthScale: 1.0
           },
           numThreads: 1, debug: false, provider: 'cpu'
         },
-        ruleFsts: './date-zh.fst,./number-zh.fst,./phone-zh.fst',
+        ruleFsts: './date.fst,./number.fst,./phone.fst,./new_heteronym.fst',
         ruleFars: '', maxNumSentences: 1, silenceScale: parseFloat(silenceEl.value)
       });
       built = true;
@@ -178,10 +154,7 @@
       setStatus('✅ 就绪，输入文字开始合成吧', 'ok');
       hintEl.textContent = '🌐 模型已缓存到本机（下次打开不用重新下载，离线也能用）。✏️ 输入文字，点「合成」——先试听，满意再下载。';
     } catch (e) {
-      var ed = '';
-      try { ed = JSON.stringify(e, Object.getOwnPropertyNames(e)); } catch (x) { ed = String(e); }
-      setStatus('❌ 初始化失败：' + ed, 'err');
-      console.error('init error', e);
+      setStatus('❌ 初始化失败：' + String(e && (e.message || e.toString()) || e), 'err');
     }
   }
 
