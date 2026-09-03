@@ -231,7 +231,7 @@
   }
 
   function startWorker() {
-    worker = new Worker('tts-worker.js');
+    worker = new Worker('tts-worker.js?v=4');
     worker.onmessage = function (ev) {
       var m = ev.data || {};
       if (m.type === 'need-models') { downloadModels(); return; }
@@ -456,7 +456,7 @@
 
   // ================= Service Worker =================
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(function (e) {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(function (e) {
       console.warn('SW register failed', e);
     });
   }
