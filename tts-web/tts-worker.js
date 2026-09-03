@@ -170,8 +170,11 @@ try {
 }
 post({ type: 'stage', msg: 'glue imported' });
 setTimeout(function () {
-  if (!wasmReady) post({ type: 'stage', msg: '⏰ WASM not ready after 8s（依赖未清空/实例化失败）' });
-}, 8000);
+  if (!wasmReady) post({ type: 'stage', msg: '⚙️ 引擎编译中（约 10~40 秒，模型已就位，请稍候）…' });
+}, 10000);
+setTimeout(function () {
+  if (!wasmReady) post({ type: 'stage', msg: '⚠️ 引擎 40 秒仍未就绪（极少见；刷新页面重试通常立即恢复）' });
+}, 40000);
 
 // 请求模型清单（主线程开始下载）
 post({ type: 'need-models', files: MODEL_FILES.map(function (f) { return f.name; }) });
