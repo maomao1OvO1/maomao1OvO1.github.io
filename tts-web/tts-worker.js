@@ -12,7 +12,6 @@ var MODEL_FILES = [
   { name: 'model.onnx' }, { name: 'lexicon.txt' }, { name: 'tokens.txt' },
   { name: 'date.fst' }, { name: 'number.fst' }, { name: 'phone.fst' }, { name: 'new_heteronym.fst' }
 ];
-var pending = {};   // name -> dep id
 var got = {};       // name -> true
 var tts = null;
 var lastParams = null;
@@ -34,19 +33,33 @@ var Module = {
   printErr: function (t) { console.error('[wasm]', t); }
 };
 
-Module.preRun = [function () {
-  var k;
-  for (k = 0; k < MODEL_FILES.length; k++) {
-    var name = MODEL_FILES[k].name;
-    pending[name] = 'model-' + name;
-    Module.addRunDependency(pending[name]);
+/* ★ 根治「模型先到、wasm 后到」竞态：模型先暂存内存，等 wasm 就绪（HEAP8 已定义）再写 FS */
+var wasmReady = false;
+var modelData = {};   // name -> Uint8Array
+var built = false;
+
+function allModelsArrived() {
+  for (var i = 0; i < MODEL_FILES.length; i++) {
+    if (!modelData[MODEL_FILES[i].name]) return false;
   }
-}];
+  return true;
+}
+function maybeInit() {
+  if (!wasmReady || !allModelsArrived() || built) return;
+  for (var i = 0; i < MODEL_FILES.length; i++) {
+    var f = MODEL_FILES[i];
+    try { Module.FS_unlink('/' + f.name); } catch (e) {}
+    Module.FS_createDataFile('/', f.name, modelData[f.name], true, false);
+  }
+  build(ttsParamsDefault());
+  built = true;
+  post({ type: 'ready' });
+}
 
 Module.onRuntimeInitialized = function () {
+  wasmReady = true;
   try {
-    build(ttsParamsDefault());
-    post({ type: 'ready' });
+    maybeInit();
   } catch (e) {
     post({ type: 'synth-err', message: '初始化失败：' + (e && (e.message || e.toString()) || String(e)) });
   }
@@ -90,27 +103,17 @@ self.onmessage = function (ev) {
   var msg = ev.data || {};
   if (msg.type === 'model-data') {
     var name = msg.name;
-    if (!name || got[name]) return;
+    if (!name || modelData[name]) return;
     try {
-      // 幂等：旧文件先删（重复投递 / 上次残留都不怕）
-      try { Module.FS_unlink('/' + name); } catch (e) {}
-      // 零拷贝写入（canOwn=true：文件数据直接进 MEMFS，不触发 write 复制路径）
-      Module.FS_createPreloadedFile('/', name, new Uint8Array(msg.buffer), true, false, null, null, false, true);
-      console.log('preloaded', name, msg.buffer ? msg.buffer.byteLength : 'NO-BUFFER');
-      if (pending[name] && Module.removeRunDependency) {
-        Module.removeRunDependency(pending[name]);
-        delete pending[name];
-      }
-      got[name] = true;
+      modelData[name] = new Uint8Array(msg.buffer);
       var n = 0;
-      MODEL_FILES.forEach(function (x) { if (got[x.name]) n++; });
+      MODEL_FILES.forEach(function (x) { if (modelData[x.name]) n++; });
       post({ type: 'progress', got: n, total: MODEL_FILES.length, file: name });
-      tryFinishPreload();
+      maybeInit();
     } catch (e) {
-      var detail = '';
-      try { detail = JSON.stringify(e, Object.getOwnPropertyNames(e)); } catch (x) { detail = String(e); }
-      var mbuf = msg.buffer ? (Object.prototype.toString.call(msg.buffer) + ' len=' + msg.buffer.byteLength) : 'buffer=MISSING';
-      post({ type: 'synth-err', message: '写入模型失败（' + name + '）：' + mbuf + ' || ' + detail });
+      var det = '';
+      try { det = JSON.stringify(e, Object.getOwnPropertyNames(e)); } catch (x) { det = String(e); }
+      post({ type: 'synth-err', message: '接收模型失败（' + name + '）：' + det });
     }
     return;
   }
