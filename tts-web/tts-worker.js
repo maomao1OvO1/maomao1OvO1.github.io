@@ -16,6 +16,7 @@ var got = {};       // name -> true
 var tts = null;
 var lastParams = null;
 var post = function (m, t) { self.postMessage(m, t || []); };
+post({ type: 'stage', msg: 'worker started' });
 
 function needMoreModels() {
   for (var i = 0; i < MODEL_FILES.length; i++) {
@@ -58,6 +59,7 @@ function maybeInit() {
 }
 
 Module.onRuntimeInitialized = function () {
+  post({ type: 'stage', msg: 'engine ready（wasm 初始化完成）' });
   wasmReady = true;
   try {
     maybeInit();
@@ -154,8 +156,10 @@ self.onmessage = function (ev) {
 };
 
 // 启动 glue（完成后 onRuntimeInitialized 会等 preRun 依赖全部解除）
+post({ type: 'stage', msg: 'loading wasm engine...' });
 importScripts('sherpa-onnx-wasm-main-tts.js');
 importScripts('sherpa-onnx-tts.js');
+post({ type: 'stage', msg: 'glue imported' });
 
 // 请求模型清单（主线程开始下载）
 post({ type: 'need-models', files: MODEL_FILES.map(function (f) { return f.name; }) });
