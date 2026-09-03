@@ -30,7 +30,8 @@ function tryFinishPreload() {
 
 var Module = {
   print: function (t) { console.log('[wasm]', t); },
-  printErr: function (t) { console.error('[wasm]', t); }
+  printErr: function (t) { console.error('[wasm]', t); },
+  setStatus: function (t) { if (t) post({ type: 'stage', msg: t }); }
 };
 
 /* ★ 根治「模型先到、wasm 后到」竞态：模型先暂存内存，等 wasm 就绪（HEAP8 已定义）再写 FS */
