@@ -454,6 +454,8 @@
       var enc = new TextEncoder().encode(rebuildLex(parsed.entries));
       try { Module.FS_unlink('/lexicon.txt'); } catch (e2) {}
       Module.FS_createDataFile('/', 'lexicon.txt', enc, true, false);
+      // 重建前必须释放旧引擎（170MB 模型双份会内存耗尽 → exit(-1)）
+      try { if (tts) tts.free(); } catch (e3) {}
       tts = createOfflineTts(Module, {
         offlineTtsModelConfig: {
           offlineTtsVitsModelConfig: {
@@ -470,7 +472,19 @@
         (parsed.errors.length ? ' ⚠️ 忽略 ' + parsed.errors.length + ' 行：' + parsed.errors[0] : '');
       lexMsgEl.className = 'msg ok';
     } catch (e) {
-      lexMsgEl.textContent = '❌ 保存失败：' + String(e && (e.message || e.toString()) || e);
+      try { tts = createOfflineTts(Module, {
+        offlineTtsModelConfig: {
+          offlineTtsVitsModelConfig: {
+            model: './model.onnx', lexicon: './lexicon.txt', tokens: './tokens.txt',
+            dataDir: '', noiseScale: parseFloat(noiseEl.value),
+            noiseScaleW: parseFloat(noiseWEl.value), lengthScale: 1.0
+          },
+          numThreads: 1, debug: false, provider: 'cpu'
+        },
+        ruleFsts: './date.fst,./number.fst,./phone.fst,./new_heteronym.fst',
+        ruleFars: '', maxNumSentences: 1, silenceScale: parseFloat(silenceEl.value)
+      }); } catch (e4) {}
+      lexMsgEl.textContent = '❌ 保存失败：' + String(e && (e.message || e.toString()) || e) + '（下条词条仍会再试；合成不受影响）';
       lexMsgEl.className = 'msg err';
     }
   });
