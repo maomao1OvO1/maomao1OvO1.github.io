@@ -1,5 +1,5 @@
 /* 🎙️ 声库网页版 Service Worker：静态资源 + 模型缓存（下载一次，之后离线可用） */
-const VERSION = 'tts-web-v12';
+const VERSION = 'tts-web-v13';
 const MODELS_CACHE = 'tts-web-models-v7';
 const CORE = [
   './',
@@ -8,6 +8,7 @@ const CORE = [
   './tts-worker.js',
   './sherpa-onnx-wasm-main-tts.js',
   './sherpa-onnx-wasm-main-tts.wasm',
+  './sherpa-onnx-wasm-main-tts.data',
   './sherpa-onnx-tts.js'
 ];
 

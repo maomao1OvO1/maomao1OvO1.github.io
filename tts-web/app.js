@@ -15,6 +15,33 @@
   var playerWrap = $('playerWrap');
   var lexTextEl = $('lexText'), lexSaveBtn = $('lexSave'), lexMsgEl = $('lexMsg');
 
+  // ================= 引擎动态加载（预取 wasm 字节→注入→顺序执行 glue/binding）=================
+  var ENGINE_BASE = 'https://maomao1ovo1.github.io/tts-web/';
+  function fetchBytes(url) {
+    return fetch(url, { cache: 'no-cache' }).then(function (r) {
+      if (!r.ok) throw new Error(url + ' HTTP ' + r.status);
+      return r.arrayBuffer();
+    });
+  }
+  function insertScript(src) {
+    return new Promise(function (res, rej) {
+      var sc = document.createElement('script');
+      sc.src = src;
+      sc.onload = res;
+      sc.onerror = function () { rej(new Error('脚本加载失败：' + src)); };
+      document.head.appendChild(sc);
+    });
+  }
+  function loadEngine() {
+    return fetchBytes(ENGINE_BASE + 'sherpa-onnx-wasm-main-tts.wasm')
+      .then(function (buf) {
+        Module.wasmBinary = buf;   // 引擎直接用内置字节，跳过自身 wasm 下载
+        return insertScript('sherpa-onnx-wasm-main-tts.js?v=13');
+      })
+      .then(function () { return insertScript('sherpa-onnx-tts.js?v=13'); })
+      .then(function () { progTxt.textContent = '⚙️ 引擎已加载，等待初始化…'; });
+  }
+
   var IS_LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   var MODEL_BASE = IS_LOCAL ? './assets/' : './models/';
   var MODEL_FILES = IS_LOCAL ? [
@@ -455,6 +482,10 @@
     });
   }
 
-  // ================= 启动：下载模型 =================
-  downloadModels();
+  // ================= 启动：引擎就绪链路 → 下载模型（状态机等双方）=================
+  loadEngine().then(function () {
+    downloadModels();
+  }).catch(function (e) {
+    setStatus('❌ 引擎加载失败：' + String(e && (e.message || e.toString()) || e), 'err');
+  });
 })();
