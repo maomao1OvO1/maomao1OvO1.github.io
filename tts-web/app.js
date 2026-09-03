@@ -36,9 +36,9 @@
     return fetchBytes(ENGINE_BASE + 'sherpa-onnx-wasm-main-tts.wasm')
       .then(function (buf) {
         Module.wasmBinary = buf;   // 引擎直接用内置字节，跳过自身 wasm 下载
-        return insertScript('sherpa-onnx-wasm-main-tts.js?v=18');
+        return insertScript('sherpa-onnx-wasm-main-tts.js?v=19');
       })
-      .then(function () { return insertScript('sherpa-onnx-tts.js?v=18'); })
+      .then(function () { return insertScript('sherpa-onnx-tts.js?v=19'); })
       .then(function () { progTxt.textContent = '⚙️ 引擎已加载，等待初始化…'; });
   }
 
@@ -164,8 +164,7 @@
         offlineTtsModelConfig: {
           offlineTtsKokoroModelConfig: {
             model: './model.onnx', voices: './voices.bin', tokens: './tokens.txt',
-            dataDir: '', dictDir: './dict',
-            lengthScale: 1.0, lexicon: './lexicon-zh.txt', lang: 'zh'
+            dataDir: '', dictDir: '', lengthScale: 1.0, lexicon: './lexicon-zh.txt', lang: ''
           },
           numThreads: 1, debug: false, provider: 'cpu'
         },
