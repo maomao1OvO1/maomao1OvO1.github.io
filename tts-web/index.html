@@ -1,0 +1,131 @@
+<!--
+文件：tts-web/index.html
+用途：声库「网页版」——浏览器本地合成（sherpa-onnx wasm + MeloTTS），任何手机开网页就能用：
+     不装 Termux、不连服务器、文字不出本机；模型首次下载约 170MB，之后走浏览器缓存/Service Worker 缓存，离线可用。
+样式模板：games/tts.html（声库实验室）同款黑紫风格 + 深色适配。
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>声库实验室 · 网页版 · 毛毛</title>
+<style>
+body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
+h1 { color:#7C5CBF; }
+.box { max-width:700px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
+button { padding:11px 16px; border:none; border-radius:10px; font-size:16px; margin:6px 4px; background:#7C5CBF; color:#fff; cursor:pointer; }
+button:hover { background:#6543a5; }
+button:disabled { background:#b9a7e0; cursor:wait; }
+.msg { color:#666; margin:6px 0; font-size:14px; }
+.msg.ok { color:#2e8b57; }
+.msg.err { color:#c94f4f; }
+textarea { width:100%; box-sizing:border-box; min-height:110px; font-size:16px; border:1px solid #d9d0ee; border-radius:10px; padding:10px; background:#faf8ff; color:#333; resize:vertical; }
+.ctl { display:flex; align-items:center; gap:10px; margin:8px 0; flex-wrap:wrap; }
+.ctl label { font-size:14px; color:#555; min-width:52px; }
+.ctl input[type=range] { flex:1; min-width:150px; accent-color:#7C5CBF; }
+.ctl b { min-width:44px; text-align:right; font-size:14px; color:#6543a5; }
+audio { width:100%; margin-top:8px; }
+.fileinfo { font-size:13px; color:#777; word-break:break-all; }
+.back-home { position:fixed; top:20px; right:20px; background:#e5dcff; color:#6543a5; padding:10px 15px; border-radius:20px; text-decoration:none; font-size:16px; z-index:9; }
+.note { font-size:12px; color:#999; margin-top:6px; }
+body.dark-mode { background:#121212; color:#fff; }
+.dark-mode .box { background:#1e1e1e; color:#eee; }
+.dark-mode textarea { background:#2a2a2a; color:#eee; border-color:#444; }
+.dark-mode .ctl label { color:#bbb; }
+.dark-mode .fileinfo { color:#999; }
+.dark-mode .note { color:#888; }
+.dark-mode .back-home { background:#333; color:#bb9cff; }
+#progWrap .msg { margin-top:4px; }
+.dark-mode #progWrap > div > div { background:#333 !important; }
+</style>
+</head>
+<body>
+
+<script>
+if (localStorage.getItem("theme") === "dark") { document.body.classList.add("dark-mode"); }
+</script>
+
+<h1>🎙️ 声库实验室 · 网页版</h1>
+
+<div class="box">
+    <div class="msg" id="hint" style="color:#6543a5;background:#f3eeff;border-radius:8px;padding:6px 10px;">
+        🌐 浏览器本地合成：不装 App、不连服务器、文字不出本机。✏️ 输入文字，调好语速/音量/音效，点「合成」——先试听，满意再下载。
+    </div>
+
+    <textarea id="text" placeholder="例如：大家好，我是毛毛的声音，欢迎来到我的声库实验室。"></textarea>
+
+    <div class="ctl">
+        <label>语速</label>
+        <input type="range" id="speed" min="0.6" max="1.6" step="0.05" value="1.0">
+        <b id="speedV">1.00×</b>
+    </div>
+    <div class="ctl">
+        <label>音量</label>
+        <input type="range" id="volume" min="1" max="8" step="0.5" value="4">
+        <b id="volumeV">4.0×</b>
+    </div>
+    <div class="ctl">
+        <label>🎚️ 音色</label>
+        <input type="range" id="pitch" min="0.75" max="1.35" step="0.05" value="1.0">
+        <b id="pitchV">原声</b>
+        <button id="pLow" style="padding:5px 8px;font-size:12px;">低沉</button>
+        <button id="pNor" style="padding:5px 8px;font-size:12px;">原声</button>
+        <button id="pHigh" style="padding:5px 8px;font-size:12px;">清脆</button>
+    </div>
+    <div class="ctl">
+        <label>🎭 情绪</label>
+        <input type="range" id="noise" min="0.4" max="1.1" step="0.05" value="0.8">
+        <b id="noiseV">80</b>
+        <span class="note" style="margin:0;">低=板正播音，高=情绪外放（调整后下次合成生效，应用约 10 秒）</span>
+    </div>
+    <div class="ctl">
+        <label>🌀 韵律</label>
+        <input type="range" id="noiseW" min="0.4" max="1.2" step="0.05" value="0.95">
+        <b id="noiseWV">95</b>
+        <span class="note" style="margin:0;">低=平淡，高=抑扬顿挫</span>
+    </div>
+    <div class="ctl">
+        <label>⏸ 句间停顿</label>
+        <input type="range" id="silence" min="0.08" max="0.6" step="0.02" value="0.2">
+        <b id="silenceV">20</b>
+        <span class="note" style="margin:0;">句号后停顿长短</span>
+    </div>
+    <div class="msg" id="eta">预计生成时间：—</div>
+
+    <div id="lexBox">
+        <div class="msg" style="color:#6543a5;background:#f3eeff;border-radius:8px;padding:6px 10px;">
+            🛠 读音纠正（多音字）：每行一条 <b>词=带调拼音</b>，如 <b>还书=huan2 shu1</b>、<b>重庆=chong2 qing4</b>（轻声写 0 或 5）。保存后引擎重载（模型在内存，约 10~15 秒），之后合成生效。
+        </div>
+        <textarea id="lexText" style="width:100%;box-sizing:border-box;min-height:90px;" placeholder="还书=huan2 shu1&#10;觉得=jue2 de0&#10;重庆=chong2 qing4"></textarea>
+        <button id="lexSave">💾 保存读音纠正</button>
+        <span class="msg" id="lexMsg"></span>
+    </div>
+
+    <button id="go" disabled>⚡ 合成并试听</button>
+    <button id="dl" style="margin-top:10px;" disabled>⬇️ 下载 WAV</button>
+
+    <div id="progWrap" style="display:none;margin-top:8px;">
+        <div style="background:#efe9ff;border-radius:10px;height:22px;overflow:hidden;position:relative;border:1px solid #d9d0ee;">
+            <div id="progBar" style="height:100%;width:0%;background:linear-gradient(90deg,#7C5CBF,#9d7ce0);transition:width .3s;"></div>
+            <div id="progPct" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.5);">0%</div>
+        </div>
+        <div class="msg" id="progTxt"></div>
+    </div>
+    <div class="msg" id="status"></div>
+
+    <div id="playerWrap" style="display:none;">
+        <audio id="player" controls></audio>
+        <div class="fileinfo" id="fileinfo"></div>
+    </div>
+
+    <div class="note">浏览器本地合成：MeloTTS（MIT · 可商用）· 首次打开需下载模型约 170MB（之后走缓存，离线可玩）· 首次初始化约 10~30 秒（模型加载到此手机内存）· 调整音效/读音纠正后首句应用约 10~15 秒 · 线上「声库实验室」（云端合成）在 👉 <a href="../games/tts.html" style="color:#7C5CBF;">games/tts.html</a></div>
+</div>
+<a href="../" class="back-home">🏠 回主页</a>
+
+<script src="php2lex.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
