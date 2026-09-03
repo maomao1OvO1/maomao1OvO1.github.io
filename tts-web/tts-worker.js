@@ -186,13 +186,13 @@ self.onmessage = function (ev) {
 engineReady2.then(function () {
   post({ type: 'stage', msg: 'loading wasm engine...' });
   try {
-    importScripts('sherpa-onnx-wasm-main-tts.js?v=11');
+    importScripts('sherpa-onnx-wasm-main-tts.js?v=21');
   } catch (e) {
     post({ type: 'stage', msg: '❌ GLUE THROW: ' + (e && (e.message || e.toString()) || String(e)) });
     return;
   }
   try {
-    importScripts('sherpa-onnx-tts.js?v=11');
+    importScripts('sherpa-onnx-tts.js?v=21');
   } catch (e) {
     post({ type: 'stage', msg: '❌ BINDING THROW: ' + (e && (e.message || e.toString()) || String(e)) });
     return;
