@@ -293,24 +293,21 @@ document.getElementById("wake").addEventListener("click", function(){
 // ===== 合成（云端异步任务 + 进度条 + 账号绑定）=====
 // 线上模式 API 走自己的 CF 域名反代（api.maomaowang.top → Worker → onrender），远离 onrender 直连问题
 var API = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? "" : "https://maomao-admin-api.onrender.com";
-// 音效设置恢复：本地=本机服务端；线上=云端 Firestore（按账号 uid）+ localStorage 兜底
+// 音效设置恢复：本地=本机服务端；线上=云端 Firestore（按账号 uid）；令牌未就绪自动重试（修复刷新丢失）
 (function(){
     var done = false;
     function fallback(){ if (done) return; done = true; try { applyPrefs(JSON.parse(localStorage.getItem("ttsPrefs") || "null")); } catch(e){} }
-    if (!API) {
-        fetch("/api/prefs", { })
-        .then(function(r){ return r.json(); })
-        .then(function(j){ if (j && j.ok) applyPrefs(j.prefs); })
-        .catch(fallback);
-    } else {
+    function loadPrefs(tries){
+        if (tries > 5) { fallback(); return; }
         getToken().then(function(tok){
-            if (!tok) { fallback(); return; }
-            fetch(API + "/api/prefs", { headers: { "Authorization": "Bearer " + tok } })
+            if (!tok) { setTimeout(function(){ loadPrefs((tries || 0) + 1); }, 800); return; }
+            fetch((API || "") + "/api/prefs", { headers: API ? { "Authorization": "Bearer " + tok } : {} })
             .then(function(r){ return r.json(); })
-            .then(function(j){ if (j && j.ok) applyPrefs(j.prefs); })
-            .catch(fallback);
-        }).catch(fallback);
+            .then(function(j){ if (j && j.ok) { done = true; applyPrefs(j.prefs); } else { setTimeout(function(){ loadPrefs((tries || 0) + 1); }, 800); } })
+            .catch(function(){ setTimeout(function(){ loadPrefs((tries || 0) + 1); }, 800); });
+        }).catch(function(){ setTimeout(function(){ loadPrefs((tries || 0) + 1); }, 800); });
     }
+    loadPrefs(0);
 })();
 var POLL = null, ANIM = null;
 var dispW = 0, progTarget = 0;
@@ -545,9 +542,15 @@ document.getElementById("go").addEventListener("click", function(ev){
             return fetch(url, Object.assign({}, opt, { headers: headers }));
         });
     }
-    lexFetch(LEX_URL, {}).then(function(r){ return r.json(); }).then(function(j){
-        if (j && j.ok) ta.value = j.entries || "";
-    }).catch(function(){});
+    // ★ 修复：页面刚开时 Firebase 登录令牌未就绪，请求带空令牌会 401 → 不填；带失败自动重试（最多 5 次，间隔 800ms）
+    function loadLex(tries){
+        if (tries > 5) return;
+        lexFetch(LEX_URL, {}).then(function(r){ return r.json(); }).then(function(j){
+            if (j && j.ok) { ta.value = j.entries || ""; }
+            else { setTimeout(function(){ loadLex((tries || 0) + 1); }, 800); }
+        }).catch(function(){ setTimeout(function(){ loadLex((tries || 0) + 1); }, 800); });
+    }
+    loadLex(0);
     document.getElementById("lexSave").addEventListener("click", function(){
         var b = this;
         b.disabled = true;
