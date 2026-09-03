@@ -468,23 +468,27 @@ document.getElementById("go").addEventListener("click", function(ev){
                     st.textContent = "❌ 云端任务失败（真实原因）：" + (p.error || "未返回错误信息"); st.className = "msg err";
                 } else {
                     setProgW(progTarget || 0);   // 轮询直接驱动（保底）
+                    var usedW = Math.round((Date.now() - T0) / 1000);
                     if (p.phase === "warmup") {
-                        // 预热：真进度没数据 -> 按预计时间拟真爬升（假动到 90% 封顶）
-                        var warmEst = Math.max(60, Math.round((Date.now() - T0) * 1.2));
-                        progTarget = Math.min(90, Math.round((Date.now() - T0) / warmEst * 90));
-                        txt.textContent = "🔥 云端正在下载/加载 167MB 模型（首次，约 1~3 分钟，进度按时间拟真）...";
+                        // ★ 模型加载：无真实进度可报 → 不假爬升，显示真实等待秒
+                        progTarget = 3;
+                        txt.textContent = "🔥 云端正在加载模型（首次 1~3 分钟；已等待 " + fmtSec(usedW) + "，无真实进度可报）...";
                     } else if (p.phase === "convert") {
-                        // v7 真实进度：全部批次合成完（done==total）即 100%，转码只是最后一步
-                        progTarget = 100;
-                        txt.textContent = "🎧 全部段落合成完毕（100%），正在转码 mp3...";
+                        // ★ 转码中 ≠ 完成：99% + 读秒（音频到手才 100%）
+                        progTarget = 99;
+                        txt.textContent = "🎧 全部段落合成完毕，正在转码 mp3（已等待 " + fmtSec(usedW) + "）...";
                     } else if (p.total > 0) {
                         // ★ v7 真实进度：done/total 真实百分比直接驱动（不用时间公式、不拟真）
                         var realPct = Math.round((p.done || 0) / p.total * 100);
                         progTarget = Math.min(99, realPct);
-                        var used = Math.round((Date.now() - T0) / 1000);
-                        var el = Math.max(2, submitEst - used);
-                        txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 批（真实进度 " + realPct + "%）｜已用 " + fmtSec(used) + "｜预计剩余 " + fmtSec(el);
+                        var el = Math.max(2, submitEst - usedW);
+                        txt.textContent = "📝 正在合成第 " + p.done + "/" + p.total + " 批（真实进度 " + realPct + "%）｜已用 " + fmtSec(usedW) + "｜预计剩余 " + fmtSec(el);
+                    } else {
+                        // 云端已接收任务，还没有分段数据：真实等待
+                        progTarget = 3;
+                        txt.textContent = "⏳ 云端已接收任务，正在准备（已等待 " + fmtSec(usedW) + "）...";
                     }
+                }
                 }
             }).catch(function(e){
                 // ★ 真实报错：轮询请求本身失败（网络/超时/断开）
