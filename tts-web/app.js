@@ -36,11 +36,15 @@
     return fetchBytes(ENGINE_BASE + 'sherpa-onnx-wasm-main-tts.wasm')
       .then(function (buf) {
         Module.wasmBinary = buf;   // 引擎直接用内置字节，跳过自身 wasm 下载
-        return insertScript('sherpa-onnx-wasm-main-tts.js?v=17');
+        return insertScript('sherpa-onnx-wasm-main-tts.js?v=18');
       })
-      .then(function () { return insertScript('sherpa-onnx-tts.js?v=17'); })
+      .then(function () { return insertScript('sherpa-onnx-tts.js?v=18'); })
       .then(function () { progTxt.textContent = '⚙️ 引擎已加载，等待初始化…'; });
   }
+
+  // 引擎 C++ 侧输出转发到页面（定位 createOfflineTts 内部失败原因）
+  Module.print = function (t) { console.log('[wasm]', t); try { progTxt.textContent = '⚙️ ' + t; } catch (e) {} };
+  Module.printErr = function (t) { console.error('[wasm]', t); try { progTxt.textContent = '⚙️[wasm] ' + t; } catch (e) {} };
 
   var IS_LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   var MODEL_BASE = IS_LOCAL ? './assets/' : './models/';
