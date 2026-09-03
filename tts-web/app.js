@@ -231,7 +231,7 @@
   }
 
   function startWorker() {
-    worker = new Worker('tts-worker.js?v=21');
+    worker = new Worker('tts-worker.js?v=22');
     worker.onmessage = function (ev) {
       var m = ev.data || {};
       if (m.type === 'need-models') { downloadModels(); return; }
@@ -252,7 +252,8 @@
         return;
       }
       if (m.type === 'rebuilding') {
-        showProg(100, '🎚️ 正在应用音效设置（模型已在内存，约 10 秒）…');
+        showProg(100, '🎚️ 正在应用音效设置（模型已在内存，约 10~60 秒）…');
+        startWaitTxt('🎚️ 正在应用音效设置', '调参后需重载引擎，之后自动开始合成');
         return;
       }
       if (m.type === 'lex-ok') {
