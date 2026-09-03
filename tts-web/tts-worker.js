@@ -157,9 +157,21 @@ self.onmessage = function (ev) {
 
 // 启动 glue（完成后 onRuntimeInitialized 会等 preRun 依赖全部解除）
 post({ type: 'stage', msg: 'loading wasm engine...' });
-importScripts('sherpa-onnx-wasm-main-tts.js');
-importScripts('sherpa-onnx-tts.js');
+try {
+  importScripts('sherpa-onnx-wasm-main-tts.js');
+} catch (e) {
+  post({ type: 'stage', msg: '❌ GLUE THROW: ' + (e && (e.message || e.toString()) || String(e)) });
+  throw e;
+}
+try {
+  importScripts('sherpa-onnx-tts.js');
+} catch (e) {
+  post({ type: 'stage', msg: '❌ BINDING THROW: ' + (e && (e.message || e.toString()) || String(e)) });
+}
 post({ type: 'stage', msg: 'glue imported' });
+setTimeout(function () {
+  if (!wasmReady) post({ type: 'stage', msg: '⏰ WASM not ready after 8s（依赖未清空/实例化失败）' });
+}, 8000);
 
 // 请求模型清单（主线程开始下载）
 post({ type: 'need-models', files: MODEL_FILES.map(function (f) { return f.name; }) });
