@@ -406,7 +406,7 @@ document.getElementById("go").addEventListener("click", function(ev){
         document.getElementById("progTxt").textContent = "⏳ 任务已提交，等待云端接收...";
         st.textContent = "⏳ " + (submitEst >= 60 ? Math.floor(submitEst/60) + " 分 " + (submitEst%60) + " 秒" : submitEst + " 秒") + "后应有声音，进度条实时走";
         stopPoll();
-        POLL = setInterval(function(){
+        var pollFn = function(){
             getToken().then(function(tok){
                 return fetch(API + "/api/tts/progress?task=" + encodeURIComponent(res.task), { headers: { "Authorization": "Bearer " + tok } });
             }).then(function(r2){ return r2.text().then(function(x){ var j=null; try{j=JSON.parse(x);}catch(e){} return {st: r2.status, j: j, x: x}; }); })
@@ -416,7 +416,12 @@ document.getElementById("go").addEventListener("click", function(ev){
                     var why = p.st >= 400 ? "（HTTP " + p.st + "）" : "";
                     var body0 = (p.x || "").trim().slice(0, 120).replace(/\s+/g, " ");
                     document.getElementById("progTxt").textContent = "⚠️ 进度查询异常" + why + (body0 ? "：返回 " + body0 : "：服务器未返回内容");
-                    if (p.st >= 500) { st.textContent = "❌ 云端异常（HTTP " + p.st + "），可能实例正在重启，等 1 分钟点「📡 唤醒云端」再试"; st.className = "msg err"; }
+                    if (p.st === 429 || p.st === 403) {
+                        // ★ 限流退避：暂停 8 秒再继续（别把查询打狠了触发防护）
+                        stopPoll();
+                        document.getElementById("progTxt").textContent = "⏳ 请求太频繁被限流（HTTP " + p.st + "），8 秒后自动继续...";
+                        setTimeout(function(){ if (res && res.task) POLL = setInterval(pollFn, 4000); }, 8000);
+                    } else if (p.st >= 500) { st.textContent = "❌ 云端异常（HTTP " + p.st + "），可能实例正在重启，等 1 分钟点「📡 唤醒云端」再试"; st.className = "msg err"; }
                     return;
                 }
                 var p = p.j;
@@ -493,7 +498,8 @@ document.getElementById("go").addEventListener("click", function(ev){
                     ptxt.textContent = "⚠️ 进度查询请求失败：" + (e && e.message ? e.message : e) + "（自动重试中...）";
                 }
             });
-        }, 1500);
+        };   // pollFn 结束
+        POLL = setInterval(pollFn, 4000);   // ★ 轮询 1.5s→4s（防触发云端限流 429）
     })
     .catch(function(e){
         // 自动重试：唤醒期/首访挑战通常 1~2 次自动恢复
