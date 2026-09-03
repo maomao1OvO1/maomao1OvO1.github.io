@@ -158,13 +158,13 @@ self.onmessage = function (ev) {
 // 启动 glue（完成后 onRuntimeInitialized 会等 preRun 依赖全部解除）
 post({ type: 'stage', msg: 'loading wasm engine...' });
 try {
-  importScripts('sherpa-onnx-wasm-main-tts.js');
+  importScripts('sherpa-onnx-wasm-main-tts.js?v=9');
 } catch (e) {
   post({ type: 'stage', msg: '❌ GLUE THROW: ' + (e && (e.message || e.toString()) || String(e)) });
   throw e;
 }
 try {
-  importScripts('sherpa-onnx-tts.js');
+  importScripts('sherpa-onnx-tts.js?v=9');
 } catch (e) {
   post({ type: 'stage', msg: '❌ BINDING THROW: ' + (e && (e.message || e.toString()) || String(e)) });
 }
