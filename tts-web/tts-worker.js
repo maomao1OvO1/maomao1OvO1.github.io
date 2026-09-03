@@ -29,11 +29,38 @@ function tryFinishPreload() {
   post({ type: 'preload-done' });
 }
 
+/* 引擎文件全部预取为字节（绕开 wasm fetch / data XHR 依赖挂起），就绪前不依赖任何网络 */
+var ENGINE_URL = 'https://maomao1ovo1.github.io/tts-web/';
+var engineReady2 = null;
+function fetchEngineBytes() {
+  var names = ['sherpa-onnx-wasm-main-tts.wasm', 'sherpa-onnx-wasm-main-tts.data'];
+  var out = {};
+  var seq = Promise.resolve();
+  names.forEach(function (n) {
+    seq = seq.then(function () {
+      return fetch(ENGINE_URL + n, { cache: 'no-cache' }).then(function (r) {
+        if (!r.ok) throw new Error(n + ' HTTP ' + r.status);
+        return r.arrayBuffer();
+      }).then(function (buf) {
+        post({ type: 'stage', msg: '已就绪引擎文件 ' + n + '（' + (buf.byteLength / 1048576).toFixed(1) + 'MB）' });
+        out[n] = buf;
+      });
+    });
+  });
+  return seq.then(function () { return out; });
+}
+
 var Module = {
   print: function (t) { console.log('[wasm]', t); },
   printErr: function (t) { console.error('[wasm]', t); },
-  setStatus: function (t) { if (t) post({ type: 'stage', msg: t }); }
+  setStatus: function (t) { if (t) post({ type: 'stage', msg: t }); },
+  locateFile: function (path) { return ENGINE_URL + path; }
 };
+engineReady2 = fetchEngineBytes().then(function (files) {
+  Module.wasmBinary = files['sherpa-onnx-wasm-main-tts.wasm'];
+}).catch(function (e) {
+  post({ type: 'stage', msg: '❌ 引擎文件预取失败：' + (e && e.message || e) });
+});
 
 /* ★ 根治「模型先到、wasm 后到」竞态：模型先暂存内存，等 wasm 就绪（HEAP8 已定义）再写 FS */
 var wasmReady = false;
@@ -155,26 +182,29 @@ self.onmessage = function (ev) {
   }
 };
 
-// 启动 glue（完成后 onRuntimeInitialized 会等 preRun 依赖全部解除）
-post({ type: 'stage', msg: 'loading wasm engine...' });
-try {
-  importScripts('sherpa-onnx-wasm-main-tts.js?v=9');
-} catch (e) {
-  post({ type: 'stage', msg: '❌ GLUE THROW: ' + (e && (e.message || e.toString()) || String(e)) });
-  throw e;
-}
-try {
-  importScripts('sherpa-onnx-tts.js?v=9');
-} catch (e) {
-  post({ type: 'stage', msg: '❌ BINDING THROW: ' + (e && (e.message || e.toString()) || String(e)) });
-}
-post({ type: 'stage', msg: 'glue imported' });
-setTimeout(function () {
-  if (!wasmReady) post({ type: 'stage', msg: '⚙️ 引擎编译中（约 10~40 秒，模型已就位，请稍候）…' });
-}, 10000);
-setTimeout(function () {
-  if (!wasmReady) post({ type: 'stage', msg: '⚠️ 引擎 40 秒仍未就绪（极少见；刷新页面重试通常立即恢复）' });
-}, 40000);
-
-// 请求模型清单（主线程开始下载）
-post({ type: 'need-models', files: MODEL_FILES.map(function (f) { return f.name; }) });
+// 启动 glue：等引擎字节预取完成再 importScripts（wasmBinary 已内置 → 跳过 wasm fetch 依赖）
+engineReady2.then(function () {
+  post({ type: 'stage', msg: 'loading wasm engine...' });
+  try {
+    importScripts('sherpa-onnx-wasm-main-tts.js?v=11');
+  } catch (e) {
+    post({ type: 'stage', msg: '❌ GLUE THROW: ' + (e && (e.message || e.toString()) || String(e)) });
+    return;
+  }
+  try {
+    importScripts('sherpa-onnx-tts.js?v=11');
+  } catch (e) {
+    post({ type: 'stage', msg: '❌ BINDING THROW: ' + (e && (e.message || e.toString()) || String(e)) });
+    return;
+  }
+  post({ type: 'stage', msg: 'glue imported' });
+  setTimeout(function () {
+    if (!wasmReady) post({ type: 'stage', msg: '⚙️ 引擎编译中（约 10~40 秒，模型已就位，请稍候）…' });
+  }, 10000);
+  setTimeout(function () {
+    if (!wasmReady) post({ type: 'stage', msg: '⚠️ 引擎 40 秒仍未就绪（极少见；刷新重试）' });
+  }, 40000);
+  post({ type: 'need-models', files: MODEL_FILES.map(function (f) { return f.name; }) });
+}).catch(function (e) {
+  post({ type: 'stage', msg: '❌ 引擎预取失败：' + (e && (e.message || e.toString()) || String(e)) });
+});

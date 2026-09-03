@@ -231,7 +231,7 @@
   }
 
   function startWorker() {
-    worker = new Worker('tts-worker.js?v=10');
+    worker = new Worker('tts-worker.js?v=11');
     worker.onmessage = function (ev) {
       var m = ev.data || {};
       if (m.type === 'need-models') { downloadModels(); return; }
