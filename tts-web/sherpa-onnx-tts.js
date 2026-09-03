@@ -90,7 +90,7 @@ function initSherpaOnnxOfflineTtsMatchaModelConfig(config, Module) {
   const tokensLen = Module.lengthBytesUTF8(config.tokens || '') + 1;
   const dataDirLen = Module.lengthBytesUTF8(config.dataDir || '') + 1;
 
-  const dictDir = '';
+  const dictDir = config.dictDir || '';
   const dictDirLen = Module.lengthBytesUTF8(dictDir) + 1;
 
   const n = acousticModelLen + vocoderLen + lexiconLen + tokensLen +
@@ -152,7 +152,7 @@ function initSherpaOnnxOfflineTtsKokoroModelConfig(config, Module) {
   const voicesLen = Module.lengthBytesUTF8(config.voices) + 1;
   const tokensLen = Module.lengthBytesUTF8(config.tokens || '') + 1;
   const dataDirLen = Module.lengthBytesUTF8(config.dataDir || '') + 1;
-  const dictDir = '';
+  const dictDir = config.dictDir || '';
   const dictDirLen = Module.lengthBytesUTF8(dictDir) + 1;
   const lexiconLen = Module.lengthBytesUTF8(config.lexicon || '') + 1;
   const langLen = Module.lengthBytesUTF8(config.lang || '') + 1;
