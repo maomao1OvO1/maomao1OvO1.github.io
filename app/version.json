@@ -1,6 +1,6 @@
 {
-  "versionCode": 5,
-  "versionName": "1.4",
-  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.4/racer-1.4.apk",
-  "notes": "修复更新检查的缓存问题（改完清单立即可见）；仪表盘+手柄震动（v1.3 内容）"
+  "versionCode": 6,
+  "versionName": "1.5",
+  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.5/racer-1.5.apk",
+  "notes": "新增屏幕错误显示 + 模型加载超时兜底 + 启动异常保护（用于定位「进不去游戏」问题）"
 }
