@@ -1,0 +1,25 @@
+{
+  "flowcharts": [
+    {
+      "id": "main",
+      "name": "maomao1OvO1/maomao1OvO1.github.io 仓库概览",
+      "type": "main",
+      "nodes": [
+        {
+          "id": "start",
+          "type": "root",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "label": "开始",
+            "sceneName": "start.txt",
+            "isRoot": true
+          }
+        }
+      ],
+      "edges": []
+    }
+  ]
+}
