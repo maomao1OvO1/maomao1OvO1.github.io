@@ -1,6 +1,6 @@
 {
-  "versionCode": 8,
-  "versionName": "1.7",
-  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.7/racer-1.7.apk",
-  "notes": "修复画面过曝（光照砍到 1/3）+ 天空/建筑/路面压暗 + 车漆改亮蓝 + 阴影调实"
+  "versionCode": 9,
+  "versionName": "1.8",
+  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.8/racer-1.8.apk",
+  "notes": "换上蓝色楔形超跑（大尾翼/低矮车身，贴近飞火流星）；视角修正（FOV↓、车更近更低）；包体瘦身到 448KB"
 }
