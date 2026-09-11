@@ -1,6 +1,6 @@
 {
-  "versionCode": 3,
-  "versionName": "1.2",
-  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.2/racer-1.2.apk",
-  "notes": "新增：氮气加速（手柄 B/RB、键盘 Shift）、漂移（手刹+转向积累氮气）、法拉利车模、关闭按键调试提示"
+  "versionCode": 4,
+  "versionName": "1.3",
+  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.3/racer-1.3.apk",
+  "notes": "赛车仪表盘（圆形速度表+指针+NOS弧）、手柄震动（撞车/漂移/氮气/高速）、车模内嵌修复、阴影修复"
 }
