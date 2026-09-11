@@ -1,6 +1,6 @@
 {
-  "versionCode": 6,
-  "versionName": "1.5",
-  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.5/racer-1.5.apk",
-  "notes": "新增屏幕错误显示 + 模型加载超时兜底 + 启动异常保护（用于定位「进不去游戏」问题）"
+  "versionCode": 7,
+  "versionName": "1.6",
+  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.6/racer-1.6.apk",
+  "notes": "修复车模不显示（换真车模型 + Java 直读 assets 绕开 file:// 限制）；模型自动缩放/朝向/落地"
 }
