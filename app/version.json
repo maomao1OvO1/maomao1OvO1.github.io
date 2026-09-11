@@ -1,6 +1,6 @@
 {
-  "versionCode": 9,
-  "versionName": "1.8",
-  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.8/racer-1.8.apk",
-  "notes": "换上蓝色楔形超跑（大尾翼/低矮车身，贴近飞火流星）；视角修正（FOV↓、车更近更低）；包体瘦身到 448KB"
+  "versionCode": 10,
+  "versionName": "1.9",
+  "url": "https://github.com/maomao1OvO1/maomao1OvO1.github.io/releases/download/racer-v1.9/racer-1.9.apk",
+  "notes": "修复车模只显示一根杆（42 个部件是并列根节点，之前只取了第一个）"
 }
