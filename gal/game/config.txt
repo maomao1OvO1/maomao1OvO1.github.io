@@ -1,0 +1,8 @@
+Game_name:maomao1OvO1/maomao1OvO1.github.io 仓库概览;
+Game_key:repo2gal_maomao1OvO1_maomao1OvO1.github.io_overview;
+Title_img:WebGAL_New_Enter_Image.webp;
+Title_bgm:s_Title.mp3;
+Game_Logo:WebGalEnter.webp;
+Enable_Appreciation:true;
+Enable_Continue:true;
+Enable_flowchart:true;
