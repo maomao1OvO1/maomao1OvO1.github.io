@@ -13,7 +13,7 @@
     6. 作品入口（摄影 / 视频 / 音乐）、小游戏大厅入口、硬件测试大厅入口
     7. 账号系统（Firebase Auth：谷歌 / GitHub / 邮箱登录，含账号菜单）
   引用的资源：
-    - manifest.json、icon.png、style.css?v=36   —— 页面配置与全局样式
+    - manifest.json、icon.png、style.css?v=37   —— 页面配置与全局样式
     - weather.js   —— 天气数据逻辑（IP 定位 / 城市搜索）
     - tokens.js?v=3 —— 第三方 AI 余额查询
     - player.js?v=3  —— 音乐播放器逻辑
@@ -48,7 +48,7 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 <title>毛毛的个人主页</title>
 
 <!-- 全局样式表；v=32 是版本号，改样式时递增即可强制浏览器重新下载（避免缓存旧版） -->
-<link rel="stylesheet" href="style.css?v=36">
+<link rel="stylesheet" href="style.css?v=37">
 
 </head>
 
@@ -390,15 +390,16 @@ value="1"
     <span class="gm-icon">🗼</span>
     <span class="gm-body">
         <span class="gm-name">共鸣之塔</span>
-        <span class="gm-meta">原创塔防 · 元素共鸣 · v8.21 · 4.6MB</span>
+        <span class="gm-meta">原创塔防 · 元素共鸣 · v8.22 · 4.6MB</span>
     </span>
     <span class="gm-btn">📥 下载</span>
 </a>
 <!-- v8.20：游戏已移除全部加固，配套放出完整说明与改造指南（想改的人照着就能上手）-->
 <div class="gm-docs">
-    <span class="gm-docs-t">📚 文档 · 源码完全开放，随便改：</span>
-    <a href="games/td/docs/manual.md" target="_blank" rel="noopener">📖 完整游戏说明</a>
-    <a href="games/td/docs/modding.md" target="_blank" rel="noopener">🔧 改造指南（怎么加东西）</a>
+    <span class="gm-docs-t">📚 开源（MIT 许可）· 随便改、随便用：</span>
+    <a href="games/td/source/game.html" download>📦 下载源码</a>
+    <a href="games/td/docs/manual.md" target="_blank" rel="noopener">📖 完整说明</a>
+    <a href="games/td/docs/modding.md" target="_blank" rel="noopener">🔧 改造指南</a>
 </div>
 
 <!-- 玩家昵称盒子：记录并保存访客昵称（保存在 localStorage，见 main.js 的 saveNickname） -->
