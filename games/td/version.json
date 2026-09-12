@@ -1,8 +1,8 @@
 {
-  "version": "8.22",
-  "versionCode": 69,
+  "version": "8.24",
+  "versionCode": 71,
   "date": "2026-09-13",
   "size": "4.6MB",
-  "note": "修复毛毛报的两个界面 bug：①双入口地图第二条路没有流动光点（现在两条路都通电，两个出生点也都标记了）②冷启动直接打开游戏时首页缺战绩胶囊与「继续 N 波」提示（只有先玩一关再回首页才补上，现在启动即渲染）",
+  "note": "让系统识别为「游戏」：manifest 加了 appCategory=game + isGame=true（配合横屏锁定/全屏/屏幕常亮），系统的游戏模式与游戏空间就能自动接管（免打扰、性能模式、防误触）。另含 v8.23：版本信息面板（点右上角版本号展开/收起 + 一键复制）、横屏主界面被裁修复、HUD 左右安全区、竖屏提示",
   "url": "https://maomao1ovo1.github.io/games/td/maomao-td-latest.apk"
 }
