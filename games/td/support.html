@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>谢谢你来玩 · 共鸣之塔</title>
+<style>
+  :root{--gold:#e8c46a;--txt:#dfe4ee;--dim:#8b93a7}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;padding:30px 18px;display:flex;justify-content:center;color:var(--txt);
+       background:radial-gradient(1200px 620px at 50% -12%,#1c2130,#0b0d12 62%);
+       font:15px/1.9 -apple-system,"PingFang SC","Noto Sans SC",system-ui,sans-serif}
+  .card{width:100%;max-width:520px}
+  h1{font-size:22px;margin:0 0 6px;background:linear-gradient(92deg,#fff,var(--gold));
+     -webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:22px}
+  p{margin:0 0 14px}
+  .hl{color:var(--gold)}
+  .box{margin-top:26px;padding:22px 20px;border-radius:16px;text-align:center;
+       background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
+       border:1px solid rgba(255,255,255,.08)}
+  .qr{width:min(300px,74vw);display:block;margin:8px auto 12px;border-radius:14px;background:#fff;padding:8px}
+  .tip{color:var(--dim);font-size:12.5px;margin-top:10px}
+  .meter{height:6px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden;margin:16px 0 8px}
+  .meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7f6bd6,var(--gold));transition:width .5s}
+  .back{display:block;text-align:center;color:var(--dim);font-size:12.5px;margin-top:26px;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>谢谢你玩到这里</h1>
+  <div class="sub">《共鸣之塔》· 一份小小的礼物</div>
+
+  <p>做这个游戏的时候我常常改到凌晨 —— 一个塔的数值、一句提示文案，反复调了不知道多少遍。</p>
+  <p>它没有广告、没有内购、不锁任何内容，因为我想让它是一份<span class="hl">能被人拿去学习的礼物</span>。</p>
+  <p>如果它给你带来了一点点快乐，可以请作者喝杯奶茶 🧋<br>一切随意，你开心最重要。</p>
+
+  <div class="box"><div id="slot">正在看看小门开了没…</div></div>
+
+  <a class="back" href="/games.html">← 回到游戏页</a>
+</div>
+
+<script>
+/* ============ 闸门配置（想改就改这一块）============ */
+var NEED = 50;                                     // 来访达到多少次，才开放赞赏码
+var NS   = 'maomao1ovo1';                          // 计数命名空间
+var KEY  = 'td-support-views';                     // 计数键
+var API  = 'https://abacus.jasoncameron.dev/';     // 免费计数服务（无需 key）
+var QR   = 'donate/reward_qrcode.png';             // 赞赏码图片
+/* ================================================= */
+
+(async function () {
+  var slot = document.getElementById('slot'), n = 0;
+  try {
+    var res  = await fetch(API + 'hit/' + NS + '/' + KEY, { cache: 'no-store' });
+    var data = await res.json();
+    n = (data && (data.value || data.count)) || 0;
+  } catch (e) { n = 0; }   // 计数取不到就保守处理：不显示码
+
+  if (n >= NEED) {
+    slot.innerHTML =
+      '<div style="font-size:15px;margin-bottom:6px">微信扫一扫 · 请作者喝杯奶茶 🧋</div>' +
+      '<img class="qr" src="' + QR + '" alt="赞赏码" loading="lazy">' +
+      '<div class="tip">全凭心意，不影响游戏任何内容 · 谢谢你看完这段话</div>';
+  } else {
+    slot.innerHTML =
+      '<div style="font-size:16px;margin-bottom:8px">🍃 赞赏通道还在路上</div>' +
+      '<div style="color:#8b93a7;font-size:13.5px">这个小游戏还在慢慢长大。等来的人再多一点，' +
+      '我就把「请我喝奶茶」的小门打开。<br>现在你能做的，是把它分享给一个可能会喜欢它的朋友 ❤️</div>' +
+      '<div class="meter"><i id="bar"></i></div>' +
+      '<div class="tip">来访 <b style="color:#e8c46a">' + n + '</b> / ' + NEED + ' 次</div>';
+    setTimeout(function () {
+      var b = document.getElementById('bar');
+      if (b) b.style.width = Math.min(100, n / NEED * 100).toFixed(1) + '%';
+    }, 60);
+  }
+})();
+</script>
+</body>
+</html>
