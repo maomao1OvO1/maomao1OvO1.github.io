@@ -44,7 +44,8 @@ function ok(c, m){ if (!c){ console.log('  ❌ ' + m); fail++; } else console.lo
 
 console.log('=== ① 全局开关 ===');
 ok(B.getBrief() === true, '默认就是「简易模式」（只显示要点）');
-ok(html.indexOf('body.brief .udesc{display:none !important;}') >= 0, 'CSS 有简易模式规则（隐藏被标记的说明文字）');
+/* v8.28：CSS 已展开成多行可读格式 → 断言改成「去掉空白后匹配」，不再依赖原排版 */
+ok(html.replace(/\s+/g,'').indexOf('body.brief.udesc{display:none!important;}') >= 0, 'CSS 有简易模式规则（隐藏被标记的说明文字）');
 ok(html.indexOf('id="setBriefBtn"') >= 0, '设置面板有「📄 文字模式」开关按钮');
 B.applyUiBrief();
 ok(global.document.body.classList.contains('brief') === true, '进入游戏时 body 带上 brief 标记（CSS 生效）');

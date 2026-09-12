@@ -103,7 +103,9 @@ console.log('=== ③ 主界面：图标网格 + 主按钮 ===');
 var s0 = html.indexOf('<div class="ov" id="startOv">'), s1 = html.indexOf('<div class="ov hidden" id="pauseOv">');
 var home = html.slice(s0, s1);
 ok(s0 > 0 && s1 > s0, '首页区块可切出（' + home.length + ' 字符）');
-ok(home.indexOf('home-menu') >= 0 && html.indexOf('.home-menu{display:grid;grid-template-columns:repeat(3,1fr)') >= 0,
+/* v8.28：CSS 已展开成多行可读格式 → 断言改成「去掉空白后匹配」，不再依赖原排版 */
+var _cssN = html.replace(/\s+/g, '');
+ok(home.indexOf('home-menu') >= 0 && _cssN.indexOf('.home-menu{display:grid;grid-template-columns:repeat(3,1fr)') >= 0,
    '入口改成 3 列图标网格（不再是竖向堆叠）');
 ['levelsBtn','homeEndlessBtn','homeDailyBtn','tutBtn','bookBtn','setBtn1','helpBtn','updCheckBtn','startBtn'].forEach(function(id){
   ok(home.indexOf('id="' + id + '"') >= 0, '首页仍有 #' + id);
@@ -131,7 +133,7 @@ ok(html.indexOf('id="sideWin"') >= 0 && html.indexOf('id="swStrip"') >= 0, '游�
 var strip = txt(T.el('swStrip'));
 ['swWx','swBuff','swDeb','swCard','swSet'].forEach(function(id){ ok(html.indexOf('id="' + id + '"') >= 0, '图标带含 #' + id); });
 ok(/id="sideWin" data-open="0"/.test(html), '初始是折叠态（data-open="0"）—— 默认不挡战场');
-ok(/#sideWin\{[^}]*pointer-events:none/.test(html) && /#swBody\{[^}]*pointer-events:auto/.test(html),
+ok(/#sideWin\{[^}]*pointer-events:none/.test(_cssN) && /#swBody\{[^}]*pointer-events:auto/.test(_cssN),
    '容器 pointer-events:none、面板本身 auto → 点战场不受影响，只有信息栏自己吃点击');
 ok(html.indexOf('env(safe-area-inset-left') >= 0, '左侧留了安全区（刘海屏 / 圆角屏不被压住）');
 T.sideToggle(false);

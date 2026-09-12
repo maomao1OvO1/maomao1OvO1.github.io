@@ -1,236 +1,912 @@
 <!DOCTYPE html>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+   《共鸣之塔》—— 原创塔防游戏（核心机制：元素共鸣）
+  ═══════════════════════════════════════════════════════════════════════════
+
+   这是一个**单文件游戏**：HTML + CSS + JS 全部在这一个文件里，没有框架、
+   没有依赖、没有构建步骤 —— 用浏览器直接打开就能玩，改完刷新即生效。
+
+   ▸ 想改内容？直接看这几张「数据表」（用编辑器搜关键字就能定位）：
+
+       var ELEMS         9 座塔（造价 / 伤害 / 攻速 / 射程 / 特性 / 专属成长）
+       var ENEMIES       敌人（血量 / 速度 / 金币 / 特性）
+       var LEVELS        15 个关卡（波数 / 初始金币 / 难度系数 / 路径点）
+       var BUFF_POOL     76 张强化卡（普通 / 稀有 / 史诗三档）
+       var WEATHERS      6 种元素天气（每 3 波切换，有得有失）
+       var SKILLS        4 个主动技能（按关卡逐个解锁）
+       var ELEM_SETS     8 个元素套装（集齐 3 张同元素专属卡激活）
+       var ENEMY_AFFIXES 6 种敌人词缀
+       var ACHIEVEMENTS  14 个成就
+
+     ⭐ 加一座塔只需要在 ELEMS 里加一条数据 —— 建塔面板、图鉴、升级面板
+        都是遍历 ELEMS 生成的，会自动收录（第 9 座塔「机枪」就是这么加的）。
+
+   ▸ 本文件结构（从上到下）：
+
+       style 段   全部 CSS
+                 · 布局与主题色
+                 · 横屏 / 小屏 / 安全区自适应（@media 分档）
+                 · 主界面的纯 CSS 动效（呼吸光环、Logo 辉光，零图片资源）
+
+       body    界面结构
+                 #wrap ─────────────────────────── 游戏主体（全屏 flex 列）
+                   ├─ #top        顶部状态栏：金币 / 波次 / 天气 / 技能栏 / 倍速 / 暂停 / 血条
+                   ├─ #waveInfo   下一波预告（含天气变化提示）
+                   ├─ #rotHint    竖屏提示条（横屏自动隐藏）
+                   └─ #canvasWrap 战场
+                         ├─ canvas 元素  网格 + 路径 + 塔 + 敌人（全部程序化绘制）
+                         ├─ #sideWin  左侧常驻信息栏（天气/加成/减益/本局抽卡/套装）
+                         └─ #sel      建塔与升级面板
+
+                 全屏弹层（.ov）：主界面 / 玩法 / 图鉴 / 暂停 / 结算 / 强化卡 /
+                                  选关地图 / 更新提示 / 关卡开幕 / 版本信息
+
+       script 段  全部逻辑，大致按这个顺序：
+                 数据表 → 共鸣与套装 → 天气 / 技能 / 成就 / 裂隙 → 战斗核心
+                 → 渲染（静态层缓存 + 敌人贴图缓存）→ 界面 → 存档 → 主循环 frame()
+
+   ▸ 性能上有几处刻意的优化，大改时注意别破坏：
+       · 静态路径层缓存（key 含路径指纹）· 敌人贴图预渲染 · 去 shadowBlur
+       · 塔数 > 40 自动降级 · 倍速下的音效限流
+
+   ▸ 许可：MIT —— 随便改、随便用、能商用，保留版权声明即可。
+      改造教程：docs/modding.md　｜　完整数值说明：docs/manual.md
+
+   文件约 7000 行，建议用编辑器的「查找 / 跳转」直接定位到你要改的部分。
+  ═══════════════════════════════════════════════════════════════════════════
+-->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#070a12">
 <title>共鸣之塔</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
-  html,body{width:100%;height:100%;overflow:hidden;background:#070a12;color:#dfe8f5;
-    font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif;}
-  #wrap{position:fixed;inset:0;display:flex;flex-direction:column;}
-  /* v8.23 适配：HUD 两侧躲开刘海/挖孔（横屏时刘海可能在左也可能在右，所以两边都要留）*/
-  #top{flex:0 0 auto;display:flex;align-items:center;flex-wrap:wrap;gap:8px;row-gap:5px;
-    padding:8px calc(10px + env(safe-area-inset-right,0px)) 8px calc(10px + env(safe-area-inset-left,0px));
-    background:linear-gradient(180deg,rgba(16,24,42,.95),rgba(10,14,26,.85));
-    border-bottom:1px solid rgba(90,140,220,.25);}
-  /* v8.14 文字详略：所有文本面板共用的「简易模式」——被标记 .udesc 的说明文字在简易模式下隐藏 */
-  body.brief .udesc{display:none !important;}
-  .stat{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:9px;
-    background:rgba(20,30,52,.8);border:1px solid rgba(90,140,220,.3);font-size:12px;color:#9fc4f0;}
-  .stat b{color:#fff;font-size:15px;font-variant-numeric:tabular-nums;}
-  #hpbar{flex:1;position:relative;height:12px;border-radius:6px;background:rgba(30,20,30,.8);
-    border:1px solid rgba(240,90,110,.4);overflow:hidden;min-width:60px;}
-  #hpfill{height:100%;width:100%;background:linear-gradient(90deg,#ff4d6d,#ff9a6d);transition:width .25s;}
-  #canvasWrap{flex:1;position:relative;overflow:hidden;min-height:0;}
-  canvas{display:block;width:100%;height:100%;}
-  #bottom{flex:0 0 auto;padding:8px 10px 12px;background:linear-gradient(0deg,rgba(16,24,42,.96),rgba(10,14,26,.85));
-    border-top:1px solid rgba(90,140,220,.25);}
-  #towers{display:flex;gap:8px;justify-content:center;}
-  .tw{flex:1;max-width:86px;border-radius:12px;padding:7px 4px 6px;text-align:center;position:relative;
-    border:1px solid rgba(120,160,220,.35);background:rgba(22,32,56,.85);transition:transform .1s,box-shadow .15s;}
-  .tw:active{transform:scale(.95);}
-  .tw.sel{box-shadow:0 0 0 2px #fff inset,0 0 18px rgba(140,200,255,.6);}
-  .tw .ic{font-size:22px;line-height:1.15;}
-  .tw .nm{font-size:11px;color:#c8dcf5;margin-top:1px;}
-  .tw .pc{font-size:11px;color:#ffd76a;font-variant-numeric:tabular-nums;}
-  .tw.dis{opacity:.42;}
-  .badge{position:absolute;top:-6px;right:-4px;font-size:10px;padding:1px 5px;border-radius:7px;background:#ffcf4a;color:#20180a;font-weight:700;}
-  /* ===== v8.18 左侧常驻信息栏 =====
+<style> * {
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+html,body {
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#070a12;
+  color:#dfe8f5;
+  font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif;
+}
+/* ===== 页面骨架：竖排全屏布局（顶部 HUD → 波次情报 → 教学任务条 → 战场）===== */
+#wrap {
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+}
+/* v8.23 适配：HUD 两侧躲开刘海/挖孔（横屏时刘海可能在左也可能在右，所以两边都要留）*/ #top {
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  row-gap:5px;
+  padding:8px calc(10px + env(safe-area-inset-right,0px)) 8px calc(10px + env(safe-area-inset-left,0px));
+  background:linear-gradient(180deg,rgba(16,24,42,.95),rgba(10,14,26,.85));
+  border-bottom:1px solid rgba(90,140,220,.25);
+}
+/* v8.14 文字详略：所有文本面板共用的「简易模式」——被标记 .udesc 的说明文字在简易模式下隐藏 */ body.brief .udesc {
+  display:none !important;
+}
+/* 顶部 HUD 的小胶囊（金币 / 波次 / 地图名 / 天气），b 里的数字用等宽数字避免跳动 */
+.stat {
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 10px;
+  border-radius:9px;
+  background:rgba(20,30,52,.8);
+  border:1px solid rgba(90,140,220,.3);
+  font-size:12px;
+  color:#9fc4f0;
+}
+.stat b {
+  color:#fff;
+  font-size:15px;
+  font-variant-numeric:tabular-nums;
+}
+/* 基地血条：外框（红调描边）+ 内层 #hpfill 按血量百分比设宽度 */
+#hpbar {
+  flex:1;
+  position:relative;
+  height:12px;
+  border-radius:6px;
+  background:rgba(30,20,30,.8);
+  border:1px solid rgba(240,90,110,.4);
+  overflow:hidden;
+  min-width:60px;
+}
+/* 血条填充层：宽度由 updateHud() 按 hp/MAXHP 实时设置，带过渡动画 */
+#hpfill {
+  height:100%;
+  width:100%;
+  background:linear-gradient(90deg,#ff4d6d,#ff9a6d);
+  transition:width .25s;
+}
+/* 战场容器：占满剩余高度，position:relative 用于承载 canvas 与各浮层（信息栏/建塔面板/提示条）*/
+#canvasWrap {
+  flex:1;
+  position:relative;
+  overflow:hidden;
+  min-height:0;
+}
+/* 战场画布：铺满容器；实际像素尺寸由 resize() 按 DPR 设置 */
+canvas {
+  display:block;
+  width:100%;
+  height:100%;
+}
+/* 旧版底部建塔栏样式：现版本建塔改由 #sel 面板承担，页面已无元素引用（保留未删）*/
+#bottom {
+  flex:0 0 auto;
+  padding:8px 10px 12px;
+  background:linear-gradient(0deg,rgba(16,24,42,.96),rgba(10,14,26,.85));
+  border-top:1px solid rgba(90,140,220,.25);
+}
+#towers {
+  display:flex;
+  gap:8px;
+  justify-content:center;
+}
+/* 旧版塔按钮样式（同上：当前界面无引用）*/
+.tw {
+  flex:1;
+  max-width:86px;
+  border-radius:12px;
+  padding:7px 4px 6px;
+  text-align:center;
+  position:relative;
+  border:1px solid rgba(120,160,220,.35);
+  background:rgba(22,32,56,.85);
+  transition:transform .1s,box-shadow .15s;
+}
+.tw:active {
+  transform:scale(.95);
+}
+.tw.sel {
+  box-shadow:0 0 0 2px #fff inset,0 0 18px rgba(140,200,255,.6);
+}
+.tw .ic {
+  font-size:22px;
+  line-height:1.15;
+}
+.tw .nm {
+  font-size:11px;
+  color:#c8dcf5;
+  margin-top:1px;
+}
+.tw .pc {
+  font-size:11px;
+  color:#ffd76a;
+  font-variant-numeric:tabular-nums;
+}
+.tw.dis {
+  opacity:.42;
+}
+/* 通用小徽标：图鉴/面板里的角色定位、稀有度等角标 */
+.badge {
+  position:absolute;
+  top:-6px;
+  right:-4px;
+  font-size:10px;
+  padding:1px 5px;
+  border-radius:7px;
+  background:#ffcf4a;
+  color:#20180a;
+  font-weight:700;
+}
+/* ===== v8.18 左侧常驻信息栏 =====
      毛毛：「选的那个卡片和 debuff 你都列出来，有什么加成有什么 debuff 写到左边」
      默认**折叠**成一条窄图标带（几乎不挡战场），点一下才铺开详情；
-     容器整体 pointer-events:none，只有图标带与面板本身可点 → 战场点击不受影响。 */
-  #sideWin{position:absolute;left:env(safe-area-inset-left,0px);top:0;bottom:0;z-index:22;
-    display:flex;align-items:flex-start;pointer-events:none;
-    padding:6px 0 6px calc(5px + env(safe-area-inset-left,0px));}
-  #swStrip{pointer-events:auto;display:flex;flex-direction:column;gap:4px;padding:4px;
-    border-radius:12px;background:rgba(10,16,30,.72);border:1px solid rgba(90,140,220,.28);}
-  .swChip{position:relative;width:30px;height:30px;border-radius:9px;
-    display:flex;align-items:center;justify-content:center;font-size:15px;
-    background:rgba(22,34,58,.92);border:1px solid rgba(120,180,255,.28);}
-  .swChip:active{transform:scale(.92);}
-  .swChip.dim{opacity:.38;}
-  .swChip .n{position:absolute;right:-3px;top:-4px;font-size:9px;font-weight:700;
-    color:#20180a;background:#ffd76a;border-radius:7px;padding:0 3px;line-height:13px;}
-  #swBody{pointer-events:auto;display:none;width:min(48vw,200px);max-height:100%;overflow-y:auto;
-    margin-left:5px;padding:8px 9px;border-radius:12px;background:rgba(10,16,30,.92);
-    border:1px solid rgba(90,140,220,.34);box-shadow:0 6px 20px rgba(0,0,0,.5);
-    font-size:11.5px;line-height:1.5;text-align:left;-webkit-overflow-scrolling:touch;}
-  #sideWin[data-open="1"] #swBody{display:block;}
-  .swSec{margin-bottom:7px;}
-  .swSec:last-child{margin-bottom:0;}
-  .swT{font-size:10.5px;font-weight:700;color:#8fb4dc;letter-spacing:1px;margin-bottom:3px;}
-  .swRow{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;}
-  .swRow .k{color:#9fc4f0;}
-  .swRow .v{color:#7cf5c0;font-weight:700;font-variant-numeric:tabular-nums;}
-  .swRow.bad .v{color:#ff9a8a;}
-  .swRow.dim .v{color:#6c7f9b;font-weight:400;}
-  .swCardLine{display:flex;gap:5px;align-items:center;font-size:11px;margin-bottom:2px;}
-  .swCardLine .rn{font-size:9px;border:1px solid currentColor;border-radius:6px;padding:0 3px;flex:0 0 auto;}
-  #tip{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);font-size:11.5px;color:#8fb4dc;
-    background:rgba(10,16,30,.8);padding:5px 12px;border-radius:9px;border:1px solid rgba(90,140,220,.3);
-    pointer-events:none;white-space:nowrap;}
-  .ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
-    gap:12px;background:radial-gradient(circle at 50% 38%,rgba(14,24,46,.97),rgba(5,7,14,.995));
-    text-align:center;padding:16px 20px;z-index:50;
-    overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
-  .ov > *{flex:0 0 auto;}
-  .ov > :first-child{margin-top:auto;}      /* 内容少时垂直居中、内容多时可滚动 */
-  .ov > :last-child{margin-bottom:auto;}
-  .hidden{display:none!important;}
-  h1{font-size:34px;letter-spacing:5px;font-weight:800;
-    background:linear-gradient(90deg,#5ad7ff,#8f7cff,#ff77c8);-webkit-background-clip:text;background-clip:text;
-    -webkit-text-fill-color:transparent;}
-  .sub{font-size:13px;color:#93a6c4;line-height:1.95;}
-  .btn{margin-top:8px;padding:15px 46px;border-radius:42px;border:1px solid rgba(120,220,255,.5);
-    background:linear-gradient(180deg,rgba(40,110,200,.9),rgba(28,70,150,.9));color:#fff;
-    font-size:18px;letter-spacing:3px;font-weight:700;box-shadow:0 0 24px rgba(60,150,255,.35);}
-  .el{font-size:12.5px;line-height:1.9;color:#8fb4dc;text-align:left;max-width:330px;}
-  .el b{color:#ffd76a;}
-  .el i{font-style:normal;color:#7cf5c0;}
-  #sel{position:absolute;z-index:30;background:rgba(14,22,40,.97);border:1px solid rgba(120,180,255,.45);
-    border-radius:14px;padding:8px;display:none;min-width:150px;width:min(96vw,900px);max-width:96vw;
-    max-height:90vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.6);
-    -webkit-text-size-adjust:100%;text-size-adjust:100%;}
-  #sel .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:5px;}
-  #sel .card{display:block;width:100%;min-width:0;text-align:left;margin:0;padding:6px 7px;border-radius:10px;
-    border:1px solid rgba(120,180,255,.35);background:rgba(26,40,70,.92);color:#dfe8f5;}
-  #sel .card:active{background:rgba(60,110,190,.92);}
-  #sel .card.dis{opacity:.42;}
-  #sel .ch{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;letter-spacing:.2px;}
-  #sel .ch .ci{font-size:15px;}
-  #sel .ch .cp{margin-left:auto;color:#ffd76a;font-variant-numeric:tabular-nums;font-size:12.5px;}
-  #sel .cs{font-size:10px;color:#a8caf0;margin-top:1px;line-height:1.35;overflow-wrap:anywhere;}
-  #sel .ce{font-size:10px;color:#7cf5c0;line-height:1.35;}
-  #sel .cu{font-size:10px;color:#ffb27a;line-height:1.35;overflow-wrap:anywhere;}
-  /* ===== v5.1 小屏 / 横屏自适应（修「页面显示不全」）===== */
-  @media (max-height:480px){
-    .ov{gap:7px;padding:10px 16px;}
-    .ov h1{font-size:24px;letter-spacing:3px;}
-    .ov .sub{font-size:12px;line-height:1.5;}
-    .ov .el{font-size:11.5px;line-height:1.55;max-width:420px;}
-    .ov .btn{padding:9px 24px !important;font-size:15px !important;margin-top:3px !important;}
-    #lvList{gap:5px !important;}
-    #lvList .btn{padding:8px 16px !important;font-size:14px !important;letter-spacing:1px !important;}
-    #buffList{gap:6px !important;}
-    #buffList .btn{padding:10px 14px !important;font-size:14px !important;}
-    #top{padding:5px 8px;gap:5px;row-gap:4px;}
-    .stat{padding:3px 8px;font-size:11px;}
-    .stat b{font-size:13px;}
-    #hpbar{height:10px;}
-    #waveInfo{padding:3px 8px;font-size:10.5px;}
-    #tip{font-size:11px;padding:4px 10px;bottom:5px;}
-    #sel{max-height:94vh;}
+     容器整体 pointer-events:none，只有图标带与面板本身可点 → 战场点击不受影响。 */ #sideWin {
+  position:absolute;
+  left:env(safe-area-inset-left,0px);
+  top:0;
+  bottom:0;
+  z-index:22;
+  display:flex;
+  align-items:flex-start;
+  pointer-events:none;
+  padding:6px 0 6px calc(5px + env(safe-area-inset-left,0px));
+}
+#swStrip {
+  pointer-events:auto;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:4px;
+  border-radius:12px;
+  background:rgba(10,16,30,.72);
+  border:1px solid rgba(90,140,220,.28);
+}
+.swChip {
+  position:relative;
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:15px;
+  background:rgba(22,34,58,.92);
+  border:1px solid rgba(120,180,255,.28);
+}
+.swChip:active {
+  transform:scale(.92);
+}
+.swChip.dim {
+  opacity:.38;
+}
+.swChip .n {
+  position:absolute;
+  right:-3px;
+  top:-4px;
+  font-size:9px;
+  font-weight:700;
+  color:#20180a;
+  background:#ffd76a;
+  border-radius:7px;
+  padding:0 3px;
+  line-height:13px;
+}
+#swBody {
+  pointer-events:auto;
+  display:none;
+  width:min(48vw,200px);
+  max-height:100%;
+  overflow-y:auto;
+  margin-left:5px;
+  padding:8px 9px;
+  border-radius:12px;
+  background:rgba(10,16,30,.92);
+  border:1px solid rgba(90,140,220,.34);
+  box-shadow:0 6px 20px rgba(0,0,0,.5);
+  font-size:11.5px;
+  line-height:1.5;
+  text-align:left;
+  -webkit-overflow-scrolling:touch;
+}
+#sideWin[data-open="1"] #swBody {
+  display:block;
+}
+.swSec {
+  margin-bottom:7px;
+}
+.swSec:last-child {
+  margin-bottom:0;
+}
+.swT {
+  font-size:10.5px;
+  font-weight:700;
+  color:#8fb4dc;
+  letter-spacing:1px;
+  margin-bottom:3px;
+}
+.swRow {
+  display:flex;
+  justify-content:space-between;
+  gap:6px;
+  font-size:11.5px;
+}
+.swRow .k {
+  color:#9fc4f0;
+}
+.swRow .v {
+  color:#7cf5c0;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+.swRow.bad .v {
+  color:#ff9a8a;
+}
+.swRow.dim .v {
+  color:#6c7f9b;
+  font-weight:400;
+}
+.swCardLine {
+  display:flex;
+  gap:5px;
+  align-items:center;
+  font-size:11px;
+  margin-bottom:2px;
+}
+.swCardLine .rn {
+  font-size:9px;
+  border:1px solid currentColor;
+  border-radius:6px;
+  padding:0 3px;
+  flex:0 0 auto;
+}
+/* 战场底部提示条：操作引导与 showTip() 弹出的一句话反馈 */
+#tip {
+  position:absolute;
+  left:50%;
+  bottom:8px;
+  transform:translateX(-50%);
+  font-size:11.5px;
+  color:#8fb4dc;
+  background:rgba(10,16,30,.8);
+  padding:5px 12px;
+  border-radius:9px;
+  border:1px solid rgba(90,140,220,.3);
+  pointer-events:none;
+  white-space:nowrap;
+}
+/* 全屏弹层通用样式：所有 class="ov" 的面板（首页/设置/图鉴/结算…）都用它铺满全屏并居中 */
+.ov {
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:12px;
+  background:radial-gradient(circle at 50% 38%,rgba(14,24,46,.97),rgba(5,7,14,.995));
+  text-align:center;
+  padding:16px 20px;
+  z-index:50;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+.ov > * {
+  flex:0 0 auto;
+}
+.ov > :first-child {
+  margin-top:auto;
+}
+/* 内容少时垂直居中、内容多时可滚动 */ .ov > :last-child {
+  margin-bottom:auto;
+}
+/* 通用隐藏类：弹层开关就靠增删这个 class（display:none !important）*/
+.hidden {
+  display:none!important;
+}
+h1 {
+  font-size:34px;
+  letter-spacing:5px;
+  font-weight:800;
+  background:linear-gradient(90deg,#5ad7ff,#8f7cff,#ff77c8);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+/* 弹层副标题小字（标题下的说明行）*/
+.sub {
+  font-size:13px;
+  color:#93a6c4;
+  line-height:1.95;
+}
+/* 通用按钮：所有弹层里的操作按钮共用（渐变底 + 描边 + 按下缩放）*/
+.btn {
+  margin-top:8px;
+  padding:15px 46px;
+  border-radius:42px;
+  border:1px solid rgba(120,220,255,.5);
+  background:linear-gradient(180deg,rgba(40,110,200,.9),rgba(28,70,150,.9));
+  color:#fff;
+  font-size:18px;
+  letter-spacing:3px;
+  font-weight:700;
+  box-shadow:0 0 24px rgba(60,150,255,.35);
+}
+/* 玩法说明正文块（#helpOv 里的 Markdown 式长文容器）*/
+.el {
+  font-size:12.5px;
+  line-height:1.9;
+  color:#8fb4dc;
+  text-align:left;
+  max-width:330px;
+}
+.el b {
+  color:#ffd76a;
+}
+.el i {
+  font-style:normal;
+  color:#7cf5c0;
+}
+/* 建塔 / 升级面板：#sel 由 openBuild()/openTower() 动态填内容，位置由 placeMenu() 计算 */
+#sel {
+  position:absolute;
+  z-index:30;
+  background:rgba(14,22,40,.97);
+  border:1px solid rgba(120,180,255,.45);
+  border-radius:14px;
+  padding:8px;
+  display:none;
+  min-width:150px;
+  width:min(96vw,900px);
+  max-width:96vw;
+  max-height:90vh;
+  overflow-y:auto;
+  box-shadow:0 8px 30px rgba(0,0,0,.6);
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+#sel .cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:5px;
+}
+/* 建塔面板里的单张塔卡（图标/名称/造价/定位/简介）*/
+#sel .card {
+  display:block;
+  width:100%;
+  min-width:0;
+  text-align:left;
+  margin:0;
+  padding:6px 7px;
+  border-radius:10px;
+  border:1px solid rgba(120,180,255,.35);
+  background:rgba(26,40,70,.92);
+  color:#dfe8f5;
+}
+#sel .card:active {
+  background:rgba(60,110,190,.92);
+}
+#sel .card.dis {
+  opacity:.42;
+}
+#sel .ch {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.2px;
+}
+#sel .ch .ci {
+  font-size:15px;
+}
+#sel .ch .cp {
+  margin-left:auto;
+  color:#ffd76a;
+  font-variant-numeric:tabular-nums;
+  font-size:12.5px;
+}
+#sel .cs {
+  font-size:10px;
+  color:#a8caf0;
+  margin-top:1px;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+#sel .ce {
+  font-size:10px;
+  color:#7cf5c0;
+  line-height:1.35;
+}
+#sel .cu {
+  font-size:10px;
+  color:#ffb27a;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+/* ===== v5.1 小屏 / 横屏自适应（修「页面显示不全」）===== */ @media (max-height:480px) {
+  .ov {
+    gap:7px;
+    padding:10px 16px;
   }
-  @media (max-width:560px){
-    #top{gap:5px;row-gap:4px;padding:6px 8px;}
-    .stat{padding:4px 8px;font-size:11px;}
-    .stat b{font-size:13px;}
-    #lvName{font-size:10.5px !important;}
-    #tip{white-space:normal;line-height:1.4;max-width:92vw;}
+  .ov h1 {
+    font-size:24px;
+    letter-spacing:3px;
   }
-  #sel .row{display:flex;gap:6px;}
-  #sel button{flex:1;padding:9px 8px;border-radius:10px;border:1px solid rgba(120,180,255,.35);
-    background:rgba(30,48,84,.9);color:#dfe8f5;font-size:13px;line-height:1.35;}
-  #sel button:active{background:rgba(60,110,190,.9);}
-  #sel .t{font-size:11px;color:#8fb4dc;text-align:center;margin-bottom:6px;}
-  #sel .sell{border-color:rgba(255,120,120,.4);background:rgba(70,30,40,.9);}
-  #sel .refund{border-color:rgba(255,215,106,.55);background:rgba(72,56,18,.92);}
-  #sel .refund:active{background:rgba(130,100,30,.95);}
-  /* ===== v5.8 主界面美术（纯 CSS，无外部素材） ===== */
-  #startOv{justify-content:center;overflow-y:auto;overflow-x:hidden;padding:0;}
-  #startOv .home-bg{position:absolute;inset:-12%;z-index:0;pointer-events:none;
-    background:
-      radial-gradient(circle at 18% 16%, rgba(90,190,255,.20), transparent 40%),
-      radial-gradient(circle at 84% 24%, rgba(180,120,255,.18), transparent 44%),
-      radial-gradient(circle at 50% 96%, rgba(60,230,200,.14), transparent 52%),
-      radial-gradient(1.5px 1.5px at 12% 30%, rgba(255,255,255,.8), transparent 60%),
-      radial-gradient(1.5px 1.5px at 34% 68%, rgba(180,220,255,.7), transparent 60%),
-      radial-gradient(1.8px 1.8px at 58% 22%, rgba(255,255,255,.75), transparent 60%),
-      radial-gradient(1.4px 1.4px at 76% 58%, rgba(200,230,255,.7), transparent 60%),
-      radial-gradient(1.6px 1.6px at 88% 82%, rgba(255,255,255,.6), transparent 60%),
-      linear-gradient(180deg,#060a14,#0a1122 55%,#070b16);
-    animation: bgDrift 24s ease-in-out infinite alternate;}
-  @keyframes bgDrift{from{transform:translate3d(-1.6%,-1.2%,0) scale(1.03);}to{transform:translate3d(1.6%,1.4%,0) scale(1.07);}}
-  .home-wrap{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:13px;
-    width:100%;max-width:460px;padding:22px 18px;}
-  .home-top{width:100%;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#5f7ba6;letter-spacing:2px;}
-  /* v8.23 版本号按钮：一眼看出能点（反馈 bug 时要提供的就是它） */
-  #homeVer{padding:2px 8px;border-radius:9px;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:1px;
-    border:1px solid rgba(120,180,255,.32);background:rgba(24,40,68,.85);color:#9fd0ff;}
-  #homeVer:active{transform:scale(.96);}
-  #homeVer:hover{background:rgba(36,60,100,.95);}
-  .home-logo{text-align:center;}
-  .logo{margin:0;font-size:clamp(32px,8.5vw,54px);letter-spacing:7px;font-weight:900;
-    background:linear-gradient(180deg,#f2fbff 6%,#8fdcff 42%,#4f8cff 74%,#b07cff 100%);
-    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-    filter:drop-shadow(0 0 16px rgba(90,200,255,.55)) drop-shadow(0 3px 0 rgba(8,16,34,.85));
-    animation:logoFloat 4.6s ease-in-out infinite, logoGlow 5.2s ease-in-out infinite;}
-  @keyframes logoGlow{
-    0%,100%{filter:drop-shadow(0 0 14px rgba(90,200,255,.45)) drop-shadow(0 3px 0 rgba(8,16,34,.85));}
-    50%{filter:drop-shadow(0 0 28px rgba(130,205,255,.8)) drop-shadow(0 3px 0 rgba(8,16,34,.85));}}
-  @keyframes logoFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
-  .logo-tag{margin-top:3px;font-size:11px;letter-spacing:5px;color:#8fb4dc;}
-  .home-stats{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;min-height:26px;}
-  .home-stats .st{padding:4px 10px;border-radius:20px;font-size:11px;color:#9fc4f0;
-    background:rgba(18,28,50,.78);border:1px solid rgba(90,140,220,.28);}
-  .home-stats .st b{color:#ffd76a;}
-  .btn-hero{padding:15px 46px !important;font-size:20px !important;letter-spacing:6px !important;
-    background:linear-gradient(180deg,rgba(74,156,255,.96),rgba(34,82,188,.96)) !important;
-    border-color:rgba(150,225,255,.6) !important;
-    animation:heroPulse 2.8s ease-in-out infinite;}
-  @keyframes heroPulse{
-    0%,100%{box-shadow:0 0 20px rgba(60,150,255,.42),0 6px 16px rgba(0,0,0,.45);}
-    50%{box-shadow:0 0 38px rgba(100,200,255,.75),0 6px 16px rgba(0,0,0,.45);}}
-  .btn-hero:active{transform:scale(.97);}
-  /* ===== v8.18 主界面重做：大标题 + 主按钮 + 图标网格（纯 CSS 动效，零图片资源）===== */
-  .home-aura{position:absolute;inset:0;pointer-events:none;z-index:1;
-    background:radial-gradient(circle at 50% 36%,rgba(110,190,255,.20),rgba(150,110,255,.10) 38%,transparent 64%);
-    animation:auraBreath 6.5s ease-in-out infinite;}
-  @keyframes auraBreath{0%,100%{opacity:.5;transform:scale(1);}50%{opacity:1;transform:scale(1.05);}}
-  .home-menu{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:400px;}
-  /* 图标网格瓦片：图标在上、名字在下（横屏压缩时也保持堆叠）。
-     注意：#bookBtn 的 class 必须是「btn」本身（deep11 有断言），所以样式不能靠额外类名挂，只能落在 .home-menu .btn 上 */
-  .home-menu .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    margin-top:0 !important;width:100%;border-radius:14px;letter-spacing:1px;
-    padding:10px 4px !important;font-size:12px !important;
-    border-color:rgba(120,180,255,.34);background:rgba(22,34,58,.88);
-    box-shadow:none;transition:transform .12s,border-color .18s,box-shadow .18s;}
-  .home-menu .btn .ti{font-size:22px;line-height:1.05;}
-  .home-menu .btn:active{transform:scale(.94);}
-  .home-menu .btn.hot{border-color:rgba(255,200,110,.6);box-shadow:0 0 14px rgba(255,180,60,.22);background:linear-gradient(180deg,rgba(58,44,16,.92),rgba(36,26,8,.92));}
-  .home-menu .btn.pink{border-color:rgba(255,140,200,.55);background:linear-gradient(180deg,rgba(52,20,40,.92),rgba(34,12,26,.92));}
-  .home-menu2{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:400px;}
-  .home-menu2 .btn{margin-top:0 !important;width:100%;border-radius:12px;letter-spacing:1px;
-    padding:9px 4px !important;font-size:13px !important;box-shadow:none;}
-  .home-hint{min-height:14px;font-size:11px;color:#7cf5c0;letter-spacing:.5px;}
-  .home-foot{font-size:10px;color:#4d678f;letter-spacing:1px;}
-  /* v8.23 修毛毛报的「字没显示全 / 没有版本号」——
+  .ov .sub {
+    font-size:12px;
+    line-height:1.5;
+  }
+  .ov .el {
+    font-size:11.5px;
+    line-height:1.55;
+    max-width:420px;
+  }
+  .ov .btn {
+    padding:9px 24px !important;
+    font-size:15px !important;
+    margin-top:3px !important;
+  }
+  #lvList {
+    gap:5px !important;
+  }
+  #lvList .btn {
+    padding:8px 16px !important;
+    font-size:14px !important;
+    letter-spacing:1px !important;
+  }
+  #buffList {
+    gap:6px !important;
+  }
+  #buffList .btn {
+    padding:10px 14px !important;
+    font-size:14px !important;
+  }
+  #top {
+    padding:5px 8px;
+    gap:5px;
+    row-gap:4px;
+  }
+  .stat {
+    padding:3px 8px;
+    font-size:11px;
+  }
+  .stat b {
+    font-size:13px;
+  }
+  #hpbar {
+    height:10px;
+  }
+  #waveInfo {
+    padding:3px 8px;
+    font-size:10.5px;
+  }
+  #tip {
+    font-size:11px;
+    padding:4px 10px;
+    bottom:5px;
+  }
+  #sel {
+    max-height:94vh;
+  }
+}
+@media (max-width:560px) {
+  #top {
+    gap:5px;
+    row-gap:4px;
+    padding:6px 8px;
+  }
+  .stat {
+    padding:4px 8px;
+    font-size:11px;
+  }
+  .stat b {
+    font-size:13px;
+  }
+  #lvName {
+    font-size:10.5px !important;
+  }
+  #tip {
+    white-space:normal;
+    line-height:1.4;
+    max-width:92vw;
+  }
+}
+#sel .row {
+  display:flex;
+  gap:6px;
+}
+#sel button {
+  flex:1;
+  padding:9px 8px;
+  border-radius:10px;
+  border:1px solid rgba(120,180,255,.35);
+  background:rgba(30,48,84,.9);
+  color:#dfe8f5;
+  font-size:13px;
+  line-height:1.35;
+}
+#sel button:active {
+  background:rgba(60,110,190,.9);
+}
+#sel .t {
+  font-size:11px;
+  color:#8fb4dc;
+  text-align:center;
+  margin-bottom:6px;
+}
+#sel .sell {
+  border-color:rgba(255,120,120,.4);
+  background:rgba(70,30,40,.9);
+}
+#sel .refund {
+  border-color:rgba(255,215,106,.55);
+  background:rgba(72,56,18,.92);
+}
+#sel .refund:active {
+  background:rgba(130,100,30,.95);
+}
+/* ===== v5.8 主界面美术（纯 CSS，无外部素材） ===== */ #startOv {
+  justify-content:center;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:0;
+}
+#startOv .home-bg {
+  position:absolute;
+  inset:-12%;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(90,190,255,.20), transparent 40%),
+    radial-gradient(circle at 84% 24%, rgba(180,120,255,.18), transparent 44%),
+    radial-gradient(circle at 50% 96%, rgba(60,230,200,.14), transparent 52%),
+    radial-gradient(1.5px 1.5px at 12% 30%, rgba(255,255,255,.8), transparent 60%),
+    radial-gradient(1.5px 1.5px at 34% 68%, rgba(180,220,255,.7), transparent 60%),
+    radial-gradient(1.8px 1.8px at 58% 22%, rgba(255,255,255,.75), transparent 60%),
+    radial-gradient(1.4px 1.4px at 76% 58%, rgba(200,230,255,.7), transparent 60%),
+    radial-gradient(1.6px 1.6px at 88% 82%, rgba(255,255,255,.6), transparent 60%),
+    linear-gradient(180deg,#060a14,#0a1122 55%,#070b16);
+  animation: bgDrift 24s ease-in-out infinite alternate;
+}
+@keyframes bgDrift {
+  from {
+    transform:translate3d(-1.6%,-1.2%,0) scale(1.03);
+  }
+  to {
+    transform:translate3d(1.6%,1.4%,0) scale(1.07);
+  }
+}
+.home-wrap {
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:13px;
+  width:100%;
+  max-width:460px;
+  padding:22px 18px;
+}
+.home-top {
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:10px;
+  color:#5f7ba6;
+  letter-spacing:2px;
+}
+/* v8.23 版本号按钮：一眼看出能点（反馈 bug 时要提供的就是它） */ #homeVer {
+  padding:2px 8px;
+  border-radius:9px;
+  cursor:pointer;
+  font-family:inherit;
+  font-size:10px;
+  letter-spacing:1px;
+  border:1px solid rgba(120,180,255,.32);
+  background:rgba(24,40,68,.85);
+  color:#9fd0ff;
+}
+#homeVer:active {
+  transform:scale(.96);
+}
+#homeVer:hover {
+  background:rgba(36,60,100,.95);
+}
+.home-logo {
+  text-align:center;
+}
+.logo {
+  margin:0;
+  font-size:clamp(32px,8.5vw,54px);
+  letter-spacing:7px;
+  font-weight:900;
+  background:linear-gradient(180deg,#f2fbff 6%,#8fdcff 42%,#4f8cff 74%,#b07cff 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 16px rgba(90,200,255,.55)) drop-shadow(0 3px 0 rgba(8,16,34,.85));
+  animation:logoFloat 4.6s ease-in-out infinite, logoGlow 5.2s ease-in-out infinite;
+}
+@keyframes logoGlow {
+  0%,100% {
+    filter:drop-shadow(0 0 14px rgba(90,200,255,.45)) drop-shadow(0 3px 0 rgba(8,16,34,.85));
+  }
+  50% {
+    filter:drop-shadow(0 0 28px rgba(130,205,255,.8)) drop-shadow(0 3px 0 rgba(8,16,34,.85));
+  }
+}
+@keyframes logoFloat {
+  0%,100% {
+    transform:translateY(0);
+  }
+  50% {
+    transform:translateY(-5px);
+  }
+}
+.logo-tag {
+  margin-top:3px;
+  font-size:11px;
+  letter-spacing:5px;
+  color:#8fb4dc;
+}
+.home-stats {
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  justify-content:center;
+  min-height:26px;
+}
+.home-stats .st {
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:11px;
+  color:#9fc4f0;
+  background:rgba(18,28,50,.78);
+  border:1px solid rgba(90,140,220,.28);
+}
+.home-stats .st b {
+  color:#ffd76a;
+}
+.btn-hero {
+  padding:15px 46px !important;
+  font-size:20px !important;
+  letter-spacing:6px !important;
+  background:linear-gradient(180deg,rgba(74,156,255,.96),rgba(34,82,188,.96)) !important;
+  border-color:rgba(150,225,255,.6) !important;
+  animation:heroPulse 2.8s ease-in-out infinite;
+}
+@keyframes heroPulse {
+  0%,100% {
+    box-shadow:0 0 20px rgba(60,150,255,.42),0 6px 16px rgba(0,0,0,.45);
+  }
+  50% {
+    box-shadow:0 0 38px rgba(100,200,255,.75),0 6px 16px rgba(0,0,0,.45);
+  }
+}
+.btn-hero:active {
+  transform:scale(.97);
+}
+/* ===== v8.18 主界面重做：大标题 + 主按钮 + 图标网格（纯 CSS 动效，零图片资源）===== */ .home-aura {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:1;
+  background:radial-gradient(circle at 50% 36%,rgba(110,190,255,.20),rgba(150,110,255,.10) 38%,transparent 64%);
+  animation:auraBreath 6.5s ease-in-out infinite;
+}
+@keyframes auraBreath {
+  0%,100% {
+    opacity:.5;
+    transform:scale(1);
+  }
+  50% {
+    opacity:1;
+    transform:scale(1.05);
+  }
+}
+.home-menu {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  width:100%;
+  max-width:400px;
+}
+/* 图标网格瓦片：图标在上、名字在下（横屏压缩时也保持堆叠）。
+     注意：#bookBtn 的 class 必须是「btn」本身（deep11 有断言），所以样式不能靠额外类名挂，只能落在 .home-menu .btn 上 */ .home-menu .btn {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  margin-top:0 !important;
+  width:100%;
+  border-radius:14px;
+  letter-spacing:1px;
+  padding:10px 4px !important;
+  font-size:12px !important;
+  border-color:rgba(120,180,255,.34);
+  background:rgba(22,34,58,.88);
+  box-shadow:none;
+  transition:transform .12s,border-color .18s,box-shadow .18s;
+}
+.home-menu .btn .ti {
+  font-size:22px;
+  line-height:1.05;
+}
+.home-menu .btn:active {
+  transform:scale(.94);
+}
+.home-menu .btn.hot {
+  border-color:rgba(255,200,110,.6);
+  box-shadow:0 0 14px rgba(255,180,60,.22);
+  background:linear-gradient(180deg,rgba(58,44,16,.92),rgba(36,26,8,.92));
+}
+.home-menu .btn.pink {
+  border-color:rgba(255,140,200,.55);
+  background:linear-gradient(180deg,rgba(52,20,40,.92),rgba(34,12,26,.92));
+}
+.home-menu2 {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  width:100%;
+  max-width:400px;
+}
+.home-menu2 .btn {
+  margin-top:0 !important;
+  width:100%;
+  border-radius:12px;
+  letter-spacing:1px;
+  padding:9px 4px !important;
+  font-size:13px !important;
+  box-shadow:none;
+}
+.home-hint {
+  min-height:14px;
+  font-size:11px;
+  color:#7cf5c0;
+  letter-spacing:.5px;
+}
+.home-foot {
+  font-size:10px;
+  color:#4d678f;
+  letter-spacing:1px;
+}
+/* v8.23 修毛毛报的「字没显示全 / 没有版本号」——
      根因其实是同一个：主界面内容（logo + 战绩 + 提示 + 主按钮 + 3 行网格 + 页脚）在横屏
      540px 高的手机上比视口还高 → 顶部那行版本号被挤出视口、底部「玩法/检查更新」被裁一半。
      原来只有 max-height:480px 一档，而横屏手机常见是 500~600px 高 → 完全不生效。
-     这里补一档 640px 的压缩规则（只压缩、不隐藏内容，保证所有入口都完整可见）。 */
-  @media (max-height:640px){
-    #startOv .home-wrap{gap:7px;padding:10px 16px;}
-    .home-top{font-size:9.5px;}
-    .logo{font-size:clamp(24px,6.4vw,38px);letter-spacing:5px;}
-    .logo-tag{font-size:10px;letter-spacing:3px;margin-top:1px;}
-    .home-stats{gap:5px;min-height:20px;}
-    .home-stats .st{padding:3px 8px;font-size:10.5px;}
-    .home-hint{font-size:10px;min-height:12px;}
-    .btn-hero{padding:11px 38px !important;font-size:17px !important;letter-spacing:4px !important;}
-    .home-menu{gap:6px;}
-    .home-menu .btn{padding:7px 4px !important;border-radius:12px;}
-    .home-menu .btn .ti{font-size:17px;}
-    .home-menu2{gap:6px;}
-    .home-menu2 .btn{padding:6px 4px !important;font-size:12px !important;}
-    .home-foot{display:none;}
+     这里补一档 640px 的压缩规则（只压缩、不隐藏内容，保证所有入口都完整可见）。 */ @media (max-height:640px) {
+  #startOv .home-wrap {
+    gap:7px;
+    padding:10px 16px;
   }
+  .home-top {
+    font-size:9.5px;
+  }
+  .logo {
+    font-size:clamp(24px,6.4vw,38px);
+    letter-spacing:5px;
+  }
+  .logo-tag {
+    font-size:10px;
+    letter-spacing:3px;
+    margin-top:1px;
+  }
+  .home-stats {
+    gap:5px;
+    min-height:20px;
+  }
+  .home-stats .st {
+    padding:3px 8px;
+    font-size:10.5px;
+  }
+  .home-hint {
+    font-size:10px;
+    min-height:12px;
+  }
+  .btn-hero {
+    padding:11px 38px !important;
+    font-size:17px !important;
+    letter-spacing:4px !important;
+  }
+  .home-menu {
+    gap:6px;
+  }
+  .home-menu .btn {
+    padding:7px 4px !important;
+    border-radius:12px;
+  }
+  .home-menu .btn .ti {
+    font-size:17px;
+  }
+  .home-menu2 {
+    gap:6px;
+  }
+  .home-menu2 .btn {
+    padding:6px 4px !important;
+    font-size:12px !important;
+  }
+  .home-foot {
+    display:none;
+  }
+}
 </style>
 </head>
 <body>
+<!-- ================= 游戏主体（#wrap 是全屏 flex 竖排容器）================= -->
 <div id="wrap">
+  <!-- 顶部状态栏：金币 / 波次 / 当前地图 / 天气（可点开说明）· 技能按钮栏 · 倍速 · 暂停 · 基地血条（含护盾值）-->
   <div id="top">
     <div class="stat">💰 <b id="gold">150</b></div>
     <div class="stat">🌊 <b id="wave">1</b></div>
@@ -245,9 +921,11 @@
   <div id="rotHint" style="display:none;flex:0 0 auto;padding:4px 10px;font-size:11px;color:#ffd76a;
     background:linear-gradient(180deg,rgba(44,34,12,.95),rgba(24,18,6,.9));border-bottom:1px solid rgba(255,200,110,.3);
     text-align:center;letter-spacing:.4px;">↻ 横屏体验更好：战场是 16:10 横屏比例，竖屏会被压扁</div>
+  <!-- 波次情报条：显示下一波构成与天气预告（战斗中最常看的一行）-->
   <div id="waveInfo" style="flex:0 0 auto;padding:4px 10px;font-size:11px;color:#8fb4dc;background:linear-gradient(180deg,rgba(12,18,34,.93),rgba(9,13,24,.8));border-bottom:1px solid rgba(90,140,220,.18);letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">下一波：--</div>
   <!-- TUTORIAL_PATCH_V1：新手教学任务条（在 #waveInfo 与 #canvasWrap 之间，属文档流 → 不遮挡战场；仅教学关显示）-->
   <div id="tutBar" data-compact="1" style="flex:0 0 auto;display:none;padding:5px 10px;font-size:11.5px;line-height:1.35;color:#ffd76a;background:linear-gradient(180deg,rgba(38,30,12,.95),rgba(20,15,6,.9));border-bottom:1px solid rgba(255,200,110,.32);letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 8px rgba(255,190,80,.35);">任务 1/5</div>
+  <!-- 战场容器：canvas 就是整个战场；#sideWin 是左侧常驻信息栏、#sel 是建塔/升级面板、#tip 是底部提示条 -->
   <div id="canvasWrap">
     <canvas id="cv"></canvas>
     <!-- v8.18 左侧常驻信息栏（默认折叠；点图标展开）-->
@@ -261,13 +939,16 @@
       </div>
       <div id="swBody"></div>
     </div>
+    <!-- 建塔 / 升级面板（点击空格或已有塔时动态填充内容，位置由 placeMenu() 算）-->
     <div id="sel"></div>
+    <!-- 底部提示条：显示操作引导与 showTip() 弹出的一句话反馈 -->
     <div id="tip">点空地建塔 · 点塔升级/出售 · 相邻不同元素会共鸣</div>
   </div>
 </div>
 <audio id="bgm" loop preload="auto" src="music/bgm.ogg" style="display:none"></audio>
 <!-- v8.18 交叉淡化第二声道：平时 preload=none 不占内存，首次播放成功后再预热 -->
 <audio id="bgm2" loop preload="none" src="music/bgm.ogg" style="display:none"></audio>
+<!-- ===== 弹层：首页 startOv ===== 主标题、战绩统计、开始防御、选关/无尽/每日挑战/教学/图鉴/设置入口 -->
 <div class="ov" id="startOv">
   <div class="home-bg"></div>
   <div class="home-aura"></div>
@@ -305,6 +986,7 @@
   <button class="btn" id="verCopyBtn" style="padding:10px 26px;font-size:14px;background:rgba(30,80,60,.9);border-color:rgba(140,240,180,.5)">📋 复制全部信息</button>
   <button class="btn" id="verCloseBtn" style="margin-top:6px;padding:10px 32px;font-size:15px;background:rgba(40,60,100,.85)">关 闭</button>
 </div>
+<!-- ===== 弹层：玩法说明 helpOv ===== 静态长文（基本玩法、造价、索敌、八座塔、共鸣机制等）-->
 <div class="ov hidden" id="helpOv">
   <h1>玩法说明</h1>
   <div class="sub">在路径两侧布置元素塔，阻止敌人抵达终点 · 基地 20 血</div>
@@ -367,6 +1049,7 @@
   </div>
   <button class="btn" id="helpBackBtn">返 回</button>
 </div>
+<!-- ===== 弹层：图鉴 bookOv ===== 分页浏览怪物/炮塔/共鸣/强化卡/体系/关卡/成就/天气，内容由 bookRender() 动态生成 -->
 <div class="ov hidden" id="bookOv">
   <h1>图鉴</h1>
   <div class="sub" id="bookSub">数据直接读取实战配置 · 新增怪物/炮塔会自动出现</div>
@@ -383,6 +1066,7 @@
   <div id="bookList" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px;"></div>
   <button class="btn" id="bookBackBtn" style="margin-top:10px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">返回</button>
 </div>
+<!-- ===== 弹层：暂停 pauseOv ===== 显示当前进度信息，提供继续、设置、回首页等入口 -->
 <div class="ov hidden" id="pauseOv">
   <h1>已暂停</h1>
   <div class="sub" id="pauseInfo">--</div>
@@ -392,6 +1076,7 @@
   <button class="btn" id="endSaveBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(30,80,60,.9);display:none;">💾 保存并退出</button>
   <button class="btn" id="setBtn2" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">⚙ 设置</button>
 </div>
+<!-- ===== 弹层：通关结算 clearOv ===== 显示星级、新纪录与本关统计，提供下一关/返回选关 -->
 <div class="ov hidden" id="clearOv">
   <h1>关卡完成</h1>
   <div id="clearStars" style="font-size:40px;line-height:1.15;letter-spacing:10px;color:#ffd76a;text-shadow:0 0 22px rgba(255,200,60,.8);">☆☆☆</div>
@@ -401,6 +1086,7 @@
   <button class="btn" id="toLevelsBtn2" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">返回选关</button>
 </div>
 <!-- TUTORIAL_PATCH_V1：教学完成弹窗（独立于 #clearOv → 不触发选关/下一关流程，不写 prog.unlocked / best）-->
+<!-- ===== 弹层：教学完成 tutDoneOv ===== 独立于通关结算，不触发选关流程、不写正式进度 -->
 <div class="ov hidden" id="tutDoneOv">
   <h1>🎓 教学完成</h1>
   <div class="sub" style="color:#ffd76a">建塔 → 共鸣 → 升级 → 强化 → 守家，你已经全部走通</div>
@@ -409,12 +1095,14 @@
   <button class="btn" id="tutAgainBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">🎓 再练一次</button>
   <button class="btn" id="tutHomeBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">🏠 返回首页</button>
 </div>
+<!-- ===== 弹层：强化卡 buffOv ===== 共用弹层：#buffList 由 showBuffChoices()/renderShop()/renderTalents()/showSkillHelp() 等按需填充 -->
 <div class="ov hidden" id="buffOv">
   <h1 id="buffTitle">选择强化</h1>
   <div class="sub" id="buffSub">每通过一波就能强化一次 · 越选越强</div>
   <div id="buffList" style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:330px;"></div>
   <button id="skipBuffBtn" style="margin-top:10px;padding:12px 24px;border-radius:42px;border:1px solid rgba(255,200,110,.45);background:linear-gradient(180deg,rgba(84,62,26,.92),rgba(52,38,14,.92));color:#ffd76a;font-size:14px;letter-spacing:2px;font-weight:700;box-shadow:0 0 18px rgba(255,180,60,.22);">跳过 · 直接拿 150 金币</button>
 </div>
+<!-- ===== 弹层：选关 levelsOv ===== 可左右滑动的关卡节点地图（#lvList 由 showLevels() 动态生成）-->
 <div class="ov hidden" id="levelsOv">
   <h1>选择关卡</h1>
   <div class="sub" style="font-size:11.5px">通关解锁下一张地图 · 每关波数与敌人配置都不同</div>
@@ -424,6 +1112,7 @@
   <div class="sub" style="font-size:10.5px;opacity:.72;margin-top:1px;">← 左右滑动查看全部 15 张地图 · 点圆形节点进入关卡 →</div>
   <button class="btn" id="lvBackBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">返回首页</button>
 </div>
+<!-- ===== 弹层：更新提示 updOv ===== 检查到新版本时弹出，展示版本说明并提供下载入口 -->
 <div class="ov hidden" id="updOv">
   <h1 id="updTitle" style="font-size:22px">发现新版本</h1>
   <div class="sub" id="updSub">要现在下载吗？</div>
@@ -431,12 +1120,14 @@
   <button class="btn" id="updOkBtn" style="padding:12px 40px;font-size:16px;border-color:rgba(140,240,180,.6);background:linear-gradient(180deg,rgba(20,90,66,.95),rgba(12,54,40,.95));color:#c8ffe4;">✅ 确定 · 去下载</button>
   <button class="btn" id="updCancelBtn" style="margin-top:6px;padding:11px 36px;font-size:14px;background:rgba(40,60,100,.85)">✖ 取消</button>
 </div>
+<!-- ===== 弹层：关卡开幕提示 introOv ===== 开战前说明本关新敌人与新机制，点「开始战斗」才真正开打 -->
 <div class="ov hidden" id="introOv">
   <h1 id="introTitle" style="font-size:24px">第 1 关</h1>
   <div class="sub" id="introSub" style="font-size:12.5px">波数 / 初始金币</div>
   <div id="introBody" style="text-align:left;width:100%;max-width:420px;max-height:46vh;overflow-y:auto;margin:6px 0;"></div>
   <button class="btn" id="introBtn" style="padding:12px 40px;font-size:16px;letter-spacing:2px;border-color:rgba(140,240,180,.6);background:linear-gradient(180deg,rgba(20,90,66,.95),rgba(12,54,40,.95));color:#c8ffe4;">⚔ 开始战斗</button>
 </div>
+<!-- ===== 弹层：失败结算 overOv ===== 展示坚持波次/击杀/建塔数，提供重开本关、再来一局、传承天赋入口 -->
 <div class="ov hidden" id="overOv">
   <h1>防线失守</h1>
   <div class="sub">坚持到 <b id="ovWave" style="color:#ffd76a;font-size:20px">1</b> 波</div>
@@ -446,6 +1137,7 @@
   <button class="btn" id="retryBtn" style="margin-top:6px;font-size:14px;border-color:rgba(140,240,180,.55);background:linear-gradient(180deg,rgba(20,90,66,.95),rgba(12,54,40,.95));color:#c8ffe4;">🔁 立刻重开本关</button>
   <button class="btn" id="againBtn">再来一局</button>
 </div>
+<!-- ===== 弹层：设置 setOv ===== 音效/音乐/画质/敌人美术/文字详略、清档、存档码导入导出 -->
 <div class="ov hidden" id="setOv">
   <h1>设置</h1>
   <div class="sub">音效 / 画质 / 存档 · 随时可改</div>
@@ -484,8 +1176,11 @@ window.onerror = function(msg, src, line, col, err){
   } catch (e) {}
   return false;
 };
+/* 主战场画布与 2D 上下文：整个战场（格子/塔/怪/特效）都画在这一张 canvas 上 */
 var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+/* 画布逻辑尺寸与设备像素比：W/H 由 resize() 按窗口实测写入，DPR 用来把逻辑像素换算成物理像素 */
 var W = 0, H = 0, DPR = 1;
+/* 画布尺寸初始化：按窗口实际大小与设备像素比重设 canvas 分辨率，并缓存 W/H（窗口尺寸变化 / 旋转屏幕时调用）*/
 function resize(){
   DPR = Math.min(window.devicePixelRatio || 1, 2);
   var wrap = document.getElementById('canvasWrap');
@@ -500,8 +1195,11 @@ function resize(){
 }
 /* ================= 地图：网格 + S 形路径 ================= */
 var COLS = 16, ROWS = 10, CELL = 0, OX = 0, OY = 0;   // v6.3：横屏比例（原来 9x14 是竖屏比例，横屏玩只剩中间一条窄带）
+/* 网格布局：按 16x10 的 COLS/ROWS 算出单格边长 CELL 与战场居中偏移 OX/OY（resize 后调用，cx/cy 依赖它）*/
 function layout(){ CELL = Math.min(W / COLS, H / ROWS); OX = (W - CELL*COLS)/2; OY = (H - CELL*ROWS)/2; }
+/* 网格列号 c → 屏幕像素 X（格子中心）：所有绘制与命中判定都用它换算坐标 */
 function cx(c){ return OX + c * CELL + CELL/2; }
+/* 网格行号 r → 屏幕像素 Y（格子中心）：cx 的行方向对应物 */
 function cy(r){ return OY + r * CELL + CELL/2; }
 
 /* ================= 全局开关 / 工具（A1 路） ================= */
@@ -519,6 +1217,7 @@ var pvT = 0;    // 预览专用计时：面板打开时战场冻结（gameT 不�
 function pvAt(c, r, elem, tower){           // 预览目标：建塔=空格(c,r)，升级=已有塔
   pvOn = true; pvC = c; pvR = r; pvElem = elem || ''; pvTower = tower || null;
 }
+/* 关闭射程预览（建塔/升级面板关闭时由 hideSel() 调用）*/
 function pvClear(){ pvOn = false; pvC = -1; pvR = -1; pvElem = ''; pvTower = null; }
 /* 这个射程圈能罩住几格路径（玩家真正关心的：能打多远的路） */
 function pvCoverCount(c0, r0, rad){
@@ -544,6 +1243,7 @@ function pvRangePx(elem, tower){            // 射程像素：与 statAt 口径�
   if (tower) return statAt(tower, tower.lv).range * CELL;
   return ELEMS[elem].range * (BUFFS.range || 1) * CELL;
 }
+/* 画一圈虚线射程环：建塔/升级预览用，虚线随时间流动表示范围生效中 */
 function pvRing(x, y, rad, color, alpha, lw, fill){
   ctx.save();
   ctx.beginPath(); ctx.arc(x, y, rad, 0, 6.3);
@@ -556,6 +1256,10 @@ function pvRing(x, y, rad, color, alpha, lw, fill){
   ctx.restore();
 }
 
+/* ===== 关卡表（15 关主线）=====
+   字段：name 关卡名 · waves 波数 · gold 初始金币 · diff 难度系数（越大越难，敌人血量/数量按它缩放）
+        path 敌人路径拐点（格坐标，基地固定在右下角 15,9；相邻拐点必须同行或同列）
+        path2 第二入口路径（双入口关才有，敌人会两路同时来）*/
 var LEVELS = [
   { name:'1 · 直廊', waves:10, gold:150, diff:0.78,
     path:[[0,1],[14,1],[14,4],[1,4],[1,7],[15,7],[15,9]] },
@@ -596,17 +1300,23 @@ var LEVELS = [
     path:[[0,0],[15,0],[15,9],[0,9],[0,4],[8,4],[8,7],[12,7],[12,2],[15,2],[15,9]],
     path2:[[4,9],[4,6],[9,6],[9,2],[14,2],[14,9],[15,9]] },
 ];
+/* 当前关卡下标（0 起）：LEVELS[lvIndex] 就是正在打的那一关；无尽模式借用地形时也用它 */
 var lvIndex = 0;
+/* 本关主路径的拐点数组（startLevel 里从 LEVELS[lvIndex].path 拷来，敌人按它逐点行进）*/
 var WAYPOINTS = LEVELS[0].path;
 /* ===== v8.10 多入口（双路径）=====
    毛毛方案里「多入口关卡」那一条。实现方式尽量小侵入：保留 WAYPOINTS 作为主路径，
    另外用 WAYPOINTS2 存第二入口路径；每只敌人在生成时被分配到其中一条，之后只沿自己那条走。
    两条路都通向基地，所以「只堆一边」必然漏怪 —— 这就是双入口带来的空间压力。 */
 var WAYPOINTS2 = null;
+/* 本关总波数：普通关卡取自关卡表，无尽模式被设成 999 */
 var WAVES_TOTAL = 10;
+/* 路径格集合（键 'c,r'）：由 buildPath() 生成，用来判断某格是敌人走的路、禁止建塔 */
 var pathSet = {};
+/* 由当前关卡的路径点生成「路径格」集合 pathSet：标记哪些格子是敌人走的、禁止建塔。切换关卡/进入无尽时调用 */
 function buildPath(){
   pathSet = {};
+      /* 内部工具：把一条路径的拐点逐格补全成「经过的所有格子」，写入 pathSet（相邻拐点同行或同列）*/
   var markPath = function(list){
     if (!list) return;
     for (var i = 0; i < list.length - 1; i++){
@@ -621,9 +1331,15 @@ function buildPath(){
   markPath(WAYPOINTS2);          /* v8.10：第二条入口路径同样不能建塔 */
 }
 buildPath();
+/* 判断 (c,r) 是否为敌人路径格：是则不能建塔（建塔点击与鼠标悬停都用它拦截）*/
 function isPath(c, r){ return !!pathSet[c + ',' + r]; }
 
 /* ================= 塔 ================= */
+/* ===== 9 座塔的数值与机制总表（8 座攻击塔 + 1 座辅助塔）=====
+   通用字段：name 中文名 · icon 图标 · color 主色 · cost 建造成本 · dmg 单发伤害 · rate 攻击间隔(秒) ·
+            range 射程(格) · sys 所属体系(solo/group/ctrl/support) · role 定位 · soloStar/groupStar 展示星级
+            upXxx 每级成长值 · upName 升级说明文案
+   机制字段：slow/slowT 减速 · dot/dotT 中毒 · chain/chainK 链弹 · aura 光环 · splash 溅射 · crit 暴击 等 */
 var ELEMS = {
   /* ===== TOWERS_V6_PATCH：炮塔定位重构（对单 / 对群分工明确）+ 新增狙击 / 榴弹 =====
      每条统一追加 role / soloStar / groupStar 三个展示字段（面板与图鉴直接读，不另建表）
@@ -678,7 +1394,11 @@ var ELEMS = {
              role:'范围', soloStar:1, groupStar:5,
              fx:'大范围爆破：命中点 2.2 格内敌人受 45% 伤害；对单体极低' }
 };
+/* 场上所有炮塔对象数组；grid 是「格子键 'c,r' → 塔」的索引，塔的增删必须两边同步 */
 var towers = [], grid = {};
+/* 本局所有全局加成与特殊状态的总账本（倍率默认 1、加法项默认 0）。
+   字段示例：dmg 全塔伤害 / rate 攻速 / range 射程 / gold 金币收益 / crit 暴击率 / reso 共鸣强度 /
+   sets 已激活的元素套装 / tw 各元素塔的专属加成 / shieldHP 基地护盾 等 */
 var BUFFS = { dmg:1, rate:1, range:1, gold:1, crit:0, combo:0, reso:1, splash:1, aura:1,
               costCut:0, interest:0, regen:0, bossDmg:0, pierceAdd:0, slowAdd:0, shieldHP:0,
               splashDmg:0, dotAdd:0, elBoost:0,
@@ -689,13 +1409,16 @@ var BUFFS = { dmg:1, rate:1, range:1, gold:1, crit:0, combo:0, reso:1, splash:1,
    专属卡的 apply 必须通过 twAdd() 写入 → 自动 bump twStamp 让 elemAt 缓存失效，
    避免「抽了卡但塔的数据还是旧的」这类缓存不刷新问题。 */
 var twStamp = 0;
+/* 累加某元素炮塔的专属加成（BUFFS.tw[elem][field] += v），并清空元素数值缓存 —— 抽到「火塔伤害 +10%」这类卡时调用 */
 function twAdd(elem, field, v){
   if (!BUFFS.tw) BUFFS.tw = {};
   var o = BUFFS.tw[elem] || (BUFFS.tw[elem] = {});
   o[field] = (o[field] || 0) + v;
   twStamp++; elemCache = {};                       // 缓存最多 48 项，重建成本可忽略
 }
+/* 取某元素炮塔的专属加成对象；没有则返回 null（statAt 与面板显示都会查它）*/
 function twOf(elem){ return (BUFFS.tw && BUFFS.tw[elem]) || null; }
+/* 连杀状态：comboCount 当前连杀数 · comboT 提示剩余秒数 · comboTxt 提示文字 · bgmT 音乐节拍计时 */
 var comboCount = 0, comboT = 0, comboTxt = '', bgmT = 0;
 /* —— 连杀提示重做（A 路）状态：弹入/档位判定全靠 gameT 打时间戳，不新增任何计时器 —— */
 var COMBO_T_MAX = 2.4;                       // 连杀提示存活基准秒数（与 killEnemy 保持一致）
@@ -727,11 +1450,13 @@ function closeBuffPanel(){
   setSkipBtnVisible(false);
   banMode = false;
 }
+/* 显示/隐藏强化卡界面的「跳过换金币」按钮，同时记录是否处于选卡状态（防止其他面板借用这个按钮刷金币）*/
 function setSkipBtnVisible(on, key){
   var b = document.getElementById('skipBuffBtn');
   if (b) b.style.display = on ? '' : 'none';
   buffChoiceOpen = !!on;
 }
+/* 重置选卡辅助工具：换一批 3 次、禁卡 2 次、禁卡表与当前手牌清空（每新开一局调用）*/
 function resetDraftTools(){
   rerollLeft = 3; banLeft = 2; bannedIds = {}; curPicks = []; banMode = false;
   runCards = [];                                  /* v8.18：新一局清空「本局已获得的强化卡」 */
@@ -756,11 +1481,13 @@ var ARCHETYPES = [
   { name:'🏰 塔海流', hint:'铺满共鸣阵 + 体系加成',
     score:function(){ return Math.min(6, Math.floor(towers.length / 6)); } }
 ];
+/* 统计场上某元素的炮塔数量（封顶 3，与元素套装 SET_NEED 对齐），用于激活判定与流派强度评估 */
 function countTowersOf(elem){
   var n = 0;
   for (var i = 0; i < towers.length; i++) if (towers[i].elem === elem) n++;
   return Math.min(3, n);
 }
+/* 判定当前最接近成型的流派（灼烧/连锁/…）：取所有流派评分最高者，用于强化卡界面的副标题与提示 */
 function archetypeNow(){
   var best = null, bs = -1;
   for (var i = 0; i < ARCHETYPES.length; i++){ var sc = ARCHETYPES[i].score(); if (sc > bs){ bs = sc; best = ARCHETYPES[i]; } }
@@ -807,9 +1534,13 @@ var ACHIEVEMENTS = [
   { key:'slayer',   icon:'💀', name:'千军万马',  desc:'一局击杀 1000 个敌人', test:function(){ return kills >= 1000; } },
   { key:'daily',    icon:'📅', name:'每日打卡',  desc:'完成一次每日挑战', test:function(){ return !!prog.daily; } }
 ];
+/* 按 key 从 ACHIEVEMENTS 表里取出成就定义（解锁时取名称与图标用）*/
 function achByKey(k){ for (var i = 0; i < ACHIEVEMENTS.length; i++) if (ACHIEVEMENTS[i].key === k) return ACHIEVEMENTS[i]; return null; }
+/* 已解锁成就总数（首页与成就面板显示 x/y 用）*/
 function achCount(){ var n = 0, a = prog.ach || {}; for (var k in a) if (a[k]) n++; return n; }
+/* 某成就是否已解锁（成就列表逐条渲染时查它）*/
 function achUnlocked(k){ return !!(prog.ach && prog.ach[k]); }
+/* 解锁一个成就：写入存档、弹飘字与提示、触发音效；已解锁则直接返回 false 不重复播 */
 function unlockAch(key){
   if (!prog.ach) prog.ach = {};
   if (prog.ach[key]) return false;
@@ -822,6 +1553,7 @@ function unlockAch(key){
   }
   return true;
 }
+/* 逐条执行成就的 test() 条件，把新达成的解锁掉（每帧由 stepSim 调用，未解锁的才测以省开销）*/
 function checkAch(){
   if (!prog.ach) prog.ach = {};
   for (var i = 0; i < ACHIEVEMENTS.length; i++){
@@ -830,12 +1562,17 @@ function checkAch(){
     try { if (a.test()) unlockAch(a.key); } catch (e) {}
   }
 }
+/* 成就检查节流计时：每 2 秒才遍历判定一次，避免每帧跑 14 个 test() */
 var achTick = 0;
+/* 激活元素套装所需的同系强化卡张数（集满 3 张触发套装）*/
 var SET_NEED = 3;
+/* 本局各元素已获得的专属强化卡张数统计（checkElemSets 用它判定套装是否激活）*/
 var SET_COUNT = {};
 /* v8.18 左侧信息栏要显示的「本局已获得的强化卡」——所有抽卡都走 grantCard()，在那里统一记一笔 */
 var runCards = [];
+/* 某元素套装（3 座同系塔）是否已激活（判定与显示都读它）*/
 function setOn(k){ return !!(BUFFS.sets && BUFFS.sets[k]); }
+/* 检查元素套装：场上某元素塔达到 3 座即激活并永久生效，同时飘字提示。建塔/拆塔后调用 */
 function checkElemSets(){
   for (var k in ELEM_SETS){
     if (!setOn(k) && (SET_COUNT[k] || 0) >= SET_NEED){
@@ -865,15 +1602,20 @@ function grantCard(card){
 /* 技能解锁进度：第几关开始有这个技能（毛毛要求「每关增加一个，到后期才全部有」）
    无尽模式视为「后期」→ 4 个技能全开 */
 var SKILL_UNLOCK = { freeze:1, mark:3, overload:6, repair:10 };
+/* 某技能需要打到第几关才解锁（查 SKILL_UNLOCK 表）*/
 function skillUnlockLv(key){ return SKILL_UNLOCK[key] || 1; }
+/* 在指定关卡（从 0 数起）下技能是否已解锁；无尽模式恒为已解锁 */
 function skillUnlockedAt(key, levelIdx){
   if (endless) return true;
   return (levelIdx + 1) >= skillUnlockLv(key);
 }
+/* 当前关卡下技能是否已解锁（技能栏渲染与点击拦截都用它）*/
 function skillUnlocked(key){ return skillUnlockedAt(key, lvIndex | 0); }
 var skillMode = null;                       /* 正在等待选目标：'mark' | 'overload' | null */
 function skillByKey(k){ for (var i = 0; i < SKILLS.length; i++) if (SKILLS[i].key === k) return SKILLS[i]; return null; }
+/* 技能是否冷却完毕（冷却计时 t <= 0 即可用）*/
 function skillReady(k){ var sk = skillByKey(k); return !!sk && sk.t <= 0; }
+/* 技能与炮塔状态计时：技能冷却递减，并推进每座塔的眩晕/过载倒计时（每帧由 stepSim 调用）*/
 function skillTick(dt){
   for (var i = 0; i < SKILLS.length; i++) if (SKILLS[i].t > 0) SKILLS[i].t -= dt;
   for (var j = 0; j < towers.length; j++){
@@ -887,6 +1629,7 @@ function skillTick(dt){
   }
   for (var m = 0; m < enemies.length; m++) if (enemies[m].markT > 0) enemies[m].markT -= dt;
 }
+/* 重置所有技能冷却并清空待选目标状态（开新关/重开一局时调用）*/
 function skillResetAll(){ for (var i = 0; i < SKILLS.length; i++) SKILLS[i].t = 0; skillMode = null; skillBtns = []; }
 var skillBtns = [];                       /* 保存按钮引用：比每帧 getElementById 更稳也更快 */
 function renderSkillBar(){
@@ -929,6 +1672,7 @@ function renderSkillBar(){
                   : (sk2.name + '：第 ' + skillUnlockLv(sk2.key) + ' 关解锁');
   }
 }
+/* 点击技能按钮的处理：未解锁/冷却中就提示，需要选目标的进入选目标模式，否则直接释放 */
 function onSkillBtn(key){
   if (!running || paused) return;
   var sk = skillByKey(key);
@@ -942,6 +1686,7 @@ function onSkillBtn(key){
   }
   releaseSkill(key, null);
 }
+/* 真正释放技能：按 key 分派冻结/标记/过载/修理四种效果，设置冷却并播特效；成功返回 true */
 function releaseSkill(key, target){
   var sk = skillByKey(key);
   if (!sk || sk.t > 0) return false;
@@ -993,7 +1738,9 @@ var lastPanel = null;           /* 最近打开的面板类型，用于切换详
 function applyUiBrief(){
   if (global_doc_body()) { try { global_doc_body().classList[UI_BRIEF ? 'add' : 'remove']('brief'); } catch (e) {} }
 }
+/* 安全取 document.body（测试环境无 DOM 时返回 null，避免测试脚本直接报错）*/
 function global_doc_body(){ return (typeof document !== 'undefined' && document.body) ? document.body : null; }
+/* 切换「简易 / 详细」说明模式（设置面板按钮），存档并就地重渲染当前面板 */
 function toggleUiBrief(){
   UI_BRIEF = !UI_BRIEF;
   applyUiBrief();
@@ -1001,6 +1748,7 @@ function toggleUiBrief(){
   showTip(UI_BRIEF ? '📄 已切到简易模式（只显示要点）' : '📖 已切到详细模式（显示全部说明）');
   rerenderLastPanel();
 }
+/* 按 lastPanel 记录重新渲染最近打开的那个面板（切换详略、抽卡状态变化后就地刷新，不重新开局）*/
 function rerenderLastPanel(){
   if (lastPanel === 'talent') renderTalents();
   else if (lastPanel === 'shop') renderShop();
@@ -1101,6 +1849,7 @@ function wxSwitchNote(){
   var nx = WEATHERS[nextWeather] || WEATHERS.none;
   return '每 3 波换一次 · 下一波（第 ' + nxt + ' 波）将变为 ' + nx.icon + '「' + nx.name + '」';
 }
+/* 打开「元素天气说明」面板：逐条列出六种天气的效果与应对建议，并高亮当前天气 */
 function showWeatherHelp(brief){
   lastPanel = 'weather';
   running = false; paused = true;
@@ -1165,6 +1914,7 @@ function pickEnemyAt(px, py, maxPx){
   return best;
 }
 var coinFly = [], shakeT = 0;   // grid['c,r'] = tower
+/* 局内核心状态：gold 金币 · hp/MAXHP 基地血量与上限 · wave 当前波次 · kills 击杀数 · built 建塔数 */
 var gold = 150, hp = 20, MAXHP = 20, wave = 1, kills = 0, built = 0;
 /* ===== v7.9 金币精确记账（修「无尽后期钱变化不对」）=====
    JS 的 Number 超过 2^53（9007 万亿）就无法精确表示整数：金币涨到 10^18 量级时，
@@ -1172,12 +1922,14 @@ var gold = 150, hp = 20, MAXHP = 20, wave = 1, kills = 0, built = 0;
    解法：所有金币变动统一走 goldAdd / goldSub / goldSet，同时维护一份 BigInt 精确账本 goldBig，
    显示与存档一律用 goldBig（永远精确）；游戏内判断仍用 Number 的 gold（性能一致，差异 < 0.0001%）。 */
 var goldBig = 150n;
+/* 加金币：gold（Number，用于快速计算）与 goldBig（BigInt，用于显示）双账本同时加，并防 NaN */
 function goldAdd(v){
   if (!isFinite(v)) return;                       /* NaN / Infinity 保护 */
   var iv = Math.round(v);
   if (iv <= 0) return;
   gold += iv; goldBig += BigInt(iv);
 }
+/* 扣金币：双账本同时减，任一不越界为负（建塔/升级/商店消费走这里）*/
 function goldSub(v){
   if (!isFinite(v)) return;
   var iv = Math.round(v);
@@ -1185,6 +1937,7 @@ function goldSub(v){
   gold -= iv; if (gold < 0) gold = 0;
   goldBig -= BigInt(iv); if (goldBig < 0n) goldBig = 0n;
 }
+/* 直接设置金币数额（读档、教学关初始化用），会同时重建 BigInt 账本 */
 function goldSet(v){
   var n = Number(v) || 0;
   gold = n;
@@ -1192,6 +1945,7 @@ function goldSet(v){
   catch (e){ goldBig = BigInt(Math.round(n)); }
   if (goldBig < 0n) goldBig = 0n;
 }
+/* 兜底同步：发现 gold 与 goldBig 明显脱节（有代码绕过 goldAdd/goldSub 直接赋值）时用 gold 重建 BigInt 账本 */
 function goldSync(){
   /* 兜底：正常路径下 gold 与 goldBig 永远同步（差异 < 0.1%）；一旦明显脱节（有代码绕过
      goldAdd/goldSub 直接赋值，例如测试桩），就用 Number 的 gold 重建精确账本，保证显示不脱节 */
@@ -1200,12 +1954,14 @@ function goldSync(){
     goldBig = BigInt(n > 0 ? n : 0);
   }
 }
+/* 金币的显示文本（先同步再取 BigInt 字符串，避免大数显示成科学计数法）*/
 function goldText(){ goldSync(); return goldBig.toString(); }
 
 /* ===== v8.0 无尽契约（PACT）=====
    毛毛反馈「无尽后期就是挂机」，方案：不动普通关卡，只给无尽加「代价与收益并存」的抉择。
    PACT 存的是「敌方强度 / 收益」的全局倍率，由每 5 波一次的契约三选一累积而来。 */
 var PACT = { hp:1, speed:1, armor:0, gold:1, count:1, bossEvery:10, taken:[] };
+/* 重置无尽契约的全部强度/收益倍率（无尽模式开局时调用）*/
 function pactReset(){ PACT = { hp:1, speed:1, armor:0, gold:1, count:1, bossEvery:10, taken:[] }; }
 /* ===== v8.1 波间商店：给金币一个「花得掉」的出口 =====
    毛毛那边金币滚到 10^18 却没处花 —— 用商店替代粗暴的「维护费式扣钱」：
@@ -1230,9 +1986,13 @@ var WEATHERS = {
   silence: { name:'静默', icon:'🌫', desc:'辅助塔光环失效　｜　所有塔伤害 +30%',
              eff:{ auraOff:1, dmg:0.30 } }
 };
+/* 六种元素天气的固定循环顺序：灼热→寒潮→雷暴→瘴气→铁潮→静默（不含 none）*/
 var WEATHER_KEYS = ['heat', 'cold', 'storm', 'miasma', 'iron', 'silence'];
+/* 天气状态：weather 当前天气 key · nextWeather 下一波预告 · wxIdx 循环序号 */
 var weather = 'none', nextWeather = 'none', wxIdx = 0;
+/* 当前天气的配置对象（没有则退回 none 的默认配置）*/
 function wx(){ return WEATHERS[weather] || WEATHERS.none; }
+/* 取当前天气某一项效果值（如 enemyHp / goldMul），未定义时返回 0 */
 function wxEff(k){ var e = wx().eff; return (e && e[k] !== undefined) ? e[k] : 0; }
 /* 天气按**固定顺序**循环（灼热→寒潮→雷暴→瘴气→铁潮→静默），而不是每波随机：
    这样玩家看一眼预告就能提前规划卖塔/补塔/换共鸣，也便于回归测试复现。
@@ -1243,16 +2003,19 @@ function pickWeather(){
   wxIdx++;
   return w;
 }
+/* 天气循环复位：当前置为无天气、序号归零，并预告下一个天气（开新关时调用）*/
 function wxReset(){ weather = 'none'; wxIdx = 0; nextWeather = pickWeather(); }
 /* ===== v8.9 每日挑战（含种子）=====
    毛毛发的方案里「短局 + 长线、每日挑战、种子分享」那一条。
    每天一个固定种子：固定天气 + 固定的敌人/经济修正 + 指定的关卡；
    通关给星核（当天首次通关才给），同一天所有玩家的挑战完全相同 → 可分享、可比拼。 */
 var isDaily = false, dailySeed = 0, dailyMods = null, dailyWeatherLock = null;
+/* 今日种子 = 年月日拼成的整数（如 20260913）；每日挑战与种子分享都用它 */
 function todaySeed(){
   var d = new Date();
   return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
 }
+/* 由种子推导每日挑战的固定修正：天气锁定、敌人血量/金币/数量倍率、指定关卡（同一天全世界一致）*/
 function buildDailyMods(seed){
   var ws = WEATHER_KEYS[seed % WEATHER_KEYS.length];
   var hp = 1 + ((seed % 5) * 0.10);              /* 敌人血量 1.00 ~ 1.40 */
@@ -1260,15 +2023,18 @@ function buildDailyMods(seed){
   var cnt = (seed % 3 === 0) ? 1.20 : 1.0;       /* 敌人数量偶尔 +20% */
   return { weather: ws, hp: hp, gold: gold, count: cnt, lv: seed % LEVELS.length };
 }
+/* 生成每日挑战的一行文字说明（天气 + 各项倍率），首页与结算都显示它 */
 function dailyDesc(m){
   return WEATHERS[m.weather].icon + ' 天气锁定「' + WEATHERS[m.weather].name + '」'
     + '　敌人血量 ×' + m.hp.toFixed(2)
     + '　击杀金币 ×' + m.gold.toFixed(2)
     + (m.count > 1 ? '　敌人数量 ×' + m.count.toFixed(2) : '');
 }
+/* 今天是否已通关每日挑战（决定是否还给星核）*/
 function dailyDoneToday(){
   return prog.daily === String(todaySeed());
 }
+/* 开始今日每日挑战：先按普通流程开指定关卡，再打上每日修正与天气锁（必须在 startLevel 之后设置，否则会被清掉）*/
 function startDaily(fromNode){
   dailySeed = todaySeed();
   var m = buildDailyMods(dailySeed);
@@ -1303,6 +2069,7 @@ var ENEMY_AFFIXES = [
   { key:'regen',   name:'自愈', icon:'♻️', color:'#4fe060', minWave:15, chance:0.09,
     fx:'每秒回复 1.5% 最大血量', tip:'需要爆发或毒伤压制，拖久了打不死' }
 ];
+/* 按波次随机决定敌人是否带词缀：越后期命中率越高（封顶 30%），生成敌人时调用 */
 function rollEnemyAffix(w){
   for (var i = 0; i < ENEMY_AFFIXES.length; i++){
     var a = ENEMY_AFFIXES[i];
@@ -1312,6 +2079,7 @@ function rollEnemyAffix(w){
   }
   return null;
 }
+/* 炮塔随机词条池（v8.2）：每座塔建成时随机抽 1 个，字段为各项加成的系数（dmg/rate/range/crit/pierce/splashR/dot/slowT 等）*/
 var AFFIX_POOL = [
   { id:'sharp',   name:'锐利', desc:'伤害 +12%',        dmg:0.12 },
   { id:'rapid',   name:'迅捷', desc:'攻速 +10%',        rate:0.10 },
@@ -1323,6 +2091,7 @@ var AFFIX_POOL = [
   { id:'slowA',   name:'霜纹', desc:'减速时长 +15%',    slowT:0.15 },
   { id:'bossA',   name:'猎王', desc:'对 BOSS +20%',     boss:0.20 }
 ];
+/* 随机抽一个炮塔词条（AFFIX_POOL）：每座塔建成时调用 */
 function rollAffix(){ return AFFIX_POOL[Math.floor(Math.random() * AFFIX_POOL.length)]; }
 
 /* ===== v8.2 转生 / 巅峰：给「撑不下去」之后一个长期目标 =====
@@ -1334,15 +2103,20 @@ var TALENT_DEF = [
   { id:'dmg',  name:'🔥 战意传承', desc:'每级：全塔伤害 +5%',      max:5, cost:3 },
   { id:'coin', name:'🪙 猎金本能', desc:'每级：击杀金币 +10%',     max:5, cost:2 }
 ];
+/* 永久天赋等级（转生成长）：key 与 TALENT_DEF 的 id 对应，每局开局由 applyTalents() 生效 */
 var talents = { gold:0, hp:0, dmg:0, coin:0 };
+/* 从 localStorage 读取永久天赋等级（转生成长），解析失败则回到全 0 默认值 */
 function loadTalents(){
   try {
     var j = JSON.parse(localStorage.getItem('td_talents') || '{}') || {};
     talents = { gold:j.gold | 0, hp:j.hp | 0, dmg:j.dmg | 0, coin:j.coin | 0 };
   } catch (e) { talents = { gold:0, hp:0, dmg:0, coin:0 }; }
 }
+/* 把永久天赋等级写回 localStorage（加点后调用）*/
 function saveTalents(){ try { localStorage.setItem('td_talents', JSON.stringify(talents)); } catch (e) {} }
+/* 读取当前星核数量（转生获得的永久货币）*/
 function starcore(){ try { return parseInt(localStorage.getItem('td_starcore') || '0', 10) || 0; } catch (e) { return 0; } }
+/* 增减星核并立即存档，返回最新值（转生结算与天赋消费调用）*/
 function addStarcore(n){
   var v = Math.max(0, starcore() + n);
   try { localStorage.setItem('td_starcore', String(v)); } catch (e) {}
@@ -1355,6 +2129,7 @@ function applyTalents(){
   if (talents.dmg) BUFFS.dmg += 0.05 * talents.dmg;
   if (talents.coin) BUFFS.gold += 0.10 * talents.coin;
 }
+/* 渲染「传承天赋」面板：显示星核余额与四项可升级天赋，逐个生成升级按钮 */
 function renderTalents(){
   lastPanel = 'talent';
   var el = document.getElementById('buffList');
@@ -1391,6 +2166,7 @@ function renderTalents(){
   });
   el.appendChild(close);
 }
+/* 打开天赋面板（复用 buffOv 弹层），先渲染再显示 */
 function openTalents(){
   setSkipBtnVisible(false);           /* v8.12：天赋面板不算选卡状态 */
   renderTalents();
@@ -1404,6 +2180,7 @@ var ENEMY_INTRO_WAVE = {
   healer:5, splitter:6, bomber:7, elite:8, charger:9,
   boss:10, thief:12, phase:14, bulwark:16, airdrop:18
 };
+/* 关卡开幕提示里敌人的展示顺序（按登场波次从早到晚）*/
 var ENEMY_INTRO_ORDER = ['normal','fast','armor','shield','healer','splitter','bomber','elite','charger','boss','thief','phase','bulwark','airdrop'];
 /* 机制里程碑：某些波次会开启新规则，同样按「本关新增」提示给玩家 */
 var MECH_INTRO = [
@@ -1412,6 +2189,7 @@ var MECH_INTRO = [
   { wave:20, text:'👹👹 双 BOSS：每 20 波会有两只同时登场' },
   { wave:30, text:'🔥 高强度阶段：敌人数量与血量同时攀升，注意提前铺好共鸣阵' }
 ];
+/* 取本关新引入的「特殊机制」条目（波次区间落在本关、上一关没有的），关卡开幕提示用 */
 function levelNewMech(idx){
   var prevMax = idx > 0 ? LEVELS[idx - 1].waves : 0;
   var curMax = LEVELS[idx].waves;
@@ -1429,6 +2207,7 @@ function levelNewEnemies(idx){
   out.sort(function(a, b){ return a.wave - b.wave; });
   return out;
 }
+/* 打开关卡开幕提示弹层：列出本关新敌人与新机制，测试可用 NO_INTRO 跳过这个阻塞式弹层 */
 function showLevelIntro(idx){
   /* 自动化测试 / 批量模拟可以设全局 NO_INTRO = true 跳过这个阻塞式弹层（否则游戏会一直暂停） */
   if (typeof NO_INTRO !== 'undefined' && NO_INTRO){ running = true; paused = false; return; }
@@ -1548,6 +2327,7 @@ function showEndlessIntro(){
   running = false; paused = true;
   document.getElementById('introOv').classList.remove('hidden');
 }
+/* 波间商店的商品池：base 价（实际售价随波次上涨由 shopPrice 计算），apply 是购买效果函数 */
 var SHOP_POOL = [
   { name:'🔧 紧急维修',   desc:'基地立刻回 3 点血',              cost:80,  apply:function(){ hp = Math.min(MAXHP, hp + 3); } },
   { name:'🛡 能量护盾',   desc:'获得 4 点基地护盾',              cost:120, apply:function(){ BUFFS.shieldHP = (BUFFS.shieldHP || 0) + 4; } },
@@ -1560,6 +2340,7 @@ var SHOP_POOL = [
   { name:'❄ 寒流预置',    desc:'减速持续时间 +20%（可叠加）',    cost:260, apply:function(){ BUFFS.slowAdd += 0.20; } },
   { name:'☣ 毒素储备',    desc:'中毒伤害 +25%（可叠加）',        cost:300, apply:function(){ BUFFS.dotAdd += 0.25; } }
 ];
+/* 本次商店的三件随机库存（每件带 sold 标记，卖光后刷新）*/
 var shopStock = [];
 function shopPrice(base){ return Math.round(base * (1 + Math.min(3, wave * 0.05))); }   /* 越后期物价越高 */
 function rollShop(){
@@ -1570,6 +2351,7 @@ function rollShop(){
     shopStock.push({ name:it.name, desc:it.desc, cost:it.cost, apply:it.apply, sold:false });
   }
 }
+/* 渲染波间商店：按当前库存生成购买按钮（价格随波次上涨），含刷新与升级选项 */
 function renderShop(){
   lastPanel = 'shop';
   var el = document.getElementById('buffList');
@@ -1621,6 +2403,7 @@ function renderShop(){
   row.appendChild(rf); row.appendChild(lv);
   el.appendChild(row);
 }
+/* 打开波间商店（暂停战场）：库存空了才重抽，然后渲染并显示弹层 */
 function openShop(){
   running = false; paused = true;
   setSkipBtnVisible(false);           /* v8.12：商店面板不算选卡状态（防止借此刷金币） */
@@ -1628,6 +2411,7 @@ function openShop(){
   renderShop();
   document.getElementById('buffOv').classList.remove('hidden');
 }
+/* 无尽契约池（v8.0）：每 5 波三选一，用「敌方变强」换「自己收益变高」的取舍选项 */
 var PACT_POOL = [
   { name:'🩸 血祭契约', desc:'敌人血量 +25%　｜　你的击杀金币 +30%',
     apply:function(){ PACT.hp *= 1.25; PACT.gold += 0.30; } },
@@ -1648,7 +2432,13 @@ var PACT_POOL = [
     apply:function(){ PACT.hp *= 1.15; BUFFS.crit += 0.12; } }
 ];
 
+/* ================= 共鸣系统（核心原创机制）=================
+   相邻两座「不同元素」的塔触发具名共鸣，同元素相邻则算「共振」。
+   resonanceOf() 负责结算，结果缓存在每座塔的 res 字段里供 statAt 读取；
+   具名对应关系同时登记在 BOOK_RESO / RESO_NAMED（图鉴用），改一处记得同步另一处。 */
+/* 取 (c,r) 格子上的炮塔对象（没有则 null）：命中判定、共鸣、面板选择都靠它 */
 function towerAt(c, r){ return grid[c + ',' + r] || null; }
+/* 共鸣结算核心：扫描炮塔四周邻居（含 L 形三连与四连），算出伤害/攻速/射程倍率与共鸣标签。建塔/拆塔/升级后调用并缓存进塔对象 */
 function resonanceOf(t){
   var res = { dmgMul: 1, rateMul: 1, rangeMul: 1, tags: [], combo: 0 };
   var nb = [[1,0],[-1,0],[0,1],[0,-1]];
@@ -1780,6 +2570,7 @@ function towerCost(elem){
   var twCut = Math.min(0.5, (BUFFS.costCut || 0) + ((twOf(elem) && twOf(elem).cost) || 0));
   return Math.round(base * (1 + towers.length * slope) * (1 - twCut));
 }
+/* 建塔：校验金币与格子是否可建 → 扣钱 → 生成炮塔对象（含随机词条）写入 grid → 重新结算周边共鸣；失败返回 false */
 function addTower(c, r, elem){
   var def = ELEMS[elem];
   var cost = towerCost(elem);
@@ -1801,12 +2592,16 @@ function addTower(c, r, elem){
 }
 /* ===== v7.4 强化卡稀有度：普通 / 稀有 / 史诗 —— 越到后期越容易出高级卡 ===== */
 var RARITY = { common:{ name:'普通', color:'#8fe4ff', w:100 }, rare:{ name:'稀有', color:'#b98cff', w:34 }, epic:{ name:'史诗', color:'#ffd76a', w:7 } };
+/* 稀有度权重：后期给稀有/史诗卡加权，让高稀有卡越往后越容易刷出来（抽卡时用）*/
 function rarityWeight(rar, w){
   var base = (RARITY[rar] || RARITY.common).w;
   if (rar === 'rare') base += w * 1.6;      // 后期稀有卡概率上升
   if (rar === 'epic') base += w * 3.2;      // 史诗卡越后面越容易刷出来
   return base;
 }
+/* ===== 强化卡池 =====
+   字段：id 唯一键 · rar 稀有度(common/rare/epic，权重见 RARITY) · name 卡名 · desc 面板说明 ·
+        apply 抽到后立即执行的加成效应用 · elKey 有值时表示「某座塔专属」强化（无则通用）*/
 var BUFF_POOL = [
   /* —— 普通：稳扎稳打 —— */
   { id:'dmg',   rar:'common', name:'火力强化', desc:'所有塔伤害 +25%',        apply:function(){ BUFFS.dmg += 0.25; } },
@@ -1949,11 +2744,13 @@ var BUFF_POOL = [
 /* v7.8：本局已经出现过的卡 id —— 抽卡时优先给玩家「没见过的卡」，
    否则 70+ 张的卡池会反复只刷那几张，专属强化也永远看不见 */
 var pickedIds = {};
+/* 返回当前场上已建炮塔的元素集合（抽卡时用来判断哪些塔的专属强化值得给）*/
 function builtElemSet(){
   var s = {};
   for (var i = 0; i < towers.length; i++) s[towers[i].elem] = 1;
   return s;
 }
+/* 强化卡抽取核心：先保底一张「已建炮塔」的专属强化，其余按稀有度权重抽，且优先未抽过的卡；返回 n 张卡 */
 function pickBuffs(n, excludeIds){
   var out = [], i;
   var ex = excludeIds || {};
@@ -2014,6 +2811,7 @@ function showPactChoices(){
   });
   document.getElementById('buffOv').classList.remove('hidden');
 }
+/* 只刷新强化卡面板的顶部文案与按钮高亮，不重抽卡（切详略/进出禁卡模式时调用）*/
 function updateBuffHead(){
   lastPanel = 'buff';                    /* v8.14：登记当前面板，切换文字详略时能就地重渲染 */
   /* 只刷新顶部文案与按钮高亮，**不重抽卡**（v8.12 修无限刷新 bug 的关键） */
@@ -2025,6 +2823,7 @@ function updateBuffHead(){
   var _bb = document.getElementById('banBtn');
   if (_bb) _bb.style.outline = banMode ? '2px solid #ffd76a' : 'none';
 }
+/* 打开强化卡选择面板：reuse=true 且手上已有卡时原样沿用，否则重新抽卡；同时生成换一批/禁卡/商店按钮 */
 function showBuffChoices(excludeIds, reuse){
   running = false; paused = true;
   setSkipBtnVisible(true);            /* v8.12：强化卡界面才显示「跳过」，并且它是唯一可用的场景 */
@@ -2115,9 +2914,13 @@ function showBuffChoices(excludeIds, reuse){
    → 高伤 vs 失去共鸣/共振/增幅场，玩家要自己权衡把哪座塔放上去。
    每 15 波生成 1 个（最多同时 3 个），只在无尽模式出现，不影响已校准的 15 个正式关卡。 */
 var rifts = [];
+/* 裂隙坐标的字符串键（供 rifts 数组存取）*/
 function riftKey(c, r){ return c + ',' + r; }
+/* 判断 (c,r) 上是否有裂隙（建塔时拦截：裂隙格不能建）*/
 function onRift(c, r){ return rifts.indexOf(riftKey(c, r)) >= 0; }
+/* 清空所有裂隙（开新关/重开一局时调用）*/
 function resetRifts(){ rifts = []; }
+/* 随机生成一个元素裂隙（占用非路径空格，最多 3 个）：塔建在裂隙上可获得双元素。返回是否生成成功 */
 function spawnRift(){
   if (rifts.length >= 3) return false;
   for (var n = 0; n < 80; n++){
@@ -2135,6 +2938,7 @@ function spawnRift(){
   }
   return false;
 }
+/* 绘制所有裂隙的旋涡标记（战场底层，画在格子之上、塔之下）*/
 function drawRifts(){
   for (var i = 0; i < rifts.length; i++){
     var q = rifts[i].split(',');
@@ -2170,6 +2974,7 @@ function recalcResonance(){
 }
 /* ===== v7.3 升级体系：每座塔有专属成长，四大体系还有整体加成 ===== */
 var elemCache = {};                                  // v7.5 缓存：8 座塔 × 6 级，最多 48 项，构造一次后重复使用
+/* 取某元素炮塔在指定等级下的全部数值（含等级成长、专属强化、天气与 BUFF 修正）—— 面板与图鉴显示塔属性都走它 */
 function elemAt(elem, lv){
   var d = ELEMS[elem]; if (!d) return null;
   var n = Math.max(0, (lv || 1) - 1);
@@ -2214,13 +3019,16 @@ function elemAt(elem, lv){
   elemCache[ck] = o;
   return o;
 }
+/* 四大塔体系（solo 单体 / group 群体 / ctrl 控场 / support 支援）的中文名 */
 var SYS_NAME = { solo:'单体体系', group:'群体体系', ctrl:'控场体系', support:'支援体系' };
+/* 各体系的等级里程碑与加成幅度：{lv 该体系塔等级总和, bonus 对应加成}，从低到高逐档叠加 */
 var SYS_TIER = {
   solo:    [ { lv:5, bonus:0.08 }, { lv:10, bonus:0.16 }, { lv:16, bonus:0.25 } ],
   group:   [ { lv:5, bonus:0.10 }, { lv:10, bonus:0.20 }, { lv:16, bonus:0.32 } ],
   ctrl:    [ { lv:5, bonus:0.12 }, { lv:10, bonus:0.24 }, { lv:16, bonus:0.36 } ],
   support: [ { lv:3, bonus:0.15 }, { lv:6, bonus:0.30 }, { lv:10, bonus:0.50 } ]
 };
+/* 统计某体系（单体/群体/控场/支援）所有塔的等级总和，用于体系加成强度 */
 function sysLevel(sys){
   var sum = 0;
   for (var i = 0; i < towers.length; i++){
@@ -2232,6 +3040,7 @@ function sysLevel(sys){
 /* v7.5 性能：体系加成缓存 —— 原来每次开火都遍历全场塔算等级（O(塔数²)），
    现在只在「棋盘变化」时刷新一次（recalcResonance 末尾 + 开新局），开火时直接读缓存 */
 var sysCache = { solo:0, group:0, ctrl:0, support:0 };
+/* 重算四大体系的等级总和缓存（建塔/拆塔/升级后调用，避免每帧遍历全场塔）*/
 function refreshSysCache(){
   var sum = { solo:0, group:0, ctrl:0, support:0 }, i, k;
   for (i = 0; i < towers.length; i++){
@@ -2244,11 +3053,17 @@ function refreshSysCache(){
     sysCache[k] = b;
   }
 }
+/* 取某体系的加成数值（缓存值即加成系数）*/
 function sysBonus(sys){ return sysCache[sys] || 0; }
+/* 单体体系（solo）对伤害的加成倍率，非该类塔返回 1 */
 function sysDmgMul(elem){ var d = ELEMS[elem]; return (d && d.sys === 'solo') ? (1 + sysBonus('solo')) : 1; }
+/* 群体体系（group）对射程的加成倍率，非该类塔返回 1 */
 function sysRangeMul(elem){ var d = ELEMS[elem]; return (d && d.sys === 'group') ? (1 + sysBonus('group')) : 1; }
+/* 控场体系（ctrl）对减速/眩晕等控制时长的加成倍率 */
 function sysCtrlMul(elem){ var d = ELEMS[elem]; return (d && d.sys === 'ctrl') ? (1 + sysBonus('ctrl')) : 1; }
+/* 支援体系（support）对光环效果的加成倍率 */
 function sysAuraMul(elem){ var d = ELEMS[elem]; return (d && d.sys === 'support') ? (1 + sysBonus('support')) : 1; }
+/* 统计某座塔四周辅助塔给它的光环加成（攻击力/攻速）：静默天气下光环失效，每帧由塔开火前调用 */
 function auraBonus(t){
   if (wxEff('auraOff')) return { dmg:0, rate:0 };      /* v8.3 静默天气：辅助塔光环失效 */
   var nb = [[1,0],[-1,0],[0,1],[0,-1]], d = 0, r = 0;
@@ -2263,6 +3078,7 @@ function auraBonus(t){
   }
   return { dmg: d, rate: r };
 }
+/* 核心数值函数：算出一座塔在指定等级下的最终属性（伤害/攻速/射程），把等级成长、共鸣、专属强化、体系加成、光环与 BUFF 全部叠进去 */
 function statAt(t, lv){
   var d = ELEMS[t.elem], lvMul = 1 + (lv - 1) * 0.30;
   /* 注意：res 的新增字段 pierceFull / armorBreak / critAdd / dotMul == 开关或专用参数，
@@ -2301,18 +3117,27 @@ function statAt(t, lv){
            range: (d.range + upR) * (1 + (lv - 1) * 0.08) * r.rangeMul * BUFFS.range * twG,
            rate:  d.rate / ((1 + (lv - 1) * 0.12) * r.rateMul * BUFFS.rate * (1 + au.rate) * twS) };
 }
+/* 取某座塔当前等级的实际属性（面板/绘制射程圈直接用它）*/
 function towerStat(t){ return statAt(t, t.lv); }
+/* 塔从当前等级升到下一级要花多少金币（按初始造价与等级递增）*/
 function upgradeCost(t){ var d = ELEMS[t.elem], base = t.paid || d.cost; return Math.round(base * (0.7 + t.lv * 0.55)); }
+/* 拆塔能退回多少金币（累计投入的 60%，刚建 5 秒内走全额退款是另一条路径）*/
 function sellValue(t){
   var d = ELEMS[t.elem], base = t.paid || d.cost, spent = base;
   for (var i = 1; i < t.lv; i++) spent += Math.round(base * (0.7 + i * 0.55));
   return Math.round(spent * 0.6);
 }
+/* 炮塔中心到敌人中心的距离，换算成「格」为单位（射程判定用）*/
 function towerDist(t, e){
   return Math.hypot(cx(t.c) - e.x, cy(t.r) - e.y) / CELL;
 }
 
 /* ================= 敌人 ================= */
+/* ===== 敌人总表：每种怪的基础数值与特性开关（波次强度另由 waveComp/难度曲线叠加）=====
+   通用字段：name 中文名 · hp 基础血 · speed 基础速度(格/秒) · gold 击杀金币 · color 主色 · r 半径(像素)
+            fx 机制说明（图鉴展示）· tip 应对建议（图鉴展示）
+   特性开关：armor 护甲减伤 · immuneSlow 免疫减速 · boss BOSS · heal 治疗 · split 分裂 · bomb 自爆 ·
+            aura 指挥光环 · charge 冲锋 · absorb 吸收 · phase 相位 · airdrop 空降 · steal 偷金 */
 var ENEMIES = {
   normal: { name:'步兵',   hp:72,  speed:1.05, gold:11,  color:'#7ea8d8', r:11 , fx:'普通单位，没有特殊能力，胜在数量', tip:'任意元素塔都能处理' },
   fast:   { name:'疾行者', hp:50,  speed:2.00, gold:10,  color:'#7cf5c0', r:9 , fx:'移动极快，血量很低', tip:'冰霜塔减速 / 雷电塔链式一次清一片' },
@@ -2352,13 +3177,17 @@ var ENEMIES = {
             fx:'每 2 秒偷走你 2% 金币（单次上限 120），被击杀时连本带利吐回来；跑到底就真被偷走了',
             tip:'优先点它 —— 它身上带着你的钱，击杀全额归还并额外掉落' },
 };
+/* 敌人运行时状态：enemies 场上全部敌人 · spawnQueue 本波待出怪队列 · spawnTimer 出怪计时 ·
+   waveActive 本波是否进行中 · waveBreak 波间休整剩余秒数 */
 var enemies = [], spawnQueue = [], spawnTimer = 0, waveActive = false, waveBreak = 1.2;
 
+/* 取路径第 i 个拐点的像素坐标；pi=1 表示走第二入口（多入口关卡用）*/
 function waypointPx(i, pi){
   var list = (pi === 1) ? WAYPOINTS2 : WAYPOINTS;      /* v8.10：pi=1 走第二入口 */
   var w = list ? list[i] : null;
   return w ? { x: cx(w[0]), y: cy(w[1]) } : null;
 }
+/* 生成一个敌人：按当前波次与关卡难度计算血量/速度/护甲/词缀，并挂到 enemies 数组末尾（出怪的唯一入口）*/
 function spawnEnemy(type){
   var d = ENEMIES[type];
   var lvDiff = (LEVELS[lvIndex] && LEVELS[lvIndex].diff) || 1;
@@ -2436,6 +3265,7 @@ function pathLenToWp(i, pi){
   }
   return s;
 }
+/* 在指定像素位置按指定入口生成敌人并返回该对象（空投/分裂/召唤类效果用它精确落点）*/
 function spawnEnemyAt(type, x, y, wp, pi){
   var n0 = enemies.length;
   spawnEnemy(type);                                  // spawnEnemy 无返回值，用长度差取回新对象
@@ -2463,6 +3293,7 @@ function spawnEnemyAt(type, x, y, wp, pi){
   e.spawnT = 0.36;
   return e;
 }
+/* 冲出本帧待生成的怪群队列（把 pendingSpawn 里攒的批量出怪一次性落地，避免同帧重复计算）*/
 function flushPendingSpawn(){
   if (!pendingSpawn.length) return;
   for (var i = 0; i < pendingSpawn.length; i++){
@@ -2488,6 +3319,7 @@ function silenceNearestTowers(e, count, dur){
   if (n > 0) SFX.silence();
   return n;
 }
+/* BOSS 技能推进：处理狂暴、护盾、召唤、传送等分阶段行为（每帧由 stepSim 调用，无 BOSS 时安全空转）*/
 function updateBossSkills(dt){
   if (enemies.length === 0) return;                  // 普通波：安全空转
   for (var i = 0; i < enemies.length; i++){
@@ -2642,6 +3474,7 @@ function updateMobSkills(dt){
     }
   }
 }
+/* 敌人主更新：倒序遍历每只怪推进移动/减速/中毒/受击等状态，走完路径扣血、死亡则结算（每帧由 stepSim 调用）*/
 function updateEnemies(dt){
   for (var i = enemies.length - 1; i >= 0; i--){
     var e = enemies[i];
@@ -2692,6 +3525,7 @@ function updateEnemies(dt){
     else { e.done = (e.done || 0) + step; e.x += dx / dist * step; e.y += dy / dist * step; e.dir = Math.atan2(dy, dx); }
   }
 }
+/* 击杀结算：加金币、计数连杀、播死亡特效与音效、处理分裂/死亡爆炸等词缀，并把该怪从数组移除 */
 function killEnemy(e, idx){
   /* v8.8 词缀「死亡爆炸」：原地炸开，1.2 格内的塔被眩晕 2 秒 */
   if (e.aff && e.aff.key === 'boom'){
@@ -2771,6 +3605,9 @@ function updateTowers(dt){
          done 乘 1e6 保证路程差严格压过血量差（血量最多约 1200）
          ③ TOWERS_V6_PATCH：带 highValue 的塔（狙击）把「医疗兵 / 精英队长 / BOSS」单独排一档，
             档内仍按 ①② 排序；只要射程内有高价值目标，就一定先打它 */
+      /* ===== 主存档对象（localStorage 键 td_prog）=====
+   unlocked 已解锁到第几关（从 1 数）· best 各关最高到达波次 · stars 各关星级 ·
+   ach 已解锁成就 · daily 最近完成每日挑战的种子 · tutorialDone 是否完成教学 */
       var prog = (e.done || 0) * 1e6 - e.hp;
       if (e.markT > 0) prog += 1e12;      /* v8.5：被「标记」的敌人绝对优先（所有塔集火） */
       if (def.highValue && (e.heal || e.aura || e.boss)){
@@ -2808,20 +3645,24 @@ function inCells(a, b, cells){
   var dx = a.x - b.x, dy = a.y - b.y;
   return dx * dx + dy * dy <= CELL * cells * CELL * cells;   // 平方比较，省掉每发的 Math.hypot
 }
+/* 给敌人挂持续伤害（中毒/灼烧）：取更强的那个 dps 并延长持续时间 */
 function applyDotTo(e, dps, dur){
   if (!e || e.hp <= 0 || !(dps > 0)) return;
   e.dotD = Math.max((e.dotT > 0 ? (e.dotD || 0) : 0), dps);
   e.dotT = Math.max(e.dotT || 0, dur);
 }
+/* 给敌人挂减速：取更强的减速倍率并延长持续时间；免疫减速的怪（护盾怪）直接跳过 */
 function applySlowTo(e, mul, dur){
   if (!e || e.hp <= 0 || e.immuneSlow) return;   // 免疫减速的怪（护盾怪）直接跳过
   e.slowF = Math.min(e.slowF || 1, mul);
   e.slowT = Math.max(e.slowT || 0, dur);
 }
+/* 添加一个扩散光圈特效（有数量硬上限，防止怪海时特效池膨胀）*/
 function addRing(x, y, color, rad, life){
   if (rings.length > 60) return;                  // 极端怪海下的硬上限，防特效池膨胀
   rings.push({ x:x, y:y, color:color, rad:rad, life:life, max:life });
 }
+/* 核心伤害结算：处理护甲穿透、暴击、溅射、链弹、中毒、减速、闪避、护盾与各类词条加成，扣血并飘字。炮塔每次命中都走这里 */
 function hitEnemy(t, e, st, def, isChain){
   var res = t.res || null;
   var tw = twOf(t.elem);                                   // v7.8 本塔专属强化（无则 null）
@@ -2963,6 +3804,7 @@ function waveComp(w){
   if (w % ((PACT && PACT.bossEvery) || 10) === 0) add('boss', bossN, 1.7);
   return g;
 }
+/* 当前正在生成的怪群配置（waveComp 算出后交给出怪逻辑消费）*/
 var curGroup = null;
 var MAX_WAVE_MOBS = 120;      // 单波怪物数量上限（超出部分转成强度，避免后期「排队磨时间」）
 var packMul = 1;              // 本波的血量补偿系数（由 waveComp 的封顶逻辑算出）
@@ -2979,6 +3821,7 @@ function packFactor(list){
   }
   return total / Math.max(1, newTotal);
 }
+/* 开始下一波：按波次切天气、推算本波怪物构成与强度补偿、重置连杀与出怪队列（点「开始」或上一波清完时调用）*/
 function startWave(){
   /* ===== v8.3 元素天气切换：前 3 波平稳（新手缓冲），此后每 3 波换一次，提前一波预告 ===== */
   var _wlock = dailyWeatherLock || ((typeof WX_LOCK !== 'undefined' && WX_LOCK) ? WX_LOCK : null);
@@ -3034,16 +3877,22 @@ function updateWaveInfo(){
 /* ================= 特效池 ================= */
 /* TOWERS_V6_PATCH：rings = 溅射/范围命中圈特效池（每发子弹只产生 1 个对象，不每帧新建）*/
 var beams = [], floats = [], parts = [], rings = [], banner = '', bannerT = 0, hurtT = 0;
+/* 添加一条短暂的光束特效（炮塔射击的视觉反馈）*/
 function addBeam(x1, y1, x2, y2, color){ beams.push({ x1:x1, y1:y1, x2:x2, y2:y2, color:color, life:0.13, max:0.13 }); }
+/* 添加一条绿色治疗光束（奶妈怪给队友回血时用）*/
 function addHealBeam(x1, y1, x2, y2){ beams.push({ x1:x1, y1:y1, x2:x2, y2:y2, color:'rgba(140,255,180,.95)', life:0.45, max:0.45 }); }
+/* 添加一个上浮文字（伤害数字/金币/提示语）*/
 function addFloat(x, y, txt, color){ floats.push({ x:x, y:y, txt:String(txt), color:color, life:0.9, max:0.9 }); }
+/* 在指定位置炸开 n 个粒子（命中、死亡、爆炸都用它做视觉反馈）*/
 function burst(x, y, color, n){
   for (var i = 0; i < n; i++){
     var a = Math.random() * Math.PI * 2, s = 40 + Math.random() * 130;
     parts.push({ x:x, y:y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, color:color, life:0.45+Math.random()*0.35, max:0.8, r:1.5+Math.random()*2.5 });
   }
 }
+/* 屏幕中央显示一条横幅提示（如 BOSS 来袭、套装激活），1.7 秒后自动消失 */
 function showBanner(t){ banner = t; bannerT = 1.7; }
+/* 触发受击红屏闪烁（漏怪扣血时调用）*/
 function flashHurt(){ hurtT = 0.32; }
 
 /* ================= 绘制 ================= */
@@ -3052,6 +3901,7 @@ function roundRect(x, y, w, h, r){
   ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
   ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
 }
+/* canvas 正多边形路径（rot 为起始角）：画塔与敌人外形用 */
 function poly(x, y, rad, sides, rot){
   ctx.beginPath();
   for (var i = 0; i < sides; i++){
@@ -3176,6 +4026,7 @@ function drawTowerBody(x, y, rad, elem, color, k){
 /* 静态层（网格 + 路径底色）：只在布局/关卡变化时重画一次，之后每帧只 drawImage
    —— 原来每帧要画 20+ 条网格线 + 3 次路径描边，是移动端最浪费的一块 */
 var bgCv = null, bgKey = '';
+/* 绘制静态战场背景（网格与路径）并缓存成离屏图：缓存 key 含路径指纹，避免教学关与第 1 关共用 lvIndex 时画出错地图 */
 function drawStaticBg(){
   /* 缓存 key 必须包含「路径指纹」：教学关与第 1 关的 lvIndex 都是 0、网格尺寸也相同，
      只按 lvIndex 判定会命中缓存 → 画出上一张地图的路径（怪物走的却是新地图）→ 贴图与路线不符 */
@@ -3229,12 +4080,17 @@ function comboTier(n){
   return 0;
 }
 var COMBO_FILL    = ['#8fe4ff', '#ffb24a', '#ff6a4a', '#ff5ad0', '#ffffff'];   // 五档主色（40+ = 白热芯）
+/* 连杀徽章五档配色之一：描边色 */
 var COMBO_EDGE    = ['rgba(143,228,255,.55)', 'rgba(255,178,74,.62)',
                      'rgba(255,106,74,.85)', 'rgba(255,90,208,.82)', 'rgba(255,255,255,.92)'];
+/* 连杀徽章五档配色之一：发光色 */
 var COMBO_GLOW    = ['rgba(90,190,255,.9)', 'rgba(255,170,60,.9)',
                      'rgba(255,90,60,.95)', 'rgba(255,70,200,.95)', 'rgba(255,238,214,1)'];
+/* 连杀徽章五档配色之一：档位后缀符号（✦ / ⚡ / 🔥 等）*/
 var COMBO_TAG     = ['', ' \u2726', ' \u26a1', ' \ud83d\udd25', ' \ud83d\udd25\ud83d\udd25'];   // 档位后缀（不改汉字部分）
+/* 最高档连杀用的彩虹渐变取色环 */
 var COMBO_RAINBOW = ['#ff4d4d', '#ffb24a', '#ffe94a', '#5aff9a', '#4ad4ff', '#b06aff'];       // 40+ 彩虹外圈
+/* 按当前连杀档位取主色（连杀徽章与文字用）*/
 function comboColor(n){ return COMBO_FILL[comboTier(n)]; }
 function comboTierSfx(t){          // 五档切换音效：音高/质感逐档递进（复用 tone / chord，音量克制）
   if (t <= 0){ tone({ freq:1180, dur:0.07, vol:0.032, type:'triangle' }); return; }
@@ -3251,6 +4107,7 @@ function comboPopScale(age){       // 弹入缓动：0.6 倍弹到 1.15 再回 1
   var q2 = 1 - Math.pow(1 - (p - 0.62) / 0.38, 2);
   return 1.15 - 0.15 * q2;
 }
+/* 绘制连杀徽章：3 连起显示，档位提升时做弹入动画（纯靠 gameT 时间戳判定，不新增计时器）*/
 function drawComboBadge(){
   if (!(comboT > 0 && comboCount >= 3)) return;
   var tier = comboTier(comboCount);
@@ -3316,10 +4173,12 @@ var enemyTex = {};
    毛毛要求「敌人美术优化，多准备几版」→ 这里做 4 套完全程序绘制的风格（零图片资源），
    在设置面板里一键切换、随时对比；仍然走贴图缓存，所以多套风格不会拖慢性能。 */
 var ENEMY_ART = 'orbs';
+/* 敌人美术风格 key → 中文名（设置面板显示当前风格）*/
 function enemyArtName(key){
   for (var i = 0; i < ENEMY_ART_LIST.length; i++) if (ENEMY_ART_LIST[i].key === key) return ENEMY_ART_LIST[i].name;
   return ENEMY_ART_LIST[0].name;
 }
+/* 切换到下一种敌人美术风格并清空贴图缓存（设置面板的「敌人外观」按钮）*/
 function cycleEnemyArt(){
   var i0 = 0;
   for (var i = 0; i < ENEMY_ART_LIST.length; i++) if (ENEMY_ART_LIST[i].key === ENEMY_ART) i0 = i;
@@ -3333,6 +4192,7 @@ function cycleEnemyArt(){
   if (typeof draw === 'function') draw();
   return next.key;
 }
+/* 敌人美术风格备选表（设置面板可循环切换）：key 风格键 · name 显示名 · tip 说明 */
 var ENEMY_ART_LIST = [
   { key:'orbs',    name:'发光球（原版）', tip:'渐变发光球体，最省性能' },
   { key:'shapes',  name:'几何派',         tip:'每种敌人一种几何外形，辨识度最高' },
@@ -3346,6 +4206,7 @@ var ENEMY_SHAPE = {
   elite:'star', charger:'rect', thief:'diamond', phase:'ring',
   bulwark:'hex', airdrop:'tri'
 };
+/* 按形状名（tri/hex/…）在离屏 canvas 上勾出敌人轮廓路径：生成敌人贴图时调用 */
 function enemyShapePath(g, shape, cc, rad){
   g.beginPath();
   if (shape === 'tri'){
@@ -3374,6 +4235,7 @@ function enemyShapePath(g, shape, cc, rad){
   }
   g.closePath();
 }
+/* 取敌人贴图：同一「颜色+半径+受击态+风格+类型」只生成一次并缓存进 enemyTex，避免每帧重画 */
 function enemySprite(color, r, flash, style, type){
   style = style || ENEMY_ART || 'orbs';
   var key = color + '|' + Math.round(r * 10) + '|' + (flash ? 1 : 0) + '|' + style + '|' + (type || '');
@@ -3446,6 +4308,7 @@ function enemySprite(color, r, flash, style, type){
   enemyTex[key] = o;
   return o;
 }
+/* 画面总绘制：每帧按「背景 → 路径 → 裂隙 → 炮塔 → 敌人 → 特效 → HUD」的顺序重画整个战场（frame() 每帧调用）*/
 function draw(){
   ctx.save();
   if (shakeT > 0){
@@ -3833,8 +4696,11 @@ function draw(){
         ⑤本局已获得的强化卡 ⑥已激活套装。
    性能：updateHud() 每帧都会调用这里 → 先拼一个「签名」，值没变就**直接 return**，不重建 DOM。 */
 var sideOpen = false;
+/* 左侧信息栏上次渲染时的「内容签名」：签名没变就跳过 DOM 重建（每帧刷新性能关键）*/
 var sideSig = '';
+/* 左侧信息栏展开状态的 localStorage 键 */
 var SIDE_KEY = 'td_sideOpen';
+/* 左侧信息栏「主加成」行的定义表：k 取 BUFFS 的字段 · n 显示名 · f 格式(p 百分比/x 倍率) · d 默认值 */
 var SIDE_MAIN = [
   { k:'dmg',   n:'全塔伤害', f:'x' },
   { k:'rate',  n:'攻速',     f:'x' },
@@ -3842,6 +4708,7 @@ var SIDE_MAIN = [
   { k:'crit',  n:'暴击率',   f:'p', d:0 },
   { k:'gold',  n:'金币收益', f:'x' }
 ];
+/* 左侧信息栏「附加加成」行的定义表（共鸣、套装、词条等，格式同上）*/
 var SIDE_EXTRA = [
   { k:'reso',     n:'共鸣效果',   f:'x' },
   { k:'splash',   n:'溅射',       f:'x' },
@@ -3867,6 +4734,7 @@ var WX_EFF_NAME = {
   enemyArmor:'敌人护甲', fireRate:'火塔攻速', sniperRange:'狙击射程',
   nonPoisonDmg:'非毒塔伤害', auraOff:'辅助塔光环'
 };
+/* 左侧信息栏的数值格式化：p=百分比、n=绝对值、其余按倍率显示 */
 function sideFmt(v, f, def){
   if (f === 'p') return (v > 0 ? '+' : '') + Math.round(v * 100) + '%';
   if (f === 'n') return (v > 0 ? '+' : '') + (Math.round(v * 10) / 10);
@@ -3874,6 +4742,7 @@ function sideFmt(v, f, def){
 }
 /* 某一行是不是「没吃到加成」的默认值（乘区默认 1、加法区默认 0）—— 用来决定是否置灰/隐藏 */
 function sideDefOf(row){ return (row.d === undefined) ? 1 : row.d; }
+/* 判断某加成是否还是默认值（乘区 1 / 加法区 0），用于决定这一行是否置灰或隐藏 */
 function sideIsDefault(v, def){ return (def === 0) ? (v === 0) : (Math.abs(v - 1) < 1e-9); }
 /* 天气带来的正负影响（数据驱动：读 wx().eff，正数进加成、负数进减益）*/
 function wxSplit(){
@@ -3899,14 +4768,17 @@ function pactDebuffs(){
   if (PACT.bossEvery < 10) d.push({ n:'BOSS 频率', v:'每 ' + PACT.bossEvery + ' 波' });
   return d;
 }
+/* 汇总当前无尽契约带来的收益条目（左侧信息栏显示「这局签了什么」）*/
 function pactBuffs(){
   var d = [];
   if (PACT.gold > 1) d.push({ n:'金币收益', v:'+' + Math.round((PACT.gold - 1) * 100) + '%' });
   return d;
 }
+/* 生成左侧信息栏的一行 HTML（名称 + 数值）*/
 function sideRow(n, v, cls){
   return '<div class="swRow' + (cls ? ' ' + cls : '') + '"><span class="k">' + n + '</span><span class="v">' + v + '</span></div>';
 }
+/* 生成左侧信息栏里一枚强化卡的行 HTML（稀有度 + 图标 + 卡名）*/
 function sideCardLine(c){
   var rar = RARITY[c.rar] || RARITY.common;
   var ic = c.elKey && ELEMS[c.elKey] ? ELEMS[c.elKey].icon : '🌐';
@@ -3914,6 +4786,7 @@ function sideCardLine(c){
     + '<span class="rn">' + rar.name + '</span>'
     + '<span style="color:#dfe8f5;">' + ic + ' ' + (c.name || c.id || '?') + '</span></div>';
 }
+/* 拼装左侧滑动信息栏的整块 HTML：当前天气、契约、套装、本局强化卡分组列出 */
 function swBodyHtml(){
   var h = '', i, k;
   var w = wx(), sp = wxSplit();
@@ -3977,12 +4850,14 @@ function swBodyHtml(){
   h += '</div>';
   return h;
 }
+/* 展开/收起左侧信息栏（force 可指定目标状态），并把开关状态存进 localStorage */
 function sideToggle(force){
   sideOpen = (force === undefined) ? !sideOpen : !!force;
   try { localStorage.setItem(SIDE_KEY, sideOpen ? '1' : '0'); } catch (e) {}
   sideSig = '';                       /* 强制重绘 */
   updateSideBar();
 }
+/* 刷新左侧信息栏：先做「内容签名」比对，值没变就直接返回，避免每帧重建 DOM */
 function updateSideBar(){
   var win = document.getElementById('sideWin');
   if (!win) return;
@@ -4066,6 +4941,7 @@ function verInfoRows(){
     ['源码与文档', 'github.com/maomao1OvO1/maomao1OvO1.github.io → games/td/']
   ];
 }
+/* 版本信息面板的纯文本版（分享/复制用，供剪贴板按钮调用）*/
 function verInfoText(){
   var rows = verInfoRows(), out = ['《共鸣之塔》版本信息'];
   for (var i = 0; i < rows.length; i++){
@@ -4074,6 +4950,7 @@ function verInfoText(){
   }
   return out.join('\n');
 }
+/* 打开版本信息弹层：按行渲染版本号、构建号、更新地址等信息 */
 function showVerInfo(){
   var rows = verInfoRows(), h = '';
   for (var i = 0; i < rows.length; i++){
@@ -4088,14 +4965,17 @@ function showVerInfo(){
   document.getElementById('verOv').classList.remove('hidden');
   try { SFX.click(); } catch (e) {}
 }
+/* 关闭版本信息弹层 */
 function hideVerInfo(){
   document.getElementById('verOv').classList.add('hidden');
   try { SFX.click(); } catch (e) {}
 }
+/* 版本信息弹层的开关切换（顶部版本号按钮点击时调用）*/
 function toggleVerInfo(){
   var el = document.getElementById('verOv');
   if (el && !el.classList.contains('hidden')) hideVerInfo(); else showVerInfo();
 }
+/* 刷新 HUD：护盾、技能栏、左侧信息栏、天气框、金币/血量/波次等全部顶部状态（每帧调用）*/
 function updateHud(){
   var _shEl = document.getElementById('shieldTxt');
   if (_shEl) _shEl.textContent = (BUFFS && BUFFS.shieldHP > 0) ? ('🛡' + BUFFS.shieldHP) : '';
@@ -4114,18 +4994,23 @@ function updateHud(){
   document.getElementById('wave').textContent = wave;
   document.getElementById('hpfill').style.width = Math.max(0, hp / MAXHP * 100) + '%';
 }
+/* 底部提示语剩余显示秒数（showTip 设值，draw 里倒计时）*/
 var tipT = 0;
 var HINT_ON = true;          // 新手提示栏只在第 1 关显示
+/* 显示/隐藏新手提示栏（仅第 1 关显示）*/
 function hintBar(on){
   HINT_ON = !!on;
   var te = document.getElementById('tip');
   if (te) te.style.display = on ? 'block' : 'none';
 }
+/* 屏幕底部弹一条黄色提示语，1.6 秒后自动淡出（各类拦截与反馈都用它）*/
 function showTip(t){
   var el = document.getElementById('tip');
   el.textContent = t; el.style.color = '#ffd76a'; tipT = 1.6;
 }
+/* 音频主增益节点（WebAudio 输出链的入口，懒创建）*/
 var masterGain = null;
+/* 确保音频主输出链存在（增益 + 压缩器），返回主增益节点；WebAudio 不可用时返回 null */
 function ensureMaster(){
   if (!AC) return null;
   if (!masterGain){
@@ -4136,6 +5021,9 @@ function ensureMaster(){
   }
   return masterGain;
 }
+/* ================= 音效 / 音乐（纯 Web Audio 合成，不依赖任何音频素材）=================
+   tone/chord/noiseSfx 负责发声，SFX 是各类界面的音色配方，MUSIC/M_CHORDS 是内置合成 BGM，
+   bgmDeck/bgmCur 则为打包进来的真人 BGM 做双声道交叉淡化。 */
 var SFX_ON = true;    // 音效总开关（设置面板可关；持久化到 td_settings）
 var MUSIC_ON = true;  // 背景音乐开关（独立于音效）
 var sfxBudget = 10;   // 每帧允许播放的音效数量：倍速越高给得越少，
@@ -4160,6 +5048,7 @@ function tone(o){
     osc.start(t0); osc.stop(t0 + o.dur + 0.03);
   } catch (e) {}
 }
+/* 播放一段程序合成的噪声音效（爆炸/受击等），支持延迟与左右声像 */
 function noiseSfx(dur, vol, cut, delay, pan){
   if (!SFX_ON) return;
   if (!AC) return; var m = ensureMaster(); if (!m) return;
@@ -4179,6 +5068,7 @@ function noiseSfx(dur, vol, cut, delay, pan){
     src.start(t0);
   } catch (e) {}
 }
+/* 同时播放多个音高组成和弦（依次带极小延迟，避免相位重叠）*/
 function chord(freqs, dur, vol, type){
   for (var i = 0; i < freqs.length; i++) tone({ freq:freqs[i], dur:dur, vol:vol, type:type || 'sine', delay:i * 0.012 });
 }
@@ -4200,6 +5090,7 @@ var TOWER_VOICE = {
   mortar:  { n:[0.10, 0.05, 500],   f1:140,  f2:48,   dur:0.26, vol:0.060, type:'sine' },
   support: null
 };
+/* 炮塔开火音效：按塔的元素音色播放，并按屏幕位置做左右声像；受每帧音效预算限流 */
 function towerShot(elem, x){
   var v = TOWER_VOICE[elem];
   if (!v) return;
@@ -4222,6 +5113,7 @@ var DIE_VOICE = {
   elite:   { n:null,                 f1:700,  f2:1400, dur:0.22, vol:0.060, type:'square' },
   charger: { n:[0.18, 0.06, 800],    f1:200,  f2:70,   dur:0.24, vol:0.065, type:'square' }
 };
+/* 敌人死亡音效：BOSS 走专用尾音，其余按敌人类型取音色，并受音效预算限流 */
 function enemyDie(type, combo, x){
   if (sfxBudget <= 0) return;      // 倍速限流
   sfxBudget--;
@@ -4234,12 +5126,14 @@ function enemyDie(type, combo, x){
 }
 /* ===== v6.4 背景音乐：纯 Web Audio 合成（无素材），4 小节循环 Am-F-C-G + 动态变化 ===== */
 var MUSIC = { t: 0, beat: 0, bpm: 92 };
+/* 内置合成 BGM 的 4 小节和弦进行（Am-F-C-G，每个数组是一个小节的和弦音高）*/
 var M_CHORDS = [
   [220.00, 261.63, 329.63],   // Am
   [174.61, 220.00, 261.63],   // F
   [196.00, 246.94, 329.63],   // C
   [196.00, 246.94, 293.66]    // G
 ];
+/* 与 M_CHORDS 逐小节对应的贝斯音高 */
 var M_BASS = [110.00, 87.31, 98.00, 98.00];
 /* ===== v6.5 真人 BGM（Gods Forbid · CC0 免署名 · OpenGameArt）=====
    优先播放打包进 APK 的音频文件；若设备不支持 ogg 或加载失败，自动回退到内置合成音乐 */
@@ -4289,6 +5183,7 @@ function bgmWarmUp(){
   bgmWarm = true;
   try { el.preload = 'auto'; if (el.load) el.load(); } catch (e) {}
 }
+/* 设置背景音乐目标音量并立即应用到当前声道（淡化进行中则交给淡化曲线处理）*/
 function bgmSetVol(v){
   bgmVol = Math.max(0, Math.min(1, Number(v) || 0));
   if (bgmFade > 0) return;                  /* 淡化中：音量交给淡化曲线，别互相打架 */
@@ -4297,6 +5192,7 @@ function bgmSetVol(v){
     try { e.volume = (i === bgmCur) ? bgmVol : 0; } catch (er) {}
   }
 }
+/* 设置背景音乐播放速率（倍速游戏时音乐加速）*/
 function bgmSetRate(r){
   bgmRate = r;
   for (var i = 0; i < 2; i++){
@@ -4346,6 +5242,7 @@ document.addEventListener('visibilitychange', function(){
 });
 window.addEventListener('pagehide', function(){ bgmPause(); });
 window.addEventListener('blur', function(){ setTimeout(function(){ if (document.hidden) bgmPause(); }, 200); });
+/* 播放背景音乐（当前主声道），音乐开关关闭时不动作 */
 function bgmPlay(){
   if (!MUSIC_ON) return;
   var el = bgmDeckEl(bgmCur);
@@ -4357,6 +5254,7 @@ function bgmPlay(){
     if (p && p.catch) p.catch(function(){ bgmOK = false; });
   } catch (e) { bgmOK = false; }
 }
+/* 暂停背景音乐并清掉淡化状态（暂停/切后台时调用）*/
 function bgmPause(){
   bgmFade = 0;                       /* 停就停干净：别把淡化状态留到下次播放 */
   for (var i = 0; i < 2; i++){
@@ -4375,7 +5273,9 @@ function bgmAdapt(){
   if (hp <= 6) vol = 0.36;              // 残血：压低，留出心跳点缀
   bgmSetVol(vol);
 }
+/* 真人 BGM 播放时「局势点缀音」的节流计时 */
 var accentT = 0;
+/* 音乐节拍推进：先跑真人 BGM 的交叉淡化，再按局势（波次/BOSS）加程序合成的点缀音（每帧调用）*/
 function musicTick(rawDt){
   bgmXfadeTick(rawDt);            /* v8.18：真人 BGM 的循环交叉淡化（每帧推进，与合成乐无关） */
   if (bgmOK){                 // 真人 BGM 在响：不再叠整曲，只在关键局势加轻点缀
@@ -4418,6 +5318,7 @@ function musicTick(rawDt){
     MUSIC.beat = (b + 1) % 16;                      // 4 小节 × 4 拍
   }
 }
+/* 各类界面/战斗音效的合成配方集合：每个方法内部调 tone/chord/noiseSfx 拼出对应音色 */
 var SFX = {
   shoot:   function(){ noiseSfx(0.05, 0.05, 2600); tone({ freq:560 + Math.random()*120, freq2:260, dur:0.06, vol:0.045, type:'square' }); },
   hit:     function(){ tone({ freq:1150 + Math.random()*350, dur:0.045, vol:0.038, type:'triangle' }); },
@@ -4444,8 +5345,11 @@ var SFX = {
   /* TUTORIAL_PATCH_V1：教学步骤完成的轻快音（不覆盖任何既有音效方法）*/
   tutOk:   function(){ chord([784, 1047, 1319], 0.18, 0.038, 'triangle'); tone({ freq:1568, dur:0.08, vol:0.024, type:'sine', delay:0.1 }); }
 };
+/* 最简提示音（固定音高与时长）：按钮反馈与提示用 */
 function beep(freq, dur, vol, delay){ tone({ freq:freq, dur:dur, vol:vol, delay:delay }); }
+/* WebAudio 上下文（AudioContext）：首次用户交互时由 initAudio() 创建，未支持时为 null */
 var AC = null;
+/* 初始化 WebAudio（首次用户操作时调用）：已存在则只做 resume，未支持则静默降级为无声 */
 function initAudio(){
   if (AC) { if (AC.state === 'suspended') { try { AC.resume(); } catch (e) {} } return; }
   var Ctor = window.AudioContext || window.webkitAudioContext;
@@ -4454,7 +5358,9 @@ function initAudio(){
 
 /* ================= 触屏交互 ================= */
 var sel = document.getElementById('sel');
+/* 关闭建塔/升级面板：同时解除战场冻结、清掉射程预览并播关闭音效 */
 function hideSel(){ sel.style.display = 'none'; menuPause = false; pvClear(); SFX.panelClose(); }
+/* 摆放建塔/升级面板的位置：自动躲开候选格（候选在左半屏就贴右，反之贴左），竖屏则贴底限高 */
 function placeMenu(px, py){
   /* v7.0 面板改为「侧边栏 + 自动躲开候选格」：
      ①横屏：面板固定贴一侧、占满高度（8 座塔全部可见，不再被裁）；
@@ -4480,6 +5386,7 @@ function placeMenu(px, py){
     sel.style.maxHeight = '58vh';
   }
 }
+/* 生成塔属性的一行文字（伤害/攻速/射程/特殊机制），建塔卡与升级面板共用 */
 function statLine(k, lv){
   lv = lv || 1;
   var d = ELEMS[k], parts = [];
@@ -4497,6 +5404,7 @@ var ROLE_COLORS = {                             /* 角色 → 徽标取色（未
   '单体': '#ffd76a', '溅射': '#ff9a5a', '持续': '#7cf5c0', '链式': '#8fe4ff',
   '控场': '#b98cff', '光环': '#8ff0ff', '点杀': '#ff7a9a', '范围': '#ffc06a'
 };
+/* 取某座塔的定位标签（对单/对群/控场…），字段缺失时返回占位符 —— 面板与图鉴的徽标用它 */
 function roleTagOf(k){
   var d = ELEMS[k];
   var r = d ? d.role : null;
@@ -4505,6 +5413,7 @@ function roleTagOf(k){
   if (!r) return ROLE_DASH;
   return r.length > 4 ? r.substring(0, 4) : r;  /* 徽标最多 4 字：双列卡片窄，多了会换行 */
 }
+/* 定位标签对应的徽标颜色（未登记的角色回落成默认蓝）*/
 function roleColorOf(k){
   var c = ROLE_COLORS[roleTagOf(k)];
   return c || '#9fc4f0';
@@ -4533,7 +5442,7 @@ function starTxtOf(v, onColor){                 /* 5 格星级条：实心 ★ �
 }
 function roleRowHTML(k){                        /* 面板用：徽标 + 对单/对群星级，强制单行不撑高 */
   var d = ELEMS[k] || {};
-  /* class="cr" 只是语义钩子；全部样式内联，不依赖 <style> 段（卡片网格/字号由主线调整） */
+  /* class="cr" 只是语义钩子；全部样式内联，不依赖 style 段（卡片网格/字号由主线调整） */
   return '<div class="cr" style="display:flex;align-items:center;gap:4px;margin-top:2px;font-size:10.5px;'
     + 'line-height:1.3;white-space:nowrap;overflow:hidden;">'
     + '<span style="flex:0 0 auto;font-size:10.5px;line-height:1.3;padding:0 5px;border-radius:6px;'
@@ -4551,6 +5460,7 @@ function roleBookLineHTML(k){                   /* 图鉴用：与既有行同�
     + ' · 对群 ' + starTxtOf(d.groupStar, '#8fe4ff') + '</div>';
 }
 
+/* 生成建塔面板里一张塔卡的 HTML（图标、造价、定位、简介），金币不够时置灰 */
 function buildCard(k){
   var d = ELEMS[k], cost = towerCost(k), dis = gold < cost;
   return '<button class="card' + (dis ? ' dis' : '') + '" data-mk="' + k + '">'
@@ -4562,6 +5472,7 @@ function buildCard(k){
     + '<div class="cu">升级 +30% 伤害 / +12% 攻速 / +8% 射程</div>'
     + '</button>';
 }
+/* 打开建塔面板：列出现有全部塔卡并暂停战场（点空格子时调用）*/
 function openBuild(c, r, px, py){
   var keys = Object.keys(ELEMS), html = '<div class="t">⏸ 已暂停 · 选择塔 · 可上下滑动查看全部</div><div class="cards">';
   for (var i = 0; i < keys.length; i++) html += buildCard(keys[i]);
@@ -4571,6 +5482,7 @@ function openBuild(c, r, px, py){
   sel.style.display = 'block'; placeMenu(px, py);
   SFX.panelOpen();
 }
+/* 打开已有塔的面板：显示当前属性与升级后的属性对比、共鸣标签、升级/出售/全额退款按钮 */
 function openTower(t, px, py){
   var d = ELEMS[t.elem], uc = upgradeCost(t), sv = sellValue(t);
   var res = (t.res && t.res.tags.length) ? ('<div class="t" style="color:#8ff0ff">共鸣 ' + t.res.tags.join('·') + '</div>') : '';
@@ -4759,6 +5671,7 @@ sel.addEventListener('pointermove', pvFocusFrom);
 var LOW_FX = false;    // 低画质（关光效）玩家选择；真正的实现由另一路补丁的 setLowFX 负责
 var setFrom = 'start'; // 设置面板来源：'start' 首页 / 'pause' 暂停面板
 var clearArm = false;  // 清档二次确认开关
+/* 从 localStorage 读取设置（音效/画质/音乐/敌人美术等），启动时调用 */
 function loadSettings(){
   try {
     var raw = localStorage.getItem('td_settings');
@@ -4774,13 +5687,16 @@ function loadSettings(){
     }
   } catch (e) {}
 }
+/* 把当前设置写回 localStorage（设置项改动后调用）*/
 function saveSettings(){
   try { localStorage.setItem('td_settings', JSON.stringify({ sfx: SFX_ON, fx: LOW_FX, mus: MUSIC_ON, art: ENEMY_ART, brief: UI_BRIEF })); } catch (e) {}
 }
+/* 在设置面板底部显示一行状态文字（同步各种操作反馈）*/
 function setMsg(txt, color){
   var el = document.getElementById('setMsg');
   if (el){ el.textContent = txt || '--'; el.style.color = color || '#8ff0ff'; }
 }
+/* 同步设置面板各按钮的文案与状态（音效/画质/音乐/文字模式/敌人美术等）*/
 function syncSetBtns(){
   var a = document.getElementById('setSfxBtn');
   if (a) a.textContent = SFX_ON ? '🔊 音效：开' : '🔇 音效：关（已静音）';
@@ -4791,11 +5707,13 @@ function syncSetBtns(){
   var c = document.getElementById('setClearBtn');
   if (c) c.textContent = clearArm ? '⚠️ 再点一次确认清除' : '🗑 清除进度';
 }
+/* 应用低画质开关：容错调用 setLowFX，补丁未合入时静默跳过不抛错 */
 function applyLowFX(v){
   // 容错：LOWFX / setLowFX 由另一路补丁提供，未合入或未定义时静默跳过（不抛错、不假设存在）
   if (typeof setLowFX === 'function') { try { setLowFX(v); } catch (e) {} }
   else if (typeof LOWFX !== 'undefined') { try { LOWFX = v; } catch (e) {} }
 }
+/* 打开设置面板（from='pause' 表示从暂停菜单进来的，返回时要回到暂停面板）*/
 function showSet(from){
   var _bf = document.getElementById('setBriefBtn');                                    /* v8.14 同步文字模式文案 */
   if (_bf) _bf.textContent = '📄 文字模式：' + (UI_BRIEF ? '简易' : '详细');
@@ -4809,6 +5727,7 @@ function showSet(from){
   var el = document.getElementById('setOv');
   if (el) el.classList.remove('hidden');
 }
+/* 关闭设置面板；从暂停进来的则恢复暂停面板，否则回到首页 */
 function hideSet(){
   var el = document.getElementById('setOv');
   if (el) el.classList.add('hidden');
@@ -4823,6 +5742,7 @@ function hideSet(){
   }
   SFX.click();
 }
+/* 切换音效开关并立即存档（设置面板按钮）*/
 function toggleSfx(){
   SFX_ON = !SFX_ON;
   saveSettings();
@@ -4830,6 +5750,7 @@ function toggleSfx(){
   setMsg(SFX_ON ? '音效已开启' : '音效已静音', '#7cf5c0');
   SFX.click();
 }
+/* 切换背景音乐开关：开启就立刻播放、关闭就暂停，并存档 */
 function toggleMus(){
   MUSIC_ON = !MUSIC_ON;
   if (MUSIC_ON) bgmPlay(); else bgmPause();
@@ -4838,6 +5759,7 @@ function toggleMus(){
   setMsg(MUSIC_ON ? '背景音乐已开启' : '背景音乐已关闭', '#7cf5c0');
   SFX.click();
 }
+/* 切换画质（高/低光效）并立即应用与存档 */
 function toggleFx(){
   LOW_FX = !LOW_FX;
   saveSettings();
@@ -4846,6 +5768,7 @@ function toggleFx(){
   setMsg(LOW_FX ? '低画质：已关闭发光特效，帧率更稳' : '高画质：发光特效已开启', '#7cf5c0');
   SFX.click();
 }
+/* 清空存档：第一次点击只进入二次确认状态，再点一次才真正清除（防误触）*/
 function clearProgress(){
   if (!clearArm){
     clearArm = true;
@@ -4872,13 +5795,16 @@ var fpsTxt = '', fpsAcc = 0, fpsN = 0;   // FPS 自检（右下角小字）
 var speedMul = 1;             // 倍速档位：#speedBtn 切换（普通关卡 1/2，无尽模式 1/2/5/10/100）
 /* 倍速档位表：无尽模式后期怪海太磨人，给到 5/10/100 倍快进 */
 var SPEED_LIST_NORMAL = [1, 2];
+/* 无尽模式的倍速档位：1/2/5/10/100（普通关卡见 SPEED_LIST_NORMAL，只有 1/2）*/
 var SPEED_LIST_ENDLESS = [1, 2, 5, 10, 100];
+/* 倍速换算成每帧子步数：倍速越高拆得越细，保证炮塔照常开火、敌人不会瞬移穿过射程 */
 function speedSteps(){
   if (speedMul <= 2) return Math.max(1, Math.round(speedMul));
   if (speedMul <= 5) return 5;
   if (speedMul <= 10) return 10;
   return 20;                    // 100x：20 个子步 × 5 倍，保证塔照常开火、怪不会瞬移穿过射程
 }
+/* 同步倍速按钮上的文案（如 ⏩ 5x）*/
 function updateSpeedBtn(){
   var sb = document.getElementById('speedBtn');
   if (sb) sb.textContent = '⏩ ' + speedMul + 'x';
@@ -4960,6 +5886,7 @@ function stepSim(d){
   if (running) updateTowers(d);
 }
 var menuPause = false;        // 打开建塔/升级面板时冻结战场（怪不动）
+/* 刷新塔面板上「全额退款」按钮的剩余秒数与金额（建塔 5 秒悔棋窗口内显示）*/
 function syncRefundBtn(){
   // 悔棋按钮上的倒计时刷新（只在塔面板打开且按钮仍显示时执行）
   var t = sel._tower, b = (t && sel._refundShown) ? document.getElementById('refundBtn') : null;
@@ -4967,6 +5894,7 @@ function syncRefundBtn(){
   if (!(t.fresh > 0)){ b.style.display = 'none'; sel._refundShown = false; return; }
   b.textContent = '↩ 全额退款（' + Math.ceil(t.fresh) + ' 秒） +' + ELEMS[t.elem].cost;
 }
+/* 主循环（每帧由 requestAnimationFrame 调用）：算帧间隔、按倍速跑若干子步的 stepSim，再绘制与刷新 HUD */
 function frame(now){
   requestAnimationFrame(frame);
   if (!last) last = now;
@@ -5052,6 +5980,7 @@ if (!('tutBonus' in prog)) prog.tutBonus = 0;               /* 待发放的教�
 function saveProg(){ try { localStorage.setItem('td_prog', JSON.stringify(prog)); } catch (e) {} }
 /* ================= 三星评价（按剩余基地血量，MAXHP = 20） ================= */
 function starsForHp(v){ return v >= 18 ? 3 : (v >= 12 ? 2 : 1); }
+/* 把星数（0~3）转成 ★★☆ 形式的字符串（关卡列表与结算显示）*/
 function starStr(n){
   n = Math.max(0, Math.min(3, n | 0));
   var t = '';
@@ -5060,12 +5989,15 @@ function starStr(n){
 }
 /* ================= 无尽模式（localStorage: td_endless_best） ================= */
 var endless = false;                              // true = 当前处于无尽模式
+/* 无尽模式是否已解锁（通关第 1 关或已打通第 1 关即解锁）*/
 function endlessUnlocked(){ return prog.unlocked >= 2 || (prog.best[0] || 0) > 0; }
+/* 读取无尽模式历史最高波次（localStorage）*/
 function endlessBest(){
   var v = 0;
   try { v = parseInt(localStorage.getItem('td_endless_best') || '0', 10) || 0; } catch (e) { v = 0; }
   return v;
 }
+/* 无尽模式下若本局波次破纪录则写回存档并返回新纪录（返回 0 表示非无尽或没破纪录）*/
 function saveEndlessBest(){
   if (!endless) return 0;
   var b = endlessBest();
@@ -5114,6 +6046,7 @@ function saveChecksum(b64){
   for (var i = 0; i < b64.length; i++) sum = (sum * 31 + b64.charCodeAt(i)) % 65536;
   return ('000' + sum.toString(16)).slice(-4);
 }
+/* 把关卡进度、星数、成就、天赋等打包编码成一段可分享的存档码（分享按钮用）*/
 function saveEncode(){
   var d = {
     p: { u: (prog && prog.unlocked) || 1,
@@ -5127,6 +6060,7 @@ function saveEncode(){
   try { b64 = btoa(JSON.stringify(d)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_'); } catch (e) { return ''; }
   return 'MTD1-' + b64 + '-' + saveChecksum(b64);
 }
+/* 解析玩家粘贴的存档码：从整段文本里抠出码并校验，成功则写回本地进度，返回是否导入成功 */
 function saveDecode(code){
   code = String(code || '').replace(/\s+/g, '');
   /* v8.27 修毛毛报的「直接粘贴分享原文会提示不可以」：
@@ -5164,6 +6098,7 @@ function saveImport(code){
     var t = 0; for (var k3 in prog.stars) t += (prog.stars[k3] || 0); return t;
   })() + ' · 无尽最高 ' + (function(){ try { return localStorage.getItem('td_endless_best') || 0; } catch (e) { return 0; } })() + ' 波';
 }
+/* 复制文本到剪贴板：优先走 Android 原生桥，其次用 navigator.clipboard，都不可用返回 false */
 function saveToClipboard(txt){
   try {
     if (window.Android && Android.copySave) { Android.copySave(txt); return true; }
@@ -5171,12 +6106,14 @@ function saveToClipboard(txt){
   try { if (navigator.clipboard) { navigator.clipboard.writeText(txt); return true; } } catch (e) {}
   return false;
 }
+/* 调起系统分享（Android 原生桥），环境不支持返回 false */
 function saveShareText(txt){
   try {
     if (window.Android && Android.shareSave) { Android.shareSave(txt); return true; }
   } catch (e) {}
   return false;
 }
+/* 收起所有全屏弹层（含结算/暂停/设置/图鉴/开幕提示），并刷新首页战绩、清掉选卡状态 */
 function hideAll(){
   hintBar(false); menuPause = false;
   renderHome();   // 每次收起弹窗（含返回首页）时刷新战绩
@@ -5224,6 +6161,7 @@ function bookMobKeys(){
   }
   return out;
 }
+/* 取图鉴里所有炮塔的 key 列表（按 ELEMS 的登记顺序）*/
 function bookTowerKeys(){
   var out = [], k;
   for (k in ELEMS){
@@ -5241,6 +6179,7 @@ function bookMobTraits(d){
   if (!t.length) t.push('无特殊能力');
   return t;
 }
+/* 生成图鉴中某一怪物的「应对建议」文案（按护甲/免疫减速/BOSS 等特性给出克制思路）*/
 function bookMobCounter(d){
   if (d.tip) return [d.tip];
   var a = [];
@@ -5356,7 +6295,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 74;                     /* v8.23：版本信息面板显示用（与 version.json 同步）*/
+var BUILD_CODE = 75;                     /* v8.23：版本信息面板显示用（与 version.json 同步）*/
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -5367,7 +6306,9 @@ function gameVerStr(){
   } catch (e) { return String(BUILD_CODE); }
 }                     /* 本包版本号：每次发版与 version.json 同步更新 */
 var UPDATE_JSON_URL = 'https://maomao1ovo1.github.io/games/td/version.json';
+/* 检查更新拿到的新版本信息（下载按钮据此跳转），未检查到新版时为 null */
 var pendingUpdate = null;
+/* 联网检查更新：拉取远端版本 JSON（带时间戳打穿缓存），有新版就弹更新提示层 */
 function checkUpdate(){
   if (typeof fetch !== 'function'){ showTip('当前环境不支持联网检查'); return; }
   showTip('🔍 正在检查更新…');
@@ -5396,6 +6337,7 @@ function checkUpdate(){
     showTip('检查更新失败（网络不可用或域名被拦）：' + (e && e.message ? e.message : ''));
   });
 }
+/* 执行更新下载：优先交给 Android 原生桥打开下载页，否则用 window.open 兜底 */
 function doUpdateDownload(){
   var j = pendingUpdate;
   document.getElementById('updOv').classList.add('hidden');
@@ -5411,7 +6353,9 @@ var RESO_NAMED = {};      /* key = 元素字母序拼接，value = [名称, 效�
 /* v8.16.1 修复：分组展开状态必须是**全局**变量。原来写在 bookRender 内部（var 局部），
    点击回调读它时是 undefined → 抛 ReferenceError → 图鉴分组点不动、点不开。 */
 var resoOpenGroups = { special:false, two:true, three:false, four:false };
+/* 把一组元素按字母序拼成唯一 key（共鸣查表用，顺序无关）*/
 function resoElemKey(list){ return list.slice().sort().join('+'); }
+/* 递归枚举 n 个元素攻击塔的全部组合（元素图鉴的共鸣分页据此列出所有组合）*/
 function resoAllCombos(n){
   var atk = ['fire', 'ice', 'thunder', 'poison', 'phys', 'sniper', 'mortar'];
   var out = [];
@@ -5421,7 +6365,9 @@ function resoAllCombos(n){
   })(0, []);
   return out;
 }
+/* 元素 key → 图标字符（查 ELEMS，未知则原样返回 key）*/
 function resoIconOf(e){ var d = ELEMS[e]; return d ? d.icon : e; }
+/* 查共鸣组合的名称与效果文本：有名表就取表，否则按元素个数给通用档位说明 */
 function resoNameOf(list){
   var k = resoElemKey(list);
   if (RESO_NAMED[k]) return RESO_NAMED[k];
@@ -5431,6 +6377,7 @@ function resoNameOf(list){
 /* 把具名组合登记进表（与 resonanceOf 里的实现一一对应，改一处记得同步另一处） */
 function buildResoNamed(){
   RESO_NAMED = {};
+    /* 内部工具：把一组元素登记成具名共鸣（key 为元素字母序拼接）*/
   var add = function(list, name, fx){ RESO_NAMED[resoElemKey(list)] = [name, fx]; };
   /* 两两（21 种非辅助组合，全部有名字） */
   add(['fire','ice'], '热震', '伤害 +70%，命中点爆炸溅射');
@@ -5501,6 +6448,7 @@ function bindResoTreeClicks(){
     }
   });
 }
+/* 生成图鉴共鸣分页里一张共鸣卡片的 HTML */
 function bookResoCard(row, idx){
   return '<div style="display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;'
     + 'background:rgba(22,32,56,.75);border:1px solid rgba(120,180,255,.22);">'
@@ -5510,6 +6458,7 @@ function bookResoCard(row, idx){
     + '<span class="udesc" style="display:block;font-size:11.5px;color:#9fc4f0;margin-top:1px;">' + row[2] + '</span>'
     + '</span></div>';
 }
+/* 生成图鉴成就分页里一张成就卡的 HTML（已达成金色高亮、未达成置灰）*/
 function bookAchCard(a){
   /* v8.21：已达成 → 金色高亮；未达成 → 置灰 */
   var got = achUnlocked(a.key);
@@ -5524,6 +6473,7 @@ function bookAchCard(a){
     + '<span style="flex:0 0 auto;font-size:11px;color:' + (got ? '#7cf5c0' : '#7d8ba3') + ';">' + (got ? '✅ 已达成' : '未达成') + '</span>'
     + '</div>';
 }
+/* 生成图鉴天气分页里一张天气卡的 HTML（当前天气高亮，效果与建议读数据表）*/
 function bookWeatherCard(k, cur){
   /* v8.18：天气图鉴卡片 —— 效果读 WEATHERS、建议读 WX_ADVICE，全部数据驱动 */
   var w = WEATHERS[k] || {};
@@ -5539,6 +6489,7 @@ function bookWeatherCard(k, cur){
     + '<div class="udesc" style="font-size:11.5px;color:#7cf5c0;line-height:1.5;margin-top:2px;">🖐 ' + (WX_ADVICE[k] || '') + '</div>'
     + '</div>';
 }
+/* 生成图鉴强化卡分页里一张卡片的 HTML（标出稀有度与是通用还是某塔专属）*/
 function bookBuffCard(c){
   var rar = RARITY[c.rar] || RARITY.common;
   /* v7.8：专属卡直接标出「哪座塔专属」，一眼看出这张卡是给谁的 */
@@ -5553,6 +6504,7 @@ function bookBuffCard(c){
     + '<span style="display:block;font-size:11.5px;color:#7cf5c0;margin-top:1px;">' + c.desc + '</span>'
     + '</span></div>';
 }
+/* 生成图鉴体系分页里一张体系卡的 HTML（成员塔、等级档位加成、该体系影响什么）*/
 function bookSysCard(sys){
   var tirs = SYS_TIER[sys] || [], mem = [], i, k;
   for (k in ELEMS){ if (ELEMS[k].sys === sys) mem.push(ELEMS[k].icon + ELEMS[k].name); }
@@ -5568,6 +6520,7 @@ function bookSysCard(sys){
     + (ups.length ? ('<div class="udesc" style="font-size:11.5px;color:#ffb27a;margin-top:4px;">📈 专属成长（每级）：<br>' + ups.join('<br>') + '</div>') : '')
     + '</div>';
 }
+/* 生成图鉴关卡分页：逐关列出波数、难度、地图与解锁状态 */
 function bookInfoCard(){
   var out = [], i, k;
   out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;">'
@@ -5605,6 +6558,7 @@ function bookInfoCard(){
     + '</div></div>');
   return out.join('');
 }
+/* 刷新图鉴的顶部分页按钮高亮状态（当前分页高亮）*/
 function bookRenderTabs(){
   var ids = { mob:'bookTabMob', tower:'bookTabTower', reso:'bookTabReso', buff:'bookTabBuff', sys:'bookTabSys', info:'bookTabInfo', wx:'bookTabWx', ach:'bookTabAch' };
   for (var key in ids){
@@ -5616,6 +6570,7 @@ function bookRenderTabs(){
     el.style.background = on ? 'rgba(80,60,20,.9)' : 'rgba(40,60,100,.85)';
   }
 }
+/* 图鉴主渲染：按当前分页（怪物/炮塔/共鸣/强化卡/体系/关卡/成就/天气）拼出整块内容 */
 function bookRender(){
   lastPanel = 'book';
   var list = document.getElementById('bookList');
@@ -5655,7 +6610,9 @@ function bookRender(){
     });
   } else if (bookTab === 'buff'){
     var order = { epic:0, rare:1, common:2 };
+        /* 排序器：稀有度从高到低（史诗 → 稀有 → 普通）*/
     var byRar = function(a, b){ return (order[a.rar] || 9) - (order[b.rar] || 9); };
+        /* 生成强化卡图鉴里的分组标题行（组名 + 本组卡片数量）*/
     var bTitle = function(t, n){
       return '<div style="font-size:12px;font-weight:700;color:#ffd76a;text-align:left;margin:8px 0 5px;">'
         + t + '<span style="font-size:10.5px;font-weight:400;color:#8fb4dc;"> · ' + n + ' 张</span></div>';
@@ -5728,6 +6685,7 @@ function bookRender(){
   bindResoTreeClicks();
   bookRenderTabs();
 }
+/* 打开图鉴：记住并冻结战场状态，隐藏首页，渲染当前分页 */
 function bookShow(tab){
   bindResoTreeClicks();
   if (tab) bookTab = tab;
@@ -5738,12 +6696,14 @@ function bookShow(tab){
   bookRender();
   SFX.click();
 }
+/* 关闭图鉴并恢复打开前的战场状态，重新显示首页 */
 function bookHide(){
   var bv = document.getElementById('bookOv'); if (bv) bv.classList.add('hidden');
   var so = document.getElementById('startOv'); if (so) so.classList.remove('hidden');
   menuPause = bookPausePrev;                  /* 恢复成打开之前的状态 */
   SFX.click();
 }
+/* 打开选关页：按已解锁进度渲染蜿蜒排列的关卡节点地图（PVZ 风格节点 + 连线）*/
 function showLevels(){
   tutorialExit();      /* TUTORIAL_PATCH_V1：回到选关页 = 教学结束（不在教学中时为空操作）*/
   hideAll();
@@ -5910,11 +6870,13 @@ var TUT_STEPS = [
   '这一波结束后选一张强化卡（也可以点「跳过」）',
   '守住基地：继续建塔、升级，打完 ' + TUTORIAL.waves + ' 波'
 ];
+/* 刷新教学任务条上的文字（任务 2/5：xxx）*/
 function tutBarText(){
   var el = document.getElementById('tutBar');
   if (!el) return;
   el.textContent = '任务 ' + tutStep + '/' + TUT_TOTAL + '：' + TUT_STEPS[tutStep - 1];
 }
+/* 同步教学任务条的显示/隐藏与内容（非教学关隐藏）*/
 function tutBarSync(){
   var el = document.getElementById('tutBar');
   if (!el) return;
@@ -5937,6 +6899,7 @@ function tutHasAdjDiff(){                                          /* 第 2 步�
   }
   return false;
 }
+/* 教学推进到下一步：更新任务条；进入第 4 步时记录基准计数，只认本步之后的点击 */
 function tutAdvance(){
   if (!tutorial || tutStep >= TUT_TOTAL) return;
   var done = TUT_STEPS[tutStep - 1];
@@ -5947,6 +6910,7 @@ function tutAdvance(){
   addFloat(W / 2, H * 0.52, '下一任务：' + TUT_STEPS[tutStep - 1], '#ffd76a');
   SFX.tutOk();
 }
+/* 教学任务检查（每帧调用）：按当前步骤判定是否达成（建塔→建不同系→升 2 级→抽强化卡…），达成则推进 */
 function tutTick(){
   if (!tutorial) return;
   if (tutStep === 1){ if (towers.length >= 1) tutAdvance(); }
@@ -5955,6 +6919,7 @@ function tutTick(){
   else if (tutStep === 4){ if (tutBuffCount > tutStep4Base) tutAdvance(); }
   /* 第 5 步「守家」：由 tutorialClear() 收尾 */
 }
+/* 退出教学关（离开教学场景时调用，非教学中为空操作）*/
 function tutorialExit(){ tutorial = false; tutBarSync(); }
 function syncTutLabel(){                       /* 首页主按钮保持「▶ 开始防御」原样，不再追加任何提示后缀 */
   var b = document.getElementById('startBtn');
@@ -6028,6 +6993,7 @@ function startTutorial(){
   showTip('先点战场上的空地，建一座火焰塔');
   addFloat(W / 2, H * 0.45, '任务 1/5：' + TUT_STEPS[0], '#ffd76a');
 }
+/* 开始指定关卡：重置战场与全部局内状态、套用关卡与每日修正、初始化天赋，然后弹开幕提示。无尽也走它开局 */
 function startLevel(i, asEndless, noIntro){
   /* v8.19：asEndless = 以无尽模式开局（无尽借用地形时才不会弹「第 1 关」的开幕提示）；
      noIntro = 不弹开场（无尽续玩用 —— 玩家已经知道自己要接着打第 N 波了）。 */
@@ -6078,6 +7044,7 @@ function startLevel(i, asEndless, noIntro){
 /* 无尽模式：地图固定用第 1 关，波次无上限（WAVES_TOTAL=999），难度沿用原公式继续攀升 */
 /* ===== v5.9 无尽模式中途存档：每波结束自动存一次，也可手动「保存并退出」 ===== */
 var ENDLESS_SAVE_KEY = 'td_endless_save';
+/* 把当前无尽战局（波次、塔、金币、强化卡）存进 localStorage，silent=true 时静默失败（切后台/退出时调用）*/
 function saveEndless(silent){
   if (!endless || !running) return;
   try {
@@ -6093,6 +7060,7 @@ function saveEndless(silent){
     if (!silent) showTip('💾 进度已保存（第 ' + wave + ' 波）');
   } catch (e) {}
 }
+/* 读取无尽存档并返回对象，无存档或格式不对返回 null */
 function loadEndlessSave(){
   try {
     var raw = localStorage.getItem(ENDLESS_SAVE_KEY);
@@ -6102,6 +7070,7 @@ function loadEndlessSave(){
     return d;
   } catch (e) { return null; }
 }
+/* 删除无尽存档（重开或结算后调用）*/
 function clearEndlessSave(){ try { localStorage.removeItem(ENDLESS_SAVE_KEY); } catch (e) {} }
 /* 从存档续玩：重建塔、金币、血量、强化 */
 function resumeEndless(){
@@ -6145,6 +7114,7 @@ function enterEndless(){
   if (loadEndlessSave()) resumeEndless(); else startEndless();
   return true;
 }
+/* 进入无尽模式：借第 1 关地形开局、把波次上限设为 999、倍速复位 */
 function startEndless(silent){
   startLevel(0, true, silent);         /* v8.19：以无尽模式开局 → 弹无尽自己的开场（原来弹「第 1 关」） */
   speedMul = 1; updateSpeedBtn();      // 无尽模式从 1x 起步，点按钮可切 2/5/10/100x
@@ -6153,10 +7123,12 @@ function startEndless(silent){
   hintBar(false);
   showBanner('♾ 无尽模式');
 }
+/* 从暂停/面板恢复游戏：收起弹层、解除冻结、恢复 BGM 音量并继续主循环 */
 function resumeGame(){
   hideAll(); hintBar(!endless && lvIndex === 0); paused = false; menuPause = false; running = true; last = 0;
   bgmSetVol(0.42); bgmPlay();
 }
+/* 暂停游戏：冻结战场、压低 BGM、刷新暂停面板上的进度信息 */
 function pauseGame(){
   paused = true;
   bgmSetVol(0.18);               // 暂停时把 BGM 压低而不是硬停（回来更顺）
@@ -6168,6 +7140,7 @@ function pauseGame(){
   if (esb) esb.style.display = endless ? 'block' : 'none';
   hideSel();
 }
+/* 关卡通关结算：记录最高波次与星数、解锁下一关、给星核/成就，并弹出通关面板 */
 function levelClear(){
   running = false; paused = false;
   bgmSetVol(0.30);
@@ -6210,7 +7183,9 @@ function levelClear(){
   document.getElementById('clearOv').classList.remove('hidden');
   SFX.clear();
 }
+/* 首页「开始防御」入口：收起弹层并直接开第 1 关 */
 function startGame(){ hideAll(); startLevel(0); }
+/* 失败结算：记录最高波次、清无尽存档、弹失败面板并给出重试/回首页入口 */
 function gameOver(){
   running = false;
   bgmSetVol(0.22);
@@ -6253,6 +7228,7 @@ function gameOver(){
 window.addEventListener('resize', function(){ resize(); draw(); });
 resize();
 (function(){
+  /* 事件绑定小工具：按 id 给元素挂 click 监听（不存在则跳过），页面底部统一绑定所有按钮 */
   function on(id, fn){ var el = document.getElementById(id); if (el) el.addEventListener('click', function(e){ e.stopPropagation(); fn(); }); }
   on('startBtn', function(){ showLevels(); });
   on('againBtn', function(){ showLevels(); });
