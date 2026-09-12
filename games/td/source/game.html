@@ -1615,7 +1615,7 @@ function renderShop(){
   lv.addEventListener('click', function(ev){
     ev.stopPropagation();
     closeBuffPanel();
-    showBuffChoices();
+    showBuffChoices(undefined, true);   /* v8.26：回去看**原来那 3 张**，绝不重抽（毛毛报的 bug）*/
   });
   appendBriefToggle(el);                    /* v8.14：商店面板底部也能切详略 */
   row.appendChild(rf); row.appendChild(lv);
@@ -2025,11 +2025,14 @@ function updateBuffHead(){
   var _bb = document.getElementById('banBtn');
   if (_bb) _bb.style.outline = banMode ? '2px solid #ffd76a' : 'none';
 }
-function showBuffChoices(excludeIds){
+function showBuffChoices(excludeIds, reuse){
   running = false; paused = true;
   setSkipBtnVisible(true);            /* v8.12：强化卡界面才显示「跳过」，并且它是唯一可用的场景 */
-  var picks = pickBuffs(3, excludeIds);
-  curPicks = picks.slice();
+  /* v8.26 修毛毛报的「退出商店也会刷新」：从商店回来时必须**沿用原来的 3 张**，
+     不能重抽（v8.12 修的「禁一张进出会重抽」是同一个坑，当时只改了禁卡那条路径）。
+     reuse=true 且手上已有卡 → 原样渲染；其余情况才真的抽新卡。 */
+  if (!reuse || !curPicks || !curPicks.length) curPicks = pickBuffs(3, excludeIds).slice();
+  var picks = curPicks;
   var el = document.getElementById('buffList');
   el.innerHTML = '';
   updateBuffHead();
@@ -2433,20 +2436,30 @@ function pathLenToWp(i, pi){
   }
   return s;
 }
-function spawnEnemyAt(type, x, y, wp){
+function spawnEnemyAt(type, x, y, wp, pi){
   var n0 = enemies.length;
   spawnEnemy(type);                                  // spawnEnemy 无返回值，用长度差取回新对象
   if (enemies.length <= n0) return null;
   var e = enemies[enemies.length - 1];
+  /* ===== v8.26 修毛毛报的「打爆之后乱跑、不在轨道上」=====
+     根因：spawnEnemy 内部会**随机**分配入口（`pi = WAYPOINTS2 && Math.random()<0.5 ? 1 : 0`），
+     但这里的生成位置 (x,y) 是**父级（分裂虫 / BOSS）所在的那一条路**。
+     于是当双入口地图上父级走在第二条路、而召唤物被随机分到第一条路时，
+     它就会从当前位置**斜穿到另一条路**去找自己的航点 —— 视觉上就是「脱离轨道乱跑」。
+     修法：强制继承父级入口（pi），并且方向推算、路径长度、进度换算全部按同一条路算。 */
+  var myPi = (typeof pi === 'number' && pi === 1 && WAYPOINTS2) ? 1 : 0;
+  var myList = (myPi === 1 && WAYPOINTS2) ? WAYPOINTS2 : WAYPOINTS;
+  e.pathIdx = myPi;
   /* 召唤物同样沿路径方向错开（用召唤点所在段的下一航点方向），避免横向乱散 */
-  var nx2 = waypointPx((wp || 0) + 1) || { x: x, y: y };
+  var nx2 = waypointPx((wp || 0) + 1, myPi) || { x: x, y: y };
   var angS = Math.atan2(nx2.y - y, nx2.x - x);
   var offS = (Math.random() - 0.5) * CELL * 0.6;
   e.x = x + Math.cos(angS) * offS;
   e.y = y + Math.sin(angS) * offS;
-  var lastWp = WAYPOINTS.length - 2; if (lastWp < 0) lastWp = 0;
+  var lastWp = myList.length - 2; if (lastWp < 0) lastWp = 0;
   e.wp = Math.max(0, Math.min(lastWp, wp || 0));     // 跟随 BOSS 的路径进度，避免倒着走
-  e.done = pathLenToWp(e.wp);                        // 索敌排序用：与 BOSS 进度一致
+  e.done = pathLenToWp(e.wp, myPi);                  // 索敌排序用：与 BOSS 进度一致
+  e.totalPath = pathLenToWp(myList.length - 1, myPi) || 1;   // 自爆兵算路程进度也要用同一条路
   e.spawnT = 0.36;
   return e;
 }
@@ -2454,7 +2467,7 @@ function flushPendingSpawn(){
   if (!pendingSpawn.length) return;
   for (var i = 0; i < pendingSpawn.length; i++){
     var q = pendingSpawn[i];
-    for (var k = 0; k < q.n; k++) spawnEnemyAt(q.type, q.x, q.y, q.wp);
+    for (var k = 0; k < q.n; k++) spawnEnemyAt(q.type, q.x, q.y, q.wp, q.pi);   /* v8.26：把入口一起传下去 */
   }
   pendingSpawn.length = 0;
 }
@@ -2513,7 +2526,7 @@ function updateBossSkills(dt){
     e.skill1T -= dt;
     if (e.skill1T <= 0){
       e.skill1T = (e.stage >= 2) ? 3.5 : 6.0;
-      pendingSpawn.push({ type: 'normal', x: e.x, y: e.y, wp: e.wp, n: 2 });
+      pendingSpawn.push({ type: 'normal', x: e.x, y: e.y, wp: e.wp, n: 2, pi: e.pathIdx || 0 });   /* v8.26：带上 BOSS 所在入口 */
       addFloat(e.x, e.y - e.r - 6, '召唤！', '#c9a6ff');
       SFX.summon();
     }
@@ -2725,7 +2738,7 @@ function killEnemy(e, idx){
   /* v5.5 分裂虫：死亡时分裂 2 只幼体。只入队到 pendingSpawn，由主循环安全点
      （flushPendingSpawn）真正 push 进 enemies —— 严禁在遍历 enemies 时直接 push */
   if (e.split){
-    pendingSpawn.push({ type: 'spawn2', x: e.x, y: e.y, wp: e.wp, n: 2 });
+    pendingSpawn.push({ type: 'spawn2', x: e.x, y: e.y, wp: e.wp, n: 2, pi: e.pathIdx || 0 });   /* v8.26：带上分裂虫所在入口 */
     addFloat(e.x, e.y - e.r - 10, '分裂！', '#c98cff');
     burst(e.x, e.y, '#c98cff', 8);
   }
@@ -5338,7 +5351,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 72;                     /* v8.23：版本信息面板显示用（与 version.json 同步）*/
+var BUILD_CODE = 73;                     /* v8.23：版本信息面板显示用（与 version.json 同步）*/
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
