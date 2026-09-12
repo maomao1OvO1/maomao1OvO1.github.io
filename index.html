@@ -13,7 +13,7 @@
     6. 作品入口（摄影 / 视频 / 音乐）、小游戏大厅入口、硬件测试大厅入口
     7. 账号系统（Firebase Auth：谷歌 / GitHub / 邮箱登录，含账号菜单）
   引用的资源：
-    - manifest.json、icon.png、style.css?v=33   —— 页面配置与全局样式
+    - manifest.json、icon.png、style.css?v=34   —— 页面配置与全局样式
     - weather.js   —— 天气数据逻辑（IP 定位 / 城市搜索）
     - tokens.js?v=3 —— 第三方 AI 余额查询
     - player.js?v=3  —— 音乐播放器逻辑
@@ -48,7 +48,7 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 <title>毛毛的个人主页</title>
 
 <!-- 全局样式表；v=32 是版本号，改样式时递增即可强制浏览器重新下载（避免缓存旧版） -->
-<link rel="stylesheet" href="style.css?v=33">
+<link rel="stylesheet" href="style.css?v=34">
 
 </head>
 
@@ -383,25 +383,16 @@ value="1"
     </button>
 </a>
 
-<!-- ===== 我的自制游戏 · 安卓安装包下载（文件固定为 maomao-td-latest.apk，更新版本时直接替换即可） ===== -->
-<div class="mygame-card" style="margin:14px 0;padding:14px 16px;border-radius:14px;background:linear-gradient(160deg,rgba(20,32,58,.92),rgba(12,20,38,.92));border:1px solid rgba(120,180,255,.28);box-shadow:0 6px 20px rgba(0,0,0,.35);">
-    <div style="display:flex;align-items:center;gap:10px;">
-        <div style="font-size:30px;line-height:1;">🗼</div>
-        <div style="flex:1;text-align:left;">
-            <div style="font-size:17px;font-weight:700;letter-spacing:1px;background:linear-gradient(90deg,#8fdcff,#b07cff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">共鸣之塔</div>
-            <div style="font-size:12px;color:#9fc4f0;margin-top:2px;">原创塔防 · 元素共鸣 · 8 种塔 / 11 种怪 / 无尽模式</div>
-        </div>
-    </div>
-    <div style="font-size:12px;color:#8fb4dc;margin-top:8px;text-align:left;">
-        版本 <b style="color:#ffd76a;">v6.3</b> · 约 141 KB · 安卓 5.0+ · 离线可玩
-    </div>
-    <a href="games/td/maomao-td-latest.apk" download style="display:block;margin-top:10px;text-decoration:none;">
-        <button style="width:100%;">📥 下载最新版 APK</button>
-    </a>
-    <div style="font-size:11px;color:#6f8bb5;margin-top:7px;text-align:left;">
-        文件固定为 maomao-td-latest.apk —— 以后出新版本我会直接替换，这个链接永远是<b>最新版</b>。首次安装需允许「未知来源」。
-    </div>
-</div>
+<!-- ===== 我的自制游戏 · APK 下载（紧凑卡片，样式见 style.css 的 .mygame-card，跟随深浅色主题） ===== -->
+<!-- 文件固定为 maomao-td-latest.apk：更新版本时直接替换该文件，此链接永远指向最新版 -->
+<a class="mygame-card" href="games/td/maomao-td-latest.apk" download>
+    <span class="gm-icon">🗼</span>
+    <span class="gm-body">
+        <span class="gm-name">共鸣之塔</span>
+        <span class="gm-meta">原创塔防 · 元素共鸣 · v6.3 · 141KB</span>
+    </span>
+    <span class="gm-btn">📥 下载</span>
+</a>
 
 <!-- 玩家昵称盒子：记录并保存访客昵称（保存在 localStorage，见 main.js 的 saveNickname） -->
 <div class="nickname-box">
