@@ -1,8 +1,8 @@
 {
-  "version": "8.17",
-  "versionCode": 64,
+  "version": "8.18",
+  "versionCode": 65,
   "date": "2026-09-13",
   "size": "4.8MB",
-  "note": "共鸣组合扩到 93 种（两两21/三元素35/四元素35）+ 图鉴树状分组 + 一切修复；主页新增一键检查更新",
+  "note": "天气说明面板（点 HUD 天气框）+ 图鉴新增天气页、音乐循环交叉淡化、主界面 UI 重做（图标网格）、左侧常驻信息栏（天气/加成/减益/本局强化卡/套装）",
   "url": "https://maomao1ovo1.github.io/games/td/maomao-td-latest.apk"
 }
