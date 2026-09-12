@@ -5129,7 +5129,12 @@ function saveEncode(){
 }
 function saveDecode(code){
   code = String(code || '').replace(/\s+/g, '');
-  var m = code.match(/^MTD1-([A-Za-z0-9_-]+)-([0-9a-f]{4})$/);
+  /* v8.27 修毛毛报的「直接粘贴分享原文会提示不可以」：
+     分享出去的文本是「【共鸣之塔】我的存档码（…）：\nMTD1-xxx-xxxx」——
+     带了中文前后缀。原来这里用 ^...$ 强制整串匹配 → 一带中文就判定格式错误。
+     现在改成**从整段文本里把码抠出来**（去掉 ^ 和 $），玩家直接整段复制粘贴也能导入。
+     注意仍要求校验和正确：粘贴残缺/被改过的码照样会被拒绝。 */
+  var m = code.match(/MTD1-([A-Za-z0-9_-]+)-([0-9a-f]{4})/);
   if (!m) return null;
   var b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
   if (saveChecksum(b64) !== m[2]) return null;                 // 校验和不符 → 拒绝（防粘贴残缺）
@@ -5138,7 +5143,7 @@ function saveDecode(code){
 /* 导入合并：只增不减 —— 别人的存档不会把你的进度拉低 */
 function saveImport(code){
   var d = saveDecode(code);
-  if (!d || !d.p) return '格式不对：请确认完整复制了整段存档码';
+  if (!d || !d.p) return '没找到有效的存档码：整段复制（含前后文字也行）再试一次';
   if (!prog.best) prog.best = {};
   if (!prog.stars) prog.stars = {};
   var before = { u: prog.unlocked || 1, b: 0, s: 0 };
@@ -5351,7 +5356,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 73;                     /* v8.23：版本信息面板显示用（与 version.json 同步）*/
+var BUILD_CODE = 74;                     /* v8.23：版本信息面板显示用（与 version.json 同步）*/
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -6380,7 +6385,13 @@ resize();
     var el = document.getElementById('saveCode');
     var code = (el && el.value) ? el.value : saveEncode();
     if (el && !el.value) el.value = code;
-    var txt = '【共鸣之塔】我的存档码（在游戏里 设置 → 存档分享 → 粘贴导入）：\n' + code;
+    /* v8.27 毛毛要求：分享文本里推广自己的网站 + 感谢游玩。
+       这段文案就是分享出去的那段中文，改这里即可。 */
+    var txt = '🎮 我在玩《共鸣之塔》—— 我做的原创塔防小游戏（元素共鸣机制，15 关 + 无尽 + 每日挑战）\n'
+      + '这是存档码，在游戏里「设置 → 存档分享 → 粘贴导入」就能直接用：\n'
+      + code + '\n\n'
+      + '🕹 更多自制小游戏 / 我的网站：https://maomao1ovo1.github.io/\n'
+      + '感谢游玩！游戏完全开源（MIT），随便改、随便玩 😄';
     setMsg(saveShareText(txt) ? '已调起分享' : (saveToClipboard(txt) ? '已复制（可直接粘贴发送）' : '请长按输入框手动复制'), '#7cf5c0');
   });
   on('setImpBtn', function(){
