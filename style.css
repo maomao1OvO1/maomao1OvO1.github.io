@@ -3346,3 +3346,40 @@ body.dark-mode .mail-card h3{color:#bb9cff;}
 body.dark-mode .mail-panel{background:#1e1e1e;border-color:#4a3a78;color:#ddd;}
 body.dark-mode .mail-item{background:#2a2142;border-color:#4a3a78;}
 body.dark-mode .mail-item small{color:#8f7ac2;}
+
+
+/* ===== 自制游戏下载卡片（紧凑一行式；深浅色主题各自适配） ===== */
+.mygame-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 330px;
+    margin: 10px auto 4px;
+    padding: 9px 12px;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(100, 80, 150, 0.15);
+    text-align: left;
+    text-decoration: none;
+    transition: transform 0.12s, box-shadow 0.15s;
+}
+.mygame-card:active { transform: scale(0.985); }
+.mygame-card .gm-icon { font-size: 21px; line-height: 1; flex: 0 0 auto; }
+.mygame-card .gm-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mygame-card .gm-name { font-size: 14px; font-weight: 600; color: #4b3a7a; line-height: 1.3; }
+.mygame-card .gm-meta { font-size: 11px; color: #8a8a95; line-height: 1.35; }
+.mygame-card .gm-btn {
+    flex: 0 0 auto;
+    padding: 7px 13px;
+    border-radius: 20px;
+    font-size: 12px;
+    background: #efe9ff;
+    color: #5c46a0;
+    white-space: nowrap;
+}
+/* 深色模式：沿用网站的深炭紫底 + 淡紫字 */
+body.dark-mode .mygame-card { background: #1e1e1e; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+body.dark-mode .mygame-card .gm-name { color: #bb9cff; }
+body.dark-mode .mygame-card .gm-meta { color: #9a9a9a; }
+body.dark-mode .mygame-card .gm-btn { background: #33245c; color: #d8c7ff; }
