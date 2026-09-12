@@ -13,7 +13,7 @@
     6. 作品入口（摄影 / 视频 / 音乐）、小游戏大厅入口、硬件测试大厅入口
     7. 账号系统（Firebase Auth：谷歌 / GitHub / 邮箱登录，含账号菜单）
   引用的资源：
-    - manifest.json、icon.png、style.css?v=35   —— 页面配置与全局样式
+    - manifest.json、icon.png、style.css?v=36   —— 页面配置与全局样式
     - weather.js   —— 天气数据逻辑（IP 定位 / 城市搜索）
     - tokens.js?v=3 —— 第三方 AI 余额查询
     - player.js?v=3  —— 音乐播放器逻辑
@@ -48,7 +48,7 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 <title>毛毛的个人主页</title>
 
 <!-- 全局样式表；v=32 是版本号，改样式时递增即可强制浏览器重新下载（避免缓存旧版） -->
-<link rel="stylesheet" href="style.css?v=35">
+<link rel="stylesheet" href="style.css?v=36">
 
 </head>
 
@@ -385,10 +385,7 @@ value="1"
 
 <!-- ===== 我的自制游戏 · APK 下载（紧凑卡片，样式见 style.css 的 .mygame-card，跟随深浅色主题） ===== -->
 <!-- 文件固定为 maomao-td-latest.apk：更新版本时直接替换该文件，此链接永远指向最新版 -->
-<button id="tdUpdateBtn" style="width:100%;margin:0 0 8px;padding:10px 14px;border-radius:12px;cursor:pointer;
-        border:1px solid rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#9fd0ff;font-size:14px;">
-  🔄 检查更新（看是否已是最新版）
-</button>
+<button id="tdUpdateBtn">🔄 检查更新（看是否已是最新版）</button>
 <a class="mygame-card" href="games/td/maomao-td-latest.apk" download>
     <span class="gm-icon">🗼</span>
     <span class="gm-body">
