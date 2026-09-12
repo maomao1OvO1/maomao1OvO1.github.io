@@ -3383,3 +3383,10 @@ body.dark-mode .mygame-card { background: #1e1e1e; box-shadow: 0 6px 18px rgba(0
 body.dark-mode .mygame-card .gm-name { color: #bb9cff; }
 body.dark-mode .mygame-card .gm-meta { color: #9a9a9a; }
 body.dark-mode .mygame-card .gm-btn { background: #33245c; color: #d8c7ff; }
+
+/* v8.20 自制游戏：文档入口行 */
+.gm-docs{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:8px 0 2px;font-size:12.5px;}
+.gm-docs-t{color:#8b8b9a;}
+.gm-docs a{color:#bb9cff;text-decoration:none;border-bottom:1px dashed rgba(187,156,255,.5);padding-bottom:1px;}
+.gm-docs a:hover{color:#d8c7ff;border-bottom-style:solid;}
+body.dark-mode .gm-docs-t{color:#9a9aa8;}
