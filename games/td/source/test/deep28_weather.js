@@ -159,7 +159,14 @@ function physVsArmor(wx){
   T.hitEnemy(t, e, T.statAt(t, 1), T.ELEMS.phys);
   return before - e.hp;
 }
+/* v8.25 修 flaky：这条断言本意是「只比较铁潮天气带来的差异」，但 ft() 建塔会走
+   v8.2 的**随机词条**（锐利 +12% 伤害 / 穿透 +12% 无视护甲 …），而本段在此之前
+   已经 Math.random = REAL_RANDOM 恢复了随机 → 两次建塔抽到的词条不同，伤害自然对不上
+   （实测 8 次里挂 1 次，是 v8.2 起就有的旧 flaky，不是新问题）。
+   修法：比较期间固定随机，比较完立刻恢复，不影响后面的用例。 */
+noCrit();
 var pa0 = physVsArmor('none'), pa1 = physVsArmor('iron');
+Math.random = REAL_RANDOM;
 ok(pa1 > pa0, '物理塔对护甲目标伤害更高（' + Math.round(pa0) + ' → ' + Math.round(pa1) + '）');
 
 console.log('=== ⑧ 静默：光环失效、全塔伤害 +30% ===');

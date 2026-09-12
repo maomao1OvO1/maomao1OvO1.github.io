@@ -1,8 +1,8 @@
 {
-  "version": "8.24",
-  "versionCode": 71,
+  "version": "8.25",
+  "versionCode": 72,
   "date": "2026-09-13",
   "size": "4.6MB",
-  "note": "让系统识别为「游戏」：manifest 加了 appCategory=game + isGame=true（配合横屏锁定/全屏/屏幕常亮），系统的游戏模式与游戏空间就能自动接管（免打扰、性能模式、防误触）。另含 v8.23：版本信息面板（点右上角版本号展开/收起 + 一键复制）、横屏主界面被裁修复、HUD 左右安全区、竖屏提示",
+  "note": "修复：图鉴里的「🌤 天气」与「🏆 成就」两个页签点不动（加了页签却忘了绑点击事件）。另修一处测试偶发失败（随机词条导致的比较失真）",
   "url": "https://maomao1ovo1.github.io/games/td/maomao-td-latest.apk"
 }

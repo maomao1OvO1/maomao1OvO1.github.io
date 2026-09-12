@@ -5338,7 +5338,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 71;                     /* v8.23：版本信息面板显示用（与 version.json 同步）*/
+var BUILD_CODE = 72;                     /* v8.23：版本信息面板显示用（与 version.json 同步）*/
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -6341,6 +6341,11 @@ resize();
   on('bookTabBuff', function(){ bookTab = 'buff'; bookRender(); SFX.bookTab(); });
   on('bookTabSys', function(){ bookTab = 'sys'; bookRender(); SFX.bookTab(); });
   on('bookTabInfo', function(){ bookTab = 'info'; bookRender(); SFX.bookTab(); });
+  /* v8.25 补：v8.18 的「🌤 天气」与 v8.21 的「🏆 成就」两个页签当时忘了绑点击 →
+     点上去毫无反应（毛毛报的 bug）。以后新增图鉴页签，除了 bookRenderTabs 的 ids 表和
+     bookRender 的分支，**必须在这里补一行绑定** —— test/deep45_uiwiring.js 会自动查这件事。 */
+  on('bookTabWx', function(){ bookTab = 'wx'; bookRender(); SFX.bookTab(); });
+  on('bookTabAch', function(){ bookTab = 'ach'; bookRender(); SFX.bookTab(); });
   on('bookBackBtn', bookHide);
   on('setBtn2', function(){ showSet('pause'); });
   on('setSfxBtn', toggleSfx);
