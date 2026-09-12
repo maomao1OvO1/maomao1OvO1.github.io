@@ -385,11 +385,15 @@ value="1"
 
 <!-- ===== 我的自制游戏 · APK 下载（紧凑卡片，样式见 style.css 的 .mygame-card，跟随深浅色主题） ===== -->
 <!-- 文件固定为 maomao-td-latest.apk：更新版本时直接替换该文件，此链接永远指向最新版 -->
+<button id="tdUpdateBtn" style="width:100%;margin:0 0 8px;padding:10px 14px;border-radius:12px;cursor:pointer;
+        border:1px solid rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#9fd0ff;font-size:14px;">
+  🔄 检查更新（看是否已是最新版）
+</button>
 <a class="mygame-card" href="games/td/maomao-td-latest.apk" download>
     <span class="gm-icon">🗼</span>
     <span class="gm-body">
         <span class="gm-name">共鸣之塔</span>
-        <span class="gm-meta">原创塔防 · 元素共鸣 · v8.16 · 4.7MB</span>
+        <span class="gm-meta">原创塔防 · 元素共鸣 · v8.17 · 4.8MB</span>
     </span>
     <span class="gm-btn">📥 下载</span>
 </a>
@@ -717,6 +721,33 @@ updateTime();
 <script src="login.js?v=22" defer></script>
 <script src="contact.js?v=4" defer></script>
 
+
+<script>
+(function(){
+  var b = document.getElementById('tdUpdateBtn');
+  if (!b) return;
+  b.addEventListener('click', function(){
+    b.textContent = '🔍 正在检查…';
+    fetch('games/td/version.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(j){
+        b.textContent = '🔄 检查更新（看是否已是最新版）';
+        var msg = '最新版本：v' + j.version + '（' + j.versionCode + '）'
+                + (j.date ? '\n发布时间：' + j.date : '')
+                + (j.size ? '\n安装包大小：' + j.size : '')
+                + (j.note ? '\n更新内容：' + j.note : '')
+                + '\n\n要现在下载吗？';
+        if (confirm(msg)){
+          location.href = j.url || 'games/td/maomao-td-latest.apk';
+        }
+      })
+      .catch(function(e){
+        b.textContent = '🔄 检查更新（看是否已是最新版）';
+        alert('检查更新失败：' + (e && e.message ? e.message : '网络不可用'));
+      });
+  });
+})();
+</script>
 </body>
 
 </html>
