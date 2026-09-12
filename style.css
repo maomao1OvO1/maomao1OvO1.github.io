@@ -3384,9 +3384,51 @@ body.dark-mode .mygame-card .gm-name { color: #bb9cff; }
 body.dark-mode .mygame-card .gm-meta { color: #9a9a9a; }
 body.dark-mode .mygame-card .gm-btn { background: #33245c; color: #d8c7ff; }
 
-/* v8.20 自制游戏：文档入口行 */
-.gm-docs{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:8px 0 2px;font-size:12.5px;}
-.gm-docs-t{color:#8b8b9a;}
-.gm-docs a{color:#bb9cff;text-decoration:none;border-bottom:1px dashed rgba(187,156,255,.5);padding-bottom:1px;}
-.gm-docs a:hover{color:#d8c7ff;border-bottom-style:solid;}
-body.dark-mode .gm-docs-t{color:#9a9aa8;}
+/* ===== v8.20 自制游戏区（一键检查更新 + 文档入口）=====
+   注意：这几个元素要和 .mygame-card 完全对齐 —— 同宽（max-width:330px 居中）、同圆角体系、
+   同配色（浅色紫调 / 深色炭紫），否则会在页面里很突兀。*/
+#tdUpdateBtn {
+    display: block;
+    width: 100%;
+    max-width: 330px;
+    margin: 4px auto 10px;
+    padding: 9px 14px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12.5px;
+    border: 1px solid rgba(150, 120, 220, 0.28);
+    background: #f4f0ff;
+    color: #5c46a0;
+    transition: transform 0.12s, background 0.15s;
+}
+#tdUpdateBtn:active { transform: scale(0.985); }
+
+.gm-docs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    width: 100%;
+    max-width: 330px;
+    margin: 0 auto 10px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.gm-docs-t { color: #8a8a95; }
+.gm-docs a {
+    color: #6a4fb8;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(106, 79, 184, 0.45);
+    padding-bottom: 1px;
+}
+.gm-docs a:active { color: #4b3a7a; }
+
+/* 深色模式：沿用站点的炭紫底 + 淡紫字 */
+body.dark-mode #tdUpdateBtn {
+    background: #2a2140;
+    color: #c9b6ff;
+    border-color: rgba(160, 130, 240, 0.28);
+}
+body.dark-mode .gm-docs-t { color: #9a9a9a; }
+body.dark-mode .gm-docs a { color: #bb9cff; border-bottom-color: rgba(187, 156, 255, 0.45); }
