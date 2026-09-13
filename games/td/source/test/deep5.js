@@ -134,7 +134,7 @@ T.startLevel(0); ok(T.el('tip').style.display === 'block', '第 1 关显示提�
 T.startLevel(1); ok(T.el('tip').style.display === 'none', '第 2 关隐藏提示栏');
 T.startLevel(4); ok(T.el('tip').style.display === 'none', '第 5 关隐藏提示栏');
 T.startLevel(0); ok(T.el('tip').style.display === 'block', '重玩 1-1 提示栏再次出现');
-ok(html.indexOf('点空地建塔 · 点塔升级/出售 · 相邻不同元素会共鸣') >= 0, '提示栏文字未改动');
+ok(html.indexOf('点空地建塔') >= 0 && html.indexOf('相邻不同元素会共鸣') >= 0, '提示栏文字仍在（v9.5 追加了「带锁的格子花金币解锁塔位」）');
 
 console.log('=== ⑦ 稳定性：连跑 4 波无报错 ===');
 T.startLevel(0); T.setGold(99999);

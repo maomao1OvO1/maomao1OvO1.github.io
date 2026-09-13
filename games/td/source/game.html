@@ -1151,7 +1151,7 @@ body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !im
     <!-- 建塔 / 升级面板（点击空格或已有塔时动态填充内容，位置由 placeMenu() 算）-->
     <div id="sel"></div>
     <!-- 底部提示条：显示操作引导与 showTip() 弹出的一句话反馈 -->
-    <div id="tip">点空地建塔 · 点塔升级/出售 · 相邻不同元素会共鸣</div>
+    <div id="tip">点空地建塔 · 带锁的格子花金币解锁塔位 · 相邻不同元素会共鸣</div>
   </div>
 </div>
 <audio id="bgm" loop preload="auto" src="music/bgm.ogg" style="display:none"></audio>
@@ -1162,7 +1162,7 @@ body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !im
   <div class="home-bg"></div>
   <div class="home-aura"></div>
   <div class="home-wrap">
-    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.4 ▾</button></div>
+    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.5 ▾</button></div>
     <div class="home-logo">
       <h1 class="logo">共鸣之塔</h1>
       <div class="logo-tag">元 素 共 鸣 · 塔 防</div>
@@ -1538,10 +1538,52 @@ function buildPath(){
   };
   markPath(WAYPOINTS);
   markPath(WAYPOINTS2);          /* v8.10：第二条入口路径同样不能建塔 */
+  if (typeof buildSlots === 'function') buildSlots();   /* v9.5：路径定了，塔位跟着重算 */
 }
 buildPath();
 /* 判断 (c,r) 是否为敌人路径格：是则不能建塔（建塔点击与鼠标悬停都用它拦截）*/
 function isPath(c, r){ return !!pathSet[c + ',' + r]; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * v9.5 塔位解锁（毛毛要求：格子锁上、只留几个、玩家花钱买、越买越贵）
+ *
+ * 规则：
+ *   · 只有「紧贴路径」的非路径格才算塔位（远处的空地不作为塔位，避免目标太散）
+ *   · 每关开局免费解锁离基地最近的 UNLOCK_FREE 个，其余全部锁着
+ *   · 点锁定格 → 花金币解锁；每买一个，下一个价格 ×UNLOCK_GROW（本局内递增，换关重置）
+ *   · 塔位状态是「本局」状态，不进存档（换关/重开都重新算），所以不会污染老存档
+ * ══════════════════════════════════════════════════════════════════════════ */
+var unlockSet = {};          /* 已解锁的塔位（键 'c,r'） */
+var slotAll = [];            /* 本关全部塔位候选（贴路径的格子，按离基地远近排序） */
+var unlockBought = 0;        /* 本局已花钱买过的次数（决定价格递增） */
+var UNLOCK_FREE = 6;         /* 开局免费给几个塔位 */
+var UNLOCK_BASE = 40;        /* 第一个额外塔位的价格 */
+var UNLOCK_GROW = 1.75;      /* 每买一个，价格乘以它 */
+
+/* 下一个塔位的解锁价（本局内随购买次数递增） */
+function unlockCost(){ return Math.round(UNLOCK_BASE * Math.pow(UNLOCK_GROW, unlockBought)); }
+/* 该格是否已解锁（可直接建塔） */
+function isUnlocked(c, r){ return !!unlockSet[c + ',' + r]; }
+
+/* 重建本关塔位：buildPath() 之后调用（路径变了塔位也就变了） */
+function buildSlots(){
+  unlockSet = {}; slotAll = []; unlockBought = 0;
+  var base = WAYPOINTS && WAYPOINTS.length ? WAYPOINTS[WAYPOINTS.length - 1] : [0, 0];
+  for (var c = 0; c < COLS; c++){
+    for (var r = 0; r < ROWS; r++){
+      if (pathSet[c + ',' + r]) continue;                       /* 路径格不能建塔 */
+      var near = pathSet[(c-1)+','+r] || pathSet[(c+1)+','+r] ||
+                 pathSet[c+','+(r-1)] || pathSet[c+','+(r+1)];
+      if (!near) continue;                                      /* 不贴路径 → 不算塔位 */
+      slotAll.push({ c: c, r: r, d: Math.abs(c - base[0]) + Math.abs(r - base[1]) });
+    }
+  }
+  slotAll.sort(function(a, b){ return a.d - b.d || a.c - b.c || a.r - b.r; });
+  for (var i = 0; i < Math.min(UNLOCK_FREE, slotAll.length); i++){
+    unlockSet[slotAll[i].c + ',' + slotAll[i].r] = 1;
+  }
+  bgKey = '';                                                   /* 静态层缓存作废：锁的分布变了 */
+}
 
 /* ================= 塔 ================= */
 /* ===== 9 座塔的数值与机制总表（8 座攻击塔 + 1 座辅助塔）=====
@@ -4273,6 +4315,31 @@ function drawStaticBg(){
       g.stroke();
       g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(36,26,74,.95)';
     }
+    /* ── v9.5：锁着的塔位画成「暗格 + 锁 + 价格」──
+       只在静态层画（每帧一次 drawImage），所以不增加每帧开销。 */
+    if (typeof slotAll !== 'undefined' && slotAll && slotAll.length){
+      var _cost = (typeof unlockCost === 'function') ? unlockCost() : 0;
+      for (var _si = 0; _si < slotAll.length; _si++){
+        var _sl = slotAll[_si], _kk = _sl.c + ',' + _sl.r;
+        if (unlockSet[_kk]) continue;                       /* 已解锁：保持普通空地 */
+        var _sx = OX + _sl.c * CELL, _sy = OY + _sl.r * CELL;
+        g.fillStyle = 'rgba(28,20,52,.74)';
+        g.fillRect(_sx + 2, _sy + 2, CELL - 4, CELL - 4);
+        g.strokeStyle = 'rgba(107,79,160,.9)'; g.lineWidth = 2;
+        g.strokeRect(_sx + 2, _sy + 2, CELL - 4, CELL - 4);
+        var _ls = CELL * 0.30, _lx = _sx + CELL / 2, _ly = _sy + CELL * 0.44;
+        g.strokeStyle = '#bb9cff'; g.fillStyle = '#7c5cbf';
+        g.lineWidth = Math.max(1.5, CELL * 0.085);
+        g.beginPath(); g.arc(_lx, _ly - _ls * 0.34, _ls * 0.42, Math.PI, 0); g.stroke();
+        g.fillRect(_lx - _ls * 0.62, _ly - _ls * 0.30, _ls * 1.24, _ls * 0.86);
+        g.fillStyle = '#e6b95c';
+        g.font = 'bold ' + Math.max(8, Math.round(CELL * 0.25)) + 'px monospace';
+        var _oldA = g.textAlign, _oldB = g.textBaseline;
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(String(_cost), _lx, _sy + CELL * 0.85);
+        g.textAlign = _oldA; g.textBaseline = _oldB;
+      }
+    }
     bgKey = key;
   }
   ctx.drawImage(bgCv, 0, 0, W, H);
@@ -5840,6 +5907,17 @@ cv.addEventListener('pointerdown', function(ev){
   var c = Math.floor((px - OX) / CELL), r = Math.floor((py - OY) / CELL);
   if (c < 0 || c >= COLS || r < 0 || r >= ROWS){ hideSel(); return; }
   if (isPath(c, r)){ showTip('路径上不能建塔'); hideSel(); return; }
+  /* v9.5：塔位要解锁 —— 锁着的格子点一下就是「买」，越买越贵 */
+  if (!isUnlocked(c, r)){
+    var uc = unlockCost();
+    if (gold < uc){ showTip('这个塔位要 ' + uc + ' 金币解锁（还差 ' + (uc - gold) + '）'); hideSel(); return; }
+    goldSub(uc); unlockSet[c + ',' + r] = 1; unlockBought++;
+    SFX.upgrade();
+    addFloat(cx(c), cy(r) - CELL * 0.3, '塔位解锁 -' + uc, '#e6b95c');
+    showTip('塔位已解锁 · 下一个要 ' + unlockCost() + ' 金币');
+    bgKey = ''; draw();          /* 立刻重画：这格从「锁」变「可建」 */
+    hideSel(); return;
+  }
   var t = towerAt(c, r);
   if (t) openTower(t, px, py); else openBuild(c, r, px, py);
 });
@@ -6217,7 +6295,7 @@ function frame(now){
     if (tipT <= 0 && HINT_ON){
       var te = document.getElementById('tip');
       te.style.color = '#a894d8';
-      te.textContent = '点空地建塔 · 点塔升级/出售 · 相邻不同元素会共鸣';
+      te.textContent = '点空地建塔 · 带锁的格子花金币解锁塔位 · 相邻不同元素会共鸣';
     }
   }
   draw();
@@ -6557,7 +6635,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 94;                     /* v9.4：修「进游戏先露出战斗界面 1 秒」——boot 标记改挂 body；与 version.json 同步 */
+var BUILD_CODE = 95;                     /* v9.5：新增塔位解锁机制（锁格子+花金币+越买越贵）；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){

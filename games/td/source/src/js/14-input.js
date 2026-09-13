@@ -232,6 +232,17 @@ cv.addEventListener('pointerdown', function(ev){
   var c = Math.floor((px - OX) / CELL), r = Math.floor((py - OY) / CELL);
   if (c < 0 || c >= COLS || r < 0 || r >= ROWS){ hideSel(); return; }
   if (isPath(c, r)){ showTip('路径上不能建塔'); hideSel(); return; }
+  /* v9.5：塔位要解锁 —— 锁着的格子点一下就是「买」，越买越贵 */
+  if (!isUnlocked(c, r)){
+    var uc = unlockCost();
+    if (gold < uc){ showTip('这个塔位要 ' + uc + ' 金币解锁（还差 ' + (uc - gold) + '）'); hideSel(); return; }
+    goldSub(uc); unlockSet[c + ',' + r] = 1; unlockBought++;
+    SFX.upgrade();
+    addFloat(cx(c), cy(r) - CELL * 0.3, '塔位解锁 -' + uc, '#e6b95c');
+    showTip('塔位已解锁 · 下一个要 ' + unlockCost() + ' 金币');
+    bgKey = ''; draw();          /* 立刻重画：这格从「锁」变「可建」 */
+    hideSel(); return;
+  }
   var t = towerAt(c, r);
   if (t) openTower(t, px, py); else openBuild(c, r, px, py);
 });

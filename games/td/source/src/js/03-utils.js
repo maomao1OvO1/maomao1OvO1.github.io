@@ -132,8 +132,50 @@ function buildPath(){
   };
   markPath(WAYPOINTS);
   markPath(WAYPOINTS2);          /* v8.10：第二条入口路径同样不能建塔 */
+  if (typeof buildSlots === 'function') buildSlots();   /* v9.5：路径定了，塔位跟着重算 */
 }
 buildPath();
 /* 判断 (c,r) 是否为敌人路径格：是则不能建塔（建塔点击与鼠标悬停都用它拦截）*/
 function isPath(c, r){ return !!pathSet[c + ',' + r]; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * v9.5 塔位解锁（毛毛要求：格子锁上、只留几个、玩家花钱买、越买越贵）
+ *
+ * 规则：
+ *   · 只有「紧贴路径」的非路径格才算塔位（远处的空地不作为塔位，避免目标太散）
+ *   · 每关开局免费解锁离基地最近的 UNLOCK_FREE 个，其余全部锁着
+ *   · 点锁定格 → 花金币解锁；每买一个，下一个价格 ×UNLOCK_GROW（本局内递增，换关重置）
+ *   · 塔位状态是「本局」状态，不进存档（换关/重开都重新算），所以不会污染老存档
+ * ══════════════════════════════════════════════════════════════════════════ */
+var unlockSet = {};          /* 已解锁的塔位（键 'c,r'） */
+var slotAll = [];            /* 本关全部塔位候选（贴路径的格子，按离基地远近排序） */
+var unlockBought = 0;        /* 本局已花钱买过的次数（决定价格递增） */
+var UNLOCK_FREE = 6;         /* 开局免费给几个塔位 */
+var UNLOCK_BASE = 40;        /* 第一个额外塔位的价格 */
+var UNLOCK_GROW = 1.75;      /* 每买一个，价格乘以它 */
+
+/* 下一个塔位的解锁价（本局内随购买次数递增） */
+function unlockCost(){ return Math.round(UNLOCK_BASE * Math.pow(UNLOCK_GROW, unlockBought)); }
+/* 该格是否已解锁（可直接建塔） */
+function isUnlocked(c, r){ return !!unlockSet[c + ',' + r]; }
+
+/* 重建本关塔位：buildPath() 之后调用（路径变了塔位也就变了） */
+function buildSlots(){
+  unlockSet = {}; slotAll = []; unlockBought = 0;
+  var base = WAYPOINTS && WAYPOINTS.length ? WAYPOINTS[WAYPOINTS.length - 1] : [0, 0];
+  for (var c = 0; c < COLS; c++){
+    for (var r = 0; r < ROWS; r++){
+      if (pathSet[c + ',' + r]) continue;                       /* 路径格不能建塔 */
+      var near = pathSet[(c-1)+','+r] || pathSet[(c+1)+','+r] ||
+                 pathSet[c+','+(r-1)] || pathSet[c+','+(r+1)];
+      if (!near) continue;                                      /* 不贴路径 → 不算塔位 */
+      slotAll.push({ c: c, r: r, d: Math.abs(c - base[0]) + Math.abs(r - base[1]) });
+    }
+  }
+  slotAll.sort(function(a, b){ return a.d - b.d || a.c - b.c || a.r - b.r; });
+  for (var i = 0; i < Math.min(UNLOCK_FREE, slotAll.length); i++){
+    unlockSet[slotAll[i].c + ',' + slotAll[i].r] = 1;
+  }
+  bgKey = '';                                                   /* 静态层缓存作废：锁的分布变了 */
+}
 
