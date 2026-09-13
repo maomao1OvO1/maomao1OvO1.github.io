@@ -32,7 +32,7 @@ function strip(txt) {
 
 /* VERSION_INJECT：版本号单一来源 = ../version.json，注入到 index.html 的 v__VERSION__ 占位符 */
 const VER = (function(){
-  try { return JSON.parse(fs.readFileSync(path.join(SRC, '..', 'version.json'), 'utf8')).version; }
+  try { return JSON.parse(fs.readFileSync(path.join(SRC, '..', '..', 'version.json'), 'utf8')).version; }
   catch (e) { return 'dev'; }
 })();
 

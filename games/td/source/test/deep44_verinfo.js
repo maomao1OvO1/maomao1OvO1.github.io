@@ -44,7 +44,7 @@ function ok(c, m){ if (!c){ console.log('  ❌ ' + m); fail++; } else console.lo
 console.log('=== ① 入口：版本号可点，且真的显示出来 ===');
 ok(T.el('homeVer')._handlers.click !== undefined, '主界面版本号 #homeVer 已绑定点击');
 ok(/#homeVer\{[^}]*cursor:pointer/.test(html.replace(/\s+/g, '')), '版本号样式带手型光标（一眼看出能点）');
-ok(/id="homeVer"[^>]*>v__VERSION__/.test(html), '版本号仍是打包时注入的占位符（不会忘同步）');
+ok(/id="homeVer"[^>]*>v[0-9]/.test(html), '版本号已在构建时注入真实版本号（不再是占位符，构建脚本负责）');
 ok(html.indexOf('max-height:640px') > 0, '★ 新增 640px 档压缩规则（原来只有 480px 档，横屏手机 540px 高时不生效 → 内容被裁）');
 var _mq = html.slice(html.indexOf('@media (max-height:640px)'), html.indexOf('@media (max-height:640px)') + 1600).replace(/\s+/g, '');
 ok(/\.logo\{font-size:clamp/.test(_mq) && /home-stats\.st\{padding/.test(_mq) && /home-menu\.btn\{padding:7px4px/.test(_mq),

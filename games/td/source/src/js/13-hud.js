@@ -506,6 +506,7 @@ var bgmMaster = 1;        /* 当前淡化系数 */
 var bgmMTarget = 1;       /* 目标系数 */
 var bgmMSpeed = 1;        /* 每秒变化量（1/秒数） */
 var bgmPauseT = null;     /* 渐出后真正暂停的定时器 */
+var bgmFirstPlay = true;  /* v9.1：弱起只做本局第一次起播（见 bgmPlay 注释） */
 
 /* 设定淡化目标：target 0~1，secs 秒走完 */
 function bgmFadeTo(target, secs){
@@ -542,6 +543,9 @@ function bgmSetRate(r){
 }
 /* 每帧推进交叉淡化：曲尾前 BGM_XF 秒起淡，淡完交换主从 */
 function bgmXfadeTick(rawDt){
+  /* v9.1：起落淡化（弱起 / 渐出）也在这里推进 —— 它每帧必调，比挂在 musicTick 上更可靠，
+     也让「起落」与「循环交叉淡化」共用同一条时间轴，不会出现一个走了另一个没走的情况。 */
+  if (bgmFadeTick(rawDt)){ try { var _fm = bgmDeckEl(bgmCur); if (_fm) _fm.volume = bgmV(); } catch (e) {} }
   var cur = bgmDeckEl(bgmCur), nx = bgmDeckEl(1 - bgmCur);
   if (!cur || !nx) return;
   if (!MUSIC_ON){ if (bgmFade > 0) bgmFade = 0; return; }
@@ -589,8 +593,10 @@ function bgmPlay(){
   if (!el) return;
   if (bgmPauseT){ clearTimeout(bgmPauseT); bgmPauseT = null; }   /* 取消待执行的渐出暂停 */
   try {
-    /* v9.0 弱起：只有从「没在放」起播才重新淡入；恢复播放（暂停/切后台回来）不重新淡 */
-    if (el.paused || bgmMaster < 0.999){ if (el.paused) bgmMaster = 0; bgmFadeTo(1, 2.0); }
+    /* v9.1 修：弱起只做「本局第一次起播」，以后任何一次 bgmPlay（切后台回来 / 暂停恢复 /
+       循环接力）都直接给足目标音量 —— 否则会每次白淡 2 秒，还会把循环交叉淡化压成 0。
+       旧写法用的是 el.paused，而恢复播放时 el.paused 同样是 true，判断条件太宽。 */
+    if (bgmFirstPlay){ bgmFirstPlay = false; bgmMaster = 0; bgmFadeTo(1, 2.0); }
     el.volume = bgmV();
     try { el.playbackRate = bgmRate; } catch (er) {}
     var p = el.play();
@@ -635,7 +641,6 @@ function bgmAdapt(){
 var accentT = 0;
 /* 音乐节拍推进：先跑真人 BGM 的交叉淡化，再按局势（波次/BOSS）加程序合成的点缀音（每帧调用）*/
 function musicTick(rawDt){
-  if (bgmFadeTick(rawDt)){ try { var _e = bgmDeckEl(bgmCur); if (_e) _e.volume = bgmV(); } catch (e) {} }
   bgmXfadeTick(rawDt);            /* v8.18：真人 BGM 的循环交叉淡化（每帧推进，与合成乐无关） */
   if (bgmOK){                 // 真人 BGM 在响：不再叠整曲，只在关键局势加轻点缀
     if (!running || paused || menuPause) return;
