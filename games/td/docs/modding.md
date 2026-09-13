@@ -11,7 +11,9 @@
 解包 APK（把 `.apk` 后缀改成 `.zip` 再解开），你会看到：
 
 ```
-assets/index.html      ← 整个游戏（约 320KB 单文件：HTML + CSS + JS 全在里面）
+assets/index.html      ← 页面骨架（HTML，引用下面的 css / js）
+assets/css/*.css       ← 样式（3 个文件：base / responsive / home）
+assets/js/*.js         ← 逻辑（21 个文件，按序号顺序加载）
 assets/music/bgm.ogg   ← 背景音乐（CC0，可换）
 ```
 
