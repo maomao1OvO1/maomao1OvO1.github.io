@@ -76,10 +76,10 @@ T.startLevel(0);
 ok(shown(), '第 1 关仍然弹开场提示');
 ok(title().indexOf('第 1 关') === 0, '第 1 关弹的是「第 1 关 · …」（' + title() + '）');
 ok(body().indexOf('新手提示') >= 0, '第 1 关的「新手提示」还在');
+/* v9.14（毛毛：每一关都弹提示太烦）：开局弹层只在第 1 关；第 2 关起直接开打、不再弹 */
 T.startLevel(2);
-ok(title().indexOf('第 3 关') === 0, '第 3 关弹的是「第 3 关 · …」（' + title() + '）');
-ok(String(T.el('introSub').textContent).indexOf(String(T.LEVELS[2].waves) + ' 波') >= 0,
-   '第 3 关副标题是本关的波数（' + T.LEVELS[2].waves + ' 波）');
+ok(shown() === false, '★ v9.14：第 3 关不再弹开局弹层（改由波内一行小字播报）');
+ok(T.getS().running === true && T.getS().paused === false, '第 3 关直接就是运行态（不阻塞）');
 ok(T.getS().endless === false, '普通关卡不会残留 endless 标记');
 
 console.log('=== ⑤ 无尽「续玩」不弹开场（玩家已经知道自己要接着打）===');
@@ -102,9 +102,17 @@ ok(T.getS().running === true && T.getS().paused === false, '续玩后直接就�
 
 console.log('=== ⑥ 每日挑战 / NO_INTRO 开关都没受影响 ===');
 T.startDaily(false);
-ok(shown(), '每日挑战仍弹开场提示');
-ok(title().indexOf('第 ' + (T.getS().lvIndex + 1) + ' 关') === 0,
-   '每日挑战弹的是它今天指定的那一关（' + title() + '）');
+var dIdx = T.getS().lvIndex;
+if (dIdx === 0){
+  /* v9.14 起开局弹层只在第 1 关（新手关）出现；每日挑战恰好落在第 1 关时仍会弹 */
+  ok(shown(), '每日挑战落在第 1 关（新手关）→ 仍弹开场提示');
+  ok(title().indexOf('第 ' + (dIdx + 1) + ' 关') === 0,
+     '每日挑战弹的是它今天指定的那一关（' + title() + '）');
+} else {
+  /* v9.14（毛毛：每一关都弹提示太烦）：非第 1 关不再弹阻塞式弹层，直接开打 */
+  ok(shown() === false, '★ v9.14：每日挑战落在第 ' + (dIdx + 1) + ' 关 → 不再弹开场弹层');
+  ok(T.getS().running === true && T.getS().paused === false, '不弹层时直接进入运行态');
+}
 T.el('introOv').classList.add('hidden');
 T.setNoIntro(true);
 T.startEndless();

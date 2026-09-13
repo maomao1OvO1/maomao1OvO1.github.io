@@ -880,14 +880,62 @@ function levelNewEnemies(idx){
   out.sort(function(a, b){ return a.wave - b.wave; });
   return out;
 }
+/* ══════════════════════════════════════════════════════════════════════════
+ * v9.14（毛毛：「为啥这游戏每一关都有新手提示啊😡」）
+ * 把原来「每关开局弹层」里的新东西，改成**打到这里才飘一行顶部小字**：
+ *   · 不阻塞、不用点掉（弹层要按「开始战斗」才开打，每关都弹等于每关被塞一遍教程）
+ *   · 每类提示一辈子只说一次（hintOnce 记账）—— 见过了就不再打扰
+ *   · 由 startWave() 每波开始时调用；无尽模式同样生效
+ * ══════════════════════════════════════════════════════════════════════════ */
+function waveIntroTips(w){
+  var k, i;
+  if (tutorial) return;                        /* 教学关有自己的弱指引，这里全程安静 */
+  if (!endless && lvIndex === 0) return;       /* 第 1 关（新手关）的信息由开局弹层讲，不重复飘字 */
+  /* ① 本波首次登场的敌人（按 ENEMY_INTRO_WAVE 的表） */
+  for (k in ENEMY_INTRO_WAVE){
+    if (ENEMY_INTRO_WAVE[k] !== w) continue;
+    var e = ENEMIES[k];
+    if (!e) continue;
+    hintOnce('enemy_' + k, '新敌人 ' + e.name + ' 登场' + (e.fx ? ' —— ' + e.fx : '') + (e.tip ? '（' + e.tip + '）' : ''));
+  }
+  /* ② 机制里程碑（天气开启 / BOSS / 双 BOSS / 高强度阶段） */
+  for (i = 0; i < MECH_INTRO.length; i++){
+    if (MECH_INTRO[i].wave === w){
+      hintOnce('mech_' + MECH_INTRO[i].wave, String(MECH_INTRO[i].text).replace(/^[^0-9A-Za-z\u4e00-\u9fa5]+/, ''));
+    }
+  }
+  /* ③ 开局第 1 波顺带播报「本关新解锁技能」与「双入口地图」（原来塞在开局弹层里的两条） */
+  if (w === 1 && !tutorial){
+    for (i = 0; i < SKILLS.length; i++){
+      var sk = SKILLS[i];
+      if (skillUnlockedAt(sk.key, lvIndex) && skillUnlockLv(sk.key) === lvIndex + 1){
+        hintOnce('skl_' + sk.key + '_' + lvIndex,
+          '本关解锁技能 ' + sk.icon + ' ' + sk.name + '（冷却 ' + sk.cd + ' 秒）—— ' + skHowTo(sk.key));
+      }
+    }
+    if (typeof LEVELS !== 'undefined' && LEVELS[lvIndex] && LEVELS[lvIndex].path2){
+      hintOnce('path2_' + lvIndex, '这张图是双入口 —— 敌人从两条路同时来，两边都要布防');
+    }
+  }
+}
 /* 打开关卡开幕提示弹层：列出本关新敌人与新机制，测试可用 NO_INTRO 跳过这个阻塞式弹层 */
 function showLevelIntro(idx){
   /* 自动化测试 / 批量模拟可以设全局 NO_INTRO = true 跳过这个阻塞式弹层（否则游戏会一直暂停） */
   if (typeof NO_INTRO !== 'undefined' && NO_INTRO){ running = true; paused = false; return; }
   var L = LEVELS[idx];
+  /* v9.14 修 bug（毛毛：「为啥这游戏每一关都有新手提示啊😡」）：
+     原来每关都**无条件**弹这个阻塞式弹层（要手动点「开始战斗」才开打），而且弹层里大段是上一关就说过的旧信息
+     （「已有：技能…」、「本关暂无可用技能」、「🗺 地图…」），第 2 关起读起来就是每关重放一遍新手教程。
+     现在改为：**只有第 1 关（真·新手关）弹**；其余关卡的「新敌人 / 新机制 / 双入口地图」信息
+     改由 waveIntroTips() 在对应波次开始时飘一行顶部小字（不挡操作、不用点掉、每类一辈子只说一次）。 */
+  var news = levelNewEnemies(idx), mech = levelNewMech(idx), skNew = [];
+  SKILLS.forEach(function(sk){
+    if (skillUnlockedAt(sk.key, idx) && skillUnlockLv(sk.key) === idx + 1) skNew.push(sk);
+  });
+  if (idx !== 0){ running = true; paused = false; last = 0; return; }
   document.getElementById('introTitle').textContent = '第 ' + (idx + 1) + ' 关 · ' + (L.name.split('·')[1] || '').trim();
   document.getElementById('introSub').textContent = L.waves + ' 波 · 初始金币 ' + L.gold + ' · 难度系数 ' + L.diff;
-  var news = levelNewEnemies(idx), h = '';
+  var h = '';
   if (news.length){
     h += '<div style="font-size:12.5px;font-weight:700;color:#ffd76a;margin:2px 0 5px;">🆕 本关新出现（上一关还没有）</div>';
     news.forEach(function(n){
@@ -910,7 +958,6 @@ function showLevelIntro(idx){
       + '同元素相邻则是<b>共振</b>。点已建好的塔可以看到每发伤害与暴击伤害。</div>';
   }
   /* 本关的新机制（天气开启 / BOSS / 双 BOSS / 高强度阶段） */
-  var mech = levelNewMech(idx);
   if (mech.length){
     h += '<div style="font-size:12.5px;font-weight:700;color:#8ff0ff;margin:9px 0 5px;">⚙️ 本关新机制</div>';
     mech.forEach(function(m){
@@ -919,28 +966,15 @@ function showLevelIntro(idx){
         + '<span style="color:#a894d8;">第' + m.wave + '波起</span>　' + m.text + '</div>';
     });
   }
-  /* 本关可用的主动技能（新解锁的会标出来）—— 回应「每关增加一个技能」 */
-  var skNew = [], skHave = [];
-  SKILLS.forEach(function(sk){
-    if (skillUnlockedAt(sk.key, idx)){
-      if (skillUnlockLv(sk.key) === idx + 1) skNew.push(sk); else skHave.push(sk);
-    }
-  });
-  h += '<div style="font-size:12.5px;font-weight:700;color:#ffd08a;margin:9px 0 5px;">⚡ 本关主动技能</div>';
+  /* 本关新解锁的主动技能（v9.14：只讲「本关新增」，不再每关罗列一遍已有技能） */
   if (skNew.length){
+    h += '<div style="font-size:12.5px;font-weight:700;color:#ffd08a;margin:9px 0 5px;">⚡ 本关新解锁技能</div>';
     skNew.forEach(function(sk){
       h += '<div style="font-size:12px;color:#fff0c0;line-height:1.5;padding:6px 9px;border-radius:10px;'
         + 'background:rgba(96,66,16,.75);border:1px solid rgba(255,200,110,.5);margin-bottom:5px;">'
         + '🆕 <b>' + sk.icon + ' ' + sk.name + '</b>（冷却 ' + sk.cd + ' 秒）　' + skHowTo(sk.key)
         + '<span style="display:block;font-size:11px;color:#ffd08a;">' + sk.desc + '</span></div>';
     });
-  }
-  if (skHave.length){
-    h += '<div style="font-size:11.5px;color:#bb9cff;line-height:1.5;padding:0 2px;">已有：'
-      + skHave.map(function(sk){ return sk.icon + ' ' + sk.name; }).join('　') + '（点技能栏「?」看用法）</div>';
-  }
-  if (!skNew.length && !skHave.length){
-    h += '<div style="font-size:11.5px;color:#bb9cff;">本关暂无可用技能</div>';
   }
   /* 地图特征（双入口会额外醒目提示 —— 只堆一边必定漏怪） */
   if (L.path2){
@@ -950,8 +984,6 @@ function showLevelIntro(idx){
       + '敌人会随机从<b>两条路</b>同时进攻（各 ' + L.path.length + ' / ' + L.path2.length + ' 个拐点），'
       + '只守一边必然漏怪 —— 注意两侧都要布防，或者把主力放在两条路的交汇处附近。</div>';
   }
-  h += '<div style="font-size:11.5px;color:#bb9cff;margin-top:8px;line-height:1.5;">🗺 地图：<b>' + L.name + '</b>'
-    + '（路径 ' + L.path.length + ' 个拐点，敌人从地图边缘一路走到基地）</div>';
   document.getElementById('introBody').innerHTML = h;
   running = false; paused = true;
   document.getElementById('introOv').classList.remove('hidden');
