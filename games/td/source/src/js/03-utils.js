@@ -132,72 +132,8 @@ function buildPath(){
   };
   markPath(WAYPOINTS);
   markPath(WAYPOINTS2);          /* v8.10：第二条入口路径同样不能建塔 */
-  if (typeof buildSlots === 'function') buildSlots();   /* v9.5：路径定了，塔位跟着重算 */
 }
 buildPath();
 /* 判断 (c,r) 是否为敌人路径格：是则不能建塔（建塔点击与鼠标悬停都用它拦截）*/
 function isPath(c, r){ return !!pathSet[c + ',' + r]; }
-
-/* ══════════════════════════════════════════════════════════════════════════
- * v9.5 塔位解锁（毛毛要求：格子锁上、只留几个、玩家花钱买、越买越贵）
- *
- * 规则：
- *   · 只有「紧贴路径」的非路径格才算塔位（远处的空地不作为塔位，避免目标太散）
- *   · 每关开局免费解锁离基地最近的 UNLOCK_FREE 个，其余全部锁着
- *   · 点锁定格 → 花金币解锁；每买一个，下一个价格 ×UNLOCK_GROW（本局内递增，换关重置）
- *   · 塔位状态是「本局」状态，不进存档（换关/重开都重新算），所以不会污染老存档
- * ══════════════════════════════════════════════════════════════════════════ */
-var unlockSet = {};          /* 已解锁的塔位（键 'c,r'） */
-var slotAll = [];            /* 本关全部塔位候选（贴路径的格子，按离基地远近排序） */
-var unlockBought = 0;        /* 本局已花钱买过的次数（决定价格递增） */
-var UNLOCK_FREE = 6;         /* 开局免费给几个塔位 */
-var UNLOCK_BASE = 40;        /* 第一个额外塔位的价格 */
-var UNLOCK_GROW = 1.75;      /* 每买一个，价格乘以它 */
-var SLOT_MIN_GAP = 2;        /* v9.7：塔位之间至少隔几格（切比雪夫距离），防满屏障碍 */
-
-/* 下一个塔位的解锁价（本局内随购买次数递增） */
-function unlockCost(){ return Math.round(UNLOCK_BASE * Math.pow(UNLOCK_GROW, unlockBought)); }
-/* 该格是否已解锁（可直接建塔） */
-function isUnlocked(c, r){ return !!unlockSet[c + ',' + r]; }
-/* v9.5 修补：该格是否「塔位候选」—— 只有贴路径的格子才是塔位。
-   毛毛报「点击哪里都解锁」：因为老代码只判断 isUnlocked，远处空地不在候选里、
-   自然也不是已解锁 → 被误当成「可购买」处理。这里补上候选判定。 */
-function isSlot(c, r){
-  for (var i = 0; i < slotAll.length; i++){ if (slotAll[i].c === c && slotAll[i].r === r) return true; }
-  return false;
-}
-
-/* 重建本关塔位：buildPath() 之后调用（路径变了塔位也就变了） */
-function buildSlots(){
-  unlockSet = {}; slotAll = []; unlockBought = 0;
-  var base = WAYPOINTS && WAYPOINTS.length ? WAYPOINTS[WAYPOINTS.length - 1] : [0, 0];
-  for (var c = 0; c < COLS; c++){
-    for (var r = 0; r < ROWS; r++){
-      if (pathSet[c + ',' + r]) continue;                       /* 路径格不能建塔 */
-      var near = pathSet[(c-1)+','+r] || pathSet[(c+1)+','+r] ||
-                 pathSet[c+','+(r-1)] || pathSet[c+','+(r+1)];
-      if (!near) continue;                                      /* 不贴路径 → 不算塔位 */
-      slotAll.push({ c: c, r: r, d: Math.abs(c - base[0]) + Math.abs(r - base[1]) });
-    }
-  }
-  slotAll.sort(function(a, b){ return a.d - b.d || a.c - b.c || a.r - b.r; });
-  /* v9.7 稀疏化（毛毛：「障碍太多太密，看着不对」）：
-     贴路径的格子本来有九十个上下，全画成障碍就是满地石头树 + 满屏价签。
-     这里按「彼此至少隔 SLOT_MIN_GAP 格」筛一遍，留下真正有战术意义的点位，
-     数量降到二十来个 —— 既像障碍，也看得出哪儿值得占。 */
-  var _sparse = [];
-  for (var _i = 0; _i < slotAll.length; _i++){
-    var _s = slotAll[_i], _ok = true;
-    for (var _j = 0; _j < _sparse.length; _j++){
-      var _t2 = _sparse[_j];
-      if (Math.max(Math.abs(_t2.c - _s.c), Math.abs(_t2.r - _s.r)) < SLOT_MIN_GAP){ _ok = false; break; }
-    }
-    if (_ok) _sparse.push(_s);
-  }
-  slotAll = _sparse;
-  for (var i = 0; i < Math.min(UNLOCK_FREE, slotAll.length); i++){
-    unlockSet[slotAll[i].c + ',' + slotAll[i].r] = 1;
-  }
-  bgKey = '';                                                   /* 静态层缓存作废：锁的分布变了 */
-}
 
