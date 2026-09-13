@@ -2,7 +2,7 @@
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:7c5cbf,100:2b1b4d&height=210&section=header&text=%E6%AF%9B%E6%AF%9B%E7%9A%84%E7%BD%91%E7%AB%99&fontSize=58&fontColor=ffffff&animation=fadeIn" width="100%" alt="毛毛的网站" />
 
-**AI 余额查询盒 · 小游戏大厅 · 原创塔防 · 硬件测试实验室 · 音乐与相册**
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1200&color=7C5CBF&center=true&vCenter=true&width=780&height=46&lines=%E4%B8%80%E4%B8%AA%E5%AD%A6%E7%94%9F%E8%87%AA%E5%B7%B1%E5%86%99%E3%80%81%E8%87%AA%E5%B7%B1%E6%89%98%E7%AE%A1%E7%9A%84%E4%B8%AA%E4%BA%BA%E5%B0%8F%E7%AB%99%3BAI%20%E4%BD%99%E9%A2%9D%E6%9F%A5%E8%AF%A2%E7%9B%92%20%C2%B7%20%E5%B0%8F%E6%B8%B8%E6%88%8F%E5%A4%A7%E5%8E%85%20%C2%B7%20%E7%A1%AC%E4%BB%B6%E6%B5%8B%E8%AF%95%E5%AE%9E%E9%AA%8C%E5%AE%A4%3B%E5%8E%9F%E5%88%9B%E5%A1%94%E9%98%B2%E3%80%8A%E5%85%B1%E9%B8%A3%E4%B9%8B%E5%A1%94%E3%80%8B%C2%B7%20%E5%83%8F%E7%B4%A0%E9%A3%8E%20%C2%B7%20%E9%9B%B6%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90%3B%E6%89%80%E6%9C%89%E4%BB%A3%E7%A0%81%E9%83%BD%E6%98%AF%E8%87%AA%E5%B7%B1%E5%86%99%E7%9A%84" alt="一句话介绍" />
 
 🚀 **快速入口**　[🗼 玩《共鸣之塔》](https://maomao1ovo1.github.io/games/td/) ｜ [🎮 游戏大厅](https://maomao1ovo1.github.io/games.html) ｜ [🏆 排行榜](https://maomao1ovo1.github.io/games/ranking.html) ｜ [📱 硬件测试](https://maomao1ovo1.github.io/hardware-lab/) ｜ [🎵 音乐](https://maomao1ovo1.github.io/music.html) ｜ [📷 相册](https://maomao1ovo1.github.io/photo.html)
 
@@ -160,6 +160,8 @@ python3 -m http.server 3000 --bind 127.0.0.1   # → http://127.0.0.1:3000
 - 排行榜主数据源已迁移 **Firestore**，历史 Render 服务器仅作备用。
 
 ---
+
+<img src="https://opengraph.githubassets.com/1/maomao1OvO1/maomao1OvO1.github.io" width="100%" alt="仓库卡片" />
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:2b1b4d,100:7c5cbf&height=120&section=footer" width="100%" />
 
