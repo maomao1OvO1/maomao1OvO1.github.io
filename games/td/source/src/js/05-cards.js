@@ -205,13 +205,13 @@ function showPactChoices(){
   var el = document.getElementById('buffList');
   el.innerHTML = '<div style="font-size:13px;font-weight:700;color:#ffd76a;text-align:center;margin-bottom:6px;">'
     + '⚔ 无尽契约 · 第 ' + wave + ' 波已过 · 必选其一</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;margin-bottom:6px;">代价与收益并存，每份契约都会累积影响到后面所有波</div>';
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;margin-bottom:6px;">代价与收益并存，每份契约都会累积影响到后面所有波</div>';
   picks.forEach(function(p){
     var btn = document.createElement('button');
     btn.className = 'btn';
     btn.style.cssText = 'padding:13px 15px;font-size:14.5px;width:100%;line-height:1.5;text-align:left;'
       + 'border-color:#ff9a6a;box-shadow:0 0 12px #ff9a6a55;';
-    btn.innerHTML = '<b>' + p.name + '</b><br><span style="font-size:12px;color:#9fc4f0">' + p.desc + '</span>';
+    btn.innerHTML = '<b>' + p.name + '</b><br><span style="font-size:12px;color:#bb9cff">' + p.desc + '</span>';
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
       p.apply(); PACT.taken.push(p.name);
@@ -233,7 +233,7 @@ function updateBuffHead(){
   var _bt = document.getElementById('buffTitle'), _bs = document.getElementById('buffSub');
   var _ar = archetypeNow();
   if (_bt) _bt.textContent = banMode ? '🚫 选一张禁掉（本局不再出现）' : '选择强化';
-  if (_bs) _bs.innerHTML = '🎯 当前倾向：<b style="color:#ffd76a">' + _ar.name + '</b>　<span style="font-size:11px;color:#9fc4f0">'
+  if (_bs) _bs.innerHTML = '🎯 当前倾向：<b style="color:#ffd76a">' + _ar.name + '</b>　<span style="font-size:11px;color:#bb9cff">'
     + _ar.hint + '</span><br><span style="font-size:10.5px;color:#7d8ba3;">🔄 换一批 ' + rerollLeft + ' 次　🚫 禁卡 ' + banLeft + ' 次</span>';
   var _bb = document.getElementById('banBtn');
   if (_bb) _bb.style.outline = banMode ? '2px solid #ffd76a' : 'none';
@@ -259,7 +259,7 @@ function showBuffChoices(excludeIds, reuse){
     btn.style.boxShadow = '0 0 12px ' + rar.color + '55';
     btn.innerHTML = '<b>' + b.name + '</b><span style="font-size:10px;color:' + rar.color +
       ';border:1px solid ' + rar.color + ';border-radius:8px;padding:0 5px;margin-left:6px;">' + rar.name + '</span>' +
-      '<br><span style="font-size:12px;color:#9fc4f0">' + b.desc + '</span>';
+      '<br><span style="font-size:12px;color:#bb9cff">' + b.desc + '</span>';
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
       if (banMode && banLeft > 0){             /* v8.7 禁卡模式：点哪张就禁掉哪张，然后重抽 */
@@ -285,7 +285,7 @@ function showBuffChoices(excludeIds, reuse){
   rerollBtn.id = 'rerollBtn';
   rerollBtn.style.cssText = 'flex:1;padding:9px 6px;font-size:12.5px;'
     + (rerollLeft > 0 ? '' : 'opacity:.45;');
-  rerollBtn.innerHTML = '🔄 换一批<br><span style="font-size:10.5px;color:#9fc4f0">剩 ' + rerollLeft + ' 次</span>';
+  rerollBtn.innerHTML = '🔄 换一批<br><span style="font-size:10.5px;color:#bb9cff">剩 ' + rerollLeft + ' 次</span>';
   rerollBtn.addEventListener('click', function(ev){
     ev.stopPropagation();
     if (rerollLeft <= 0){ showTip('没有「换一批」次数了（每 5 波会补充 1 次）'); return; }
@@ -300,7 +300,7 @@ function showBuffChoices(excludeIds, reuse){
   banBtn.id = 'banBtn';
   banBtn.style.cssText = 'flex:1;padding:9px 6px;font-size:12.5px;'
     + (banLeft > 0 ? '' : 'opacity:.45;');
-  banBtn.innerHTML = '🚫 禁一张<br><span style="font-size:10.5px;color:#9fc4f0">剩 ' + banLeft + ' 次</span>';
+  banBtn.innerHTML = '🚫 禁一张<br><span style="font-size:10.5px;color:#bb9cff">剩 ' + banLeft + ' 次</span>';
   banBtn.addEventListener('click', function(ev){
     ev.stopPropagation();
     if (banLeft <= 0){ showTip('没有「禁卡」次数了'); return; }

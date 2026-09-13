@@ -175,7 +175,7 @@ function frame(now){
     tipT -= dt;
     if (tipT <= 0 && HINT_ON){
       var te = document.getElementById('tip');
-      te.style.color = '#8fb4dc';
+      te.style.color = '#a894d8';
       te.textContent = '点空地建塔 · 点塔升级/出售 · 相邻不同元素会共鸣';
     }
   }

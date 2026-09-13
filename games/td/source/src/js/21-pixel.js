@@ -232,6 +232,25 @@ function pxify(root){
   }
 }
 
+/* ── v9.1 性能：游戏里金币/波次之类的文本每帧都在变，若每次变动都全树扫描会卡。
+   改成「攒到下一帧统一处理」，一帧最多扫一次；并只监听 childList（设置 textContent
+   同样会产生 childList 变动），不再监听 characterData，触发次数再降一档。 ── */
+var pxPending = [], pxRaf = 0;
+function pxFlush(){
+  pxRaf = 0;
+  var list = pxPending; pxPending = [];
+  for (var i = 0; i < list.length; i++){
+    try { pxify(list[i]); } catch (e) {}
+  }
+}
+function pxSchedule(root){
+  if (!root) return;
+  if (pxPending.indexOf(root) < 0) pxPending.push(root);
+  if (pxRaf) return;
+  pxRaf = (typeof requestAnimationFrame === 'function')
+    ? requestAnimationFrame(pxFlush) : setTimeout(pxFlush, 16);
+}
+
 /* ── 启动：先扫一遍，再用 MutationObserver 跟进后续动态内容 ── */
 function boot(){
   try { pxify(document.body); } catch(e){}
@@ -239,18 +258,15 @@ function boot(){
   var mo = new MutationObserver(function(muts){
     for (var i=0;i<muts.length;i++){
       var m = muts[i];
-      if (m.type === 'childList'){
-        for (var j=0;j<m.addedNodes.length;j++){
-          var nd = m.addedNodes[j];
-          if (nd.nodeType === 1) pxify(nd);
-          else if (nd.nodeType === 3 && nd.parentNode) pxify(nd.parentNode);
-        }
-      } else if (m.type === 'characterData' && m.target.parentNode){
-        pxify(m.target.parentNode);
+      if (m.type !== 'childList') continue;
+      for (var j=0;j<m.addedNodes.length;j++){
+        var nd = m.addedNodes[j];
+        if (nd.nodeType === 1) pxSchedule(nd);
+        else if (nd.nodeType === 3 && nd.parentNode) pxSchedule(nd.parentNode);
       }
     }
   });
-  try { mo.observe(document.body, { childList:true, subtree:true, characterData:true }); } catch(e){}
+  try { mo.observe(document.body, { childList:true, subtree:true }); } catch(e){}
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

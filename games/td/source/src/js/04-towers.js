@@ -55,7 +55,7 @@ var ELEMS = {
      （因为它们都是遍历 ELEMS 生成的）。定位是现有 8 座塔都没覆盖的「高频低伤」：
      单次伤害极小 → 天然绕过「壁垒兵」的单次伤害减免（>25% 血量才触发减伤）与「硬化」词缀
      （25% 概率只吃 40% 伤害，多段小伤害的期望损失更小）。 */
-  gatling: { name:'机枪', icon:'🔫', color:'#c8d8ee', cost:96, dmg:6, rate:0.16, range:2.3,
+  gatling: { name:'机枪', icon:'🔫', color:'#d8cff0', cost:96, dmg:6, rate:0.16, range:2.3,
              sys:'solo', role:'速射', soloStar:3, groupStar:2,
              fx:'高频低伤：单次伤害极小，专克「壁垒兵」的单次减伤与「硬化」词缀',
              upRange:0.05, upName:'射程 +0.05 格/级' },
@@ -326,7 +326,7 @@ function renderSkillBar(){
     helpBtn.className = 'btn';
     helpBtn.id = 'sk_help';
     helpBtn.style.cssText = 'padding:5px 9px;border-radius:9px;font-size:13px;font-weight:700;'
-      + 'border:1px solid rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#9fd0ff;';
+      + 'border:1px solid rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#cfc4ff;';
     helpBtn.textContent = '?';
     helpBtn.title = '主动技能说明：怎么用 / 什么时候解锁';
     helpBtn.addEventListener('click', function(ev){ ev.stopPropagation(); showSkillHelp(); });
@@ -435,7 +435,7 @@ function appendBriefToggle(container){
   var b = document.createElement('button');
   b.className = 'btn';
   b.style.cssText = 'padding:9px 14px;font-size:12.5px;width:100%;margin-top:6px;'
-    + 'border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#9fd0ff;';
+    + 'border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#cfc4ff;';
   b.innerHTML = UI_BRIEF ? '📖 显示完整说明（切到详细模式）' : '📄 收起说明（切到简易模式）';
   b.addEventListener('click', function(ev){ ev.stopPropagation(); toggleUiBrief(); });
   container.appendChild(b);
@@ -449,8 +449,8 @@ function showSkillHelp(brief){
   if (brief === undefined) brief = skillHelpBrief;
   skillHelpBrief = brief;
   var el = document.getElementById('buffList');
-  var h = '<div style="font-size:13.5px;font-weight:700;color:#9fd0ff;text-align:center;margin-bottom:4px;">⚡ 主动技能说明</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;margin-bottom:7px;">'
+  var h = '<div style="font-size:13.5px;font-weight:700;color:#cfc4ff;text-align:center;margin-bottom:4px;">⚡ 主动技能说明</div>'
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;margin-bottom:7px;">'
     + (endless ? '无尽模式：4 个技能全部可用' : '带 🔒 的技能要打到对应关卡才解锁') + '</div>';
   el.innerHTML = h;
   SKILLS.forEach(function(sk){
@@ -462,16 +462,16 @@ function showSkillHelp(brief){
     if (brief){
       /* 简短版：一行一个技能，只留「怎么用 + 冷却 + 解锁」 */
       box.innerHTML = '<b style="font-size:13px;color:#ffd08a;">' + sk.icon + ' ' + sk.name + '</b>'
-        + '<span style="float:right;font-size:10.5px;color:#8fb4dc;">' + sk.cd + ' 秒</span>'
+        + '<span style="float:right;font-size:10.5px;color:#a894d8;">' + sk.cd + ' 秒</span>'
         + '<div style="font-size:11.5px;color:#7cf5c0;line-height:1.45;margin-top:1px;">' + skHowTo(sk.key) + '</div>'
-        + '<div style="font-size:10.5px;color:' + (un ? '#9fc4f0' : '#ff9a6a') + ';">'
+        + '<div style="font-size:10.5px;color:' + (un ? '#bb9cff' : '#ff9a6a') + ';">'
         + (un ? '✅ 已解锁' : '🔒 第 ' + skillUnlockLv(sk.key) + ' 关解锁') + '</div>';
     } else {
       box.innerHTML = '<b style="font-size:14px;color:#ffd08a;">' + sk.icon + ' ' + sk.name + '</b>'
-        + '<span style="float:right;font-size:11px;color:#8fb4dc;">冷却 ' + sk.cd + ' 秒</span>'
-        + '<div style="font-size:11.5px;color:#c8d8ee;line-height:1.5;margin-top:3px;">' + sk.desc + '</div>'
+        + '<span style="float:right;font-size:11px;color:#a894d8;">冷却 ' + sk.cd + ' 秒</span>'
+        + '<div style="font-size:11.5px;color:#d8cff0;line-height:1.5;margin-top:3px;">' + sk.desc + '</div>'
         + '<div style="font-size:11.5px;color:#7cf5c0;line-height:1.5;margin-top:2px;">🖐 用法：' + skHowTo(sk.key) + '</div>'
-        + '<div style="font-size:11px;color:' + (un ? '#9fc4f0' : '#ff9a6a') + ';margin-top:2px;">'
+        + '<div style="font-size:11px;color:' + (un ? '#bb9cff' : '#ff9a6a') + ';margin-top:2px;">'
         + (un ? '✅ 已解锁' : '🔒 第 ' + skillUnlockLv(sk.key) + ' 关解锁') + '</div>';
     }
     el.appendChild(box);
@@ -481,7 +481,7 @@ function showSkillHelp(brief){
   sw.className = 'btn';
   sw.id = 'skillHelpSw';
   sw.style.cssText = 'padding:8px 14px;font-size:12.5px;width:100%;margin-top:6px;'
-    + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#9fd0ff;';
+    + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#cfc4ff;';
   sw.innerHTML = brief ? '📖 切换到「完整说明」（带效果与数值）' : '📄 切换到「简短说明」（只留用法）';
   sw.addEventListener('click', function(ev){ ev.stopPropagation(); toggleUiBrief(); });
   el.appendChild(sw);
@@ -529,10 +529,10 @@ function showWeatherHelp(brief){
   var cur = weather;
   var el = document.getElementById('buffList');
   var h = '<div style="font-size:13.5px;font-weight:700;color:#ffd76a;text-align:center;margin-bottom:4px;">🌤 元素天气说明</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;line-height:1.6;margin-bottom:7px;">'
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;line-height:1.6;margin-bottom:7px;">'
     + '天气会同时影响<b style="color:#ffd76a;">你的塔</b>与<b style="color:#ffd76a;">敌人</b>：有得有失，'
     + '逼你每 3 波重新想想布局与共鸣搭配<br>'
-    + '<span style="color:#9fd0ff;">' + wxSwitchNote() + '</span></div>';
+    + '<span style="color:#cfc4ff;">' + wxSwitchNote() + '</span></div>';
   el.innerHTML = h;
   /* 注意：必须把「平稳」也算上 —— 前 3 波 HUD 上就是它，只列 6 种真实天气会让玩家打开面板后
      发现「一条都没高亮」，反而更困惑。与图鉴天气页用同一口径。 */
@@ -733,7 +733,7 @@ var ENEMY_AFFIXES = [
     fx:'受击时有 25% 概率只吃 40% 伤害', tip:'用多段/持续伤害磨，别赌单发爆发' },
   { key:'boom',    name:'死亡爆炸', icon:'💥', color:'#ffb04a', minWave:9, chance:0.12,
     fx:'死亡时原地爆炸，1.2 格内的塔被眩晕 2 秒', tip:'别把主力塔堆在它的必经之路上' },
-  { key:'stealth', name:'隐匿', icon:'👻', color:'#9fd0ff', minWave:11, chance:0.10,
+  { key:'stealth', name:'隐匿', icon:'👻', color:'#cfc4ff', minWave:11, chance:0.10,
     fx:'周期性隐身 3 秒，隐身期间塔无法锁定它', tip:'用溅射/链式盲打，或等它现身再集火' },
   { key:'thorn',   name:'反伤', icon:'🌵', color:'#7cf5c0', minWave:13, chance:0.10,
     fx:'被击中时反噬攻击塔（该塔短暂卡顿）', tip:'别用单发高伤硬砸，分散火力' },
@@ -805,7 +805,7 @@ function renderTalents(){
   lastPanel = 'talent';
   var el = document.getElementById('buffList');
   var h = '<div style="font-size:13.5px;font-weight:700;color:#ffd76a;text-align:center;margin-bottom:4px;">🌟 传承天赋 · 星核 ' + starcore() + '</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;margin-bottom:7px;">无尽撑到 50 波起可转生：每 10 波 = 1 星核（永久生效，每局开局自动应用）</div>';
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;margin-bottom:7px;">无尽撑到 50 波起可转生：每 10 波 = 1 星核（永久生效，每局开局自动应用）</div>';
   el.innerHTML = h;
   TALENT_DEF.forEach(function(td){
     var lv = talents[td.id] | 0, maxed = lv >= td.max;
@@ -815,7 +815,7 @@ function renderTalents(){
       + ((maxed || starcore() < td.cost) ? 'opacity:.45;' : '');
     btn.innerHTML = '<b>' + td.name + '</b><span style="float:right;color:#ffd76a;">'
       + (maxed ? '已满级 Lv' + lv : ('Lv' + lv + '/' + td.max + '　升级 ' + td.cost + ' 星核')) + '</span>'
-      + '<br><span class="udesc" style="font-size:12px;color:#9fc4f0">' + td.desc + '</span>';
+      + '<br><span class="udesc" style="font-size:12px;color:#bb9cff">' + td.desc + '</span>';
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
       if (lv >= td.max){ showTip('已满级'); return; }
@@ -892,19 +892,19 @@ function showLevelIntro(idx){
       var e = ENEMIES[n.key];
       h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:10px;background:rgba(22,32,56,.8);'
         + 'border:1px solid rgba(255,200,110,.28);margin-bottom:5px;">'
-        + '<span style="flex:0 0 auto;font-size:11px;color:#8fb4dc;padding-top:1px;">第' + n.wave + '波</span>'
+        + '<span style="flex:0 0 auto;font-size:11px;color:#a894d8;padding-top:1px;">第' + n.wave + '波</span>'
         + '<span style="flex:1;min-width:0;">'
         + '<b style="font-size:13.5px;color:' + e.color + '">' + e.name + '</b>'
-        + '<span style="display:block;font-size:11.5px;color:#c8d8ee;line-height:1.45;">' + (e.fx || '') + '</span>'
+        + '<span style="display:block;font-size:11.5px;color:#d8cff0;line-height:1.45;">' + (e.fx || '') + '</span>'
         + (e.tip ? '<span class="udesc" style="display:block;font-size:11px;color:#7cf5c0;line-height:1.4;">→ ' + e.tip + '</span>' : '')
         + '</span></div>';
     });
   } else {
-    h += '<div style="font-size:12.5px;color:#9fc4f0;padding:8px 10px;border-radius:10px;background:rgba(22,32,56,.7);">'
+    h += '<div style="font-size:12.5px;color:#bb9cff;padding:8px 10px;border-radius:10px;background:rgba(22,32,56,.7);">'
       + '本关没有新敌人 —— 但强度更高、波数更多，注意把塔升级和凑共鸣。</div>';
   }
   if (idx === 0){
-    h += '<div style="font-size:11.5px;color:#8fb4dc;margin-top:8px;line-height:1.5;">💡 新手提示：相邻放不同元素的塔会触发<b>元素共鸣</b>；'
+    h += '<div style="font-size:11.5px;color:#a894d8;margin-top:8px;line-height:1.5;">💡 新手提示：相邻放不同元素的塔会触发<b>元素共鸣</b>；'
       + '同元素相邻则是<b>共振</b>。点已建好的塔可以看到每发伤害与暴击伤害。</div>';
   }
   /* 本关的新机制（天气开启 / BOSS / 双 BOSS / 高强度阶段） */
@@ -912,9 +912,9 @@ function showLevelIntro(idx){
   if (mech.length){
     h += '<div style="font-size:12.5px;font-weight:700;color:#8ff0ff;margin:9px 0 5px;">⚙️ 本关新机制</div>';
     mech.forEach(function(m){
-      h += '<div style="font-size:11.5px;color:#c8d8ee;line-height:1.5;padding:6px 9px;border-radius:10px;'
+      h += '<div style="font-size:11.5px;color:#d8cff0;line-height:1.5;padding:6px 9px;border-radius:10px;'
         + 'background:rgba(20,40,64,.8);border:1px solid rgba(120,200,255,.28);margin-bottom:5px;">'
-        + '<span style="color:#8fb4dc;">第' + m.wave + '波起</span>　' + m.text + '</div>';
+        + '<span style="color:#a894d8;">第' + m.wave + '波起</span>　' + m.text + '</div>';
     });
   }
   /* 本关可用的主动技能（新解锁的会标出来）—— 回应「每关增加一个技能」 */
@@ -934,11 +934,11 @@ function showLevelIntro(idx){
     });
   }
   if (skHave.length){
-    h += '<div style="font-size:11.5px;color:#9fc4f0;line-height:1.5;padding:0 2px;">已有：'
+    h += '<div style="font-size:11.5px;color:#bb9cff;line-height:1.5;padding:0 2px;">已有：'
       + skHave.map(function(sk){ return sk.icon + ' ' + sk.name; }).join('　') + '（点技能栏「?」看用法）</div>';
   }
   if (!skNew.length && !skHave.length){
-    h += '<div style="font-size:11.5px;color:#9fc4f0;">本关暂无可用技能</div>';
+    h += '<div style="font-size:11.5px;color:#bb9cff;">本关暂无可用技能</div>';
   }
   /* 地图特征（双入口会额外醒目提示 —— 只堆一边必定漏怪） */
   if (L.path2){
@@ -948,7 +948,7 @@ function showLevelIntro(idx){
       + '敌人会随机从<b>两条路</b>同时进攻（各 ' + L.path.length + ' / ' + L.path2.length + ' 个拐点），'
       + '只守一边必然漏怪 —— 注意两侧都要布防，或者把主力放在两条路的交汇处附近。</div>';
   }
-  h += '<div style="font-size:11.5px;color:#9fc4f0;margin-top:8px;line-height:1.5;">🗺 地图：<b>' + L.name + '</b>'
+  h += '<div style="font-size:11.5px;color:#bb9cff;margin-top:8px;line-height:1.5;">🗺 地图：<b>' + L.name + '</b>'
     + '（路径 ' + L.path.length + ' 个拐点，敌人从地图边缘一路走到基地）</div>';
   document.getElementById('introBody').innerHTML = h;
   running = false; paused = true;
@@ -983,15 +983,15 @@ function showEndlessIntro(){
       + '<span style="flex:0 0 auto;font-size:15px;">' + rows[i][0] + '</span>'
       + '<span style="flex:1;min-width:0;">'
       + '<b style="font-size:13px;color:#ffe6a8;">' + rows[i][1] + '</b>'
-      + '<span class="udesc" style="display:block;font-size:11.5px;color:#c8d8ee;line-height:1.45;">' + rows[i][2] + '</span>'
+      + '<span class="udesc" style="display:block;font-size:11.5px;color:#d8cff0;line-height:1.45;">' + rows[i][2] + '</span>'
       + '</span></div>';
   }
   h += '<div style="font-size:12.5px;font-weight:700;color:#8ff0ff;margin:9px 0 5px;">本局便利</div>'
-    + '<div style="font-size:11.5px;color:#c8d8ee;line-height:1.5;padding:6px 9px;border-radius:10px;'
+    + '<div style="font-size:11.5px;color:#d8cff0;line-height:1.5;padding:6px 9px;border-radius:10px;'
     + 'background:rgba(20,40,64,.8);border:1px solid rgba(120,200,255,.28);">'
     + '⚡ 4 个主动技能<b>全部解锁</b>（无尽视为后期）　'
     + '⏩ 倍速支持 1x/2x/5x/10x/100x</div>'
-    + '<div class="udesc" style="font-size:11.5px;color:#9fc4f0;line-height:1.5;margin-top:6px;">'
+    + '<div class="udesc" style="font-size:11.5px;color:#bb9cff;line-height:1.5;margin-top:6px;">'
     + '💾 每波结束自动存档，暂停面板里「保存并退出」可随时中断；'
     + '❤ 基地血上限每 10 波 +5（封顶 50），每 5 波回 2 血。</div>';
   document.getElementById('introBody').innerHTML = h;
@@ -1027,7 +1027,7 @@ function renderShop(){
   lastPanel = 'shop';
   var el = document.getElementById('buffList');
   el.innerHTML = '<div style="font-size:13.5px;font-weight:700;color:#8ff0ff;text-align:center;margin-bottom:4px;">🛒 波间商店 · 第 ' + wave + ' 波</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;margin-bottom:7px;">当前金币 ' + goldText() + '　（物价随波次上涨，囤钱没有额外收益）</div>';
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;margin-bottom:7px;">当前金币 ' + goldText() + '　（物价随波次上涨，囤钱没有额外收益）</div>';
   shopStock.forEach(function(item){
     var price = shopPrice(item.cost), can = (gold >= price) && !item.sold;
     var btn = document.createElement('button');
@@ -1036,7 +1036,7 @@ function renderShop(){
       + (can ? '' : 'opacity:.45;');
     btn.innerHTML = '<b>' + item.name + '</b><span style="float:right;color:#ffd76a;">'
       + (item.sold ? '已售罄' : (price + ' 金')) + '</span>'
-      + '<br><span class="udesc" style="font-size:12px;color:#9fc4f0">' + item.desc + '</span>';
+      + '<br><span class="udesc" style="font-size:12px;color:#bb9cff">' + item.desc + '</span>';
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
       if (item.sold) return;
@@ -1064,7 +1064,7 @@ function renderShop(){
   var lv = document.createElement('button');
   lv.className = 'btn';
   lv.style.cssText = 'flex:1;padding:10px;font-size:13px;';
-  lv.innerHTML = '🚪 离开商店<br><span style="color:#9fc4f0">回去选强化卡</span>';
+  lv.innerHTML = '🚪 离开商店<br><span style="color:#bb9cff">回去选强化卡</span>';
   lv.addEventListener('click', function(ev){
     ev.stopPropagation();
     closeBuffPanel();

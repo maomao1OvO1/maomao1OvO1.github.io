@@ -1534,7 +1534,7 @@ var ELEMS = {
      （因为它们都是遍历 ELEMS 生成的）。定位是现有 8 座塔都没覆盖的「高频低伤」：
      单次伤害极小 → 天然绕过「壁垒兵」的单次伤害减免（>25% 血量才触发减伤）与「硬化」词缀
      （25% 概率只吃 40% 伤害，多段小伤害的期望损失更小）。 */
-  gatling: { name:'机枪', icon:'🔫', color:'#c8d8ee', cost:96, dmg:6, rate:0.16, range:2.3,
+  gatling: { name:'机枪', icon:'🔫', color:'#d8cff0', cost:96, dmg:6, rate:0.16, range:2.3,
              sys:'solo', role:'速射', soloStar:3, groupStar:2,
              fx:'高频低伤：单次伤害极小，专克「壁垒兵」的单次减伤与「硬化」词缀',
              upRange:0.05, upName:'射程 +0.05 格/级' },
@@ -1805,7 +1805,7 @@ function renderSkillBar(){
     helpBtn.className = 'btn';
     helpBtn.id = 'sk_help';
     helpBtn.style.cssText = 'padding:5px 9px;border-radius:9px;font-size:13px;font-weight:700;'
-      + 'border:1px solid rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#9fd0ff;';
+      + 'border:1px solid rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#cfc4ff;';
     helpBtn.textContent = '?';
     helpBtn.title = '主动技能说明：怎么用 / 什么时候解锁';
     helpBtn.addEventListener('click', function(ev){ ev.stopPropagation(); showSkillHelp(); });
@@ -1914,7 +1914,7 @@ function appendBriefToggle(container){
   var b = document.createElement('button');
   b.className = 'btn';
   b.style.cssText = 'padding:9px 14px;font-size:12.5px;width:100%;margin-top:6px;'
-    + 'border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#9fd0ff;';
+    + 'border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#cfc4ff;';
   b.innerHTML = UI_BRIEF ? '📖 显示完整说明（切到详细模式）' : '📄 收起说明（切到简易模式）';
   b.addEventListener('click', function(ev){ ev.stopPropagation(); toggleUiBrief(); });
   container.appendChild(b);
@@ -1928,8 +1928,8 @@ function showSkillHelp(brief){
   if (brief === undefined) brief = skillHelpBrief;
   skillHelpBrief = brief;
   var el = document.getElementById('buffList');
-  var h = '<div style="font-size:13.5px;font-weight:700;color:#9fd0ff;text-align:center;margin-bottom:4px;">⚡ 主动技能说明</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;margin-bottom:7px;">'
+  var h = '<div style="font-size:13.5px;font-weight:700;color:#cfc4ff;text-align:center;margin-bottom:4px;">⚡ 主动技能说明</div>'
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;margin-bottom:7px;">'
     + (endless ? '无尽模式：4 个技能全部可用' : '带 🔒 的技能要打到对应关卡才解锁') + '</div>';
   el.innerHTML = h;
   SKILLS.forEach(function(sk){
@@ -1941,16 +1941,16 @@ function showSkillHelp(brief){
     if (brief){
       /* 简短版：一行一个技能，只留「怎么用 + 冷却 + 解锁」 */
       box.innerHTML = '<b style="font-size:13px;color:#ffd08a;">' + sk.icon + ' ' + sk.name + '</b>'
-        + '<span style="float:right;font-size:10.5px;color:#8fb4dc;">' + sk.cd + ' 秒</span>'
+        + '<span style="float:right;font-size:10.5px;color:#a894d8;">' + sk.cd + ' 秒</span>'
         + '<div style="font-size:11.5px;color:#7cf5c0;line-height:1.45;margin-top:1px;">' + skHowTo(sk.key) + '</div>'
-        + '<div style="font-size:10.5px;color:' + (un ? '#9fc4f0' : '#ff9a6a') + ';">'
+        + '<div style="font-size:10.5px;color:' + (un ? '#bb9cff' : '#ff9a6a') + ';">'
         + (un ? '✅ 已解锁' : '🔒 第 ' + skillUnlockLv(sk.key) + ' 关解锁') + '</div>';
     } else {
       box.innerHTML = '<b style="font-size:14px;color:#ffd08a;">' + sk.icon + ' ' + sk.name + '</b>'
-        + '<span style="float:right;font-size:11px;color:#8fb4dc;">冷却 ' + sk.cd + ' 秒</span>'
-        + '<div style="font-size:11.5px;color:#c8d8ee;line-height:1.5;margin-top:3px;">' + sk.desc + '</div>'
+        + '<span style="float:right;font-size:11px;color:#a894d8;">冷却 ' + sk.cd + ' 秒</span>'
+        + '<div style="font-size:11.5px;color:#d8cff0;line-height:1.5;margin-top:3px;">' + sk.desc + '</div>'
         + '<div style="font-size:11.5px;color:#7cf5c0;line-height:1.5;margin-top:2px;">🖐 用法：' + skHowTo(sk.key) + '</div>'
-        + '<div style="font-size:11px;color:' + (un ? '#9fc4f0' : '#ff9a6a') + ';margin-top:2px;">'
+        + '<div style="font-size:11px;color:' + (un ? '#bb9cff' : '#ff9a6a') + ';margin-top:2px;">'
         + (un ? '✅ 已解锁' : '🔒 第 ' + skillUnlockLv(sk.key) + ' 关解锁') + '</div>';
     }
     el.appendChild(box);
@@ -1960,7 +1960,7 @@ function showSkillHelp(brief){
   sw.className = 'btn';
   sw.id = 'skillHelpSw';
   sw.style.cssText = 'padding:8px 14px;font-size:12.5px;width:100%;margin-top:6px;'
-    + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#9fd0ff;';
+    + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#cfc4ff;';
   sw.innerHTML = brief ? '📖 切换到「完整说明」（带效果与数值）' : '📄 切换到「简短说明」（只留用法）';
   sw.addEventListener('click', function(ev){ ev.stopPropagation(); toggleUiBrief(); });
   el.appendChild(sw);
@@ -2008,10 +2008,10 @@ function showWeatherHelp(brief){
   var cur = weather;
   var el = document.getElementById('buffList');
   var h = '<div style="font-size:13.5px;font-weight:700;color:#ffd76a;text-align:center;margin-bottom:4px;">🌤 元素天气说明</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;line-height:1.6;margin-bottom:7px;">'
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;line-height:1.6;margin-bottom:7px;">'
     + '天气会同时影响<b style="color:#ffd76a;">你的塔</b>与<b style="color:#ffd76a;">敌人</b>：有得有失，'
     + '逼你每 3 波重新想想布局与共鸣搭配<br>'
-    + '<span style="color:#9fd0ff;">' + wxSwitchNote() + '</span></div>';
+    + '<span style="color:#cfc4ff;">' + wxSwitchNote() + '</span></div>';
   el.innerHTML = h;
   /* 注意：必须把「平稳」也算上 —— 前 3 波 HUD 上就是它，只列 6 种真实天气会让玩家打开面板后
      发现「一条都没高亮」，反而更困惑。与图鉴天气页用同一口径。 */
@@ -2212,7 +2212,7 @@ var ENEMY_AFFIXES = [
     fx:'受击时有 25% 概率只吃 40% 伤害', tip:'用多段/持续伤害磨，别赌单发爆发' },
   { key:'boom',    name:'死亡爆炸', icon:'💥', color:'#ffb04a', minWave:9, chance:0.12,
     fx:'死亡时原地爆炸，1.2 格内的塔被眩晕 2 秒', tip:'别把主力塔堆在它的必经之路上' },
-  { key:'stealth', name:'隐匿', icon:'👻', color:'#9fd0ff', minWave:11, chance:0.10,
+  { key:'stealth', name:'隐匿', icon:'👻', color:'#cfc4ff', minWave:11, chance:0.10,
     fx:'周期性隐身 3 秒，隐身期间塔无法锁定它', tip:'用溅射/链式盲打，或等它现身再集火' },
   { key:'thorn',   name:'反伤', icon:'🌵', color:'#7cf5c0', minWave:13, chance:0.10,
     fx:'被击中时反噬攻击塔（该塔短暂卡顿）', tip:'别用单发高伤硬砸，分散火力' },
@@ -2284,7 +2284,7 @@ function renderTalents(){
   lastPanel = 'talent';
   var el = document.getElementById('buffList');
   var h = '<div style="font-size:13.5px;font-weight:700;color:#ffd76a;text-align:center;margin-bottom:4px;">🌟 传承天赋 · 星核 ' + starcore() + '</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;margin-bottom:7px;">无尽撑到 50 波起可转生：每 10 波 = 1 星核（永久生效，每局开局自动应用）</div>';
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;margin-bottom:7px;">无尽撑到 50 波起可转生：每 10 波 = 1 星核（永久生效，每局开局自动应用）</div>';
   el.innerHTML = h;
   TALENT_DEF.forEach(function(td){
     var lv = talents[td.id] | 0, maxed = lv >= td.max;
@@ -2294,7 +2294,7 @@ function renderTalents(){
       + ((maxed || starcore() < td.cost) ? 'opacity:.45;' : '');
     btn.innerHTML = '<b>' + td.name + '</b><span style="float:right;color:#ffd76a;">'
       + (maxed ? '已满级 Lv' + lv : ('Lv' + lv + '/' + td.max + '　升级 ' + td.cost + ' 星核')) + '</span>'
-      + '<br><span class="udesc" style="font-size:12px;color:#9fc4f0">' + td.desc + '</span>';
+      + '<br><span class="udesc" style="font-size:12px;color:#bb9cff">' + td.desc + '</span>';
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
       if (lv >= td.max){ showTip('已满级'); return; }
@@ -2371,19 +2371,19 @@ function showLevelIntro(idx){
       var e = ENEMIES[n.key];
       h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:10px;background:rgba(22,32,56,.8);'
         + 'border:1px solid rgba(255,200,110,.28);margin-bottom:5px;">'
-        + '<span style="flex:0 0 auto;font-size:11px;color:#8fb4dc;padding-top:1px;">第' + n.wave + '波</span>'
+        + '<span style="flex:0 0 auto;font-size:11px;color:#a894d8;padding-top:1px;">第' + n.wave + '波</span>'
         + '<span style="flex:1;min-width:0;">'
         + '<b style="font-size:13.5px;color:' + e.color + '">' + e.name + '</b>'
-        + '<span style="display:block;font-size:11.5px;color:#c8d8ee;line-height:1.45;">' + (e.fx || '') + '</span>'
+        + '<span style="display:block;font-size:11.5px;color:#d8cff0;line-height:1.45;">' + (e.fx || '') + '</span>'
         + (e.tip ? '<span class="udesc" style="display:block;font-size:11px;color:#7cf5c0;line-height:1.4;">→ ' + e.tip + '</span>' : '')
         + '</span></div>';
     });
   } else {
-    h += '<div style="font-size:12.5px;color:#9fc4f0;padding:8px 10px;border-radius:10px;background:rgba(22,32,56,.7);">'
+    h += '<div style="font-size:12.5px;color:#bb9cff;padding:8px 10px;border-radius:10px;background:rgba(22,32,56,.7);">'
       + '本关没有新敌人 —— 但强度更高、波数更多，注意把塔升级和凑共鸣。</div>';
   }
   if (idx === 0){
-    h += '<div style="font-size:11.5px;color:#8fb4dc;margin-top:8px;line-height:1.5;">💡 新手提示：相邻放不同元素的塔会触发<b>元素共鸣</b>；'
+    h += '<div style="font-size:11.5px;color:#a894d8;margin-top:8px;line-height:1.5;">💡 新手提示：相邻放不同元素的塔会触发<b>元素共鸣</b>；'
       + '同元素相邻则是<b>共振</b>。点已建好的塔可以看到每发伤害与暴击伤害。</div>';
   }
   /* 本关的新机制（天气开启 / BOSS / 双 BOSS / 高强度阶段） */
@@ -2391,9 +2391,9 @@ function showLevelIntro(idx){
   if (mech.length){
     h += '<div style="font-size:12.5px;font-weight:700;color:#8ff0ff;margin:9px 0 5px;">⚙️ 本关新机制</div>';
     mech.forEach(function(m){
-      h += '<div style="font-size:11.5px;color:#c8d8ee;line-height:1.5;padding:6px 9px;border-radius:10px;'
+      h += '<div style="font-size:11.5px;color:#d8cff0;line-height:1.5;padding:6px 9px;border-radius:10px;'
         + 'background:rgba(20,40,64,.8);border:1px solid rgba(120,200,255,.28);margin-bottom:5px;">'
-        + '<span style="color:#8fb4dc;">第' + m.wave + '波起</span>　' + m.text + '</div>';
+        + '<span style="color:#a894d8;">第' + m.wave + '波起</span>　' + m.text + '</div>';
     });
   }
   /* 本关可用的主动技能（新解锁的会标出来）—— 回应「每关增加一个技能」 */
@@ -2413,11 +2413,11 @@ function showLevelIntro(idx){
     });
   }
   if (skHave.length){
-    h += '<div style="font-size:11.5px;color:#9fc4f0;line-height:1.5;padding:0 2px;">已有：'
+    h += '<div style="font-size:11.5px;color:#bb9cff;line-height:1.5;padding:0 2px;">已有：'
       + skHave.map(function(sk){ return sk.icon + ' ' + sk.name; }).join('　') + '（点技能栏「?」看用法）</div>';
   }
   if (!skNew.length && !skHave.length){
-    h += '<div style="font-size:11.5px;color:#9fc4f0;">本关暂无可用技能</div>';
+    h += '<div style="font-size:11.5px;color:#bb9cff;">本关暂无可用技能</div>';
   }
   /* 地图特征（双入口会额外醒目提示 —— 只堆一边必定漏怪） */
   if (L.path2){
@@ -2427,7 +2427,7 @@ function showLevelIntro(idx){
       + '敌人会随机从<b>两条路</b>同时进攻（各 ' + L.path.length + ' / ' + L.path2.length + ' 个拐点），'
       + '只守一边必然漏怪 —— 注意两侧都要布防，或者把主力放在两条路的交汇处附近。</div>';
   }
-  h += '<div style="font-size:11.5px;color:#9fc4f0;margin-top:8px;line-height:1.5;">🗺 地图：<b>' + L.name + '</b>'
+  h += '<div style="font-size:11.5px;color:#bb9cff;margin-top:8px;line-height:1.5;">🗺 地图：<b>' + L.name + '</b>'
     + '（路径 ' + L.path.length + ' 个拐点，敌人从地图边缘一路走到基地）</div>';
   document.getElementById('introBody').innerHTML = h;
   running = false; paused = true;
@@ -2462,15 +2462,15 @@ function showEndlessIntro(){
       + '<span style="flex:0 0 auto;font-size:15px;">' + rows[i][0] + '</span>'
       + '<span style="flex:1;min-width:0;">'
       + '<b style="font-size:13px;color:#ffe6a8;">' + rows[i][1] + '</b>'
-      + '<span class="udesc" style="display:block;font-size:11.5px;color:#c8d8ee;line-height:1.45;">' + rows[i][2] + '</span>'
+      + '<span class="udesc" style="display:block;font-size:11.5px;color:#d8cff0;line-height:1.45;">' + rows[i][2] + '</span>'
       + '</span></div>';
   }
   h += '<div style="font-size:12.5px;font-weight:700;color:#8ff0ff;margin:9px 0 5px;">本局便利</div>'
-    + '<div style="font-size:11.5px;color:#c8d8ee;line-height:1.5;padding:6px 9px;border-radius:10px;'
+    + '<div style="font-size:11.5px;color:#d8cff0;line-height:1.5;padding:6px 9px;border-radius:10px;'
     + 'background:rgba(20,40,64,.8);border:1px solid rgba(120,200,255,.28);">'
     + '⚡ 4 个主动技能<b>全部解锁</b>（无尽视为后期）　'
     + '⏩ 倍速支持 1x/2x/5x/10x/100x</div>'
-    + '<div class="udesc" style="font-size:11.5px;color:#9fc4f0;line-height:1.5;margin-top:6px;">'
+    + '<div class="udesc" style="font-size:11.5px;color:#bb9cff;line-height:1.5;margin-top:6px;">'
     + '💾 每波结束自动存档，暂停面板里「保存并退出」可随时中断；'
     + '❤ 基地血上限每 10 波 +5（封顶 50），每 5 波回 2 血。</div>';
   document.getElementById('introBody').innerHTML = h;
@@ -2506,7 +2506,7 @@ function renderShop(){
   lastPanel = 'shop';
   var el = document.getElementById('buffList');
   el.innerHTML = '<div style="font-size:13.5px;font-weight:700;color:#8ff0ff;text-align:center;margin-bottom:4px;">🛒 波间商店 · 第 ' + wave + ' 波</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;margin-bottom:7px;">当前金币 ' + goldText() + '　（物价随波次上涨，囤钱没有额外收益）</div>';
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;margin-bottom:7px;">当前金币 ' + goldText() + '　（物价随波次上涨，囤钱没有额外收益）</div>';
   shopStock.forEach(function(item){
     var price = shopPrice(item.cost), can = (gold >= price) && !item.sold;
     var btn = document.createElement('button');
@@ -2515,7 +2515,7 @@ function renderShop(){
       + (can ? '' : 'opacity:.45;');
     btn.innerHTML = '<b>' + item.name + '</b><span style="float:right;color:#ffd76a;">'
       + (item.sold ? '已售罄' : (price + ' 金')) + '</span>'
-      + '<br><span class="udesc" style="font-size:12px;color:#9fc4f0">' + item.desc + '</span>';
+      + '<br><span class="udesc" style="font-size:12px;color:#bb9cff">' + item.desc + '</span>';
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
       if (item.sold) return;
@@ -2543,7 +2543,7 @@ function renderShop(){
   var lv = document.createElement('button');
   lv.className = 'btn';
   lv.style.cssText = 'flex:1;padding:10px;font-size:13px;';
-  lv.innerHTML = '🚪 离开商店<br><span style="color:#9fc4f0">回去选强化卡</span>';
+  lv.innerHTML = '🚪 离开商店<br><span style="color:#bb9cff">回去选强化卡</span>';
   lv.addEventListener('click', function(ev){
     ev.stopPropagation();
     closeBuffPanel();
@@ -2940,13 +2940,13 @@ function showPactChoices(){
   var el = document.getElementById('buffList');
   el.innerHTML = '<div style="font-size:13px;font-weight:700;color:#ffd76a;text-align:center;margin-bottom:6px;">'
     + '⚔ 无尽契约 · 第 ' + wave + ' 波已过 · 必选其一</div>'
-    + '<div style="font-size:11px;color:#8fb4dc;text-align:center;margin-bottom:6px;">代价与收益并存，每份契约都会累积影响到后面所有波</div>';
+    + '<div style="font-size:11px;color:#a894d8;text-align:center;margin-bottom:6px;">代价与收益并存，每份契约都会累积影响到后面所有波</div>';
   picks.forEach(function(p){
     var btn = document.createElement('button');
     btn.className = 'btn';
     btn.style.cssText = 'padding:13px 15px;font-size:14.5px;width:100%;line-height:1.5;text-align:left;'
       + 'border-color:#ff9a6a;box-shadow:0 0 12px #ff9a6a55;';
-    btn.innerHTML = '<b>' + p.name + '</b><br><span style="font-size:12px;color:#9fc4f0">' + p.desc + '</span>';
+    btn.innerHTML = '<b>' + p.name + '</b><br><span style="font-size:12px;color:#bb9cff">' + p.desc + '</span>';
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
       p.apply(); PACT.taken.push(p.name);
@@ -2968,7 +2968,7 @@ function updateBuffHead(){
   var _bt = document.getElementById('buffTitle'), _bs = document.getElementById('buffSub');
   var _ar = archetypeNow();
   if (_bt) _bt.textContent = banMode ? '🚫 选一张禁掉（本局不再出现）' : '选择强化';
-  if (_bs) _bs.innerHTML = '🎯 当前倾向：<b style="color:#ffd76a">' + _ar.name + '</b>　<span style="font-size:11px;color:#9fc4f0">'
+  if (_bs) _bs.innerHTML = '🎯 当前倾向：<b style="color:#ffd76a">' + _ar.name + '</b>　<span style="font-size:11px;color:#bb9cff">'
     + _ar.hint + '</span><br><span style="font-size:10.5px;color:#7d8ba3;">🔄 换一批 ' + rerollLeft + ' 次　🚫 禁卡 ' + banLeft + ' 次</span>';
   var _bb = document.getElementById('banBtn');
   if (_bb) _bb.style.outline = banMode ? '2px solid #ffd76a' : 'none';
@@ -2994,7 +2994,7 @@ function showBuffChoices(excludeIds, reuse){
     btn.style.boxShadow = '0 0 12px ' + rar.color + '55';
     btn.innerHTML = '<b>' + b.name + '</b><span style="font-size:10px;color:' + rar.color +
       ';border:1px solid ' + rar.color + ';border-radius:8px;padding:0 5px;margin-left:6px;">' + rar.name + '</span>' +
-      '<br><span style="font-size:12px;color:#9fc4f0">' + b.desc + '</span>';
+      '<br><span style="font-size:12px;color:#bb9cff">' + b.desc + '</span>';
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
       if (banMode && banLeft > 0){             /* v8.7 禁卡模式：点哪张就禁掉哪张，然后重抽 */
@@ -3020,7 +3020,7 @@ function showBuffChoices(excludeIds, reuse){
   rerollBtn.id = 'rerollBtn';
   rerollBtn.style.cssText = 'flex:1;padding:9px 6px;font-size:12.5px;'
     + (rerollLeft > 0 ? '' : 'opacity:.45;');
-  rerollBtn.innerHTML = '🔄 换一批<br><span style="font-size:10.5px;color:#9fc4f0">剩 ' + rerollLeft + ' 次</span>';
+  rerollBtn.innerHTML = '🔄 换一批<br><span style="font-size:10.5px;color:#bb9cff">剩 ' + rerollLeft + ' 次</span>';
   rerollBtn.addEventListener('click', function(ev){
     ev.stopPropagation();
     if (rerollLeft <= 0){ showTip('没有「换一批」次数了（每 5 波会补充 1 次）'); return; }
@@ -3035,7 +3035,7 @@ function showBuffChoices(excludeIds, reuse){
   banBtn.id = 'banBtn';
   banBtn.style.cssText = 'flex:1;padding:9px 6px;font-size:12.5px;'
     + (banLeft > 0 ? '' : 'opacity:.45;');
-  banBtn.innerHTML = '🚫 禁一张<br><span style="font-size:10.5px;color:#9fc4f0">剩 ' + banLeft + ' 次</span>';
+  banBtn.innerHTML = '🚫 禁一张<br><span style="font-size:10.5px;color:#bb9cff">剩 ' + banLeft + ' 次</span>';
   banBtn.addEventListener('click', function(ev){
     ev.stopPropagation();
     if (banLeft <= 0){ showTip('没有「禁卡」次数了'); return; }
@@ -4108,12 +4108,12 @@ function drawTowerBody(x, y, rad, elem, color, k){
   } else if (elem === 'poison'){
     ctx.fillStyle = '#eaffef';
     ctx.beginPath(); ctx.arc(x, y - rad * 0.10, rad * 0.50, 0, 6.3); ctx.fill();
-    ctx.fillStyle = '#0b1a0e';
+    ctx.fillStyle = '#141026';
     ctx.beginPath(); ctx.arc(x - rad * 0.19, y - rad * 0.15, rad * 0.14, 0, 6.3); ctx.fill();
     ctx.beginPath(); ctx.arc(x + rad * 0.19, y - rad * 0.15, rad * 0.14, 0, 6.3); ctx.fill();
     ctx.fillStyle = '#eaffef';
     ctx.fillRect(x - rad * 0.30, y + rad * 0.28, rad * 0.60, rad * 0.16);
-    ctx.fillStyle = '#0b1a0e';
+    ctx.fillStyle = '#141026';
     for (var d2 = 0; d2 < 3; d2++) ctx.fillRect(x - rad * 0.24 + d2 * rad * 0.20, y + rad * 0.28, rad * 0.07, rad * 0.16);
     ctx.fillStyle = color;                                  // 上升毒气泡
     var bb = (gameT * 1.5) % 1;
@@ -4148,7 +4148,7 @@ function drawTowerBody(x, y, rad, elem, color, k){
     /* TOWERS_V6_PATCH 榴弹：圆鼓弹仓（外圈 + 内孔 + 三发炮弹） */
     ctx.fillStyle = '#ffd9a6';
     ctx.beginPath(); ctx.arc(x, y - rad * 0.06, rad * 0.54, 0, 6.3); ctx.fill();
-    ctx.fillStyle = '#0e1422';
+    ctx.fillStyle = '#141026';
     ctx.beginPath(); ctx.arc(x, y - rad * 0.06, rad * 0.32, 0, 6.3); ctx.fill();
     ctx.fillStyle = color;
     for (var m2 = 0; m2 < 3; m2++){
@@ -4191,14 +4191,14 @@ function drawStaticBg(){
     bgCv.height = Math.max(1, Math.floor(H * DPR));
     var g = bgCv.getContext('2d');
     if (g.setTransform) g.setTransform(DPR, 0, 0, DPR, 0, 0);
-    g.strokeStyle = 'rgba(60,100,160,.16)'; g.lineWidth = 1;
+    g.strokeStyle = 'rgba(124,92,191,.16)'; g.lineWidth = 1;
     for (var c = 0; c <= COLS; c++){
       g.beginPath(); g.moveTo(OX + c*CELL, OY); g.lineTo(OX + c*CELL, OY + ROWS*CELL); g.stroke();
     }
     for (var r = 0; r <= ROWS; r++){
       g.beginPath(); g.moveTo(OX, OY + r*CELL); g.lineTo(OX + COLS*CELL, OY + r*CELL); g.stroke();
     }
-    g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(28,42,70,.95)';
+    g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(36,26,74,.95)';
     g.lineJoin = 'round'; g.lineCap = 'round';
     /* v8.10：双入口关卡要画两条路（样式完全一致，玩家一眼能看出「有两路要守」） */
     var _allPaths = WAYPOINTS2 ? [WAYPOINTS, WAYPOINTS2] : [WAYPOINTS];
@@ -4210,9 +4210,9 @@ function drawStaticBg(){
         if (i === 0) g.moveTo(p.x, p.y); else g.lineTo(p.x, p.y);
       }
       g.stroke();
-      g.lineWidth = 2; g.strokeStyle = 'rgba(90,160,255,.35)';
+      g.lineWidth = 2; g.strokeStyle = 'rgba(187,156,255,.35)';
       g.stroke();
-      g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(28,42,70,.95)';
+      g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(36,26,74,.95)';
     }
     bgKey = key;
   }
@@ -4234,7 +4234,7 @@ var COMBO_FILL    = ['#8fe4ff', '#ffb24a', '#ff6a4a', '#ff5ad0', '#ffffff'];   /
 var COMBO_EDGE    = ['rgba(143,228,255,.55)', 'rgba(255,178,74,.62)',
                      'rgba(255,106,74,.85)', 'rgba(255,90,208,.82)', 'rgba(255,255,255,.92)'];
 /* 连杀徽章五档配色之一：发光色 */
-var COMBO_GLOW    = ['rgba(90,190,255,.9)', 'rgba(255,170,60,.9)',
+var COMBO_GLOW    = ['rgba(187,156,255,.9)', 'rgba(255,170,60,.9)',
                      'rgba(255,90,60,.95)', 'rgba(255,70,200,.95)', 'rgba(255,238,214,1)'];
 /* 连杀徽章五档配色之一：档位后缀符号（✦ / ⚡ / 🔥 等）*/
 var COMBO_TAG     = ['', ' \u2726', ' \u26a1', ' \ud83d\udd25', ' \ud83d\udd25\ud83d\udd25'];   // 档位后缀（不改汉字部分）
@@ -4465,7 +4465,7 @@ function draw(){
     var sh = shakeT * 14;
     ctx.translate((Math.random()-0.5) * sh, (Math.random()-0.5) * sh);
   }
-  ctx.fillStyle = '#070a12'; ctx.fillRect(-20, -20, W+40, H+40);
+  ctx.fillStyle = '#120d22'; ctx.fillRect(-20, -20, W+40, H+40);
   drawStaticBg();          // 网格 + 路径（缓存层，每帧一次 drawImage）
   drawRifts();             // v8.21 共鸣裂隙标记（数量少，直接画在动态层）
   /* 流动能量带
@@ -4569,9 +4569,9 @@ function draw(){
       ctx.save();
       ctx.globalAlpha = 0.55; ctx.fillStyle = '#aeb8c6';
       ctx.beginPath(); ctx.arc(x, y, rad * 0.92, 0, 6.3); ctx.fill();
-      ctx.globalAlpha = 0.9; ctx.strokeStyle = '#e8eef8'; ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.9; ctx.strokeStyle = '#efe9ff'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(x, y, rad + 3, 0, 6.3); ctx.stroke();
-      ctx.fillStyle = '#e8eef8'; ctx.font = 'bold ' + (CELL*0.3) + 'px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#efe9ff'; ctx.font = 'bold ' + (CELL*0.3) + 'px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('⚡', x, y - rad - 3);
       ctx.restore();
     }
@@ -4740,7 +4740,7 @@ function draw(){
       ctx.strokeStyle = 'rgba(90,60,0,.9)'; ctx.lineWidth = 1; ctx.stroke();
     }
     if (e.charge){                                 // 重装冲锋：深灰重甲环 + 冲锋时白色速度线
-      ctx.strokeStyle = 'rgba(58,68,84,.95)'; ctx.lineWidth = 2.8;
+      ctx.strokeStyle = 'rgba(58,44,84,.95)'; ctx.lineWidth = 2.8;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.56, 0, 6.3); ctx.stroke();
       if (e.chargingT > 0){
         ctx.save();
@@ -4818,7 +4818,7 @@ function draw(){
   if (bannerT > 0){
     ctx.globalAlpha = Math.min(1, bannerT / 0.5);
     ctx.fillStyle = '#8fe4ff'; ctx.font = 'bold ' + (W*0.09) + 'px sans-serif'; ctx.textAlign = 'center';
-    glow('rgba(90,200,255,.9)', 24);
+    glow('rgba(187,156,255,.9)', 24);
     ctx.fillText(banner, W/2, H*0.32);
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
@@ -4944,9 +4944,9 @@ function swBodyHtml(){
   h += '<div class="swSec"><div class="swT">🌤 当前天气</div>'
     + '<div class="swRow"><span class="k" style="font-size:13px;font-weight:700;color:#ffd76a;">'
     + w.icon + ' ' + w.name + '</span></div>'
-    + '<div class="udesc" style="font-size:10.5px;color:#8fb4dc;line-height:1.45;">' + w.desc + '</div>'
+    + '<div class="udesc" style="font-size:10.5px;color:#a894d8;line-height:1.45;">' + w.desc + '</div>'
     + '<button class="btn" id="swWxMore" style="margin-top:5px;padding:5px 8px;font-size:11px;width:100%;letter-spacing:0;'
-    + 'border-radius:8px;border-color:rgba(140,200,255,.4);background:rgba(24,44,74,.9);color:#9fd0ff;">📖 全部天气说明</button></div>';
+    + 'border-radius:8px;border-color:rgba(140,200,255,.4);background:rgba(24,44,74,.9);color:#cfc4ff;">📖 全部天气说明</button></div>';
   /* ② 天气影响（有就列）*/
   if (sp.up.length || sp.down.length){
     h += '<div class="swSec"><div class="swT">🌦 天气影响</div>';
@@ -4994,7 +4994,7 @@ function swBodyHtml(){
   } else {
     for (i = 0; i < sets.length; i++){
       h += '<div style="font-size:11px;color:#ffd76a;font-weight:700;">' + sets[i].name + '</div>'
-        + '<div class="udesc" style="font-size:10px;color:#8fb4dc;line-height:1.4;">' + sets[i].desc + '</div>';
+        + '<div class="udesc" style="font-size:10px;color:#a894d8;line-height:1.4;">' + sets[i].desc + '</div>';
     }
   }
   h += '</div>';
@@ -5107,7 +5107,7 @@ function showVerInfo(){
     if (!rows[i][0]){ h += '<div style="height:7px"></div>'; continue; }
     h += '<div style="display:flex;gap:10px;justify-content:space-between;padding:6px 10px;border-radius:9px;'
       + 'background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.2);margin-bottom:4px;">'
-      + '<span style="flex:0 0 auto;font-size:11.5px;color:#8fb4dc;">' + rows[i][0] + '</span>'
+      + '<span style="flex:0 0 auto;font-size:11.5px;color:#a894d8;">' + rows[i][0] + '</span>'
       + '<span style="flex:1;text-align:right;font-size:12px;color:#eaf3ff;overflow-wrap:anywhere;">' + rows[i][1] + '</span>'
       + '</div>';
   }
@@ -5593,7 +5593,7 @@ function statLine(k, lv){
 /* ==== ROLES_PATCH_V1 : 炮塔角色标签（建塔面板 + 图鉴共用；字段缺失一律兜底为「—」，绝不出现 undefined）==== */
 /* 本段只新增只读辅助函数，不触碰 ELEMS 任何条目与数值（role/soloStar/groupStar 由另一路写入） */
 var ROLE_DASH = '\u2014';                       /* 字段缺失占位符 */
-var ROLE_COLORS = {                             /* 角色 → 徽标取色（未知角色回落 #9fc4f0） */
+var ROLE_COLORS = {                             /* 角色 → 徽标取色（未知角色回落 #bb9cff） */
   '单体': '#ffd76a', '溅射': '#ff9a5a', '持续': '#7cf5c0', '链式': '#8fe4ff',
   '控场': '#b98cff', '光环': '#8ff0ff', '点杀': '#ff7a9a', '范围': '#ffc06a'
 };
@@ -5609,7 +5609,7 @@ function roleTagOf(k){
 /* 定位标签对应的徽标颜色（未登记的角色回落成默认蓝）*/
 function roleColorOf(k){
   var c = ROLE_COLORS[roleTagOf(k)];
-  return c || '#9fc4f0';
+  return c || '#bb9cff';
 }
 function roleBgOf(k){                           /* 由徽标色生成 16% 半透明底色 */
   var c = roleColorOf(k);
@@ -5641,13 +5641,13 @@ function roleRowHTML(k){                        /* 面板用：徽标 + 对单/�
     + '<span style="flex:0 0 auto;font-size:10.5px;line-height:1.3;padding:0 5px;border-radius:6px;'
     + 'border:1px solid ' + roleColorOf(k) + ';background:' + roleBgOf(k) + ';color:' + roleColorOf(k) + ';">'
     + roleTagOf(k) + '</span>'
-    + '<span style="font-size:10.5px;line-height:1.3;color:#9fc4f0;white-space:nowrap;overflow:hidden;">'
+    + '<span style="font-size:10.5px;line-height:1.3;color:#bb9cff;white-space:nowrap;overflow:hidden;">'
     + '对单 ' + starTxtOf(d.soloStar, '#ffd76a') + '\u3000对群 ' + starTxtOf(d.groupStar, '#8fe4ff')
     + '</span></div>';
 }
 function roleBookLineHTML(k){                   /* 图鉴用：与既有行同字号同配色的「角色」行 */
   var d = ELEMS[k] || {};
-  return '<div style="font-size:12.5px;color:#9fc4f0;">角色：'
+  return '<div style="font-size:12.5px;color:#bb9cff;">角色：'
     + '<b style="color:' + roleColorOf(k) + ';">' + roleTagOf(k) + '</b>'
     + ' · 对单 ' + starTxtOf(d.soloStar, '#ffd76a')
     + ' · 对群 ' + starTxtOf(d.groupStar, '#8fe4ff') + '</div>';
@@ -5712,9 +5712,9 @@ function openTower(t, px, py){
       + 'background:rgba(255,196,94,.10);border:1px solid rgba(255,200,110,.32);line-height:1.6;">'
       + '💥 每发 <b style="color:#ffd76a;font-size:13px">' + perHit.toFixed(1) + '</b>'
       + '\u3000⚡ 暴击 <b style="color:#ff9a6a;font-size:13px">' + critHit.toFixed(1) + '</b>'
-      + (critRate > 0 ? '<span style="color:#8fb4dc">（' + Math.round(critRate * 100) + '% ×' + CRIT_X + '）</span>'
+      + (critRate > 0 ? '<span style="color:#a894d8">（' + Math.round(critRate * 100) + '% ×' + CRIT_X + '）</span>'
                       : '<span style="color:#7d8ba3">（暂无暴击率）</span>')
-      + '<br>📊 <span style="color:#8fb4dc">单体 DPS</span> <b style="color:#8ff0ff">' + dps.toFixed(1) + '</b>/秒'
+      + '<br>📊 <span style="color:#a894d8">单体 DPS</span> <b style="color:#8ff0ff">' + dps.toFixed(1) + '</b>/秒'
       + '</div>';
   }
   /* ===== v8.2 面板新增：随机词条 + 精通分支（互斥，Lv3 解锁）===== */
@@ -5729,8 +5729,8 @@ function openTower(t, px, py){
     } else if (!t.spec){
       specHtml = '<div class="ce" style="margin:3px 0 0;color:#ffd76a">🔀 选择精通分支（<b>互斥</b>，选定不可改）</div>'
         + '<div class="row" style="margin-top:4px">'
-        + '<button data-spec="dmg" style="padding:8px">🔥 强化弹头<br><span style="font-size:11px;color:#9fc4f0">伤害 +40%</span></button>'
-        + '<button data-spec="rate" style="padding:8px">⚡ 超载循环<br><span style="font-size:11px;color:#9fc4f0">攻速 +35%</span></button>'
+        + '<button data-spec="dmg" style="padding:8px">🔥 强化弹头<br><span style="font-size:11px;color:#bb9cff">伤害 +40%</span></button>'
+        + '<button data-spec="rate" style="padding:8px">⚡ 超载循环<br><span style="font-size:11px;color:#bb9cff">攻速 +35%</span></button>'
         + '</div>';
     } else {
       specHtml = '<div class="ce" style="margin:3px 0 0;color:#8ff0ff">🔀 精通：' +
@@ -6152,7 +6152,7 @@ function frame(now){
     tipT -= dt;
     if (tipT <= 0 && HINT_ON){
       var te = document.getElementById('tip');
-      te.style.color = '#8fb4dc';
+      te.style.color = '#a894d8';
       te.textContent = '点空地建塔 · 点塔升级/出售 · 相邻不同元素会共鸣';
     }
   }
@@ -6402,24 +6402,24 @@ function bookResoTags(elem){
 /* —— 卡片：怪物 —— */
 function bookMobCard(k){
   var d = ENEMIES[k];
-  var color = d.color || '#9fc4f0';
+  var color = d.color || '#bb9cff';
   return '<div style="display:flex;align-items:stretch;gap:10px;width:100%;box-sizing:border-box;'
     + 'padding:10px 12px;border:1px solid rgba(120,160,220,.28);border-radius:10px;background:rgba(18,26,44,.72);">'
     + '<div style="flex:0 0 16px;width:16px;border-radius:4px;background:' + color + ';box-shadow:0 0 8px ' + color + ';"></div>'
     + '<div style="flex:1;text-align:left;line-height:1.55;min-width:0;">'
     + '<div style="font-size:15px;font-weight:bold;color:' + color + ';">' + d.name
-    + '<span style="font-size:11px;font-weight:normal;color:#9fc4f0;opacity:.75;">  ' + k + '</span></div>'
-    + '<div style="font-size:12.5px;color:#9fc4f0;">血量 <b style="color:#ffd76a;">' + d.hp
+    + '<span style="font-size:11px;font-weight:normal;color:#bb9cff;opacity:.75;">  ' + k + '</span></div>'
+    + '<div style="font-size:12.5px;color:#bb9cff;">血量 <b style="color:#ffd76a;">' + d.hp
     + '</b> · 速度 <b style="color:#ffd76a;">' + d.speed
     + '</b> · 掉落 <b style="color:#ffd76a;">' + d.gold + '</b> 金币</div>'
     + '<div class="udesc" style="font-size:12.5px;color:#7cf5c0;">特性：' + bookMobTraits(d).join(' · ') + '</div>'
-    + '<div class="udesc" style="font-size:12px;color:#9fc4f0;opacity:.9;">克制提示：' + bookMobCounter(d).join(' ； ') + '</div>'
+    + '<div class="udesc" style="font-size:12px;color:#bb9cff;opacity:.9;">克制提示：' + bookMobCounter(d).join(' ； ') + '</div>'
     + '</div></div>';
 }
 /* —— 卡片：炮塔 —— */
 function bookTowerCard(k){
   var d = ELEMS[k];
-  var color = d.color || '#9fc4f0';
+  var color = d.color || '#bb9cff';
   var line2;
   if (d.aura){
     line2 = '自身不攻击 · 相邻塔伤害 +' + Math.round((d.auraDmg || 0) * 100)
@@ -6434,13 +6434,13 @@ function bookTowerCard(k){
     + '<div style="flex:0 0 30px;font-size:22px;line-height:1.3;text-align:center;">' + d.icon + '</div>'
     + '<div style="flex:1;text-align:left;line-height:1.55;min-width:0;">'
     + '<div style="font-size:15px;font-weight:bold;color:' + color + ';">' + d.name
-    + '<span style="font-size:11.5px;font-weight:normal;color:#9fc4f0;">  造价 <b style="color:#ffd76a;">'
+    + '<span style="font-size:11.5px;font-weight:normal;color:#bb9cff;">  造价 <b style="color:#ffd76a;">'
     + d.cost + '</b></span></div>'
-    + '<div style="font-size:12.5px;color:#9fc4f0;">' + line2 + '</div>'
+    + '<div style="font-size:12.5px;color:#bb9cff;">' + line2 + '</div>'
     + roleBookLineHTML(k)
     + '<div class="udesc" style="font-size:12.5px;color:#7cf5c0;">特效：' + d.fx + '</div>'
-    + '<div class="udesc" style="font-size:12px;color:#9fc4f0;opacity:.9;">升级收益：每级 +30% 伤害 / +12% 攻速 / +8% 射程</div>'
-    + '<div class="udesc" style="font-size:12px;color:#9fc4f0;">共鸣组合：<b style="color:#7cf5c0;">'
+    + '<div class="udesc" style="font-size:12px;color:#bb9cff;opacity:.9;">升级收益：每级 +30% 伤害 / +12% 攻速 / +8% 射程</div>'
+    + '<div class="udesc" style="font-size:12px;color:#bb9cff;">共鸣组合：<b style="color:#7cf5c0;">'
     + bookResoTags(k).join('</b> · <b style="color:#7cf5c0;">') + '</b></div>'
     + '</div></div>';
 }
@@ -6488,7 +6488,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 90;                     /* v9.0：像素风大版本；与 version.json 的 versionCode 保持同步 */
+var BUILD_CODE = 91;                     /* v9.1：战斗画面配色补齐 + 图标替换性能优化；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -6648,7 +6648,7 @@ function bookResoCard(row, idx){
     + '<span style="font-size:17px;flex:0 0 auto;">' + row[0] + '</span>'
     + '<span style="flex:1;text-align:left;min-width:0;">'
     + '<span style="font-size:13.5px;font-weight:700;color:#8ff0ff;">' + row[1] + '</span>'
-    + '<span class="udesc" style="display:block;font-size:11.5px;color:#9fc4f0;margin-top:1px;">' + row[2] + '</span>'
+    + '<span class="udesc" style="display:block;font-size:11.5px;color:#bb9cff;margin-top:1px;">' + row[2] + '</span>'
     + '</span></div>';
 }
 /* 生成图鉴成就分页里一张成就卡的 HTML（已达成金色高亮、未达成置灰）*/
@@ -6660,8 +6660,8 @@ function bookAchCard(a){
     + 'border:1px solid ' + (got ? 'rgba(255,200,110,.6)' : 'rgba(120,180,255,.18)') + ';">'
     + '<span style="font-size:19px;flex:0 0 auto;' + (got ? '' : 'opacity:.3;filter:grayscale(1);') + '">' + a.icon + '</span>'
     + '<span style="flex:1;text-align:left;min-width:0;">'
-    + '<span style="font-size:13.5px;font-weight:700;color:' + (got ? '#ffd76a' : '#9fc4f0') + ';">' + a.name + '</span>'
-    + '<span class="udesc" style="display:block;font-size:11.5px;color:#9fc4f0;">' + a.desc + '</span>'
+    + '<span style="font-size:13.5px;font-weight:700;color:' + (got ? '#ffd76a' : '#bb9cff') + ';">' + a.name + '</span>'
+    + '<span class="udesc" style="display:block;font-size:11.5px;color:#bb9cff;">' + a.desc + '</span>'
     + '</span>'
     + '<span style="flex:0 0 auto;font-size:11px;color:' + (got ? '#7cf5c0' : '#7d8ba3') + ';">' + (got ? '✅ 已达成' : '未达成') + '</span>'
     + '</div>';
@@ -6707,8 +6707,8 @@ function bookSysCard(sys){
   var ups = [];
   for (k in ELEMS){ if (ELEMS[k].sys === sys && ELEMS[k].upName) ups.push(ELEMS[k].icon + ELEMS[k].name + '：' + ELEMS[k].upName); }
   return '<div style="padding:9px 11px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;">'
-    + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">' + SYS_NAME[sys] + ' <span style="font-size:11px;color:#9fc4f0;">' + mem.join('、') + '</span></div>'
-    + '<div class="udesc" style="font-size:11.5px;color:#9fc4f0;margin-top:3px;">体系内塔的<b style="color:#ffd76a;">等级总和</b>达标 → 全体同体系塔的 <b style="color:#7cf5c0;">' + what + '</b> 提升</div>'
+    + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">' + SYS_NAME[sys] + ' <span style="font-size:11px;color:#bb9cff;">' + mem.join('、') + '</span></div>'
+    + '<div class="udesc" style="font-size:11.5px;color:#bb9cff;margin-top:3px;">体系内塔的<b style="color:#ffd76a;">等级总和</b>达标 → 全体同体系塔的 <b style="color:#7cf5c0;">' + what + '</b> 提升</div>'
     + '<div style="font-size:12px;color:#ffd76a;margin-top:2px;">' + lines + '</div>'
     + (ups.length ? ('<div class="udesc" style="font-size:11.5px;color:#ffb27a;margin-top:4px;">📈 专属成长（每级）：<br>' + ups.join('<br>') + '</div>') : '')
     + '</div>';
@@ -6720,16 +6720,16 @@ function bookInfoCard(){
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">🗺 关卡列表</div>');
   for (i = 0; i < LEVELS.length; i++){
     var L = LEVELS[i];
-    out.push('<div style="font-size:12px;color:#9fc4f0;margin-top:3px;">' + L.name
+    out.push('<div style="font-size:12px;color:#bb9cff;margin-top:3px;">' + L.name
       + ' · <b style="color:#ffd76a;">' + L.waves + '</b> 波 · 初始金币 <b style="color:#ffd76a;">' + L.gold + '</b></div>');
   }
   out.push('</div>');
   out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;margin-top:8px;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">❄️ 主动技能</div>'
-    + '<div style="font-size:12px;color:#9fc4f0;margin-top:3px;">全屏冻结：所有敌人短暂冻结，冷却 <b style="color:#ffd76a;">26 秒</b>。BOSS 波与漏怪救场用。</div></div>');
+    + '<div style="font-size:12px;color:#bb9cff;margin-top:3px;">全屏冻结：所有敌人短暂冻结，冷却 <b style="color:#ffd76a;">26 秒</b>。BOSS 波与漏怪救场用。</div></div>');
   out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;margin-top:8px;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">⚙️ 核心机制</div>'
-    + '<div style="font-size:12px;color:#9fc4f0;line-height:1.7;margin-top:3px;">'
+    + '<div style="font-size:12px;color:#bb9cff;line-height:1.7;margin-top:3px;">'
     + '· <b style="color:#ffd76a;">索敌</b>：优先打离基地最近的，路程相同打血量最低<br>'
     + '· <b style="color:#ffd76a;">狙击塔例外</b>：优先锁医疗兵 / 精英队长 / BOSS<br>'
     + '· <b style="color:#ffd76a;">出生护盾</b>：敌人出生 3 秒内受伤仅 15%<br>'
@@ -6745,7 +6745,7 @@ function bookInfoCard(){
   if (prog && prog.stars) for (k in prog.stars) stars += (prog.stars[k] || 0);
   out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;margin-top:8px;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">🏆 我的战绩</div>'
-    + '<div style="font-size:12px;color:#9fc4f0;line-height:1.8;margin-top:3px;">'
+    + '<div style="font-size:12px;color:#bb9cff;line-height:1.8;margin-top:3px;">'
     + '最高波次 <b style="color:#ffd76a;">' + (best || '—') + '</b> · 无尽最高 <b style="color:#ffd76a;">' + (eBest || '—') + '</b> 波<br>'
     + '已解锁 <b style="color:#ffd76a;">' + ((prog && prog.unlocked) || 1) + '/' + LEVELS.length + '</b> 关 · 星数 <b style="color:#ffd76a;">' + stars + '/' + (LEVELS.length * 3) + '</b>'
     + '</div></div>');
@@ -6781,13 +6781,13 @@ function bookRender(){
     /* 默认只展开「两两共鸣」，其余收起 —— 不把 100+ 条堆在一屏（状态由全局变量持有） */
     var allOpen = resoOpenGroups.special && resoOpenGroups.two && resoOpenGroups.three && resoOpenGroups.four;
     h += '<button class="btn" id="resoAllBtn" style="padding:8px 12px;font-size:12.5px;width:100%;margin-bottom:6px;'
-       + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#9fd0ff;">'
+       + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#cfc4ff;">'
        + (allOpen ? '📕 全部收起' : '📖 全部展开（把 100+ 种组合一次看完）') + '</button>';
     groups.forEach(function(g){
       var open = !!resoOpenGroups[g.key];
       var cnt = g.items ? g.items.length : g.combos.length;
       h += '<button class="btn" data-reso-group="' + g.key + '" style="padding:9px 12px;font-size:13px;width:100%;'
-        + 'text-align:left;margin-top:5px;border-color:rgba(120,180,255,.35);background:rgba(20,32,54,.85);color:#9fc4f0;">'
+        + 'text-align:left;margin-top:5px;border-color:rgba(120,180,255,.35);background:rgba(20,32,54,.85);color:#bb9cff;">'
         + (open ? '▼ ' : '▶ ') + g.title + '<span style="float:right;font-size:11px;color:#7d8ba3;">' + cnt + ' 种</span></button>';
       if (!open) return;
       if (g.items){
@@ -6808,9 +6808,9 @@ function bookRender(){
         /* 生成强化卡图鉴里的分组标题行（组名 + 本组卡片数量）*/
     var bTitle = function(t, n){
       return '<div style="font-size:12px;font-weight:700;color:#ffd76a;text-align:left;margin:8px 0 5px;">'
-        + t + '<span style="font-size:10.5px;font-weight:400;color:#8fb4dc;"> · ' + n + ' 张</span></div>';
+        + t + '<span style="font-size:10.5px;font-weight:400;color:#a894d8;"> · ' + n + ' 张</span></div>';
     };
-    h += '<div style="font-size:11.5px;color:#8fb4dc;text-align:left;margin-bottom:4px;">'
+    h += '<div style="font-size:11.5px;color:#a894d8;text-align:left;margin-bottom:4px;">'
        + '每波三选一 · 越到后期越容易抽到高级卡（稀有 +1.6/波、史诗 +3.2/波 权重）<br>'
        + '🗼 <b>专属强化</b>只强化对应那一座塔，且只会从「你已经建了的塔」里刷出来</div>';
     /* —— v7.8 ① 通用卡 —— */
@@ -6833,7 +6833,7 @@ function bookRender(){
   } else if (bookTab === 'wx'){
     /* v8.18 天气页：全部由 WEATHERS 生成，当前生效的那一条标出来 */
     var _wcur = (typeof weather === 'string') ? weather : 'none';
-    h += '<div style="font-size:11.5px;color:#8fb4dc;text-align:left;margin-bottom:5px;">'
+    h += '<div style="font-size:11.5px;color:#a894d8;text-align:left;margin-bottom:5px;">'
        + '前 3 波固定「平稳」当新手缓冲，<b style="color:#ffd76a;">第 4 波起每 3 波换一次</b>，'
        + '切换前一波会在顶部预告栏提示<br>'
        + '顺序固定循环：' + WEATHER_KEYS.map(function(k){ return WEATHERS[k].icon + WEATHERS[k].name; }).join(' → ')
@@ -6842,7 +6842,7 @@ function bookRender(){
     for (i = 0; i < _wkeys.length; i++) h += bookWeatherCard(_wkeys[i], _wcur);
   } else if (bookTab === 'ach'){
     /* v8.21 成就页：已达成的高亮，未达成的置灰并给出条件 */
-    h += '<div style="font-size:11.5px;color:#8fb4dc;text-align:left;margin-bottom:6px;">'
+    h += '<div style="font-size:11.5px;color:#a894d8;text-align:left;margin-bottom:6px;">'
        + '已达成 <b style="color:#ffd76a;">' + achCount() + ' / ' + ACHIEVEMENTS.length + '</b>'
        + '　·　成就跟着存档走，删档会一起清掉</div>';
     var got = achCount();
@@ -6859,7 +6859,7 @@ function bookRender(){
   if (_bt2 && !document.getElementById('bookBriefBtn')){
     var bb = document.createElement('button');
     bb.className = 'btn'; bb.id = 'bookBriefBtn';
-    bb.style.cssText = 'padding:7px 12px;font-size:12px;margin-bottom:6px;border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#9fd0ff;';
+    bb.style.cssText = 'padding:7px 12px;font-size:12px;margin-bottom:6px;border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#cfc4ff;';
     bb.innerHTML = UI_BRIEF ? '📖 显示完整说明' : '📄 收起说明';
     bb.addEventListener('click', function(ev){ ev.stopPropagation(); toggleUiBrief(); });
     if (_bt2.parentNode && _bt2.parentNode.insertBefore) _bt2.parentNode.insertBefore(bb, _bt2);
@@ -6926,7 +6926,7 @@ function showLevels(){
       sn.textContent = st > 0 ? starStr(st) : (locked ? '' : '未通关');
       node.appendChild(sn);
       var nm = document.createElement('div');
-      nm.style.cssText = 'font-size:10px;color:#9fc4f0;white-space:nowrap;';
+      nm.style.cssText = 'font-size:10px;color:#bb9cff;white-space:nowrap;';
       nm.textContent = (L.name.split('·')[1] || L.name).trim();
       node.appendChild(nm);
       var wv = document.createElement('div');
@@ -7638,6 +7638,25 @@ function pxify(root){
   }
 }
 
+/* ── v9.1 性能：游戏里金币/波次之类的文本每帧都在变，若每次变动都全树扫描会卡。
+   改成「攒到下一帧统一处理」，一帧最多扫一次；并只监听 childList（设置 textContent
+   同样会产生 childList 变动），不再监听 characterData，触发次数再降一档。 ── */
+var pxPending = [], pxRaf = 0;
+function pxFlush(){
+  pxRaf = 0;
+  var list = pxPending; pxPending = [];
+  for (var i = 0; i < list.length; i++){
+    try { pxify(list[i]); } catch (e) {}
+  }
+}
+function pxSchedule(root){
+  if (!root) return;
+  if (pxPending.indexOf(root) < 0) pxPending.push(root);
+  if (pxRaf) return;
+  pxRaf = (typeof requestAnimationFrame === 'function')
+    ? requestAnimationFrame(pxFlush) : setTimeout(pxFlush, 16);
+}
+
 /* ── 启动：先扫一遍，再用 MutationObserver 跟进后续动态内容 ── */
 function boot(){
   try { pxify(document.body); } catch(e){}
@@ -7645,18 +7664,15 @@ function boot(){
   var mo = new MutationObserver(function(muts){
     for (var i=0;i<muts.length;i++){
       var m = muts[i];
-      if (m.type === 'childList'){
-        for (var j=0;j<m.addedNodes.length;j++){
-          var nd = m.addedNodes[j];
-          if (nd.nodeType === 1) pxify(nd);
-          else if (nd.nodeType === 3 && nd.parentNode) pxify(nd.parentNode);
-        }
-      } else if (m.type === 'characterData' && m.target.parentNode){
-        pxify(m.target.parentNode);
+      if (m.type !== 'childList') continue;
+      for (var j=0;j<m.addedNodes.length;j++){
+        var nd = m.addedNodes[j];
+        if (nd.nodeType === 1) pxSchedule(nd);
+        else if (nd.nodeType === 3 && nd.parentNode) pxSchedule(nd.parentNode);
       }
     }
   });
-  try { mo.observe(document.body, { childList:true, subtree:true, characterData:true }); } catch(e){}
+  try { mo.observe(document.body, { childList:true, subtree:true }); } catch(e){}
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
