@@ -210,7 +210,10 @@ button:active, .btn:active, .btn-hero:active{
 .ov h1, .ov h2, .ov h3{ color:#e5dcff !important; letter-spacing:1px; }
 
 
-/* ── ⑬ v9.3 消除冷启动闪动 ──
-   主界面 #startOv 初始带 .boot，renderHome() 渲染完第一帧（战绩胶囊/继续进度/菜单）
-   才移除 → 浏览器不会再先画一帧空战绩的旧态再补，肉眼就不会「闪一下」。 */
-#startOv.boot{ opacity:0 !important; }
+/* ── ⑬ v9.4 消除冷启动闪动（修正 v9.3 的做法）──
+   v9.3 把 .boot 加在 #startOv 上（整块不可见），结果主界面要等 renderHome() 才现身，
+   中间那 1 秒会露出底下的战斗界面（HUD/血条/左侧栏）—— 毛毛报「进入游戏会卡一秒这个，才进去主页」。
+   正确做法：**主界面照常显示**（它本身就是盖住底层的遮罩），只把底层战斗界面藏起来，
+   renderHome() 渲染完再放出。这样既不会闪到战斗界面，也不会「空战绩跳变」。 */
+body.boot #top, body.boot #waveInfo, body.boot #tutBar,
+body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !important; }

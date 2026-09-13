@@ -57,10 +57,11 @@ function renderHome(){
     else if (prog && prog.tutorialDone) hint.textContent = '';
     else hint.textContent = '🎓 第一次玩？先过一遍新手教学（6 波、5 步引导）';
   }
-  /* v9.3：冷启动时主界面先以 .boot 隐藏，等这一帧把战绩/提示/菜单都渲染完再显示 ——
-     否则浏览器会先画一帧「空战绩 + 无尽」的旧态，再补渲染，肉眼就是「闪一下」。 */
-  var _so = document.getElementById('startOv');
-  if (_so && _so.classList) _so.classList.remove('boot');
+  /* v9.4：冷启动防闪动的正确做法 —— 主界面 #startOv 照常显示（它本身就盖住底层），
+     只把 body 上的 .boot 摘掉，让底下的战斗界面（HUD/战场）露出来。
+     v9.3 曾把 .boot 加在 #startOv 上，结果启动那 1 秒主界面不可见 → 露出战斗界面，
+     毛毛报「进入游戏会卡一秒这个，才进去主页」。 */
+  if (document.body && document.body.classList) document.body.classList.remove('boot');
 }
 /* ===== v6.8 存档分享：导出成一段码，别人粘贴就能用（纯离线、无服务器） ===== */
 function saveChecksum(b64){
