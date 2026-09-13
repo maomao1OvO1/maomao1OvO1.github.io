@@ -232,19 +232,6 @@ cv.addEventListener('pointerdown', function(ev){
   var c = Math.floor((px - OX) / CELL), r = Math.floor((py - OY) / CELL);
   if (c < 0 || c >= COLS || r < 0 || r >= ROWS){ hideSel(); return; }
   if (isPath(c, r)){ showTip('路径上不能建塔'); hideSel(); return; }
-  /* v9.5：先确认这是「塔位」—— 只有贴路径的格子能建塔，远处空地直接拒绝 */
-  if (!isSlot(c, r)){ showTip('这里建不了塔 —— 塔只能建在路径旁边'); hideSel(); return; }
-  /* v9.5：塔位要解锁 —— 锁着的格子点一下就是「清理障碍」，越清越贵 */
-  if (!isUnlocked(c, r)){
-    var uc = unlockCost();
-    if (gold < uc){ showTip('清理这块障碍要 ' + uc + ' 金币（还差 ' + (uc - gold) + '）'); hideSel(); return; }
-    goldSub(uc); unlockSet[c + ',' + r] = 1; unlockBought++;
-    SFX.upgrade();
-    addFloat(cx(c), cy(r) - CELL * 0.3, '障碍已清理 -' + uc, '#e6b95c');
-    showTip('障碍清掉了 · 下一个要 ' + unlockCost() + ' 金币');
-    bgKey = ''; draw();          /* 立刻重画：这格从「锁」变「可建」 */
-    hideSel(); return;
-  }
   var t = towerAt(c, r);
   if (t) openTower(t, px, py); else openBuild(c, r, px, py);
 });
