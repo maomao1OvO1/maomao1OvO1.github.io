@@ -70,11 +70,13 @@ var a = T.deck(0), b = T.deck(1);
 ok(!!a && !!b, '两个声道元素都能取到');
 T.bgmPlay();
 ok(a.plays === 1 && a.paused === false, 'bgmPlay() 播放了主声道（plays=' + a.plays + '）');
-ok(Math.abs(a.volume - 0.42) < 1e-6, '主声道音量 = 0.42（与旧版一致，避免这次改动顺手改了手感）');
+ok(a.volume >= 0 && a.volume < 0.42, '弱起生效：起播音量低于目标值 0.42（v9.0 新增，毛毛要求音乐弱起）');
 a.fire('playing');
 ok(T.ok() === true, '收到 playing 事件后 bgmOK = true');
 ok(b.preload === 'auto', '主声道确认能响之后自动预热第二声道（避免打不开音频的设备白占内存）');
 
+T.xfade(3.0);   /* v9.0 起有「弱起」：先把这 2 秒推完，再单独测交叉淡化
+                   （实际游戏里弱起在开头、交叉淡化在曲尾，两者不会同时发生）*/
 console.log('=== ③ 交叉淡化：曲尾前 1 秒起淡，第二声道渐入 ===');
 a.duration = 60; a.currentTime = 0;
 T.xfade(0.016);
@@ -129,8 +131,8 @@ T.bgmAdapt();
 ok(T.rate() >= 1, 'bgmAdapt（波次/残血自适应）仍能算出速率');
 
 console.log('=== ⑦ 暂停：两个声道都停、淡化状态清干净 ===');
-T.bgmPause();
-ok(a.paused === true && b.paused === true, 'bgmPause 把两个声道都暂停（切后台不会再漏音）');
+T.bgmPause(true);   /* v9.0 起：无参 bgmPause 是「渐出 1.2 秒后暂停」，测试要立刻停就走 immediate */
+ok(a.paused === true && b.paused === true, 'bgmPause(true) 硬停：两个声道立刻暂停（切后台不漏音）');
 ok(T.fade() === 0, '暂停同时清掉淡化状态（下次进关不会带着半截淡化）');
 
 console.log('=== ⑧ 兜底：拿不到 duration 时不淡化、也不报错 ===');
