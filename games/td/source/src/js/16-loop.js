@@ -176,7 +176,7 @@ function frame(now){
     if (tipT <= 0 && HINT_ON){
       var te = document.getElementById('tip');
       te.style.color = '#a894d8';
-      te.textContent = '点空地建塔 · 带锁的格子花金币解锁塔位 · 相邻不同元素会共鸣';
+      te.textContent = '点路径旁的障碍清理成塔位 · 点空位建塔 · 相邻不同元素会共鸣';
     }
   }
   draw();
