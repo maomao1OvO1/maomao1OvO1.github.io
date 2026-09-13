@@ -499,13 +499,37 @@ function bgmWarmUp(){
   bgmWarm = true;
   try { el.preload = 'auto'; if (el.load) el.load(); } catch (e) {}
 }
+/* ── v9.0 淡入淡出：主淡化系数（0~1）。最终音量 = bgmVol × bgmMaster。
+   与循环交叉淡化（bgmFade）相互独立：那个管「换声道」，这个管「整体起落」。
+   毛毛要求：「开始游戏时音乐弱起，结束也一样」—— 起手 2 秒渐入，收尾 1.2 秒渐出。 ── */
+var bgmMaster = 1;        /* 当前淡化系数 */
+var bgmMTarget = 1;       /* 目标系数 */
+var bgmMSpeed = 1;        /* 每秒变化量（1/秒数） */
+var bgmPauseT = null;     /* 渐出后真正暂停的定时器 */
+
+/* 设定淡化目标：target 0~1，secs 秒走完 */
+function bgmFadeTo(target, secs){
+  bgmMTarget = Math.max(0, Math.min(1, Number(target) || 0));
+  bgmMSpeed = (Number(secs) > 0) ? (1 / Number(secs)) : 99;
+}
+/* 每帧推进淡化（由 musicTick 调用）；返回是否仍在淡化中 */
+function bgmFadeTick(rawDt){
+  if (bgmMaster === bgmMTarget) return false;
+  var step = bgmMSpeed * rawDt;
+  if (bgmMaster < bgmMTarget) bgmMaster = Math.min(bgmMTarget, bgmMaster + step);
+  else bgmMaster = Math.max(bgmMTarget, bgmMaster - step);
+  return true;
+}
+/* 当前该给 <audio> 设的音量（目标音量 × 淡化系数） */
+function bgmV(){ return bgmVol * bgmMaster; }
+
 /* 设置背景音乐目标音量并立即应用到当前声道（淡化进行中则交给淡化曲线处理）*/
 function bgmSetVol(v){
   bgmVol = Math.max(0, Math.min(1, Number(v) || 0));
   if (bgmFade > 0) return;                  /* 淡化中：音量交给淡化曲线，别互相打架 */
   for (var i = 0; i < 2; i++){
     var e = bgmDeckEl(i); if (!e) continue;
-    try { e.volume = (i === bgmCur) ? bgmVol : 0; } catch (er) {}
+    try { e.volume = (i === bgmCur) ? bgmV() : 0; } catch (er) {}
   }
 }
 /* 设置背景音乐播放速率（倍速游戏时音乐加速）*/
@@ -525,13 +549,13 @@ function bgmXfadeTick(rawDt){
     bgmFade -= rawDt;
     var t = 1 - Math.max(0, bgmFade) / bgmFadeDur;      /* 0 → 1 */
     if (t > 1) t = 1;
-    try { cur.volume = bgmVol * (1 - t); nx.volume = bgmVol * t; } catch (e) {}
+    try { cur.volume = bgmV() * (1 - t); nx.volume = bgmV() * t; } catch (e) {}
     if (bgmFade <= 0){
       bgmFade = 0;
       try { cur.pause(); cur.currentTime = 0; cur.volume = 0; } catch (e) {}
       bgmCur = 1 - bgmCur;                              /* 新声道正式接班，音乐没断 */
       bgmOK = true;
-      try { nx.volume = bgmVol; } catch (e) {}
+      try { nx.volume = bgmV(); } catch (e) {}
     }
     return;
   }
@@ -553,30 +577,48 @@ function bgmXfadeTick(rawDt){
 }
 /* 页面进入后台（切 App、锁屏、切页签）时立刻停音乐；回到前台且游戏在跑就接着放 */
 document.addEventListener('visibilitychange', function(){
-  if (document.hidden) bgmPause();
+  if (document.hidden) bgmPause(true);          /* v9.0：切后台立刻静音，不渐出 */
   else if (running && !paused) bgmPlay();
 });
-window.addEventListener('pagehide', function(){ bgmPause(); });
+window.addEventListener('pagehide', function(){ bgmPause(true); });
 window.addEventListener('blur', function(){ setTimeout(function(){ if (document.hidden) bgmPause(); }, 200); });
 /* 播放背景音乐（当前主声道），音乐开关关闭时不动作 */
 function bgmPlay(){
   if (!MUSIC_ON) return;
   var el = bgmDeckEl(bgmCur);
   if (!el) return;
+  if (bgmPauseT){ clearTimeout(bgmPauseT); bgmPauseT = null; }   /* 取消待执行的渐出暂停 */
   try {
-    el.volume = bgmVol;
+    /* v9.0 弱起：只有从「没在放」起播才重新淡入；恢复播放（暂停/切后台回来）不重新淡 */
+    if (el.paused || bgmMaster < 0.999){ if (el.paused) bgmMaster = 0; bgmFadeTo(1, 2.0); }
+    el.volume = bgmV();
     try { el.playbackRate = bgmRate; } catch (er) {}
     var p = el.play();
     if (p && p.catch) p.catch(function(){ bgmOK = false; });
   } catch (e) { bgmOK = false; }
 }
 /* 暂停背景音乐并清掉淡化状态（暂停/切后台时调用）*/
-function bgmPause(){
+function bgmPause(immediate){
   bgmFade = 0;                       /* 停就停干净：别把淡化状态留到下次播放 */
-  for (var i = 0; i < 2; i++){
-    var e = bgmDeckEl(i);
-    if (e){ try { e.pause(); } catch (er) {} }
+  if (bgmPauseT){ clearTimeout(bgmPauseT); bgmPauseT = null; }
+  if (immediate){
+    /* 切后台/锁屏/切页签：必须立刻静音，不能拖 1.2 秒 */
+    bgmMaster = 0; bgmMTarget = 0;
+    for (var k = 0; k < 2; k++){
+      var ek = bgmDeckEl(k);
+      if (ek){ try { ek.volume = 0; ek.pause(); } catch (er) {} }
+    }
+    return;
   }
+  /* v9.0 渐出：结束/暂停/回主界面时让音乐自己淡下去，1.2 秒后再真正暂停 */
+  bgmFadeTo(0, 1.2);
+  bgmPauseT = setTimeout(function(){
+    bgmPauseT = null;
+    for (var i = 0; i < 2; i++){
+      var e = bgmDeckEl(i);
+      if (e){ try { e.pause(); } catch (er) {} }
+    }
+  }, 1250);
 }
 /* v6.6 音乐随局势变化：波次越高略微加快、残血再快一点；BOSS 波音量抬起 */
 function bgmAdapt(){
@@ -593,6 +635,7 @@ function bgmAdapt(){
 var accentT = 0;
 /* 音乐节拍推进：先跑真人 BGM 的交叉淡化，再按局势（波次/BOSS）加程序合成的点缀音（每帧调用）*/
 function musicTick(rawDt){
+  if (bgmFadeTick(rawDt)){ try { var _e = bgmDeckEl(bgmCur); if (_e) _e.volume = bgmV(); } catch (e) {} }
   bgmXfadeTick(rawDt);            /* v8.18：真人 BGM 的循环交叉淡化（每帧推进，与合成乐无关） */
   if (bgmOK){                 // 真人 BGM 在响：不再叠整曲，只在关键局势加轻点缀
     if (!running || paused || menuPause) return;
