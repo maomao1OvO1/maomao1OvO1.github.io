@@ -17,11 +17,11 @@ const SRC = __dirname;
 const OUT = process.argv[2] || path.join(SRC, '..', 'game.html');
 
 /* 文件顺序 = 加载顺序（JS 各文件共享同一作用域，顺序不能乱） */
-const CSS = ['01-base.css', '02-responsive.css', '03-home.css'];
+const CSS = ['01-base.css', '02-responsive.css', '03-home.css', '04-pixel.css'];
 const JS = ['01-core.js', '02-map-grid.js', '03-utils.js', '04-towers.js', '05-cards.js',
   '06-upgrades.js', '07-enemies.js', '08-boss.js', '09-fire.js', '10-waves.js', '11-fx.js',
   '12-draw.js', '13-hud.js', '14-input.js', '15-settings.js', '16-loop.js', '17-flow.js',
-  '18-stars.js', '19-endless.js', '20-book.js', '21-boot.js'];
+  '18-stars.js', '19-endless.js', '20-book.js', '21-pixel.js', '22-boot.js'];
 
 /* 去掉拆分时加的文件头注释（截到注释结束符为止），并吃掉紧跟的那一个空行 */
 function strip(txt) {
@@ -29,6 +29,12 @@ function strip(txt) {
   const b = i >= 0 ? txt.slice(i + 2) : txt;
   return b.replace(/^\n+/, '');
 }
+
+/* VERSION_INJECT：版本号单一来源 = ../version.json，注入到 index.html 的 v__VERSION__ 占位符 */
+const VER = (function(){
+  try { return JSON.parse(fs.readFileSync(path.join(SRC, '..', 'version.json'), 'utf8')).version; }
+  catch (e) { return 'dev'; }
+})();
 
 const lines = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8').split('\n');
 const iLink = lines.findIndex(l => l.indexOf('<link rel="stylesheet"') >= 0);
@@ -45,7 +51,7 @@ const cssText = CSS.map(f => strip(fs.readFileSync(path.join(SRC, 'css', f), 'ut
 const jsText = JS.map(f => strip(fs.readFileSync(path.join(SRC, 'js', f), 'utf8')))
   .join('').replace(/\n$/, '');
 
-const out = [
+let out = [
   ...headTop,
   '<style>' + cssText,
   '</style>',
@@ -58,5 +64,6 @@ const out = [
   ...tail,
 ].join('\n');
 
+out = out.replace(/v__VERSION__/g, 'v' + VER);   /* 注入真实版本号 */
 fs.writeFileSync(OUT, out);
 console.log('已生成 ' + OUT + '（' + out.length + ' 字节）');
