@@ -89,7 +89,7 @@ function bookMobCard(k){
   var d = ENEMIES[k];
   var color = d.color || '#bb9cff';
   return '<div style="display:flex;align-items:stretch;gap:10px;width:100%;box-sizing:border-box;'
-    + 'padding:10px 12px;border:1px solid rgba(120,160,220,.28);border-radius:10px;background:rgba(18,26,44,.72);">'
+    + 'padding:10px 12px;border:1px solid rgba(150,130,220,.28);border-radius:10px;background:rgba(18,26,44,.72);">'
     + '<div style="flex:0 0 16px;width:16px;border-radius:4px;background:' + color + ';box-shadow:0 0 8px ' + color + ';"></div>'
     + '<div style="flex:1;text-align:left;line-height:1.55;min-width:0;">'
     + '<div style="font-size:15px;font-weight:bold;color:' + color + ';">' + d.name
@@ -115,7 +115,7 @@ function bookTowerCard(k){
       + '</b> 次/秒 · 射程 <b style="color:#ffd76a;">' + d.range + '</b>';
   }
   return '<div style="display:flex;align-items:stretch;gap:10px;width:100%;box-sizing:border-box;'
-    + 'padding:10px 12px;border:1px solid rgba(120,160,220,.28);border-radius:10px;background:rgba(18,26,44,.72);">'
+    + 'padding:10px 12px;border:1px solid rgba(150,130,220,.28);border-radius:10px;background:rgba(18,26,44,.72);">'
     + '<div style="flex:0 0 30px;font-size:22px;line-height:1.3;text-align:center;">' + d.icon + '</div>'
     + '<div style="flex:1;text-align:left;line-height:1.55;min-width:0;">'
     + '<div style="font-size:15px;font-weight:bold;color:' + color + ';">' + d.name
@@ -173,7 +173,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 92;                     /* v9.2：修 build 版本注入路径（网页版曾显示 vdev）+ 弱起闸门；与 version.json 同步 */
+var BUILD_CODE = 93;                     /* v9.3：修冷启动闪动 + 图标替换改同步 + 剩余蓝转紫；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -329,7 +329,7 @@ function bindResoTreeClicks(){
 /* 生成图鉴共鸣分页里一张共鸣卡片的 HTML */
 function bookResoCard(row, idx){
   return '<div style="display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;'
-    + 'background:rgba(22,32,56,.75);border:1px solid rgba(120,180,255,.22);">'
+    + 'background:rgba(28,20,52,.75);border:1px solid rgba(160,140,255,.22);">'
     + '<span style="font-size:17px;flex:0 0 auto;">' + row[0] + '</span>'
     + '<span style="flex:1;text-align:left;min-width:0;">'
     + '<span style="font-size:13.5px;font-weight:700;color:#8ff0ff;">' + row[1] + '</span>'
@@ -341,14 +341,14 @@ function bookAchCard(a){
   /* v8.21：已达成 → 金色高亮；未达成 → 置灰 */
   var got = achUnlocked(a.key);
   return '<div style="display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;'
-    + 'background:' + (got ? 'rgba(60,48,16,.85)' : 'rgba(22,32,56,.7)') + ';'
-    + 'border:1px solid ' + (got ? 'rgba(255,200,110,.6)' : 'rgba(120,180,255,.18)') + ';">'
+    + 'background:' + (got ? 'rgba(60,48,16,.85)' : 'rgba(28,20,52,.7)') + ';'
+    + 'border:1px solid ' + (got ? 'rgba(255,200,110,.6)' : 'rgba(160,140,255,.18)') + ';">'
     + '<span style="font-size:19px;flex:0 0 auto;' + (got ? '' : 'opacity:.3;filter:grayscale(1);') + '">' + a.icon + '</span>'
     + '<span style="flex:1;text-align:left;min-width:0;">'
     + '<span style="font-size:13.5px;font-weight:700;color:' + (got ? '#ffd76a' : '#bb9cff') + ';">' + a.name + '</span>'
     + '<span class="udesc" style="display:block;font-size:11.5px;color:#bb9cff;">' + a.desc + '</span>'
     + '</span>'
-    + '<span style="flex:0 0 auto;font-size:11px;color:' + (got ? '#7cf5c0' : '#7d8ba3') + ';">' + (got ? '✅ 已达成' : '未达成') + '</span>'
+    + '<span style="flex:0 0 auto;font-size:11px;color:' + (got ? '#7cf5c0' : '#8f83b5') + ';">' + (got ? '✅ 已达成' : '未达成') + '</span>'
     + '</div>';
 }
 /* 生成图鉴天气分页里一张天气卡的 HTML（当前天气高亮，效果与建议读数据表）*/
@@ -357,13 +357,13 @@ function bookWeatherCard(k, cur){
   var w = WEATHERS[k] || {};
   var on = (k === cur);
   return '<div style="padding:9px 11px;border-radius:11px;text-align:left;'
-    + 'background:' + (on ? 'rgba(60,48,16,.9)' : 'rgba(22,32,56,.75)') + ';'
-    + 'border:1px solid ' + (on ? 'rgba(255,200,110,.7)' : 'rgba(120,180,255,.22)') + ';">'
+    + 'background:' + (on ? 'rgba(60,48,16,.9)' : 'rgba(28,20,52,.75)') + ';'
+    + 'border:1px solid ' + (on ? 'rgba(255,200,110,.7)' : 'rgba(160,140,255,.22)') + ';">'
     + '<div style="font-size:14px;font-weight:700;color:' + (on ? '#ffd76a' : '#eaf3ff') + ';">'
     + (w.icon || '') + ' ' + (w.name || k)
     + (on ? '<span style="float:right;font-size:10px;color:#20180a;background:#ffd76a;border-radius:8px;padding:1px 6px;font-weight:700;">当前</span>' : '')
     + '</div>'
-    + '<div style="font-size:11.5px;color:#a8caf0;line-height:1.5;margin-top:2px;">' + (w.desc || '—') + '</div>'
+    + '<div style="font-size:11.5px;color:#b4a6e0;line-height:1.5;margin-top:2px;">' + (w.desc || '—') + '</div>'
     + '<div class="udesc" style="font-size:11.5px;color:#7cf5c0;line-height:1.5;margin-top:2px;">🖐 ' + (WX_ADVICE[k] || '') + '</div>'
     + '</div>';
 }
@@ -373,12 +373,12 @@ function bookBuffCard(c){
   /* v7.8：专属卡直接标出「哪座塔专属」，一眼看出这张卡是给谁的 */
   var kind = c.elKey ? ((ELEMS[c.elKey] ? ELEMS[c.elKey].name + '塔专属' : '专属强化')) : '通用（全塔）';
   return '<div style="display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;'
-    + 'background:rgba(22,32,56,.75);border:1px solid ' + rar.color + '55;">'
+    + 'background:rgba(28,20,52,.75);border:1px solid ' + rar.color + '55;">'
     + '<span style="flex:0 0 auto;font-size:10px;color:' + rar.color + ';border:1px solid ' + rar.color
     + ';border-radius:8px;padding:1px 6px;">' + rar.name + '</span>'
     + '<span style="flex:1;text-align:left;min-width:0;">'
     + '<span style="font-size:13.5px;font-weight:700;color:#eaf3ff;">' + c.name
-    + '<span style="font-size:10.5px;font-weight:400;color:#7d8ba3;"> · ' + kind + '</span></span>'
+    + '<span style="font-size:10.5px;font-weight:400;color:#8f83b5;"> · ' + kind + '</span></span>'
     + '<span style="display:block;font-size:11.5px;color:#7cf5c0;margin-top:1px;">' + c.desc + '</span>'
     + '</span></div>';
 }
@@ -391,7 +391,7 @@ function bookSysCard(sys){
   // 各塔专属成长
   var ups = [];
   for (k in ELEMS){ if (ELEMS[k].sys === sys && ELEMS[k].upName) ups.push(ELEMS[k].icon + ELEMS[k].name + '：' + ELEMS[k].upName); }
-  return '<div style="padding:9px 11px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;">'
+  return '<div style="padding:9px 11px;border-radius:12px;background:rgba(28,20,52,.8);border:1px solid rgba(160,140,255,.28);text-align:left;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">' + SYS_NAME[sys] + ' <span style="font-size:11px;color:#bb9cff;">' + mem.join('、') + '</span></div>'
     + '<div class="udesc" style="font-size:11.5px;color:#bb9cff;margin-top:3px;">体系内塔的<b style="color:#ffd76a;">等级总和</b>达标 → 全体同体系塔的 <b style="color:#7cf5c0;">' + what + '</b> 提升</div>'
     + '<div style="font-size:12px;color:#ffd76a;margin-top:2px;">' + lines + '</div>'
@@ -401,7 +401,7 @@ function bookSysCard(sys){
 /* 生成图鉴关卡分页：逐关列出波数、难度、地图与解锁状态 */
 function bookInfoCard(){
   var out = [], i, k;
-  out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;">'
+  out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(28,20,52,.8);border:1px solid rgba(160,140,255,.28);text-align:left;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">🗺 关卡列表</div>');
   for (i = 0; i < LEVELS.length; i++){
     var L = LEVELS[i];
@@ -409,10 +409,10 @@ function bookInfoCard(){
       + ' · <b style="color:#ffd76a;">' + L.waves + '</b> 波 · 初始金币 <b style="color:#ffd76a;">' + L.gold + '</b></div>');
   }
   out.push('</div>');
-  out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;margin-top:8px;">'
+  out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(28,20,52,.8);border:1px solid rgba(160,140,255,.28);text-align:left;margin-top:8px;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">❄️ 主动技能</div>'
     + '<div style="font-size:12px;color:#bb9cff;margin-top:3px;">全屏冻结：所有敌人短暂冻结，冷却 <b style="color:#ffd76a;">26 秒</b>。BOSS 波与漏怪救场用。</div></div>');
-  out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;margin-top:8px;">'
+  out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(28,20,52,.8);border:1px solid rgba(160,140,255,.28);text-align:left;margin-top:8px;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">⚙️ 核心机制</div>'
     + '<div style="font-size:12px;color:#bb9cff;line-height:1.7;margin-top:3px;">'
     + '· <b style="color:#ffd76a;">索敌</b>：优先打离基地最近的，路程相同打血量最低<br>'
@@ -428,7 +428,7 @@ function bookInfoCard(){
   try { eBest = parseInt(localStorage.getItem('td_endless_best') || '0', 10) || 0; } catch (e) { eBest = 0; }
   var stars = 0;
   if (prog && prog.stars) for (k in prog.stars) stars += (prog.stars[k] || 0);
-  out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;margin-top:8px;">'
+  out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(28,20,52,.8);border:1px solid rgba(160,140,255,.28);text-align:left;margin-top:8px;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">🏆 我的战绩</div>'
     + '<div style="font-size:12px;color:#bb9cff;line-height:1.8;margin-top:3px;">'
     + '最高波次 <b style="color:#ffd76a;">' + (best || '—') + '</b> · 无尽最高 <b style="color:#ffd76a;">' + (eBest || '—') + '</b> 波<br>'
@@ -443,7 +443,7 @@ function bookRenderTabs(){
     var el = document.getElementById(ids[key]);
     if (!el) continue;
     var on = (bookTab === key);
-    el.style.borderColor = on ? '#ffd76a' : 'rgba(120,160,220,.3)';
+    el.style.borderColor = on ? '#ffd76a' : 'rgba(150,130,220,.3)';
     el.style.color = on ? '#ffd76a' : '#eaf3ff';
     el.style.background = on ? 'rgba(80,60,20,.9)' : 'rgba(40,60,100,.85)';
   }
@@ -466,14 +466,14 @@ function bookRender(){
     /* 默认只展开「两两共鸣」，其余收起 —— 不把 100+ 条堆在一屏（状态由全局变量持有） */
     var allOpen = resoOpenGroups.special && resoOpenGroups.two && resoOpenGroups.three && resoOpenGroups.four;
     h += '<button class="btn" id="resoAllBtn" style="padding:8px 12px;font-size:12.5px;width:100%;margin-bottom:6px;'
-       + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#cfc4ff;">'
+       + 'border-color:rgba(180,160,255,.5);background:rgba(32,22,60,.9);color:#cfc4ff;">'
        + (allOpen ? '📕 全部收起' : '📖 全部展开（把 100+ 种组合一次看完）') + '</button>';
     groups.forEach(function(g){
       var open = !!resoOpenGroups[g.key];
       var cnt = g.items ? g.items.length : g.combos.length;
       h += '<button class="btn" data-reso-group="' + g.key + '" style="padding:9px 12px;font-size:13px;width:100%;'
-        + 'text-align:left;margin-top:5px;border-color:rgba(120,180,255,.35);background:rgba(20,32,54,.85);color:#bb9cff;">'
-        + (open ? '▼ ' : '▶ ') + g.title + '<span style="float:right;font-size:11px;color:#7d8ba3;">' + cnt + ' 种</span></button>';
+        + 'text-align:left;margin-top:5px;border-color:rgba(160,140,255,.35);background:rgba(20,32,54,.85);color:#bb9cff;">'
+        + (open ? '▼ ' : '▶ ') + g.title + '<span style="float:right;font-size:11px;color:#8f83b5;">' + cnt + ' 种</span></button>';
       if (!open) return;
       if (g.items){
         for (i = 0; i < g.items.length; i++) h += bookResoCard(g.items[i], i);
@@ -509,7 +509,7 @@ function bookRender(){
       var myCards = expAll.filter(function(b){ return b.elKey === ek; }).sort(byRar);
       if (!myCards.length) continue;
       h += '<div style="font-size:11.5px;color:' + ELEMS[ek].color + ';text-align:left;margin:6px 0 3px;">'
-         + ELEMS[ek].icon + ' ' + ELEMS[ek].name + '塔 <span style="color:#7d8ba3;">（' + myCards.length + ' 张）</span></div>';
+         + ELEMS[ek].icon + ' ' + ELEMS[ek].name + '塔 <span style="color:#8f83b5;">（' + myCards.length + ' 张）</span></div>';
       for (i = 0; i < myCards.length; i++) h += bookBuffCard(myCards[i]);
     }
   } else if (bookTab === 'sys'){
@@ -544,7 +544,7 @@ function bookRender(){
   if (_bt2 && !document.getElementById('bookBriefBtn')){
     var bb = document.createElement('button');
     bb.className = 'btn'; bb.id = 'bookBriefBtn';
-    bb.style.cssText = 'padding:7px 12px;font-size:12px;margin-bottom:6px;border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#cfc4ff;';
+    bb.style.cssText = 'padding:7px 12px;font-size:12px;margin-bottom:6px;border-color:rgba(180,160,255,.45);background:rgba(32,22,60,.9);color:#cfc4ff;';
     bb.innerHTML = UI_BRIEF ? '📖 显示完整说明' : '📄 收起说明';
     bb.addEventListener('click', function(ev){ ev.stopPropagation(); toggleUiBrief(); });
     if (_bt2.parentNode && _bt2.parentNode.insertBefore) _bt2.parentNode.insertBefore(bb, _bt2);
@@ -599,7 +599,7 @@ function showLevels(){
       var b = document.createElement('button');
       b.className = 'btn';
       b.style.cssText = 'width:56px;height:56px;border-radius:50%;padding:0;font-size:18px;font-weight:800;'
-        + (locked ? 'opacity:.42;background:rgba(40,50,70,.85);border-color:rgba(120,140,170,.4);'
+        + (locked ? 'opacity:.42;background:rgba(48,40,70,.85);border-color:rgba(140,125,175,.4);'
           : (st > 0 ? 'border-color:rgba(255,210,110,.9);background:linear-gradient(180deg,rgba(150,100,20,.96),rgba(88,54,10,.96));color:#ffe6a8;'
                     : 'border-color:rgba(140,240,180,.7);background:linear-gradient(180deg,rgba(22,86,64,.96),rgba(12,52,40,.96));color:#c8ffe4;'));
       b.textContent = locked ? '🔒' : String(i + 1);
@@ -615,7 +615,7 @@ function showLevels(){
       nm.textContent = (L.name.split('·')[1] || L.name).trim();
       node.appendChild(nm);
       var wv = document.createElement('div');
-      wv.style.cssText = 'font-size:9px;color:#7d8ba3;';
+      wv.style.cssText = 'font-size:9px;color:#8f83b5;';
       wv.textContent = L.waves + '波';
       node.appendChild(wv);
       nodes.push(node);
@@ -630,7 +630,7 @@ function showLevels(){
     b.className = 'btn'; b.id = 'endlessBtn';
     b.style.cssText = 'width:62px;height:62px;border-radius:50%;padding:0;font-size:22px;font-weight:800;'
       + (u ? 'border-color:rgba(255,200,90,.85);background:linear-gradient(180deg,rgba(160,96,18,.96),rgba(96,54,10,.96));color:#ffe6a8;'
-           : 'opacity:.42;background:rgba(40,50,70,.85);border-color:rgba(120,140,170,.4);');
+           : 'opacity:.42;background:rgba(48,40,70,.85);border-color:rgba(140,125,175,.4);');
     b.textContent = u ? '♾' : '🔒';
     b.title = '无尽模式：波次无上限' + (eb > 0 ? ' · 最高 ' + eb + ' 波' : '');
     if (u && svNow) b.addEventListener('click', function(e){ e.stopPropagation(); resumeEndless(); });
@@ -645,7 +645,7 @@ function showLevels(){
     nm.textContent = svNow && u ? '继续无尽' : '无尽模式';
     node.appendChild(nm);
     var wv = document.createElement('div');
-    wv.style.cssText = 'font-size:9px;color:#7d8ba3;';
+    wv.style.cssText = 'font-size:9px;color:#8f83b5;';
     wv.textContent = u ? '无上限' : '需先通关第 1 关';
     node.appendChild(wv);
     nodes.push(node);
@@ -672,7 +672,7 @@ function showLevels(){
     nm.textContent = '每日挑战';
     node.appendChild(nm);
     var wv = document.createElement('div');
-    wv.style.cssText = 'font-size:9px;color:#7d8ba3;';
+    wv.style.cssText = 'font-size:9px;color:#8f83b5;';
     wv.textContent = '#' + String(ds).slice(4);
     node.appendChild(wv);
     nodes.push(node);
@@ -685,7 +685,7 @@ function showLevels(){
       var link = document.createElement('div');
       link.style.cssText = 'flex:0 0 auto;width:22px;height:3px;border-radius:2px;margin-top:'
         + Math.round((prevTop + curTop) / 2 + 26) + 'px;'
-        + 'background:linear-gradient(90deg,rgba(140,200,255,.28),rgba(140,200,255,.62));';
+        + 'background:linear-gradient(90deg,rgba(180,160,255,.28),rgba(180,160,255,.62));';
       wrap.appendChild(link);
     }
     wrap.appendChild(nodes[n]);
@@ -706,7 +706,7 @@ function showLevels(){
     var svNow = loadEndlessSave();   // 有存档则显示「继续无尽」
     eb2.style.cssText = 'margin-top:8px;padding:13px 18px;font-size:15px;letter-spacing:2px;width:100%;'
       + (u ? 'border-color:rgba(255,200,90,.6);background:linear-gradient(180deg,rgba(150,90,20,.9),rgba(90,50,12,.9));color:#ffe6a8;'
-           : 'opacity:.4;background:rgba(40,50,70,.7)');
+           : 'opacity:.4;background:rgba(48,40,70,.7)');
     if (u && svNow){
       eb2.textContent = '💾 继续无尽 · 第 ' + svNow.wave + ' 波' + (eb > 0 ? '   （最高 ' + eb + ' 波）' : '');
       eb2.style.cssText = 'margin-top:8px;padding:13px 18px;font-size:15px;letter-spacing:2px;width:100%;'

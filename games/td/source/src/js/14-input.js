@@ -73,7 +73,7 @@ function roleBgOf(k){                           /* 由徽标色生成 16% 半透
     return 'rgba(' + parseInt(c.substr(1, 2), 16) + ',' + parseInt(c.substr(3, 2), 16)
       + ',' + parseInt(c.substr(5, 2), 16) + ',0.16)';
   }
-  return 'rgba(120,160,220,.18)';
+  return 'rgba(150,130,220,.18)';
 }
 function starValOf(v){                          /* 仅 1..5 的有限数字有效，其余返回 -1（→ 显示「—」） */
   if (typeof v !== 'number' || !isFinite(v)) return -1;
@@ -82,9 +82,9 @@ function starValOf(v){                          /* 仅 1..5 的有限数字有�
 }
 function starTxtOf(v, onColor){                 /* 5 格星级条：实心 ★ 用 onColor，空星 ☆ 用暗灰蓝 */
   var n = starValOf(v), i, h = '';
-  if (n < 0) return '<span style="color:rgba(160,180,210,.35);">' + ROLE_DASH + '</span>';
+  if (n < 0) return '<span style="color:rgba(180,170,215,.35);">' + ROLE_DASH + '</span>';
   for (i = 0; i < 5; i++){
-    h += '<span style="color:' + (i < n ? onColor : 'rgba(160,180,210,.35)') + ';">'
+    h += '<span style="color:' + (i < n ? onColor : 'rgba(180,170,215,.35)') + ';">'
       + (i < n ? '\u2605' : '\u2606') + '</span>';
   }
   return h;
@@ -169,7 +169,7 @@ function openTower(t, px, py){
       + '💥 每发 <b style="color:#ffd76a;font-size:13px">' + perHit.toFixed(1) + '</b>'
       + '\u3000⚡ 暴击 <b style="color:#ff9a6a;font-size:13px">' + critHit.toFixed(1) + '</b>'
       + (critRate > 0 ? '<span style="color:#a894d8">（' + Math.round(critRate * 100) + '% ×' + CRIT_X + '）</span>'
-                      : '<span style="color:#7d8ba3">（暂无暴击率）</span>')
+                      : '<span style="color:#8f83b5">（暂无暴击率）</span>')
       + '<br>📊 <span style="color:#a894d8">单体 DPS</span> <b style="color:#8ff0ff">' + dps.toFixed(1) + '</b>/秒'
       + '</div>';
   }
@@ -181,7 +181,7 @@ function openTower(t, px, py){
   var specHtml = '';
   if (!d.aura){
     if (t.lv < 3){
-      specHtml = '<div class="ce" style="margin:3px 0 0;color:#7d8ba3">🔀 精通分支：升到 Lv3 解锁（伤害 / 攻速 二选一，互斥）</div>';
+      specHtml = '<div class="ce" style="margin:3px 0 0;color:#8f83b5">🔀 精通分支：升到 Lv3 解锁（伤害 / 攻速 二选一，互斥）</div>';
     } else if (!t.spec){
       specHtml = '<div class="ce" style="margin:3px 0 0;color:#ffd76a">🔀 选择精通分支（<b>互斥</b>，选定不可改）</div>'
         + '<div class="row" style="margin-top:4px">'

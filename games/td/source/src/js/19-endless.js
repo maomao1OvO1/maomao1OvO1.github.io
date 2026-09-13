@@ -57,6 +57,10 @@ function renderHome(){
     else if (prog && prog.tutorialDone) hint.textContent = '';
     else hint.textContent = '🎓 第一次玩？先过一遍新手教学（6 波、5 步引导）';
   }
+  /* v9.3：冷启动时主界面先以 .boot 隐藏，等这一帧把战绩/提示/菜单都渲染完再显示 ——
+     否则浏览器会先画一帧「空战绩 + 无尽」的旧态，再补渲染，肉眼就是「闪一下」。 */
+  var _so = document.getElementById('startOv');
+  if (_so && _so.classList) _so.classList.remove('boot');
 }
 /* ===== v6.8 存档分享：导出成一段码，别人粘贴就能用（纯离线、无服务器） ===== */
 function saveChecksum(b64){

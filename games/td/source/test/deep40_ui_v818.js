@@ -53,7 +53,7 @@ function txt(el){
 }
 
 console.log('=== ① 天气介绍：点 HUD 天气框弹出说明 ===');
-ok(Math.abs(html.indexOf('<div class="ov" id="startOv">') ) >= 0, '首页区块定位基准仍在（未破坏既有结构）');
+ok(Math.abs(html.search(/<div class="ov[^"]*" id="startOv">/) ) >= 0, '首页区块定位基准仍在（未破坏既有结构）');
 ok(/id="wxBox"[^>]*cursor:pointer/.test(html), 'HUD 天气框 #wxBox 变成可点样式（一眼看得出能点）');
 ok(T.el('wxBox')._handlers.click !== undefined, '#wxBox 已绑定点击');
 T.startLevel(0);
@@ -100,7 +100,7 @@ ok(txt(T.el('bookSub')).indexOf('种天气') >= 0, '副标题写明「共 N 种�
 ok(bHtml.indexOf('当前') >= 0, '图鉴里把当前天气标为「当前」');
 
 console.log('=== ③ 主界面：图标网格 + 主按钮 ===');
-var s0 = html.indexOf('<div class="ov" id="startOv">'), s1 = html.indexOf('<div class="ov hidden" id="pauseOv">');
+var s0 = html.search(/<div class="ov[^"]*" id="startOv">/), s1 = html.indexOf('<div class="ov hidden" id="pauseOv">');
 var home = html.slice(s0, s1);
 ok(s0 > 0 && s1 > s0, '首页区块可切出（' + home.length + ' 字符）');
 /* v8.28：CSS 已展开成多行可读格式 → 断言改成「去掉空白后匹配」，不再依赖原排版 */

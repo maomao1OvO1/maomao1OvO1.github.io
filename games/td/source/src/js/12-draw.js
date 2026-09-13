@@ -90,7 +90,7 @@ function drawTowerBody(x, y, rad, elem, color, k){
     ctx.fillRect(x - rad * 0.44, y - rad * 0.52, rad * 0.88, rad * 0.30);   // 锤头
     ctx.fillStyle = color;
     ctx.fillRect(x - rad * 0.10, y - rad * 0.22, rad * 0.20, rad * 0.66);   // 锤柄
-    ctx.fillStyle = '#93a3ba';
+    ctx.fillStyle = '#9a8ec0';
     ctx.fillRect(x - rad * 0.24, y + rad * 0.44, rad * 0.48, rad * 0.14);
   } else if (elem === 'sniper'){
     /* TOWERS_V6_PATCH 狙击：瞄准十字（外环 + 十字线 + 中心亮点） */
