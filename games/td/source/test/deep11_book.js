@@ -60,7 +60,7 @@ var CLK = 1e6;
 function step(n){ for (var i = 0; i < n; i++){ CLK += 16.7; T.frame(CLK); } }
 
 console.log('=== ① 首页入口 + 弹窗骨架 ===');
-var s0 = html.indexOf('<div class="ov" id="startOv">');
+var s0 = html.search(/<div class="ov[^"]*" id="startOv">/);
 var s1 = html.indexOf('<div class="ov hidden" id="pauseOv">');
 var home = (s0 >= 0 && s1 > s0) ? html.slice(s0, s1) : '';
 ok(s0 >= 0 && s1 > s0, '能切出首页 #startOv 区块（' + home.length + ' 字符）');

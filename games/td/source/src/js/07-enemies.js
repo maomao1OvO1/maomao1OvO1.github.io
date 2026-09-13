@@ -12,7 +12,7 @@
    特性开关：armor 护甲减伤 · immuneSlow 免疫减速 · boss BOSS · heal 治疗 · split 分裂 · bomb 自爆 ·
             aura 指挥光环 · charge 冲锋 · absorb 吸收 · phase 相位 · airdrop 空降 · steal 偷金 */
 var ENEMIES = {
-  normal: { name:'步兵',   hp:72,  speed:1.05, gold:11,  color:'#7ea8d8', r:11 , fx:'普通单位，没有特殊能力，胜在数量', tip:'任意元素塔都能处理' },
+  normal: { name:'步兵',   hp:72,  speed:1.05, gold:11,  color:'#9a8cd0', r:11 , fx:'普通单位，没有特殊能力，胜在数量', tip:'任意元素塔都能处理' },
   fast:   { name:'疾行者', hp:50,  speed:2.00, gold:10,  color:'#7cf5c0', r:9 , fx:'移动极快，血量很低', tip:'冰霜塔减速 / 雷电塔链式一次清一片' },
   armor:  { name:'装甲',   hp:195, speed:0.74, gold:18, color:'#c8a24a', r:13, armor:0.35 , fx:'护甲减伤 35%，走得慢但非常耐打', tip:'物理塔穿甲 / 电磁炮无视护甲' },
   shield: { name:'护盾',   hp:138, speed:1.02, gold:20, color:'#b48cff', r:12, immuneSlow:true , fx:'免疫减速，冰霜塔对它完全无效', tip:'别只堆冰霜，改用火/雷/物理硬输出' },
@@ -36,7 +36,7 @@ var ENEMIES = {
   elite:   { name:'精英队长', hp:460, speed:0.90, gold:20, color:'#ffd24a', r:15, aura:true, dblGold:true , fx:'指挥光环：半径 2.5 格内友军 +30% 速度；击杀掉落双倍金币', tip:'优先点掉它，光环一散整波都会慢下来' },
   charger: { name:'重装冲锋', hp:360, speed:0.62, gold:26, color:'#9aa7b8', r:15, armor:0.5, charge:true, fx:'50% 护甲；每 5 秒冲锋 1.5 秒（冲锋期间提速 80% 且免疫减速）', tip:'物理塔穿甲；趁它冲锋结束的间隙集火' },
   /* ===== v8.1 机制轮换：让「露头就秒」不再万能，逼玩家混搭与留后手 ===== */
-  bulwark: { name:'壁垒兵', hp:430, speed:0.70, gold:30, color:'#7f9bb5', r:15, armor:0.15, absorb:true,
+  bulwark: { name:'壁垒兵', hp:430, speed:0.70, gold:30, color:'#8a7cb0', r:15, armor:0.15, absorb:true,
              fx:'单次伤害超过自身血量 25% 时，该次伤害减免 65%（专克一波爆发秒杀）',
              tip:'别用单发高伤硬砸 —— 用持续输出磨它（毒 / 链式 / 溅射 / 多段）' },
   phase:   { name:'相位兵', hp:270, speed:1.05, gold:26, color:'#c78cff', r:13, phase:true,

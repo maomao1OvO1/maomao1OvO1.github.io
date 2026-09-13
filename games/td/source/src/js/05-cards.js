@@ -234,7 +234,7 @@ function updateBuffHead(){
   var _ar = archetypeNow();
   if (_bt) _bt.textContent = banMode ? '🚫 选一张禁掉（本局不再出现）' : '选择强化';
   if (_bs) _bs.innerHTML = '🎯 当前倾向：<b style="color:#ffd76a">' + _ar.name + '</b>　<span style="font-size:11px;color:#bb9cff">'
-    + _ar.hint + '</span><br><span style="font-size:10.5px;color:#7d8ba3;">🔄 换一批 ' + rerollLeft + ' 次　🚫 禁卡 ' + banLeft + ' 次</span>';
+    + _ar.hint + '</span><br><span style="font-size:10.5px;color:#8f83b5;">🔄 换一批 ' + rerollLeft + ' 次　🚫 禁卡 ' + banLeft + ' 次</span>';
   var _bb = document.getElementById('banBtn');
   if (_bb) _bb.style.outline = banMode ? '2px solid #ffd76a' : 'none';
 }

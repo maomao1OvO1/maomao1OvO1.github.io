@@ -68,7 +68,7 @@ function silenceNearestTowers(e, count, dur){
   var n = Math.min(count, list.length);
   for (var k = 0; k < n; k++){
     list[k].t.silencedT = dur;
-    addFloat(cx(list[k].t.c), cy(list[k].t.r) - CELL * 0.5, '沉默', '#c8d4e8');
+    addFloat(cx(list[k].t.c), cy(list[k].t.r) - CELL * 0.5, '沉默', '#d0c8e8');
   }
   if (n > 0) SFX.silence();
   return n;

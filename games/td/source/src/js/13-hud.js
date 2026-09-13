@@ -112,7 +112,7 @@ function swBodyHtml(){
     + w.icon + ' ' + w.name + '</span></div>'
     + '<div class="udesc" style="font-size:10.5px;color:#a894d8;line-height:1.45;">' + w.desc + '</div>'
     + '<button class="btn" id="swWxMore" style="margin-top:5px;padding:5px 8px;font-size:11px;width:100%;letter-spacing:0;'
-    + 'border-radius:8px;border-color:rgba(140,200,255,.4);background:rgba(24,44,74,.9);color:#cfc4ff;">📖 全部天气说明</button></div>';
+    + 'border-radius:8px;border-color:rgba(180,160,255,.4);background:rgba(32,22,60,.9);color:#cfc4ff;">📖 全部天气说明</button></div>';
   /* ② 天气影响（有就列）*/
   if (sp.up.length || sp.down.length){
     h += '<div class="swSec"><div class="swT">🌦 天气影响</div>';
@@ -144,10 +144,10 @@ function swBodyHtml(){
   /* ⑤ 本局已获得的强化卡 */
   h += '<div class="swSec"><div class="swT">🎴 本局强化卡 · ' + runCards.length + ' 张</div>';
   if (!runCards.length){
-    h += '<div style="font-size:10.5px;color:#6c7f9b;">还没有抽过卡（每波结束三选一）</div>';
+    h += '<div style="font-size:10.5px;color:#7c6f9e;">还没有抽过卡（每波结束三选一）</div>';
   } else {
     var show = runCards.slice(Math.max(0, runCards.length - 10));
-    if (runCards.length > show.length) h += '<div style="font-size:10px;color:#6c7f9b;">…前 ' + (runCards.length - show.length) + ' 张已折叠</div>';
+    if (runCards.length > show.length) h += '<div style="font-size:10px;color:#7c6f9e;">…前 ' + (runCards.length - show.length) + ' 张已折叠</div>';
     for (i = 0; i < show.length; i++) h += sideCardLine(show[i]);
   }
   h += '</div>';
@@ -156,7 +156,7 @@ function swBodyHtml(){
   for (k in ELEM_SETS){ if (setOn(k)) sets.push(ELEM_SETS[k]); }
   h += '<div class="swSec"><div class="swT">🧩 已激活套装 · ' + sets.length + '</div>';
   if (!sets.length){
-    h += '<div style="font-size:10.5px;color:#6c7f9b;">集齐 3 张同元素专属卡即激活</div>';
+    h += '<div style="font-size:10.5px;color:#7c6f9e;">集齐 3 张同元素专属卡即激活</div>';
   } else {
     for (i = 0; i < sets.length; i++){
       h += '<div style="font-size:11px;color:#ffd76a;font-weight:700;">' + sets[i].name + '</div>'
@@ -272,7 +272,7 @@ function showVerInfo(){
   for (var i = 0; i < rows.length; i++){
     if (!rows[i][0]){ h += '<div style="height:7px"></div>'; continue; }
     h += '<div style="display:flex;gap:10px;justify-content:space-between;padding:6px 10px;border-radius:9px;'
-      + 'background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.2);margin-bottom:4px;">'
+      + 'background:rgba(28,20,52,.8);border:1px solid rgba(160,140,255,.2);margin-bottom:4px;">'
       + '<span style="flex:0 0 auto;font-size:11.5px;color:#a894d8;">' + rows[i][0] + '</span>'
       + '<span style="flex:1;text-align:right;font-size:12px;color:#eaf3ff;overflow-wrap:anywhere;">' + rows[i][1] + '</span>'
       + '</div>';

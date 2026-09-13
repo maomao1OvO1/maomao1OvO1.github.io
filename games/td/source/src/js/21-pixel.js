@@ -181,16 +181,24 @@ function render(name, size, color){
   return url;
 }
 
-/* 图标配色：按语义分配（紫系为主，少量点缀色） */
+/* 图标配色：v9.3 起「一个图标一个颜色」——
+   之前 17 个图标共用 #bb9cff、6 个共用 #e6b95c，整版图标看起来就是「一片紫」；
+   毛毛的原话是「美术会从彩色卡成紫色」。现在按语义给每个图标独立色，既好认又丰富。 */
 var COLOR = {
-  fire:'#dd7059', ice:'#7fd4e8', bolt:'#e6b95c', poison:'#8fbf6a',
-  phys:'#b8b4c8', aura:'#bb9cff', snipe:'#c46a94', bomb:'#e08a5a', mg:'#9fb0c8',
-  coin:'#e6b95c', star:'#e6b95c', trophy:'#e6b95c', heart:'#c46a94',
-  check:'#8fbf6a', lock:'#8f83b5', shield:'#bb9cff', book:'#bb9cff', page:'#bb9cff',
-  calendar:'#bb9cff', grad:'#e6b95c', galax:'#bb9cff', inf:'#bb9cff', cloud:'#8fd3e8',
-  disk:'#bb9cff', cart:'#e6b95c', map:'#bb9cff', refresh:'#bb9cff', gear:'#bb9cff',
-  play:'#bb9cff', pause:'#bb9cff', help:'#bb9cff', wave:'#8fd3e8', card:'#bb9cff',
-  dice:'#bb9cff', plus:'#bb9cff', up:'#8fbf6a', down:'#dd7059'
+  /* 九座塔：元素语义色，必须一眼区分 */
+  fire:'#ff7a45', ice:'#5ad2f0', bolt:'#ffd23f', poison:'#7ed957', phys:'#c8b8a0',
+  aura:'#b48cff', snipe:'#ff6b9d', bomb:'#ff9f45', mg:'#8fb8d8',
+  /* 货币与荣誉：金橙系 */
+  coin:'#ffd23f', star:'#ffc93c', trophy:'#ffb347', grad:'#e8c44a', cart:'#ffc04d',
+  /* 正向反馈：绿系 */
+  check:'#5ad48a', plus:'#7fe0a0', up:'#8fdf6a', play:'#66d98a', disk:'#8fd48a', map:'#6fd06f',
+  /* 信息与冷色：青蓝系 */
+  shield:'#5ad2f0', inf:'#6fb8e8', cloud:'#a8d8f0', refresh:'#66d9e8', wave:'#7fd8e8', ice2:'#7fd4e8',
+  /* 道具与中性：紫/橙/灰各不同 */
+  lock:'#9a94b8', gear:'#a89cc8', page:'#e0d8f0', book:'#f0a060', calendar:'#ff8a65',
+  galax:'#9b7fff', help:'#c8a8ff', card:'#d0a8ff', dice:'#ffb86b', pause:'#e6c85a',
+  /* 警示 */
+  down:'#ff6b5a', heart:'#ff5c8a'
 };
 function colorOf(name){ return COLOR[name] || '#bb9cff'; }
 
@@ -256,13 +264,18 @@ function boot(){
   try { pxify(document.body); } catch(e){}
   if (typeof MutationObserver === 'undefined') return;
   var mo = new MutationObserver(function(muts){
+    /* v9.3：改回「同步替换」。之前为了省性能改成攒到下一帧，结果游戏一卡顿
+       （帧率掉到 10fps）emoji 会明显露出 100ms 以上 —— 毛毛看到的「卡一下美术就没了」就是这个。
+       同步只处理「本次新增的节点」，量很小，不会拖慢。 */
     for (var i=0;i<muts.length;i++){
       var m = muts[i];
       if (m.type !== 'childList') continue;
       for (var j=0;j<m.addedNodes.length;j++){
         var nd = m.addedNodes[j];
-        if (nd.nodeType === 1) pxSchedule(nd);
-        else if (nd.nodeType === 3 && nd.parentNode) pxSchedule(nd.parentNode);
+        try {
+          if (nd.nodeType === 1) pxify(nd);
+          else if (nd.nodeType === 3 && nd.parentNode) pxify(nd.parentNode);
+        } catch (e) {}
       }
     }
   });

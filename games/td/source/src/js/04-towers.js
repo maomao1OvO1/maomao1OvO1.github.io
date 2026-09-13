@@ -326,7 +326,7 @@ function renderSkillBar(){
     helpBtn.className = 'btn';
     helpBtn.id = 'sk_help';
     helpBtn.style.cssText = 'padding:5px 9px;border-radius:9px;font-size:13px;font-weight:700;'
-      + 'border:1px solid rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#cfc4ff;';
+      + 'border:1px solid rgba(180,160,255,.5);background:rgba(32,22,60,.9);color:#cfc4ff;';
     helpBtn.textContent = '?';
     helpBtn.title = '主动技能说明：怎么用 / 什么时候解锁';
     helpBtn.addEventListener('click', function(ev){ ev.stopPropagation(); showSkillHelp(); });
@@ -435,7 +435,7 @@ function appendBriefToggle(container){
   var b = document.createElement('button');
   b.className = 'btn';
   b.style.cssText = 'padding:9px 14px;font-size:12.5px;width:100%;margin-top:6px;'
-    + 'border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#cfc4ff;';
+    + 'border-color:rgba(180,160,255,.45);background:rgba(32,22,60,.9);color:#cfc4ff;';
   b.innerHTML = UI_BRIEF ? '📖 显示完整说明（切到详细模式）' : '📄 收起说明（切到简易模式）';
   b.addEventListener('click', function(ev){ ev.stopPropagation(); toggleUiBrief(); });
   container.appendChild(b);
@@ -457,7 +457,7 @@ function showSkillHelp(brief){
     var un = skillUnlocked(sk.key);
     var box = document.createElement('div');
     box.style.cssText = 'text-align:left;padding:' + (brief ? '7px 10px' : '9px 11px') + ';border-radius:11px;margin-bottom:' + (brief ? '4px' : '6px') + ';'
-      + 'background:rgba(22,32,56,.82);border:1px solid ' + (un ? 'rgba(255,200,110,.35)' : 'rgba(120,140,170,.28)') + ';'
+      + 'background:rgba(28,20,52,.82);border:1px solid ' + (un ? 'rgba(255,200,110,.35)' : 'rgba(140,125,175,.28)') + ';'
       + (un ? '' : 'opacity:.62;');
     if (brief){
       /* 简短版：一行一个技能，只留「怎么用 + 冷却 + 解锁」 */
@@ -481,7 +481,7 @@ function showSkillHelp(brief){
   sw.className = 'btn';
   sw.id = 'skillHelpSw';
   sw.style.cssText = 'padding:8px 14px;font-size:12.5px;width:100%;margin-top:6px;'
-    + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#cfc4ff;';
+    + 'border-color:rgba(180,160,255,.5);background:rgba(32,22,60,.9);color:#cfc4ff;';
   sw.innerHTML = brief ? '📖 切换到「完整说明」（带效果与数值）' : '📄 切换到「简短说明」（只留用法）';
   sw.addEventListener('click', function(ev){ ev.stopPropagation(); toggleUiBrief(); });
   el.appendChild(sw);
@@ -541,13 +541,13 @@ function showWeatherHelp(brief){
     var on = (k === cur);
     var box = document.createElement('div');
     box.style.cssText = 'text-align:left;padding:9px 11px;border-radius:11px;margin-bottom:6px;'
-      + 'background:' + (on ? 'rgba(60,48,16,.92)' : 'rgba(22,32,56,.78)') + ';'
-      + 'border:1px solid ' + (on ? 'rgba(255,200,110,.75)' : 'rgba(120,180,255,.22)') + ';'
+      + 'background:' + (on ? 'rgba(60,48,16,.92)' : 'rgba(28,20,52,.78)') + ';'
+      + 'border:1px solid ' + (on ? 'rgba(255,200,110,.75)' : 'rgba(160,140,255,.22)') + ';'
       + (on ? 'box-shadow:0 0 14px rgba(255,180,60,.25);' : '');
     var head = '<b style="font-size:14.5px;color:' + (on ? '#ffd76a' : '#eaf3ff') + ';">'
       + (w.icon || '') + ' ' + (w.name || k) + '</b>'
       + (on ? '<span style="float:right;font-size:10.5px;color:#20180a;background:#ffd76a;border-radius:8px;padding:1px 7px;font-weight:700;">本波生效</span>' : '');
-    var body = '<div style="font-size:12px;color:#a8caf0;line-height:1.55;margin-top:3px;">'
+    var body = '<div style="font-size:12px;color:#b4a6e0;line-height:1.55;margin-top:3px;">'
       + '效果：' + (w.desc || '—') + '</div>';
     var adv = '<div style="font-size:11.5px;color:#7cf5c0;line-height:1.5;margin-top:3px;">'
       + '应对：' + (WX_ADVICE[k] || '按这个倾向调整塔的构成') + '</div>';
@@ -890,7 +890,7 @@ function showLevelIntro(idx){
     h += '<div style="font-size:12.5px;font-weight:700;color:#ffd76a;margin:2px 0 5px;">🆕 本关新出现（上一关还没有）</div>';
     news.forEach(function(n){
       var e = ENEMIES[n.key];
-      h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:10px;background:rgba(22,32,56,.8);'
+      h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:10px;background:rgba(28,20,52,.8);'
         + 'border:1px solid rgba(255,200,110,.28);margin-bottom:5px;">'
         + '<span style="flex:0 0 auto;font-size:11px;color:#a894d8;padding-top:1px;">第' + n.wave + '波</span>'
         + '<span style="flex:1;min-width:0;">'
@@ -900,7 +900,7 @@ function showLevelIntro(idx){
         + '</span></div>';
     });
   } else {
-    h += '<div style="font-size:12.5px;color:#bb9cff;padding:8px 10px;border-radius:10px;background:rgba(22,32,56,.7);">'
+    h += '<div style="font-size:12.5px;color:#bb9cff;padding:8px 10px;border-radius:10px;background:rgba(28,20,52,.7);">'
       + '本关没有新敌人 —— 但强度更高、波数更多，注意把塔升级和凑共鸣。</div>';
   }
   if (idx === 0){
@@ -913,7 +913,7 @@ function showLevelIntro(idx){
     h += '<div style="font-size:12.5px;font-weight:700;color:#8ff0ff;margin:9px 0 5px;">⚙️ 本关新机制</div>';
     mech.forEach(function(m){
       h += '<div style="font-size:11.5px;color:#d8cff0;line-height:1.5;padding:6px 9px;border-radius:10px;'
-        + 'background:rgba(20,40,64,.8);border:1px solid rgba(120,200,255,.28);margin-bottom:5px;">'
+        + 'background:rgba(28,24,56,.8);border:1px solid rgba(120,200,255,.28);margin-bottom:5px;">'
         + '<span style="color:#a894d8;">第' + m.wave + '波起</span>　' + m.text + '</div>';
     });
   }
@@ -979,7 +979,7 @@ function showEndlessIntro(){
   var h = '<div style="font-size:12.5px;font-weight:700;color:#ffd76a;margin:2px 0 6px;">无尽专属机制（普通关卡没有）</div>';
   for (var i = 0; i < rows.length; i++){
     h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:10px;'
-      + 'background:rgba(22,32,56,.8);border:1px solid rgba(255,200,110,.28);margin-bottom:5px;">'
+      + 'background:rgba(28,20,52,.8);border:1px solid rgba(255,200,110,.28);margin-bottom:5px;">'
       + '<span style="flex:0 0 auto;font-size:15px;">' + rows[i][0] + '</span>'
       + '<span style="flex:1;min-width:0;">'
       + '<b style="font-size:13px;color:#ffe6a8;">' + rows[i][1] + '</b>'
@@ -988,7 +988,7 @@ function showEndlessIntro(){
   }
   h += '<div style="font-size:12.5px;font-weight:700;color:#8ff0ff;margin:9px 0 5px;">本局便利</div>'
     + '<div style="font-size:11.5px;color:#d8cff0;line-height:1.5;padding:6px 9px;border-radius:10px;'
-    + 'background:rgba(20,40,64,.8);border:1px solid rgba(120,200,255,.28);">'
+    + 'background:rgba(28,24,56,.8);border:1px solid rgba(120,200,255,.28);">'
     + '⚡ 4 个主动技能<b>全部解锁</b>（无尽视为后期）　'
     + '⏩ 倍速支持 1x/2x/5x/10x/100x</div>'
     + '<div class="udesc" style="font-size:11.5px;color:#bb9cff;line-height:1.5;margin-top:6px;">'
