@@ -87,24 +87,24 @@ function bookResoTags(elem){
 /* —— 卡片：怪物 —— */
 function bookMobCard(k){
   var d = ENEMIES[k];
-  var color = d.color || '#9fc4f0';
+  var color = d.color || '#bb9cff';
   return '<div style="display:flex;align-items:stretch;gap:10px;width:100%;box-sizing:border-box;'
     + 'padding:10px 12px;border:1px solid rgba(120,160,220,.28);border-radius:10px;background:rgba(18,26,44,.72);">'
     + '<div style="flex:0 0 16px;width:16px;border-radius:4px;background:' + color + ';box-shadow:0 0 8px ' + color + ';"></div>'
     + '<div style="flex:1;text-align:left;line-height:1.55;min-width:0;">'
     + '<div style="font-size:15px;font-weight:bold;color:' + color + ';">' + d.name
-    + '<span style="font-size:11px;font-weight:normal;color:#9fc4f0;opacity:.75;">  ' + k + '</span></div>'
-    + '<div style="font-size:12.5px;color:#9fc4f0;">血量 <b style="color:#ffd76a;">' + d.hp
+    + '<span style="font-size:11px;font-weight:normal;color:#bb9cff;opacity:.75;">  ' + k + '</span></div>'
+    + '<div style="font-size:12.5px;color:#bb9cff;">血量 <b style="color:#ffd76a;">' + d.hp
     + '</b> · 速度 <b style="color:#ffd76a;">' + d.speed
     + '</b> · 掉落 <b style="color:#ffd76a;">' + d.gold + '</b> 金币</div>'
     + '<div class="udesc" style="font-size:12.5px;color:#7cf5c0;">特性：' + bookMobTraits(d).join(' · ') + '</div>'
-    + '<div class="udesc" style="font-size:12px;color:#9fc4f0;opacity:.9;">克制提示：' + bookMobCounter(d).join(' ； ') + '</div>'
+    + '<div class="udesc" style="font-size:12px;color:#bb9cff;opacity:.9;">克制提示：' + bookMobCounter(d).join(' ； ') + '</div>'
     + '</div></div>';
 }
 /* —— 卡片：炮塔 —— */
 function bookTowerCard(k){
   var d = ELEMS[k];
-  var color = d.color || '#9fc4f0';
+  var color = d.color || '#bb9cff';
   var line2;
   if (d.aura){
     line2 = '自身不攻击 · 相邻塔伤害 +' + Math.round((d.auraDmg || 0) * 100)
@@ -119,13 +119,13 @@ function bookTowerCard(k){
     + '<div style="flex:0 0 30px;font-size:22px;line-height:1.3;text-align:center;">' + d.icon + '</div>'
     + '<div style="flex:1;text-align:left;line-height:1.55;min-width:0;">'
     + '<div style="font-size:15px;font-weight:bold;color:' + color + ';">' + d.name
-    + '<span style="font-size:11.5px;font-weight:normal;color:#9fc4f0;">  造价 <b style="color:#ffd76a;">'
+    + '<span style="font-size:11.5px;font-weight:normal;color:#bb9cff;">  造价 <b style="color:#ffd76a;">'
     + d.cost + '</b></span></div>'
-    + '<div style="font-size:12.5px;color:#9fc4f0;">' + line2 + '</div>'
+    + '<div style="font-size:12.5px;color:#bb9cff;">' + line2 + '</div>'
     + roleBookLineHTML(k)
     + '<div class="udesc" style="font-size:12.5px;color:#7cf5c0;">特效：' + d.fx + '</div>'
-    + '<div class="udesc" style="font-size:12px;color:#9fc4f0;opacity:.9;">升级收益：每级 +30% 伤害 / +12% 攻速 / +8% 射程</div>'
-    + '<div class="udesc" style="font-size:12px;color:#9fc4f0;">共鸣组合：<b style="color:#7cf5c0;">'
+    + '<div class="udesc" style="font-size:12px;color:#bb9cff;opacity:.9;">升级收益：每级 +30% 伤害 / +12% 攻速 / +8% 射程</div>'
+    + '<div class="udesc" style="font-size:12px;color:#bb9cff;">共鸣组合：<b style="color:#7cf5c0;">'
     + bookResoTags(k).join('</b> · <b style="color:#7cf5c0;">') + '</b></div>'
     + '</div></div>';
 }
@@ -173,7 +173,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 90;                     /* v9.0：像素风大版本；与 version.json 的 versionCode 保持同步 */
+var BUILD_CODE = 91;                     /* v9.1：战斗画面配色补齐 + 图标替换性能优化；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -333,7 +333,7 @@ function bookResoCard(row, idx){
     + '<span style="font-size:17px;flex:0 0 auto;">' + row[0] + '</span>'
     + '<span style="flex:1;text-align:left;min-width:0;">'
     + '<span style="font-size:13.5px;font-weight:700;color:#8ff0ff;">' + row[1] + '</span>'
-    + '<span class="udesc" style="display:block;font-size:11.5px;color:#9fc4f0;margin-top:1px;">' + row[2] + '</span>'
+    + '<span class="udesc" style="display:block;font-size:11.5px;color:#bb9cff;margin-top:1px;">' + row[2] + '</span>'
     + '</span></div>';
 }
 /* 生成图鉴成就分页里一张成就卡的 HTML（已达成金色高亮、未达成置灰）*/
@@ -345,8 +345,8 @@ function bookAchCard(a){
     + 'border:1px solid ' + (got ? 'rgba(255,200,110,.6)' : 'rgba(120,180,255,.18)') + ';">'
     + '<span style="font-size:19px;flex:0 0 auto;' + (got ? '' : 'opacity:.3;filter:grayscale(1);') + '">' + a.icon + '</span>'
     + '<span style="flex:1;text-align:left;min-width:0;">'
-    + '<span style="font-size:13.5px;font-weight:700;color:' + (got ? '#ffd76a' : '#9fc4f0') + ';">' + a.name + '</span>'
-    + '<span class="udesc" style="display:block;font-size:11.5px;color:#9fc4f0;">' + a.desc + '</span>'
+    + '<span style="font-size:13.5px;font-weight:700;color:' + (got ? '#ffd76a' : '#bb9cff') + ';">' + a.name + '</span>'
+    + '<span class="udesc" style="display:block;font-size:11.5px;color:#bb9cff;">' + a.desc + '</span>'
     + '</span>'
     + '<span style="flex:0 0 auto;font-size:11px;color:' + (got ? '#7cf5c0' : '#7d8ba3') + ';">' + (got ? '✅ 已达成' : '未达成') + '</span>'
     + '</div>';
@@ -392,8 +392,8 @@ function bookSysCard(sys){
   var ups = [];
   for (k in ELEMS){ if (ELEMS[k].sys === sys && ELEMS[k].upName) ups.push(ELEMS[k].icon + ELEMS[k].name + '：' + ELEMS[k].upName); }
   return '<div style="padding:9px 11px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;">'
-    + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">' + SYS_NAME[sys] + ' <span style="font-size:11px;color:#9fc4f0;">' + mem.join('、') + '</span></div>'
-    + '<div class="udesc" style="font-size:11.5px;color:#9fc4f0;margin-top:3px;">体系内塔的<b style="color:#ffd76a;">等级总和</b>达标 → 全体同体系塔的 <b style="color:#7cf5c0;">' + what + '</b> 提升</div>'
+    + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">' + SYS_NAME[sys] + ' <span style="font-size:11px;color:#bb9cff;">' + mem.join('、') + '</span></div>'
+    + '<div class="udesc" style="font-size:11.5px;color:#bb9cff;margin-top:3px;">体系内塔的<b style="color:#ffd76a;">等级总和</b>达标 → 全体同体系塔的 <b style="color:#7cf5c0;">' + what + '</b> 提升</div>'
     + '<div style="font-size:12px;color:#ffd76a;margin-top:2px;">' + lines + '</div>'
     + (ups.length ? ('<div class="udesc" style="font-size:11.5px;color:#ffb27a;margin-top:4px;">📈 专属成长（每级）：<br>' + ups.join('<br>') + '</div>') : '')
     + '</div>';
@@ -405,16 +405,16 @@ function bookInfoCard(){
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">🗺 关卡列表</div>');
   for (i = 0; i < LEVELS.length; i++){
     var L = LEVELS[i];
-    out.push('<div style="font-size:12px;color:#9fc4f0;margin-top:3px;">' + L.name
+    out.push('<div style="font-size:12px;color:#bb9cff;margin-top:3px;">' + L.name
       + ' · <b style="color:#ffd76a;">' + L.waves + '</b> 波 · 初始金币 <b style="color:#ffd76a;">' + L.gold + '</b></div>');
   }
   out.push('</div>');
   out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;margin-top:8px;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">❄️ 主动技能</div>'
-    + '<div style="font-size:12px;color:#9fc4f0;margin-top:3px;">全屏冻结：所有敌人短暂冻结，冷却 <b style="color:#ffd76a;">26 秒</b>。BOSS 波与漏怪救场用。</div></div>');
+    + '<div style="font-size:12px;color:#bb9cff;margin-top:3px;">全屏冻结：所有敌人短暂冻结，冷却 <b style="color:#ffd76a;">26 秒</b>。BOSS 波与漏怪救场用。</div></div>');
   out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;margin-top:8px;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">⚙️ 核心机制</div>'
-    + '<div style="font-size:12px;color:#9fc4f0;line-height:1.7;margin-top:3px;">'
+    + '<div style="font-size:12px;color:#bb9cff;line-height:1.7;margin-top:3px;">'
     + '· <b style="color:#ffd76a;">索敌</b>：优先打离基地最近的，路程相同打血量最低<br>'
     + '· <b style="color:#ffd76a;">狙击塔例外</b>：优先锁医疗兵 / 精英队长 / BOSS<br>'
     + '· <b style="color:#ffd76a;">出生护盾</b>：敌人出生 3 秒内受伤仅 15%<br>'
@@ -430,7 +430,7 @@ function bookInfoCard(){
   if (prog && prog.stars) for (k in prog.stars) stars += (prog.stars[k] || 0);
   out.push('<div style="padding:10px 12px;border-radius:12px;background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.28);text-align:left;margin-top:8px;">'
     + '<div style="font-size:14px;font-weight:700;color:#bb9cff;">🏆 我的战绩</div>'
-    + '<div style="font-size:12px;color:#9fc4f0;line-height:1.8;margin-top:3px;">'
+    + '<div style="font-size:12px;color:#bb9cff;line-height:1.8;margin-top:3px;">'
     + '最高波次 <b style="color:#ffd76a;">' + (best || '—') + '</b> · 无尽最高 <b style="color:#ffd76a;">' + (eBest || '—') + '</b> 波<br>'
     + '已解锁 <b style="color:#ffd76a;">' + ((prog && prog.unlocked) || 1) + '/' + LEVELS.length + '</b> 关 · 星数 <b style="color:#ffd76a;">' + stars + '/' + (LEVELS.length * 3) + '</b>'
     + '</div></div>');
@@ -466,13 +466,13 @@ function bookRender(){
     /* 默认只展开「两两共鸣」，其余收起 —— 不把 100+ 条堆在一屏（状态由全局变量持有） */
     var allOpen = resoOpenGroups.special && resoOpenGroups.two && resoOpenGroups.three && resoOpenGroups.four;
     h += '<button class="btn" id="resoAllBtn" style="padding:8px 12px;font-size:12.5px;width:100%;margin-bottom:6px;'
-       + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#9fd0ff;">'
+       + 'border-color:rgba(140,200,255,.5);background:rgba(24,44,74,.9);color:#cfc4ff;">'
        + (allOpen ? '📕 全部收起' : '📖 全部展开（把 100+ 种组合一次看完）') + '</button>';
     groups.forEach(function(g){
       var open = !!resoOpenGroups[g.key];
       var cnt = g.items ? g.items.length : g.combos.length;
       h += '<button class="btn" data-reso-group="' + g.key + '" style="padding:9px 12px;font-size:13px;width:100%;'
-        + 'text-align:left;margin-top:5px;border-color:rgba(120,180,255,.35);background:rgba(20,32,54,.85);color:#9fc4f0;">'
+        + 'text-align:left;margin-top:5px;border-color:rgba(120,180,255,.35);background:rgba(20,32,54,.85);color:#bb9cff;">'
         + (open ? '▼ ' : '▶ ') + g.title + '<span style="float:right;font-size:11px;color:#7d8ba3;">' + cnt + ' 种</span></button>';
       if (!open) return;
       if (g.items){
@@ -493,9 +493,9 @@ function bookRender(){
         /* 生成强化卡图鉴里的分组标题行（组名 + 本组卡片数量）*/
     var bTitle = function(t, n){
       return '<div style="font-size:12px;font-weight:700;color:#ffd76a;text-align:left;margin:8px 0 5px;">'
-        + t + '<span style="font-size:10.5px;font-weight:400;color:#8fb4dc;"> · ' + n + ' 张</span></div>';
+        + t + '<span style="font-size:10.5px;font-weight:400;color:#a894d8;"> · ' + n + ' 张</span></div>';
     };
-    h += '<div style="font-size:11.5px;color:#8fb4dc;text-align:left;margin-bottom:4px;">'
+    h += '<div style="font-size:11.5px;color:#a894d8;text-align:left;margin-bottom:4px;">'
        + '每波三选一 · 越到后期越容易抽到高级卡（稀有 +1.6/波、史诗 +3.2/波 权重）<br>'
        + '🗼 <b>专属强化</b>只强化对应那一座塔，且只会从「你已经建了的塔」里刷出来</div>';
     /* —— v7.8 ① 通用卡 —— */
@@ -518,7 +518,7 @@ function bookRender(){
   } else if (bookTab === 'wx'){
     /* v8.18 天气页：全部由 WEATHERS 生成，当前生效的那一条标出来 */
     var _wcur = (typeof weather === 'string') ? weather : 'none';
-    h += '<div style="font-size:11.5px;color:#8fb4dc;text-align:left;margin-bottom:5px;">'
+    h += '<div style="font-size:11.5px;color:#a894d8;text-align:left;margin-bottom:5px;">'
        + '前 3 波固定「平稳」当新手缓冲，<b style="color:#ffd76a;">第 4 波起每 3 波换一次</b>，'
        + '切换前一波会在顶部预告栏提示<br>'
        + '顺序固定循环：' + WEATHER_KEYS.map(function(k){ return WEATHERS[k].icon + WEATHERS[k].name; }).join(' → ')
@@ -527,7 +527,7 @@ function bookRender(){
     for (i = 0; i < _wkeys.length; i++) h += bookWeatherCard(_wkeys[i], _wcur);
   } else if (bookTab === 'ach'){
     /* v8.21 成就页：已达成的高亮，未达成的置灰并给出条件 */
-    h += '<div style="font-size:11.5px;color:#8fb4dc;text-align:left;margin-bottom:6px;">'
+    h += '<div style="font-size:11.5px;color:#a894d8;text-align:left;margin-bottom:6px;">'
        + '已达成 <b style="color:#ffd76a;">' + achCount() + ' / ' + ACHIEVEMENTS.length + '</b>'
        + '　·　成就跟着存档走，删档会一起清掉</div>';
     var got = achCount();
@@ -544,7 +544,7 @@ function bookRender(){
   if (_bt2 && !document.getElementById('bookBriefBtn')){
     var bb = document.createElement('button');
     bb.className = 'btn'; bb.id = 'bookBriefBtn';
-    bb.style.cssText = 'padding:7px 12px;font-size:12px;margin-bottom:6px;border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#9fd0ff;';
+    bb.style.cssText = 'padding:7px 12px;font-size:12px;margin-bottom:6px;border-color:rgba(140,200,255,.45);background:rgba(24,44,74,.9);color:#cfc4ff;';
     bb.innerHTML = UI_BRIEF ? '📖 显示完整说明' : '📄 收起说明';
     bb.addEventListener('click', function(ev){ ev.stopPropagation(); toggleUiBrief(); });
     if (_bt2.parentNode && _bt2.parentNode.insertBefore) _bt2.parentNode.insertBefore(bb, _bt2);
@@ -611,7 +611,7 @@ function showLevels(){
       sn.textContent = st > 0 ? starStr(st) : (locked ? '' : '未通关');
       node.appendChild(sn);
       var nm = document.createElement('div');
-      nm.style.cssText = 'font-size:10px;color:#9fc4f0;white-space:nowrap;';
+      nm.style.cssText = 'font-size:10px;color:#bb9cff;white-space:nowrap;';
       nm.textContent = (L.name.split('·')[1] || L.name).trim();
       node.appendChild(nm);
       var wv = document.createElement('div');

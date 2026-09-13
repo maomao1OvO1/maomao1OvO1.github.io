@@ -49,7 +49,7 @@ function statLine(k, lv){
 /* ==== ROLES_PATCH_V1 : 炮塔角色标签（建塔面板 + 图鉴共用；字段缺失一律兜底为「—」，绝不出现 undefined）==== */
 /* 本段只新增只读辅助函数，不触碰 ELEMS 任何条目与数值（role/soloStar/groupStar 由另一路写入） */
 var ROLE_DASH = '\u2014';                       /* 字段缺失占位符 */
-var ROLE_COLORS = {                             /* 角色 → 徽标取色（未知角色回落 #9fc4f0） */
+var ROLE_COLORS = {                             /* 角色 → 徽标取色（未知角色回落 #bb9cff） */
   '单体': '#ffd76a', '溅射': '#ff9a5a', '持续': '#7cf5c0', '链式': '#8fe4ff',
   '控场': '#b98cff', '光环': '#8ff0ff', '点杀': '#ff7a9a', '范围': '#ffc06a'
 };
@@ -65,7 +65,7 @@ function roleTagOf(k){
 /* 定位标签对应的徽标颜色（未登记的角色回落成默认蓝）*/
 function roleColorOf(k){
   var c = ROLE_COLORS[roleTagOf(k)];
-  return c || '#9fc4f0';
+  return c || '#bb9cff';
 }
 function roleBgOf(k){                           /* 由徽标色生成 16% 半透明底色 */
   var c = roleColorOf(k);
@@ -97,13 +97,13 @@ function roleRowHTML(k){                        /* 面板用：徽标 + 对单/�
     + '<span style="flex:0 0 auto;font-size:10.5px;line-height:1.3;padding:0 5px;border-radius:6px;'
     + 'border:1px solid ' + roleColorOf(k) + ';background:' + roleBgOf(k) + ';color:' + roleColorOf(k) + ';">'
     + roleTagOf(k) + '</span>'
-    + '<span style="font-size:10.5px;line-height:1.3;color:#9fc4f0;white-space:nowrap;overflow:hidden;">'
+    + '<span style="font-size:10.5px;line-height:1.3;color:#bb9cff;white-space:nowrap;overflow:hidden;">'
     + '对单 ' + starTxtOf(d.soloStar, '#ffd76a') + '\u3000对群 ' + starTxtOf(d.groupStar, '#8fe4ff')
     + '</span></div>';
 }
 function roleBookLineHTML(k){                   /* 图鉴用：与既有行同字号同配色的「角色」行 */
   var d = ELEMS[k] || {};
-  return '<div style="font-size:12.5px;color:#9fc4f0;">角色：'
+  return '<div style="font-size:12.5px;color:#bb9cff;">角色：'
     + '<b style="color:' + roleColorOf(k) + ';">' + roleTagOf(k) + '</b>'
     + ' · 对单 ' + starTxtOf(d.soloStar, '#ffd76a')
     + ' · 对群 ' + starTxtOf(d.groupStar, '#8fe4ff') + '</div>';
@@ -168,9 +168,9 @@ function openTower(t, px, py){
       + 'background:rgba(255,196,94,.10);border:1px solid rgba(255,200,110,.32);line-height:1.6;">'
       + '💥 每发 <b style="color:#ffd76a;font-size:13px">' + perHit.toFixed(1) + '</b>'
       + '\u3000⚡ 暴击 <b style="color:#ff9a6a;font-size:13px">' + critHit.toFixed(1) + '</b>'
-      + (critRate > 0 ? '<span style="color:#8fb4dc">（' + Math.round(critRate * 100) + '% ×' + CRIT_X + '）</span>'
+      + (critRate > 0 ? '<span style="color:#a894d8">（' + Math.round(critRate * 100) + '% ×' + CRIT_X + '）</span>'
                       : '<span style="color:#7d8ba3">（暂无暴击率）</span>')
-      + '<br>📊 <span style="color:#8fb4dc">单体 DPS</span> <b style="color:#8ff0ff">' + dps.toFixed(1) + '</b>/秒'
+      + '<br>📊 <span style="color:#a894d8">单体 DPS</span> <b style="color:#8ff0ff">' + dps.toFixed(1) + '</b>/秒'
       + '</div>';
   }
   /* ===== v8.2 面板新增：随机词条 + 精通分支（互斥，Lv3 解锁）===== */
@@ -185,8 +185,8 @@ function openTower(t, px, py){
     } else if (!t.spec){
       specHtml = '<div class="ce" style="margin:3px 0 0;color:#ffd76a">🔀 选择精通分支（<b>互斥</b>，选定不可改）</div>'
         + '<div class="row" style="margin-top:4px">'
-        + '<button data-spec="dmg" style="padding:8px">🔥 强化弹头<br><span style="font-size:11px;color:#9fc4f0">伤害 +40%</span></button>'
-        + '<button data-spec="rate" style="padding:8px">⚡ 超载循环<br><span style="font-size:11px;color:#9fc4f0">攻速 +35%</span></button>'
+        + '<button data-spec="dmg" style="padding:8px">🔥 强化弹头<br><span style="font-size:11px;color:#bb9cff">伤害 +40%</span></button>'
+        + '<button data-spec="rate" style="padding:8px">⚡ 超载循环<br><span style="font-size:11px;color:#bb9cff">攻速 +35%</span></button>'
         + '</div>';
     } else {
       specHtml = '<div class="ce" style="margin:3px 0 0;color:#8ff0ff">🔀 精通：' +

@@ -68,12 +68,12 @@ function drawTowerBody(x, y, rad, elem, color, k){
   } else if (elem === 'poison'){
     ctx.fillStyle = '#eaffef';
     ctx.beginPath(); ctx.arc(x, y - rad * 0.10, rad * 0.50, 0, 6.3); ctx.fill();
-    ctx.fillStyle = '#0b1a0e';
+    ctx.fillStyle = '#141026';
     ctx.beginPath(); ctx.arc(x - rad * 0.19, y - rad * 0.15, rad * 0.14, 0, 6.3); ctx.fill();
     ctx.beginPath(); ctx.arc(x + rad * 0.19, y - rad * 0.15, rad * 0.14, 0, 6.3); ctx.fill();
     ctx.fillStyle = '#eaffef';
     ctx.fillRect(x - rad * 0.30, y + rad * 0.28, rad * 0.60, rad * 0.16);
-    ctx.fillStyle = '#0b1a0e';
+    ctx.fillStyle = '#141026';
     for (var d2 = 0; d2 < 3; d2++) ctx.fillRect(x - rad * 0.24 + d2 * rad * 0.20, y + rad * 0.28, rad * 0.07, rad * 0.16);
     ctx.fillStyle = color;                                  // 上升毒气泡
     var bb = (gameT * 1.5) % 1;
@@ -108,7 +108,7 @@ function drawTowerBody(x, y, rad, elem, color, k){
     /* TOWERS_V6_PATCH 榴弹：圆鼓弹仓（外圈 + 内孔 + 三发炮弹） */
     ctx.fillStyle = '#ffd9a6';
     ctx.beginPath(); ctx.arc(x, y - rad * 0.06, rad * 0.54, 0, 6.3); ctx.fill();
-    ctx.fillStyle = '#0e1422';
+    ctx.fillStyle = '#141026';
     ctx.beginPath(); ctx.arc(x, y - rad * 0.06, rad * 0.32, 0, 6.3); ctx.fill();
     ctx.fillStyle = color;
     for (var m2 = 0; m2 < 3; m2++){
@@ -151,14 +151,14 @@ function drawStaticBg(){
     bgCv.height = Math.max(1, Math.floor(H * DPR));
     var g = bgCv.getContext('2d');
     if (g.setTransform) g.setTransform(DPR, 0, 0, DPR, 0, 0);
-    g.strokeStyle = 'rgba(60,100,160,.16)'; g.lineWidth = 1;
+    g.strokeStyle = 'rgba(124,92,191,.16)'; g.lineWidth = 1;
     for (var c = 0; c <= COLS; c++){
       g.beginPath(); g.moveTo(OX + c*CELL, OY); g.lineTo(OX + c*CELL, OY + ROWS*CELL); g.stroke();
     }
     for (var r = 0; r <= ROWS; r++){
       g.beginPath(); g.moveTo(OX, OY + r*CELL); g.lineTo(OX + COLS*CELL, OY + r*CELL); g.stroke();
     }
-    g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(28,42,70,.95)';
+    g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(36,26,74,.95)';
     g.lineJoin = 'round'; g.lineCap = 'round';
     /* v8.10：双入口关卡要画两条路（样式完全一致，玩家一眼能看出「有两路要守」） */
     var _allPaths = WAYPOINTS2 ? [WAYPOINTS, WAYPOINTS2] : [WAYPOINTS];
@@ -170,9 +170,9 @@ function drawStaticBg(){
         if (i === 0) g.moveTo(p.x, p.y); else g.lineTo(p.x, p.y);
       }
       g.stroke();
-      g.lineWidth = 2; g.strokeStyle = 'rgba(90,160,255,.35)';
+      g.lineWidth = 2; g.strokeStyle = 'rgba(187,156,255,.35)';
       g.stroke();
-      g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(28,42,70,.95)';
+      g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(36,26,74,.95)';
     }
     bgKey = key;
   }
@@ -194,7 +194,7 @@ var COMBO_FILL    = ['#8fe4ff', '#ffb24a', '#ff6a4a', '#ff5ad0', '#ffffff'];   /
 var COMBO_EDGE    = ['rgba(143,228,255,.55)', 'rgba(255,178,74,.62)',
                      'rgba(255,106,74,.85)', 'rgba(255,90,208,.82)', 'rgba(255,255,255,.92)'];
 /* 连杀徽章五档配色之一：发光色 */
-var COMBO_GLOW    = ['rgba(90,190,255,.9)', 'rgba(255,170,60,.9)',
+var COMBO_GLOW    = ['rgba(187,156,255,.9)', 'rgba(255,170,60,.9)',
                      'rgba(255,90,60,.95)', 'rgba(255,70,200,.95)', 'rgba(255,238,214,1)'];
 /* 连杀徽章五档配色之一：档位后缀符号（✦ / ⚡ / 🔥 等）*/
 var COMBO_TAG     = ['', ' \u2726', ' \u26a1', ' \ud83d\udd25', ' \ud83d\udd25\ud83d\udd25'];   // 档位后缀（不改汉字部分）
@@ -425,7 +425,7 @@ function draw(){
     var sh = shakeT * 14;
     ctx.translate((Math.random()-0.5) * sh, (Math.random()-0.5) * sh);
   }
-  ctx.fillStyle = '#070a12'; ctx.fillRect(-20, -20, W+40, H+40);
+  ctx.fillStyle = '#120d22'; ctx.fillRect(-20, -20, W+40, H+40);
   drawStaticBg();          // 网格 + 路径（缓存层，每帧一次 drawImage）
   drawRifts();             // v8.21 共鸣裂隙标记（数量少，直接画在动态层）
   /* 流动能量带
@@ -529,9 +529,9 @@ function draw(){
       ctx.save();
       ctx.globalAlpha = 0.55; ctx.fillStyle = '#aeb8c6';
       ctx.beginPath(); ctx.arc(x, y, rad * 0.92, 0, 6.3); ctx.fill();
-      ctx.globalAlpha = 0.9; ctx.strokeStyle = '#e8eef8'; ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.9; ctx.strokeStyle = '#efe9ff'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(x, y, rad + 3, 0, 6.3); ctx.stroke();
-      ctx.fillStyle = '#e8eef8'; ctx.font = 'bold ' + (CELL*0.3) + 'px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#efe9ff'; ctx.font = 'bold ' + (CELL*0.3) + 'px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('⚡', x, y - rad - 3);
       ctx.restore();
     }
@@ -700,7 +700,7 @@ function draw(){
       ctx.strokeStyle = 'rgba(90,60,0,.9)'; ctx.lineWidth = 1; ctx.stroke();
     }
     if (e.charge){                                 // 重装冲锋：深灰重甲环 + 冲锋时白色速度线
-      ctx.strokeStyle = 'rgba(58,68,84,.95)'; ctx.lineWidth = 2.8;
+      ctx.strokeStyle = 'rgba(58,44,84,.95)'; ctx.lineWidth = 2.8;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.56, 0, 6.3); ctx.stroke();
       if (e.chargingT > 0){
         ctx.save();
@@ -778,7 +778,7 @@ function draw(){
   if (bannerT > 0){
     ctx.globalAlpha = Math.min(1, bannerT / 0.5);
     ctx.fillStyle = '#8fe4ff'; ctx.font = 'bold ' + (W*0.09) + 'px sans-serif'; ctx.textAlign = 'center';
-    glow('rgba(90,200,255,.9)', 24);
+    glow('rgba(187,156,255,.9)', 24);
     ctx.fillText(banner, W/2, H*0.32);
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }

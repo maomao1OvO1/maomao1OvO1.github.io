@@ -110,9 +110,9 @@ function swBodyHtml(){
   h += '<div class="swSec"><div class="swT">🌤 当前天气</div>'
     + '<div class="swRow"><span class="k" style="font-size:13px;font-weight:700;color:#ffd76a;">'
     + w.icon + ' ' + w.name + '</span></div>'
-    + '<div class="udesc" style="font-size:10.5px;color:#8fb4dc;line-height:1.45;">' + w.desc + '</div>'
+    + '<div class="udesc" style="font-size:10.5px;color:#a894d8;line-height:1.45;">' + w.desc + '</div>'
     + '<button class="btn" id="swWxMore" style="margin-top:5px;padding:5px 8px;font-size:11px;width:100%;letter-spacing:0;'
-    + 'border-radius:8px;border-color:rgba(140,200,255,.4);background:rgba(24,44,74,.9);color:#9fd0ff;">📖 全部天气说明</button></div>';
+    + 'border-radius:8px;border-color:rgba(140,200,255,.4);background:rgba(24,44,74,.9);color:#cfc4ff;">📖 全部天气说明</button></div>';
   /* ② 天气影响（有就列）*/
   if (sp.up.length || sp.down.length){
     h += '<div class="swSec"><div class="swT">🌦 天气影响</div>';
@@ -160,7 +160,7 @@ function swBodyHtml(){
   } else {
     for (i = 0; i < sets.length; i++){
       h += '<div style="font-size:11px;color:#ffd76a;font-weight:700;">' + sets[i].name + '</div>'
-        + '<div class="udesc" style="font-size:10px;color:#8fb4dc;line-height:1.4;">' + sets[i].desc + '</div>';
+        + '<div class="udesc" style="font-size:10px;color:#a894d8;line-height:1.4;">' + sets[i].desc + '</div>';
     }
   }
   h += '</div>';
@@ -273,7 +273,7 @@ function showVerInfo(){
     if (!rows[i][0]){ h += '<div style="height:7px"></div>'; continue; }
     h += '<div style="display:flex;gap:10px;justify-content:space-between;padding:6px 10px;border-radius:9px;'
       + 'background:rgba(22,32,56,.8);border:1px solid rgba(120,180,255,.2);margin-bottom:4px;">'
-      + '<span style="flex:0 0 auto;font-size:11.5px;color:#8fb4dc;">' + rows[i][0] + '</span>'
+      + '<span style="flex:0 0 auto;font-size:11.5px;color:#a894d8;">' + rows[i][0] + '</span>'
       + '<span style="flex:1;text-align:right;font-size:12px;color:#eaf3ff;overflow-wrap:anywhere;">' + rows[i][1] + '</span>'
       + '</div>';
   }
