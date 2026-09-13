@@ -1175,7 +1175,7 @@ body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !im
   <div class="home-bg"></div>
   <div class="home-aura"></div>
   <div class="home-wrap">
-    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.12 ▾</button></div>
+    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.13 ▾</button></div>
     <div class="home-logo">
       <h1 class="logo">共鸣之塔</h1>
       <div class="logo-tag">元 素 共 鸣 · 塔 防</div>
@@ -6577,7 +6577,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 102;                    /* v9.12：统一开局状态清理，堵住跨局泄漏；与 version.json 同步 */
+var BUILD_CODE = 103;                    /* v9.13：开局作废 sideSig/bgKey 签名缓存，堵住「新局显示上一局内容」；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -7346,10 +7346,13 @@ function resetRunState(){
   buffChoiceOpen = false;
   if (typeof closeBuffPanel === 'function'){ try { closeBuffPanel(); } catch (e) {} }
   if (typeof resetDraftTools === 'function'){ try { resetDraftTools(); } catch (e) {} }
-  /* —— 面板 / 暂停 / 侧栏 —— */
+  /* —— 面板 / 暂停 —— */
   menuPause = false;
   lastPanel = null;
-  sideOpen = false;
+  /* 注意：sideOpen（左侧信息栏展开/折叠）**故意不重置** ——
+     它属于「用户偏好」（和文字详略、音效开关同类），不是局内状态。
+     v9.12 曾把它当跨局状态清掉，等于每局强行折叠用户的侧栏（deep40 测试因此挂掉）。
+     约定：resetRunState 只清「一局之内必须是初值」的东西，用户偏好一律保留。 */
   /* —— 射程预览 —— */
   pvOn = false; pvC = -1; pvR = -1; pvElem = ''; pvTower = null; pvT = 0;
   /* —— 连杀提示（comboCount 已在 startLevel 里清，这里清提示态）—— */
@@ -7360,6 +7363,14 @@ function resetRunState(){
   if (typeof tipT !== 'undefined') tipT = 0;
   /* —— 教学弱指引：清掉「本局基准」（提示本身一辈子只说一次，不受影响）—— */
   tutSellBase = -1;
+  /* —— v9.13：两个「签名缓存」必须作废 ——
+     ① sideSig：左侧信息栏的内容签名。它没变就不重绘 DOM，于是新一局会**留着上一局的侧栏内容**。
+     ② bgKey / bgCv：战场静态层（网格+路径）缓存。key 含路径指纹，理论上换关会变，
+        但同关重开 / 教学关与第 1 关共用 lvIndex 这类情况下会命中缓存 → 贴图与实况不符。
+     强制清空最省事，代价只是本局第一帧多画一次静态层。 */
+  if (typeof sideSig !== 'undefined') sideSig = '';
+  if (typeof bgKey !== 'undefined') bgKey = '';
+  if (typeof bgCv !== 'undefined') bgCv = null;
 }
 
 function startLevel(i, asEndless, noIntro){

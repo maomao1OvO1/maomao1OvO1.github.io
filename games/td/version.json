@@ -1,8 +1,8 @@
 {
-  "version": "9.12",
-  "versionCode": 102,
+  "version": "9.13",
+  "versionCode": 103,
   "date": "2026-09-13",
   "size": "4.6MB",
-  "note": "v9.12 统一开局状态清理（系统性 debug 产物，毛毛：「不希望有 bug」）：原来 startLevel 只零散重置十来个变量，而跨局状态远不止这些，漏掉的一批会从上一局漏进来 —— 症状包括：新局一进去就在等「点目标放技能」（skillMode 残留）、自带上一局的禁卡表与换批次数（banMode/curPicks/rerollLeft/banLeft 残留）、选卡面板状态错乱（buffChoiceOpen）、一进就被暂停（menuPause）、左侧信息栏自动展开（sideOpen）、战场残留射程预览（pvOn/pvTower）、第 0 波就飘上一局的连杀提示（comboT/comboTxt）。现新增 resetRunState() 集中清理这 14 类状态，startLevel 一进来先调它；并写明约定：以后新增任何局内状态都加到该函数里，不再零散写。玩法数值与存档格式零改动，可覆盖安装。",
+  "note": "v9.13 修「新一局沿用上一局界面内容」：左侧信息栏 updateSideBar() 与战场静态层 drawStaticBg() 都带「签名缓存」（sideSig / bgKey）—— 内容签名没变就不重绘 DOM。但它们从来没在开局被作废，于是：新一局侧栏仍显示上一局的抽卡与套装、同关重开或教学关与第 1 关共用 lvIndex 时静态贴图可能命中旧缓存（贴图与实况不符）。现由 resetRunState() 统一作废这两个签名（代价只是本局第一帧多画一次静态层）。玩法数值与存档格式零改动，可覆盖安装。",
   "url": "https://maomao1ovo1.github.io/games/td/maomao-td-latest.apk"
 }
