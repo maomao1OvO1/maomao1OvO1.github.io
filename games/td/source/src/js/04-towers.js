@@ -260,6 +260,7 @@ function checkElemSets(){
 }
 /* 统一的「获得一张强化卡」入口：应用效果 + 套装计数（抽卡 / 商店 / 契约都走这里） */
 function grantCard(card){
+  hintOnce('card', '集齐 3 张同元素专属卡会激活【套装】—— 卡面下方会亮起来');
   if (!card) return;
   /* v8.18：记进「本局已抽卡」列表（左侧信息栏要按稀有度列出来）——
      这是所有抽卡的统一入口（波次三选一 / 商店战术档案 / 苦行契约），所以记在这里不会漏 */
@@ -359,6 +360,7 @@ function onSkillBtn(key){
 }
 /* 真正释放技能：按 key 分派冻结/标记/过载/修理四种效果，设置冷却并播特效；成功返回 true */
 function releaseSkill(key, target){
+  hintOnce('skill', '技能进冷却了 —— 它会自己恢复，波次越高越值钱');
   var sk = skillByKey(key);
   if (!sk || sk.t > 0) return false;
   if (key === 'freeze'){
@@ -1254,8 +1256,10 @@ function addTower(c, r, elem){
   recalcResonance();
   updateHud();
   SFX.build();
+  hintOnce('build', '相邻放不同元素的塔会【共鸣】—— 试试在旁边建座别的元素');
   if (t.res && t.res.tags.length){
     addFloat(cx(c), cy(r) - CELL * 0.6, '共鸣 ' + t.res.tags.join('+') + '  伤害×' + t.res.dmgMul, '#8ff0ff');
+    hintOnce('reso', '共鸣成立！一共 91 种组合 —— 图鉴里「共鸣」页可以慢慢查');
     chord([1047, 1319, 1568], 0.22, 0.045);
     recalcResonance();
   }

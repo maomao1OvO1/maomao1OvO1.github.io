@@ -133,6 +133,7 @@ function openBuild(c, r, px, py){
 }
 /* 打开已有塔的面板：显示当前属性与升级后的属性对比、共鸣标签、升级/出售/全额退款按钮 */
 function openTower(t, px, py){
+  hintOnce('tower', '这里能升级、也能出售 —— 升到 Lv3 还会出现【精通分支】');
   var d = ELEMS[t.elem], uc = upgradeCost(t), sv = sellValue(t);
   var res = (t.res && t.res.tags.length) ? ('<div class="t" style="color:#8ff0ff">共鸣 ' + t.res.tags.join('·') + '</div>') : '';
   var cur = statAt(t, t.lv), nxt = statAt(t, t.lv + 1);
@@ -257,6 +258,7 @@ sel.addEventListener('click', function(ev){      /* v7.1：由 pointerdown 改 c
     var t5 = sel._tower;
     if (t5 && t5.lv >= 3 && !t5.spec){
       t5.spec = b.dataset.spec;
+      hintOnce('spec', '精通分支是互斥的选完不能改 —— 所以它给的加成比普通升级狠'  );
       recalcResonance(); updateHud(); SFX.upgrade();
       addFloat(cx(t5.c), cy(t5.r) - CELL * 0.4,
         (t5.spec === 'dmg' ? '精通：伤害 +40%' : '精通：攻速 +35%'), '#ffd76a');
@@ -284,6 +286,7 @@ sel.addEventListener('click', function(ev){      /* v7.1：由 pointerdown 改 c
       recalcResonance(); updateHud();
     }
   } else if (b.dataset.sell){
+    hintOnce('sell', '刚建的塔 5 秒内卖是全额退款，过了 5 秒只退六成');
     var t3 = sel._tower;
     if (t3){
       goldAdd(sellValue(t3)); SFX.coin();
