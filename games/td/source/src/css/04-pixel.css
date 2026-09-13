@@ -85,3 +85,56 @@ button:active, .btn:active, .btn-hero:active{
   display:inline-block;
 }
 .tw .pxi, .card .pxi{ width:1.15em; height:1.15em; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * ⑩ v9.0 语义色系统 —— 紫调为骨、彩色为肉
+ *
+ * 毛毛要求「所有界面的颜色都丰富，但不能杂乱无章」。三条原则保证不乱：
+ *   ① 框架（背景 / 面板 / 边框）一律紫系  → 整体调性统一，不花
+ *   ② 颜色只用来回答「这是什么」：金=钱·稀有、红=危险·伤害、青=信息·冰、
+ *      绿=增益·生命、粉=特殊、橙=警告、蓝=辅助 —— 一个色只干一件事
+ *   ③ 强调色只落在【数值 / 状态 / 稀有度 / 图标】上，不铺大面积底色
+ * ══════════════════════════════════════════════════════════════════════════ */
+:root{
+  --c-gold:  #e6b95c;   /* 货币 · 史诗 · 星数 */
+  --c-red:   #ff6b5a;   /* 危险 · 伤害 · 血量 · 减益 */
+  --c-cyan:  #4dd0e1;   /* 信息 · 冰 · 波次 · 天气 */
+  --c-green: #7ed957;   /* 生命 · 成功 · 增益 · 剧毒 */
+  --c-pink:  #f06292;   /* 特殊 · 狙击 · 套装 */
+  --c-orange:#ffa04d;   /* 警告 · 榴弹 · 满级提示 */
+  --c-blue:  #64b5f6;   /* 辅助 · 链接 · 教学 */
+}
+
+/* ── 顶部状态栏：每项数据一个色，一眼分清 ── */
+#gold{ color:var(--c-gold) !important; }
+#wave{ color:var(--c-cyan) !important; }
+
+/* ── 血条改红：危险感更明确（原来跟着紫走，太温）── */
+#hpfill{ background:var(--c-red) !important; }
+#hpbar{ border-color:#6b2e3a !important; }
+
+/* ── 次波情报条：青色信息带 ── */
+#waveInfo{ color:var(--c-cyan) !important; border-left:3px solid var(--c-cyan) !important; background:rgba(77,208,225,.10) !important; }
+
+/* ── 主按钮：金色描边抢眼（只描边，不铺金色底，避免俗）── */
+.btn-hero, #startBtn{ border-color:var(--c-gold) !important; box-shadow:3px 3px 0 #8a6a24 !important; }
+#speedBtn{ border-color:var(--c-gold) !important; color:var(--c-gold) !important; }
+
+/* ── 左侧常驻信息栏：五个入口各一色，扫一眼就知道点哪个 ── */
+#swWx{ border-color:var(--c-cyan) !important; }      /* 天气 */
+#swBuff{ border-color:var(--c-green) !important; }   /* 加成 */
+#swDeb{ border-color:var(--c-red) !important; }      /* 减益 */
+#swCard{ border-color:var(--c-gold) !important; }    /* 强化卡 */
+#swSet{ border-color:var(--c-pink) !important; }     /* 套装 */
+
+/* ── 稀有度：边框颜色即等级（金 > 亮紫 > 暗紫），不用发光 ── */
+.card.epic{ border-color:var(--c-gold) !important; }
+.card.rare{ border-color:var(--px-pl) !important; }
+.card.norm{ border-color:var(--px-line) !important; }
+.card.epic .cn{ color:var(--c-gold) !important; }
+
+/* ── 技能栏：亮蓝，跟塔的紫区分开 ── */
+#skillBar button, #skillBar .sk{ border-color:var(--c-blue) !important; }
+
+/* ── 图鉴页签：激活态金色 ── */
+#lvList .on, .bookTab.on{ border-color:var(--c-gold) !important; color:var(--c-gold) !important; }
