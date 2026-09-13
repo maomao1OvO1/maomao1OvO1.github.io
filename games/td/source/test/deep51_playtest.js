@@ -124,8 +124,11 @@ console.log('  · 最便宜的塔 ' + _cheapest + ' 金，开局金币 ' + T.get
 var _slots = [];
 for (var _c = 0; _c < T.COLS2; _c++) for (var _r = 0; _r < T.ROWS2; _r++) if (!T.isPath(_c, _r)) _slots.push([_c, _r]);
 var _elems = Object.keys(T.ELEMS), _ei = 0, _built = 0, _spent = 0, _f = 0;
+/* v9.11 修：frame() 的参数是【时间戳(ms)】不是 dt —— 原来传 1/60 等于时间戳几乎不变，
+   dt≈0 所以游戏根本不推进（跑了 12000 帧还停在第 1 波）。改成累加 16ms。 */
+var _t0 = 0;
 for (_f = 0; _f < 12000; _f++){
-  T.frame(1 / 60);
+  _t0 += 16; T.frame(_t0);
   if (_f % 30 === 0){
     var _g = T.getS().gold;
     if (_g >= _cheapest && _built < 14){
