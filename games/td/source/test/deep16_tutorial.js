@@ -110,7 +110,7 @@ ok(s.WAVES_TOTAL === T.TUTORIAL.waves, 'WAVES_TOTAL = TUTORIAL.waves（' + s.WAV
 ok(s.gold === T.TUTORIAL.gold, '金币 = TUTORIAL.gold（' + s.gold + '）');
 ok(JSON.stringify(s.WAYPOINTS) === JSON.stringify(T.TUTORIAL.path), '路径 = TUTORIAL.path（' + JSON.stringify(s.WAYPOINTS) + '）');
 ok(s.wave === 1 && s.hp === 20 && s.towers.length === 0, '开局状态干净（第 1 波 / 20 血 / 0 塔）');
-ok(T.el('tutBar').style.display === 'block', '教学关 #tutBar 显示');
+ok(T.el('tutBar').style.display === 'none', 'v9.10 任务条退役：教学关也不再显示 #tutBar');
 /* v9.9：旧的「任务条 / 第 N 步推进」断言已随任务清单一起撤除 */
 ok(T.el('startOv')._hidden === true, '首页弹窗已收起');
 
@@ -211,7 +211,7 @@ T.el('restartBtn').fire('click');
 var s4 = T.getS();
 ok(s4.tutorial === true && s4.tutStep === 1 && s4.gold === T.TUTORIAL.gold && s4.WAVES_TOTAL === T.TUTORIAL.waves,
    '「重开本关」重开教学（步骤回到 1/5，金币 ' + s4.gold + '）');
-ok(T.el('tutBar').style.display === 'block', '重开后任务条仍在');
+ok(T.el('tutBar').style.display === 'none', 'v9.10 重开后任务条仍隐藏（退役状态一致）');
 T.el('pauseBtn').fire('click');
 T.el('toLevelsBtn').fire('click');
 ok(T.getS().tutorial === false, '从教学关返回选关 → 教学模式退出');

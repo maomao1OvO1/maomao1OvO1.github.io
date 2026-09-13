@@ -1175,7 +1175,7 @@ body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !im
   <div class="home-bg"></div>
   <div class="home-aura"></div>
   <div class="home-wrap">
-    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.9 ▾</button></div>
+    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.10 ▾</button></div>
     <div class="home-logo">
       <h1 class="logo">共鸣之塔</h1>
       <div class="logo-tag">元 素 共 鸣 · 塔 防</div>
@@ -6577,7 +6577,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 99;                     /* v9.9：新手教学从 5 步扩到 10 步，覆盖全部核心系统；与 version.json 同步 */
+var BUILD_CODE = 100;                    /* v9.10：修教学关「任务 1/0：undefined」——任务条退役；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -7180,16 +7180,19 @@ function hintOnce(key, text){
 var TUT_STEPS = [];                /* 保留空数组：老代码里的下标访问不会崩 */
 /* 刷新教学任务条上的文字（任务 2/5：xxx）*/
 function tutBarText(){
+  /* v10.0：任务条退役，这里不再产出任何「任务 N/M」文案（保留空函数以免旧调用点报错）*/
   var el = document.getElementById('tutBar');
   if (!el) return;
-  el.textContent = '任务 ' + tutStep + '/' + TUT_TOTAL + '：' + TUT_STEPS[tutStep - 1];
+  el.textContent = '';
 }
 /* 同步教学任务条的显示/隐藏与内容（非教学关隐藏）*/
 function tutBarSync(){
   var el = document.getElementById('tutBar');
   if (!el) return;
-  el.style.display = tutorial ? 'block' : 'none';
-  if (tutorial) tutBarText();
+  /* v10.0 修 bug（毛毛截图：教学关里还挂着「任务 1/0：undefined」）：
+     任务清单已撤（TUT_TOTAL=0、TUT_STEPS=[]），但这里还在按 tutorial 显示任务条，
+     于是拼出 1/0 与 undefined。现改为**永远隐藏**，任务条正式退役。 */
+  el.style.display = 'none';
 }
 function tutMark(kind){ if (kind === 'buff') tutBuffCount++; }      /* 第 4 步：点过强化卡 / 跳过 */
 function tutAnyLv2(){                                              /* 第 3 步：任一塔升到 Lv2 */
