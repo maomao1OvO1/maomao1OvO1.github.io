@@ -6,8 +6,8 @@ code = code.replace('requestAnimationFrame(frame);\n})();',
   'window.__T = { startTutorial: startTutorial, startLevel: startLevel, frame: frame,\n' +
   '  waypointPx: waypointPx, getWAY: function(){ return WAYPOINTS; },\n' +
   '  cx: cx, cy: cy, cell: function(){ return CELL; },\n' +
-  '  getS: function(){ return { enemies: enemies, wave: wave, towers: towers }; },
-  bgKey: function(){ return (typeof bgKey !== 'undefined') ? bgKey : ''; },\n' +
+  '  getS: function(){ return { enemies: enemies, wave: wave, towers: towers }; },\n' +
+  "  bgKey: function(){ return (typeof bgKey !== 'undefined') ? bgKey : ''; },\n" +
   '  el: function(id){ return document.getElementById(id); } };\nrequestAnimationFrame(frame);\n})();');
 function mkEl(t){ var e={tagName:t||'div',style:{},dataset:{},children:[],textContent:'',_html:'',width:800,height:600,
   offsetWidth:100,offsetHeight:100,clientWidth:800,clientHeight:600,_hidden:false,_handlers:{},

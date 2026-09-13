@@ -1,0 +1,437 @@
+/* ══════════════════════════════════════════════════════════════════════════
+ * 01-base.css —— 基础样式：布局骨架 / 主题色 / 顶部 HUD / 战场 / 各类弹层
+ *
+ * 来源：game.html 第 65-494 行（由 _split_game.sh 拆出，代码正文逐字符未改）
+ * 作用域：独立样式表，由 index.html 按序号引入
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+ * {
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+html,body {
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#070a12;
+  color:#dfe8f5;
+  font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif;
+}
+/* ===== 页面骨架：竖排全屏布局（顶部 HUD → 波次情报 → 教学任务条 → 战场）===== */
+#wrap {
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+}
+/* v8.23 适配：HUD 两侧躲开刘海/挖孔（横屏时刘海可能在左也可能在右，所以两边都要留）*/ #top {
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  row-gap:5px;
+  padding:8px calc(10px + env(safe-area-inset-right,0px)) 8px calc(10px + env(safe-area-inset-left,0px));
+  background:linear-gradient(180deg,rgba(16,24,42,.95),rgba(10,14,26,.85));
+  border-bottom:1px solid rgba(90,140,220,.25);
+}
+/* v8.14 文字详略：所有文本面板共用的「简易模式」——被标记 .udesc 的说明文字在简易模式下隐藏 */ body.brief .udesc {
+  display:none !important;
+}
+/* 顶部 HUD 的小胶囊（金币 / 波次 / 地图名 / 天气），b 里的数字用等宽数字避免跳动 */
+.stat {
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 10px;
+  border-radius:9px;
+  background:rgba(20,30,52,.8);
+  border:1px solid rgba(90,140,220,.3);
+  font-size:12px;
+  color:#9fc4f0;
+}
+.stat b {
+  color:#fff;
+  font-size:15px;
+  font-variant-numeric:tabular-nums;
+}
+/* 基地血条：外框（红调描边）+ 内层 #hpfill 按血量百分比设宽度 */
+#hpbar {
+  flex:1;
+  position:relative;
+  height:12px;
+  border-radius:6px;
+  background:rgba(30,20,30,.8);
+  border:1px solid rgba(240,90,110,.4);
+  overflow:hidden;
+  min-width:60px;
+}
+/* 血条填充层：宽度由 updateHud() 按 hp/MAXHP 实时设置，带过渡动画 */
+#hpfill {
+  height:100%;
+  width:100%;
+  background:linear-gradient(90deg,#ff4d6d,#ff9a6d);
+  transition:width .25s;
+}
+/* 战场容器：占满剩余高度，position:relative 用于承载 canvas 与各浮层（信息栏/建塔面板/提示条）*/
+#canvasWrap {
+  flex:1;
+  position:relative;
+  overflow:hidden;
+  min-height:0;
+}
+/* 战场画布：铺满容器；实际像素尺寸由 resize() 按 DPR 设置 */
+canvas {
+  display:block;
+  width:100%;
+  height:100%;
+}
+/* 旧版底部建塔栏样式：现版本建塔改由 #sel 面板承担，页面已无元素引用（保留未删）*/
+#bottom {
+  flex:0 0 auto;
+  padding:8px 10px 12px;
+  background:linear-gradient(0deg,rgba(16,24,42,.96),rgba(10,14,26,.85));
+  border-top:1px solid rgba(90,140,220,.25);
+}
+#towers {
+  display:flex;
+  gap:8px;
+  justify-content:center;
+}
+/* 旧版塔按钮样式（同上：当前界面无引用）*/
+.tw {
+  flex:1;
+  max-width:86px;
+  border-radius:12px;
+  padding:7px 4px 6px;
+  text-align:center;
+  position:relative;
+  border:1px solid rgba(120,160,220,.35);
+  background:rgba(22,32,56,.85);
+  transition:transform .1s,box-shadow .15s;
+}
+.tw:active {
+  transform:scale(.95);
+}
+.tw.sel {
+  box-shadow:0 0 0 2px #fff inset,0 0 18px rgba(140,200,255,.6);
+}
+.tw .ic {
+  font-size:22px;
+  line-height:1.15;
+}
+.tw .nm {
+  font-size:11px;
+  color:#c8dcf5;
+  margin-top:1px;
+}
+.tw .pc {
+  font-size:11px;
+  color:#ffd76a;
+  font-variant-numeric:tabular-nums;
+}
+.tw.dis {
+  opacity:.42;
+}
+/* 通用小徽标：图鉴/面板里的角色定位、稀有度等角标 */
+.badge {
+  position:absolute;
+  top:-6px;
+  right:-4px;
+  font-size:10px;
+  padding:1px 5px;
+  border-radius:7px;
+  background:#ffcf4a;
+  color:#20180a;
+  font-weight:700;
+}
+/* ===== v8.18 左侧常驻信息栏 =====
+     毛毛：「选的那个卡片和 debuff 你都列出来，有什么加成有什么 debuff 写到左边」
+     默认**折叠**成一条窄图标带（几乎不挡战场），点一下才铺开详情；
+     容器整体 pointer-events:none，只有图标带与面板本身可点 → 战场点击不受影响。 */ #sideWin {
+  position:absolute;
+  left:env(safe-area-inset-left,0px);
+  top:0;
+  bottom:0;
+  z-index:22;
+  display:flex;
+  align-items:flex-start;
+  pointer-events:none;
+  padding:6px 0 6px calc(5px + env(safe-area-inset-left,0px));
+}
+#swStrip {
+  pointer-events:auto;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:4px;
+  border-radius:12px;
+  background:rgba(10,16,30,.72);
+  border:1px solid rgba(90,140,220,.28);
+}
+.swChip {
+  position:relative;
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:15px;
+  background:rgba(22,34,58,.92);
+  border:1px solid rgba(120,180,255,.28);
+}
+.swChip:active {
+  transform:scale(.92);
+}
+.swChip.dim {
+  opacity:.38;
+}
+.swChip .n {
+  position:absolute;
+  right:-3px;
+  top:-4px;
+  font-size:9px;
+  font-weight:700;
+  color:#20180a;
+  background:#ffd76a;
+  border-radius:7px;
+  padding:0 3px;
+  line-height:13px;
+}
+#swBody {
+  pointer-events:auto;
+  display:none;
+  width:min(48vw,200px);
+  max-height:100%;
+  overflow-y:auto;
+  margin-left:5px;
+  padding:8px 9px;
+  border-radius:12px;
+  background:rgba(10,16,30,.92);
+  border:1px solid rgba(90,140,220,.34);
+  box-shadow:0 6px 20px rgba(0,0,0,.5);
+  font-size:11.5px;
+  line-height:1.5;
+  text-align:left;
+  -webkit-overflow-scrolling:touch;
+}
+#sideWin[data-open="1"] #swBody {
+  display:block;
+}
+.swSec {
+  margin-bottom:7px;
+}
+.swSec:last-child {
+  margin-bottom:0;
+}
+.swT {
+  font-size:10.5px;
+  font-weight:700;
+  color:#8fb4dc;
+  letter-spacing:1px;
+  margin-bottom:3px;
+}
+.swRow {
+  display:flex;
+  justify-content:space-between;
+  gap:6px;
+  font-size:11.5px;
+}
+.swRow .k {
+  color:#9fc4f0;
+}
+.swRow .v {
+  color:#7cf5c0;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+.swRow.bad .v {
+  color:#ff9a8a;
+}
+.swRow.dim .v {
+  color:#6c7f9b;
+  font-weight:400;
+}
+.swCardLine {
+  display:flex;
+  gap:5px;
+  align-items:center;
+  font-size:11px;
+  margin-bottom:2px;
+}
+.swCardLine .rn {
+  font-size:9px;
+  border:1px solid currentColor;
+  border-radius:6px;
+  padding:0 3px;
+  flex:0 0 auto;
+}
+/* 战场底部提示条：操作引导与 showTip() 弹出的一句话反馈 */
+#tip {
+  position:absolute;
+  left:50%;
+  bottom:8px;
+  transform:translateX(-50%);
+  font-size:11.5px;
+  color:#8fb4dc;
+  background:rgba(10,16,30,.8);
+  padding:5px 12px;
+  border-radius:9px;
+  border:1px solid rgba(90,140,220,.3);
+  pointer-events:none;
+  white-space:nowrap;
+}
+/* 全屏弹层通用样式：所有 class="ov" 的面板（首页/设置/图鉴/结算…）都用它铺满全屏并居中 */
+.ov {
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:12px;
+  background:radial-gradient(circle at 50% 38%,rgba(14,24,46,.97),rgba(5,7,14,.995));
+  text-align:center;
+  padding:16px 20px;
+  z-index:50;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+.ov > * {
+  flex:0 0 auto;
+}
+.ov > :first-child {
+  margin-top:auto;
+}
+/* 内容少时垂直居中、内容多时可滚动 */ .ov > :last-child {
+  margin-bottom:auto;
+}
+/* 通用隐藏类：弹层开关就靠增删这个 class（display:none !important）*/
+.hidden {
+  display:none!important;
+}
+h1 {
+  font-size:34px;
+  letter-spacing:5px;
+  font-weight:800;
+  background:linear-gradient(90deg,#5ad7ff,#8f7cff,#ff77c8);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+/* 弹层副标题小字（标题下的说明行）*/
+.sub {
+  font-size:13px;
+  color:#93a6c4;
+  line-height:1.95;
+}
+/* 通用按钮：所有弹层里的操作按钮共用（渐变底 + 描边 + 按下缩放）*/
+.btn {
+  margin-top:8px;
+  padding:15px 46px;
+  border-radius:42px;
+  border:1px solid rgba(120,220,255,.5);
+  background:linear-gradient(180deg,rgba(40,110,200,.9),rgba(28,70,150,.9));
+  color:#fff;
+  font-size:18px;
+  letter-spacing:3px;
+  font-weight:700;
+  box-shadow:0 0 24px rgba(60,150,255,.35);
+}
+/* 玩法说明正文块（#helpOv 里的 Markdown 式长文容器）*/
+.el {
+  font-size:12.5px;
+  line-height:1.9;
+  color:#8fb4dc;
+  text-align:left;
+  max-width:330px;
+}
+.el b {
+  color:#ffd76a;
+}
+.el i {
+  font-style:normal;
+  color:#7cf5c0;
+}
+/* 建塔 / 升级面板：#sel 由 openBuild()/openTower() 动态填内容，位置由 placeMenu() 计算 */
+#sel {
+  position:absolute;
+  z-index:30;
+  background:rgba(14,22,40,.97);
+  border:1px solid rgba(120,180,255,.45);
+  border-radius:14px;
+  padding:8px;
+  display:none;
+  min-width:150px;
+  width:min(96vw,900px);
+  max-width:96vw;
+  max-height:90vh;
+  overflow-y:auto;
+  box-shadow:0 8px 30px rgba(0,0,0,.6);
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+#sel .cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:5px;
+}
+/* 建塔面板里的单张塔卡（图标/名称/造价/定位/简介）*/
+#sel .card {
+  display:block;
+  width:100%;
+  min-width:0;
+  text-align:left;
+  margin:0;
+  padding:6px 7px;
+  border-radius:10px;
+  border:1px solid rgba(120,180,255,.35);
+  background:rgba(26,40,70,.92);
+  color:#dfe8f5;
+}
+#sel .card:active {
+  background:rgba(60,110,190,.92);
+}
+#sel .card.dis {
+  opacity:.42;
+}
+#sel .ch {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.2px;
+}
+#sel .ch .ci {
+  font-size:15px;
+}
+#sel .ch .cp {
+  margin-left:auto;
+  color:#ffd76a;
+  font-variant-numeric:tabular-nums;
+  font-size:12.5px;
+}
+#sel .cs {
+  font-size:10px;
+  color:#a8caf0;
+  margin-top:1px;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+#sel .ce {
+  font-size:10px;
+  color:#7cf5c0;
+  line-height:1.35;
+}
+#sel .cu {
+  font-size:10px;
+  color:#ffb27a;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}

@@ -1,0 +1,294 @@
+/* ══════════════════════════════════════════════════════════════════════════
+ * 03-home.css —— 主界面美术：纯 CSS 动效（呼吸光环 / Logo 辉光 / 图标网格）
+ *
+ * 来源：game.html 第 617-903 行（由 _split_game.sh 拆出，代码正文逐字符未改）
+ * 作用域：独立样式表，由 index.html 按序号引入
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ===== v5.8 主界面美术（纯 CSS，无外部素材） ===== */ #startOv {
+  justify-content:center;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:0;
+}
+#startOv .home-bg {
+  position:absolute;
+  inset:-12%;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(90,190,255,.20), transparent 40%),
+    radial-gradient(circle at 84% 24%, rgba(180,120,255,.18), transparent 44%),
+    radial-gradient(circle at 50% 96%, rgba(60,230,200,.14), transparent 52%),
+    radial-gradient(1.5px 1.5px at 12% 30%, rgba(255,255,255,.8), transparent 60%),
+    radial-gradient(1.5px 1.5px at 34% 68%, rgba(180,220,255,.7), transparent 60%),
+    radial-gradient(1.8px 1.8px at 58% 22%, rgba(255,255,255,.75), transparent 60%),
+    radial-gradient(1.4px 1.4px at 76% 58%, rgba(200,230,255,.7), transparent 60%),
+    radial-gradient(1.6px 1.6px at 88% 82%, rgba(255,255,255,.6), transparent 60%),
+    linear-gradient(180deg,#060a14,#0a1122 55%,#070b16);
+  animation: bgDrift 24s ease-in-out infinite alternate;
+}
+@keyframes bgDrift {
+  from {
+    transform:translate3d(-1.6%,-1.2%,0) scale(1.03);
+  }
+  to {
+    transform:translate3d(1.6%,1.4%,0) scale(1.07);
+  }
+}
+.home-wrap {
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:13px;
+  width:100%;
+  max-width:460px;
+  padding:22px 18px;
+}
+.home-top {
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:10px;
+  color:#5f7ba6;
+  letter-spacing:2px;
+}
+/* v8.23 版本号按钮：一眼看出能点（反馈 bug 时要提供的就是它） */ #homeVer {
+  padding:2px 8px;
+  border-radius:9px;
+  cursor:pointer;
+  font-family:inherit;
+  font-size:10px;
+  letter-spacing:1px;
+  border:1px solid rgba(120,180,255,.32);
+  background:rgba(24,40,68,.85);
+  color:#9fd0ff;
+}
+#homeVer:active {
+  transform:scale(.96);
+}
+#homeVer:hover {
+  background:rgba(36,60,100,.95);
+}
+.home-logo {
+  text-align:center;
+}
+.logo {
+  margin:0;
+  font-size:clamp(32px,8.5vw,54px);
+  letter-spacing:7px;
+  font-weight:900;
+  background:linear-gradient(180deg,#f2fbff 6%,#8fdcff 42%,#4f8cff 74%,#b07cff 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 16px rgba(90,200,255,.55)) drop-shadow(0 3px 0 rgba(8,16,34,.85));
+  animation:logoFloat 4.6s ease-in-out infinite, logoGlow 5.2s ease-in-out infinite;
+}
+@keyframes logoGlow {
+  0%,100% {
+    filter:drop-shadow(0 0 14px rgba(90,200,255,.45)) drop-shadow(0 3px 0 rgba(8,16,34,.85));
+  }
+  50% {
+    filter:drop-shadow(0 0 28px rgba(130,205,255,.8)) drop-shadow(0 3px 0 rgba(8,16,34,.85));
+  }
+}
+@keyframes logoFloat {
+  0%,100% {
+    transform:translateY(0);
+  }
+  50% {
+    transform:translateY(-5px);
+  }
+}
+.logo-tag {
+  margin-top:3px;
+  font-size:11px;
+  letter-spacing:5px;
+  color:#8fb4dc;
+}
+.home-stats {
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  justify-content:center;
+  min-height:26px;
+}
+.home-stats .st {
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:11px;
+  color:#9fc4f0;
+  background:rgba(18,28,50,.78);
+  border:1px solid rgba(90,140,220,.28);
+}
+.home-stats .st b {
+  color:#ffd76a;
+}
+.btn-hero {
+  padding:15px 46px !important;
+  font-size:20px !important;
+  letter-spacing:6px !important;
+  background:linear-gradient(180deg,rgba(74,156,255,.96),rgba(34,82,188,.96)) !important;
+  border-color:rgba(150,225,255,.6) !important;
+  animation:heroPulse 2.8s ease-in-out infinite;
+}
+@keyframes heroPulse {
+  0%,100% {
+    box-shadow:0 0 20px rgba(60,150,255,.42),0 6px 16px rgba(0,0,0,.45);
+  }
+  50% {
+    box-shadow:0 0 38px rgba(100,200,255,.75),0 6px 16px rgba(0,0,0,.45);
+  }
+}
+.btn-hero:active {
+  transform:scale(.97);
+}
+/* ===== v8.18 主界面重做：大标题 + 主按钮 + 图标网格（纯 CSS 动效，零图片资源）===== */ .home-aura {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:1;
+  background:radial-gradient(circle at 50% 36%,rgba(110,190,255,.20),rgba(150,110,255,.10) 38%,transparent 64%);
+  animation:auraBreath 6.5s ease-in-out infinite;
+}
+@keyframes auraBreath {
+  0%,100% {
+    opacity:.5;
+    transform:scale(1);
+  }
+  50% {
+    opacity:1;
+    transform:scale(1.05);
+  }
+}
+.home-menu {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  width:100%;
+  max-width:400px;
+}
+/* 图标网格瓦片：图标在上、名字在下（横屏压缩时也保持堆叠）。
+     注意：#bookBtn 的 class 必须是「btn」本身（deep11 有断言），所以样式不能靠额外类名挂，只能落在 .home-menu .btn 上 */ .home-menu .btn {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  margin-top:0 !important;
+  width:100%;
+  border-radius:14px;
+  letter-spacing:1px;
+  padding:10px 4px !important;
+  font-size:12px !important;
+  border-color:rgba(120,180,255,.34);
+  background:rgba(22,34,58,.88);
+  box-shadow:none;
+  transition:transform .12s,border-color .18s,box-shadow .18s;
+}
+.home-menu .btn .ti {
+  font-size:22px;
+  line-height:1.05;
+}
+.home-menu .btn:active {
+  transform:scale(.94);
+}
+.home-menu .btn.hot {
+  border-color:rgba(255,200,110,.6);
+  box-shadow:0 0 14px rgba(255,180,60,.22);
+  background:linear-gradient(180deg,rgba(58,44,16,.92),rgba(36,26,8,.92));
+}
+.home-menu .btn.pink {
+  border-color:rgba(255,140,200,.55);
+  background:linear-gradient(180deg,rgba(52,20,40,.92),rgba(34,12,26,.92));
+}
+.home-menu2 {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  width:100%;
+  max-width:400px;
+}
+.home-menu2 .btn {
+  margin-top:0 !important;
+  width:100%;
+  border-radius:12px;
+  letter-spacing:1px;
+  padding:9px 4px !important;
+  font-size:13px !important;
+  box-shadow:none;
+}
+.home-hint {
+  min-height:14px;
+  font-size:11px;
+  color:#7cf5c0;
+  letter-spacing:.5px;
+}
+.home-foot {
+  font-size:10px;
+  color:#4d678f;
+  letter-spacing:1px;
+}
+/* v8.23 修毛毛报的「字没显示全 / 没有版本号」——
+     根因其实是同一个：主界面内容（logo + 战绩 + 提示 + 主按钮 + 3 行网格 + 页脚）在横屏
+     540px 高的手机上比视口还高 → 顶部那行版本号被挤出视口、底部「玩法/检查更新」被裁一半。
+     原来只有 max-height:480px 一档，而横屏手机常见是 500~600px 高 → 完全不生效。
+     这里补一档 640px 的压缩规则（只压缩、不隐藏内容，保证所有入口都完整可见）。 */ @media (max-height:640px) {
+  #startOv .home-wrap {
+    gap:7px;
+    padding:10px 16px;
+  }
+  .home-top {
+    font-size:9.5px;
+  }
+  .logo {
+    font-size:clamp(24px,6.4vw,38px);
+    letter-spacing:5px;
+  }
+  .logo-tag {
+    font-size:10px;
+    letter-spacing:3px;
+    margin-top:1px;
+  }
+  .home-stats {
+    gap:5px;
+    min-height:20px;
+  }
+  .home-stats .st {
+    padding:3px 8px;
+    font-size:10.5px;
+  }
+  .home-hint {
+    font-size:10px;
+    min-height:12px;
+  }
+  .btn-hero {
+    padding:11px 38px !important;
+    font-size:17px !important;
+    letter-spacing:4px !important;
+  }
+  .home-menu {
+    gap:6px;
+  }
+  .home-menu .btn {
+    padding:7px 4px !important;
+    border-radius:12px;
+  }
+  .home-menu .btn .ti {
+    font-size:17px;
+  }
+  .home-menu2 {
+    gap:6px;
+  }
+  .home-menu2 .btn {
+    padding:6px 4px !important;
+    font-size:12px !important;
+  }
+  .home-foot {
+    display:none;
+  }
+}

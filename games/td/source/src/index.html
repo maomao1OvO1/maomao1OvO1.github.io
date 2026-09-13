@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+   《共鸣之塔》—— 原创塔防游戏（核心机制：元素共鸣）
+  ═══════════════════════════════════════════════════════════════════════════
+
+   这是一个**单文件游戏**：HTML + CSS + JS 全部在这一个文件里，没有框架、
+   没有依赖、没有构建步骤 —— 用浏览器直接打开就能玩，改完刷新即生效。
+
+   ▸ 想改内容？直接看这几张「数据表」（用编辑器搜关键字就能定位）：
+
+       var ELEMS         9 座塔（造价 / 伤害 / 攻速 / 射程 / 特性 / 专属成长）
+       var ENEMIES       敌人（血量 / 速度 / 金币 / 特性）
+       var LEVELS        15 个关卡（波数 / 初始金币 / 难度系数 / 路径点）
+       var BUFF_POOL     76 张强化卡（普通 / 稀有 / 史诗三档）
+       var WEATHERS      6 种元素天气（每 3 波切换，有得有失）
+       var SKILLS        4 个主动技能（按关卡逐个解锁）
+       var ELEM_SETS     8 个元素套装（集齐 3 张同元素专属卡激活）
+       var ENEMY_AFFIXES 6 种敌人词缀
+       var ACHIEVEMENTS  14 个成就
+
+     ⭐ 加一座塔只需要在 ELEMS 里加一条数据 —— 建塔面板、图鉴、升级面板
+        都是遍历 ELEMS 生成的，会自动收录（第 9 座塔「机枪」就是这么加的）。
+
+   ▸ 本文件结构（从上到下）：
+
+       style 段   全部 CSS
+                 · 布局与主题色
+                 · 横屏 / 小屏 / 安全区自适应（@media 分档）
+                 · 主界面的纯 CSS 动效（呼吸光环、Logo 辉光，零图片资源）
+
+       body    界面结构
+                 #wrap ─────────────────────────── 游戏主体（全屏 flex 列）
+                   ├─ #top        顶部状态栏：金币 / 波次 / 天气 / 技能栏 / 倍速 / 暂停 / 血条
+                   ├─ #waveInfo   下一波预告（含天气变化提示）
+                   ├─ #rotHint    竖屏提示条（横屏自动隐藏）
+                   └─ #canvasWrap 战场
+                         ├─ canvas 元素  网格 + 路径 + 塔 + 敌人（全部程序化绘制）
+                         ├─ #sideWin  左侧常驻信息栏（天气/加成/减益/本局抽卡/套装）
+                         └─ #sel      建塔与升级面板
+
+                 全屏弹层（.ov）：主界面 / 玩法 / 图鉴 / 暂停 / 结算 / 强化卡 /
+                                  选关地图 / 更新提示 / 关卡开幕 / 版本信息
+
+       script 段  全部逻辑，大致按这个顺序：
+                 数据表 → 共鸣与套装 → 天气 / 技能 / 成就 / 裂隙 → 战斗核心
+                 → 渲染（静态层缓存 + 敌人贴图缓存）→ 界面 → 存档 → 主循环 frame()
+
+   ▸ 性能上有几处刻意的优化，大改时注意别破坏：
+       · 静态路径层缓存（key 含路径指纹）· 敌人贴图预渲染 · 去 shadowBlur
+       · 塔数 > 40 自动降级 · 倍速下的音效限流
+
+   ▸ 许可：MIT —— 随便改、随便用、能商用，保留版权声明即可。
+      改造教程：docs/modding.md　｜　完整数值说明：docs/manual.md
+
+   文件约 7000 行，建议用编辑器的「查找 / 跳转」直接定位到你要改的部分。
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#070a12">
+<title>共鸣之塔</title>
+  <link rel="stylesheet" href="css/01-base.css">
+  <link rel="stylesheet" href="css/02-responsive.css">
+  <link rel="stylesheet" href="css/03-home.css">
+</head>
+<body>
+<!-- ================= 游戏主体（#wrap 是全屏 flex 竖排容器）================= -->
+<div id="wrap">
+  <!-- 顶部状态栏：金币 / 波次 / 当前地图 / 天气（可点开说明）· 技能按钮栏 · 倍速 · 暂停 · 基地血条（含护盾值）-->
+  <div id="top">
+    <div class="stat">💰 <b id="gold">150</b></div>
+    <div class="stat">🌊 <b id="wave">1</b></div>
+    <div class="stat" id="lvName" style="font-size:11px">地图</div>
+    <div class="stat" id="wxBox" style="font-size:11px;border:1px solid rgba(255,200,110,.35);cursor:pointer;">🌤 平稳</div>
+    <span id="skillBar" style="display:flex;gap:4px;"></span>
+    <button id="speedBtn" style="padding:6px 10px;border-radius:9px;border:1px solid rgba(140,240,180,.45);background:rgba(24,58,44,.9);color:#8ff0c0;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;">⏩ 1x</button>
+    <button id="pauseBtn" style="padding:6px 12px;border-radius:9px;border:1px solid rgba(120,180,255,.4);background:rgba(30,48,84,.9);color:#dfe8f5;font-size:15px;">⏸</button>
+    <div id="hpbar"><div id="hpfill"></div><span id="shieldTxt" style="position:absolute;right:5px;top:-2px;font-size:11px;color:#8fe4ff;font-weight:700;text-shadow:0 0 6px rgba(120,200,255,.8);"></span></div>
+  </div>
+  <!-- v8.23 适配：竖屏提示（非阻塞，横屏时自动隐藏；地图是 16×10 横屏比例，窄屏下战场会被压扁）-->
+  <div id="rotHint" style="display:none;flex:0 0 auto;padding:4px 10px;font-size:11px;color:#ffd76a;
+    background:linear-gradient(180deg,rgba(44,34,12,.95),rgba(24,18,6,.9));border-bottom:1px solid rgba(255,200,110,.3);
+    text-align:center;letter-spacing:.4px;">↻ 横屏体验更好：战场是 16:10 横屏比例，竖屏会被压扁</div>
+  <!-- 波次情报条：显示下一波构成与天气预告（战斗中最常看的一行）-->
+  <div id="waveInfo" style="flex:0 0 auto;padding:4px 10px;font-size:11px;color:#8fb4dc;background:linear-gradient(180deg,rgba(12,18,34,.93),rgba(9,13,24,.8));border-bottom:1px solid rgba(90,140,220,.18);letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">下一波：--</div>
+  <!-- TUTORIAL_PATCH_V1：新手教学任务条（在 #waveInfo 与 #canvasWrap 之间，属文档流 → 不遮挡战场；仅教学关显示）-->
+  <div id="tutBar" data-compact="1" style="flex:0 0 auto;display:none;padding:5px 10px;font-size:11.5px;line-height:1.35;color:#ffd76a;background:linear-gradient(180deg,rgba(38,30,12,.95),rgba(20,15,6,.9));border-bottom:1px solid rgba(255,200,110,.32);letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 8px rgba(255,190,80,.35);">任务 1/5</div>
+  <!-- 战场容器：canvas 就是整个战场；#sideWin 是左侧常驻信息栏、#sel 是建塔/升级面板、#tip 是底部提示条 -->
+  <div id="canvasWrap">
+    <canvas id="cv"></canvas>
+    <!-- v8.18 左侧常驻信息栏（默认折叠；点图标展开）-->
+    <div id="sideWin" data-open="0">
+      <div id="swStrip">
+        <div class="swChip" id="swWx" title="当前天气（点开看全部天气说明）">🌤</div>
+        <div class="swChip" id="swBuff" title="本局加成">📈</div>
+        <div class="swChip" id="swDeb" title="本局减益">🔻</div>
+        <div class="swChip" id="swCard" title="本局已获得的强化卡">🎴</div>
+        <div class="swChip" id="swSet" title="已激活的套装">🧩</div>
+      </div>
+      <div id="swBody"></div>
+    </div>
+    <!-- 建塔 / 升级面板（点击空格或已有塔时动态填充内容，位置由 placeMenu() 算）-->
+    <div id="sel"></div>
+    <!-- 底部提示条：显示操作引导与 showTip() 弹出的一句话反馈 -->
+    <div id="tip">点空地建塔 · 点塔升级/出售 · 相邻不同元素会共鸣</div>
+  </div>
+</div>
+<audio id="bgm" loop preload="auto" src="music/bgm.ogg" style="display:none"></audio>
+<!-- v8.18 交叉淡化第二声道：平时 preload=none 不占内存，首次播放成功后再预热 -->
+<audio id="bgm2" loop preload="none" src="music/bgm.ogg" style="display:none"></audio>
+<!-- ===== 弹层：首页 startOv ===== 主标题、战绩统计、开始防御、选关/无尽/每日挑战/教学/图鉴/设置入口 -->
+<div class="ov" id="startOv">
+  <div class="home-bg"></div>
+  <div class="home-aura"></div>
+  <div class="home-wrap">
+    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v__VERSION__ ▾</button></div>
+    <div class="home-logo">
+      <h1 class="logo">共鸣之塔</h1>
+      <div class="logo-tag">元 素 共 鸣 · 塔 防</div>
+    </div>
+    <div class="home-stats" id="homeStats"></div>
+    <div class="home-hint" id="homeHint"></div>
+    <button class="btn btn-hero" id="startBtn">▶ 开始防御</button>
+    <!-- v8.18：入口从「竖向堆叠」改成图标网格（3 列，两行），主按钮独占一行 → 一眼看清有什么可点 -->
+    <div class="home-menu">
+      <button class="btn" id="levelsBtn"><span class="ti">🗺</span><span>选关</span></button>
+      <button class="btn hot" id="homeEndlessBtn"><span class="ti">♾</span><span>无尽</span></button>
+      <button class="btn pink" id="homeDailyBtn"><span class="ti">📅</span><span>每日挑战</span></button>
+      <!-- TUTORIAL_PATCH_V1：新手教学入口（仅首页，不进选关页 → 选关列表仍为 15 关 + 无尽 + 每日）-->
+      <button class="btn" id="tutBtn" style="background:rgba(40,60,100,.85)"><span class="ti">🎓</span><span>教学</span></button>
+      <button class="btn" id="bookBtn" style="background:rgba(40,60,100,.85)"><span class="ti">📖</span><span>图鉴</span></button>
+      <button class="btn" id="setBtn1" style="background:rgba(40,60,100,.85)"><span class="ti">⚙</span><span>设置</span></button>
+    </div>
+    <div class="home-menu2">
+      <button class="btn" id="helpBtn" style="background:rgba(40,60,100,.85)">❓ 玩法</button>
+      <button class="btn" id="updCheckBtn" style="background:rgba(40,60,100,.85);border-color:rgba(140,200,255,.45)">🔄 检查更新</button>
+    </div>
+    <div class="home-foot">守住基地 · 元素相邻触发共鸣</div>
+  </div>
+</div>
+<!-- v8.23 版本信息面板：点主界面右上角的版本号打开，再点一下关上（方便别人反馈 bug 时报版本与环境）-->
+<div class="ov hidden" id="verOv">
+  <h1 style="font-size:24px">版本信息</h1>
+  <div class="sub" id="verSub" style="font-size:12px">《共鸣之塔》· 反馈问题时把下面这些一起发出来</div>
+  <div id="verBody" style="text-align:left;width:100%;max-width:430px;max-height:56vh;overflow-y:auto;margin:6px 0;"></div>
+  <button class="btn" id="verCopyBtn" style="padding:10px 26px;font-size:14px;background:rgba(30,80,60,.9);border-color:rgba(140,240,180,.5)">📋 复制全部信息</button>
+  <button class="btn" id="verCloseBtn" style="margin-top:6px;padding:10px 32px;font-size:15px;background:rgba(40,60,100,.85)">关 闭</button>
+</div>
+<!-- ===== 弹层：玩法说明 helpOv ===== 静态长文（基本玩法、造价、索敌、八座塔、共鸣机制等）-->
+<div class="ov hidden" id="helpOv">
+  <h1>玩法说明</h1>
+  <div class="sub">在路径两侧布置元素塔，阻止敌人抵达终点 · 基地 20 血</div>
+  <div class="el" style="max-width:520px;">
+    <b>① 基本玩法</b><br>
+    敌人沿固定路径从起点走向基地，抵达基地会扣血（普通怪 1 点，<i>自爆兵 2 点</i>），血量归零即失守。<br>
+    点<b>空地</b>建塔，点<b>已有塔</b>可以升级（Lv1-6，每级 +30% 伤害 / +12% 攻速 / +8% 射程）或出售（返还 60%）；<br>
+    <i>刚建好的塔 5 秒内可以全额退款</i>（点塔面板里的「全额退款」）。<br><br>
+
+    <b>② 造价会越建越贵</b><br>
+    每多建一座塔，下一座贵 <i>4%</i>（面板价格实时显示）——所以后期要转向<b>升级、精选位置、凑共鸣</b>，无脑铺塔不划算。<br>
+    波次奖励后期封顶，别指望靠刷钱滚雪球。<br><br>
+
+    <b>③ 索敌规则（很重要）</b><br>
+    所有塔<b>优先打「离基地最近」的敌人</b>，路程相同时打<b>血量最低</b>的——所以残血怪不会溜过去。<br>
+    <i>🎯狙击塔例外</i>：它优先锁定<b>医疗兵 / 精英队长 / BOSS</b> 这类高价值目标。<br>
+    <i>刚出生的怪有 3 秒【出生护盾】</i>（受伤仅 15%），所以别指望在起点就把它们秒了。<br><br>
+
+    <b>④ 八座塔的分工</b><br>
+    🎯 <i>狙击</i>：射程 4.5 格、单发 95 伤害，专点高价值目标（对单 ★★★★★）<br>
+    💥 <i>榴弹</i>：溅射 2.2 格超大范围，怪海杀手（对群 ★★★★★）<br>
+    ⚡ <i>雷电</i>：链式弹射 5 个目标，密集队列最爽（对群 ★★★★）<br>
+    ☠️ <i>剧毒</i>：范围中毒、毒伤无视护甲，越肉越怕（对群 ★★★★）<br>
+    🔨 <i>物理</i>：单伤最高的纯输出，对有甲敌人 +35%（对单 ★★★★）<br>
+    🔥 <i>火焰</i>：命中点 1 格溅射，全能过渡（对单 ★★ / 对群 ★★★）<br>
+    ❄️ <i>冰霜</i>：伤害最低，但命中点一圈全部减速（控场 ★★）<br>
+    📡 <i>辅助</i>：自己不攻击，给相邻塔 +25% 伤害、+18% 攻速<br><br>
+
+    <b>⑤ 元素共鸣（核心原创机制）</b><br>
+    相邻的<b>不同元素</b>塔触发组合，<b>同元素相邻</b>则「共振」（伤害+35%、射程+15%）：<br>
+    🔥+❄️ <i>热震</i>（爆炸溅射）· 🔥+⚡ <i>等离子</i>（伤害+80%、攻速+25%）<br>
+    ❄️+⚡ <i>超导</i>（减速翻 3 倍并冻结）· ☠️+🔥 <i>燃爆</i>（毒伤立刻结算 ×2）<br>
+    🔨+⚡ <i>电磁炮</i>（无视护甲）· 🔨+🔥 <i>熔铁</i>（打有甲怪 ×1.4）· 🔨+❄️ <i>碎冰</i>（暴击+15%）· 🔨+☠️ <i>腐蚀</i>（毒伤 ×1.8）<br>
+    💥+🔥 <i>燃烧弹</i>· 💥+☠️ <i>毒气弹</i>· 💥+❄️ <i>冰爆</i>· 🎯+⚡ <i>电磁狙击</i>· 🎯+🔨 <i>破甲弹</i><br>
+    攻击塔挨着 📡 <i>增幅场</i>（伤害+20%、射程+10%）。<i>有共鸣的塔之间会有发光连线</i>。<br><br>
+
+    <b>⑥ 波次强化（三选一）</b><br>
+    每波结束弹 3 张卡，<b>其中一张必定是「局部强化」</b>（火/冰/雷/毒/物理专精 +20% 可叠加、辅助专精 +30%）；<br>
+    其余是通用强化（全局伤害/攻速/射程/金币/暴击/连杀/共鸣增幅/溅射/回血/白给金币）。不想选就点「跳过 · 直接拿 150 金币」。<br><br>
+
+    <b>⑦ 敌人与应对</b><br>
+    👾 <i>步兵</i>普通 · 🏃 <i>疾行者</i>极快（用冰减速）· 🛡 <i>装甲</i>减伤 35%（物理塔克它）· 🔮 <i>护盾</i>免疫减速（用火/雷硬打）<br>
+    🚑 <i>医疗兵</i>给周围怪回血（<i>必须优先点掉</i>）· 🟣 <i>分裂虫</i>死后裂成 2 只幼体 · 🟠 <i>自爆兵</i>后半程冲刺、扣 2 血<br>
+    🟡 <i>精英队长</i>给周围怪 +30% 速度 · ⚙️ <i>重装冲锋</i>50% 护甲、周期冲锋且免疫减速<br>
+    👹 <i>BOSS</i>每 10 波登场：会【狂暴】提速、【召唤】步兵、【沉默】离它最近的 2 座塔（停火 3 秒）<br><br>
+
+    <b>⑧ 技能与节奏</b><br>
+    ❄️ <b>全屏冻结</b>（冷却 26 秒）：所有敌人短暂冻结，BOSS 波和漏怪时救场用。<br>
+    ⏩ <b>倍速</b>：普通关卡 1x/2x；<b>无尽模式 1x/2x/5x/10x/100x</b>（快进用，倍速下判定不失真）。<br>
+    ⏸ <b>打开建塔/升级面板时战场会冻结</b>，可以慢慢挑数值。<br><br>
+
+    <b>⑨ 无尽模式与存档</b><br>
+    通关第 1 关后解锁，波次无上限、难度持续攀升，记录最高波次。<br>
+    <b>进度会自动保存</b>（每波结束存一次），暂停面板里点「💾 保存并退出」可手动保存并回到选关页；<br>
+    下次进选关页会看到「💾 继续无尽 · 第 N 波」，接着打就行。<br><br>
+
+    <b>⑩ 关卡与星级</b><br>
+    5 张地图（直廊/双弯/回环/迷宫/螺旋），波数 10~18，每关难度按路径长度单独校准。<br>
+    通关按剩余基地血量评星：≥18 血 3★、≥12 血 2★、其余 1★；选关页显示历史最好星数。
+  </div>
+  <button class="btn" id="helpBackBtn">返 回</button>
+</div>
+<!-- ===== 弹层：图鉴 bookOv ===== 分页浏览怪物/炮塔/共鸣/强化卡/体系/关卡/成就/天气，内容由 bookRender() 动态生成 -->
+<div class="ov hidden" id="bookOv">
+  <h1>图鉴</h1>
+  <div class="sub" id="bookSub">数据直接读取实战配置 · 新增怪物/炮塔会自动出现</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;width:100%;max-width:520px;margin:2px 0 2px;">
+    <button class="btn" id="bookTabMob" style="flex:1;min-width:30%;padding:9px 0;font-size:13px;letter-spacing:0;">👾 怪物</button>
+    <button class="btn" id="bookTabTower" style="flex:1;min-width:30%;padding:9px 0;font-size:13px;letter-spacing:0;background:rgba(40,60,100,.85)">🗼 炮塔</button>
+    <button class="btn" id="bookTabReso" style="flex:1;min-width:30%;padding:9px 0;font-size:13px;letter-spacing:0;background:rgba(40,60,100,.85)">🔗 共鸣</button>
+    <button class="btn" id="bookTabBuff" style="flex:1;min-width:30%;padding:9px 0;font-size:13px;letter-spacing:0;background:rgba(40,60,100,.85)">🎴 强化卡</button>
+    <button class="btn" id="bookTabSys" style="flex:1;min-width:30%;padding:9px 0;font-size:13px;letter-spacing:0;background:rgba(40,60,100,.85)">🏷 体系</button>
+    <button class="btn" id="bookTabInfo" style="flex:1;min-width:30%;padding:9px 0;font-size:13px;letter-spacing:0;background:rgba(40,60,100,.85)">📜 资料</button>
+    <button class="btn" id="bookTabWx" style="flex:1;min-width:30%;padding:9px 0;font-size:13px;letter-spacing:0;background:rgba(40,60,100,.85)">🌤 天气</button>
+    <button class="btn" id="bookTabAch" style="flex:1;min-width:30%;padding:9px 0;font-size:13px;letter-spacing:0;background:rgba(40,60,100,.85)">🏆 成就</button>
+  </div>
+  <div id="bookList" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px;"></div>
+  <button class="btn" id="bookBackBtn" style="margin-top:10px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">返回</button>
+</div>
+<!-- ===== 弹层：暂停 pauseOv ===== 显示当前进度信息，提供继续、设置、回首页等入口 -->
+<div class="ov hidden" id="pauseOv">
+  <h1>已暂停</h1>
+  <div class="sub" id="pauseInfo">--</div>
+  <button class="btn" id="resumeBtn">继续</button>
+  <button class="btn" id="restartBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">重开本关</button>
+  <button class="btn" id="toLevelsBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">返回选关</button>
+  <button class="btn" id="endSaveBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(30,80,60,.9);display:none;">💾 保存并退出</button>
+  <button class="btn" id="setBtn2" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">⚙ 设置</button>
+</div>
+<!-- ===== 弹层：通关结算 clearOv ===== 显示星级、新纪录与本关统计，提供下一关/返回选关 -->
+<div class="ov hidden" id="clearOv">
+  <h1>关卡完成</h1>
+  <div id="clearStars" style="font-size:40px;line-height:1.15;letter-spacing:10px;color:#ffd76a;text-shadow:0 0 22px rgba(255,200,60,.8);">☆☆☆</div>
+  <div class="sub" id="clearNewRec" style="font-size:12px;color:#7cf5c0;display:none;">--</div>
+  <div class="sub" id="clearInfo">--</div>
+  <button class="btn" id="nextBtn">下一关</button>
+  <button class="btn" id="toLevelsBtn2" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">返回选关</button>
+</div>
+<!-- TUTORIAL_PATCH_V1：教学完成弹窗（独立于 #clearOv → 不触发选关/下一关流程，不写 prog.unlocked / best）-->
+<!-- ===== 弹层：教学完成 tutDoneOv ===== 独立于通关结算，不触发选关流程、不写正式进度 -->
+<div class="ov hidden" id="tutDoneOv">
+  <h1>🎓 教学完成</h1>
+  <div class="sub" style="color:#ffd76a">建塔 → 共鸣 → 升级 → 强化 → 守家，你已经全部走通</div>
+  <div class="sub" id="tutDoneInfo">--</div>
+  <button class="btn" id="tutGoBtn">▶ 进入第 1 关</button>
+  <button class="btn" id="tutAgainBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">🎓 再练一次</button>
+  <button class="btn" id="tutHomeBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">🏠 返回首页</button>
+</div>
+<!-- ===== 弹层：强化卡 buffOv ===== 共用弹层：#buffList 由 showBuffChoices()/renderShop()/renderTalents()/showSkillHelp() 等按需填充 -->
+<div class="ov hidden" id="buffOv">
+  <h1 id="buffTitle">选择强化</h1>
+  <div class="sub" id="buffSub">每通过一波就能强化一次 · 越选越强</div>
+  <div id="buffList" style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:330px;"></div>
+  <button id="skipBuffBtn" style="margin-top:10px;padding:12px 24px;border-radius:42px;border:1px solid rgba(255,200,110,.45);background:linear-gradient(180deg,rgba(84,62,26,.92),rgba(52,38,14,.92));color:#ffd76a;font-size:14px;letter-spacing:2px;font-weight:700;box-shadow:0 0 18px rgba(255,180,60,.22);">跳过 · 直接拿 150 金币</button>
+</div>
+<!-- ===== 弹层：选关 levelsOv ===== 可左右滑动的关卡节点地图（#lvList 由 showLevels() 动态生成）-->
+<div class="ov hidden" id="levelsOv">
+  <h1>选择关卡</h1>
+  <div class="sub" style="font-size:11.5px">通关解锁下一张地图 · 每关波数与敌人配置都不同</div>
+  <div id="lvMapWrap" style="width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:2px 0 0;">
+    <div id="lvList" style="display:flex;align-items:flex-start;gap:0;padding:6px 22px 12px;min-width:max-content;"></div>
+  </div>
+  <div class="sub" style="font-size:10.5px;opacity:.72;margin-top:1px;">← 左右滑动查看全部 15 张地图 · 点圆形节点进入关卡 →</div>
+  <button class="btn" id="lvBackBtn" style="margin-top:6px;padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">返回首页</button>
+</div>
+<!-- ===== 弹层：更新提示 updOv ===== 检查到新版本时弹出，展示版本说明并提供下载入口 -->
+<div class="ov hidden" id="updOv">
+  <h1 id="updTitle" style="font-size:22px">发现新版本</h1>
+  <div class="sub" id="updSub">要现在下载吗？</div>
+  <div id="updBody" style="font-size:12.5px;color:#9fc4f0;text-align:left;width:100%;max-width:360px;line-height:1.6;margin:4px 0 8px;"></div>
+  <button class="btn" id="updOkBtn" style="padding:12px 40px;font-size:16px;border-color:rgba(140,240,180,.6);background:linear-gradient(180deg,rgba(20,90,66,.95),rgba(12,54,40,.95));color:#c8ffe4;">✅ 确定 · 去下载</button>
+  <button class="btn" id="updCancelBtn" style="margin-top:6px;padding:11px 36px;font-size:14px;background:rgba(40,60,100,.85)">✖ 取消</button>
+</div>
+<!-- ===== 弹层：关卡开幕提示 introOv ===== 开战前说明本关新敌人与新机制，点「开始战斗」才真正开打 -->
+<div class="ov hidden" id="introOv">
+  <h1 id="introTitle" style="font-size:24px">第 1 关</h1>
+  <div class="sub" id="introSub" style="font-size:12.5px">波数 / 初始金币</div>
+  <div id="introBody" style="text-align:left;width:100%;max-width:420px;max-height:46vh;overflow-y:auto;margin:6px 0;"></div>
+  <button class="btn" id="introBtn" style="padding:12px 40px;font-size:16px;letter-spacing:2px;border-color:rgba(140,240,180,.6);background:linear-gradient(180deg,rgba(20,90,66,.95),rgba(12,54,40,.95));color:#c8ffe4;">⚔ 开始战斗</button>
+</div>
+<!-- ===== 弹层：失败结算 overOv ===== 展示坚持波次/击杀/建塔数，提供重开本关、再来一局、传承天赋入口 -->
+<div class="ov hidden" id="overOv">
+  <h1>防线失守</h1>
+  <div class="sub">坚持到 <b id="ovWave" style="color:#ffd76a;font-size:20px">1</b> 波</div>
+  <div class="sub" style="font-size:12px">击杀 <span id="ovKills">0</span> · 建塔 <span id="ovTowers">0</span> · 最高波次 <span id="ovBest">0</span></div>
+  <div class="sub" id="ovEndless" style="display:none;font-size:13px;color:#ffd76a;">♾ 无尽最高波次 0</div>
+  <button class="btn" id="talentBtn" style="display:none;margin-top:6px;font-size:13px;">🌟 传承天赋（星核 0）</button>
+  <button class="btn" id="retryBtn" style="margin-top:6px;font-size:14px;border-color:rgba(140,240,180,.55);background:linear-gradient(180deg,rgba(20,90,66,.95),rgba(12,54,40,.95));color:#c8ffe4;">🔁 立刻重开本关</button>
+  <button class="btn" id="againBtn">再来一局</button>
+</div>
+<!-- ===== 弹层：设置 setOv ===== 音效/音乐/画质/敌人美术/文字详略、清档、存档码导入导出 -->
+<div class="ov hidden" id="setOv">
+  <h1>设置</h1>
+  <div class="sub">音效 / 画质 / 存档 · 随时可改</div>
+  <button class="btn" id="setSfxBtn" style="padding:13px 30px;font-size:15px">🔊 音效：开</button>
+  <button class="btn" id="setMusBtn" style="margin-top:6px;padding:13px 30px;font-size:15px;background:rgba(40,60,100,.85)">🎵 音乐：开</button>
+  <button class="btn" id="setFxBtn" style="margin-top:6px;padding:13px 30px;font-size:15px;background:rgba(40,60,100,.85)">✨ 画质：高</button>
+  <button class="btn" id="setArtBtn" style="margin-top:6px;padding:13px 30px;font-size:15px;background:rgba(60,40,100,.85)">🎨 敌人美术：发光球</button>
+  <button class="btn" id="setBriefBtn" style="margin-top:6px;padding:13px 30px;font-size:15px;background:rgba(30,70,90,.85)">📄 文字模式：简易</button>
+  <button class="btn" id="setClearBtn" style="margin-top:6px;padding:13px 30px;font-size:15px;background:rgba(110,40,60,.85)">🗑 清除进度</button>
+  <!-- v6.8 存档分享 -->
+  <div style="margin-top:10px;padding:10px;border-radius:12px;background:rgba(18,28,50,.7);border:1px solid rgba(120,180,255,.25);width:100%;max-width:330px;text-align:left;">
+    <div style="font-size:12.5px;color:#9fc4f0;margin-bottom:7px;">💾 存档分享（把码发给朋友，他粘贴就能同步进度）</div>
+    <button class="btn" id="setExpBtn" style="padding:9px 18px;font-size:13px;margin:0;letter-spacing:1px;">📤 生成我的存档码</button>
+    <input id="saveCode" placeholder="把存档码粘贴到这里" style="width:100%;margin-top:7px;padding:8px 10px;border-radius:9px;border:1px solid rgba(120,180,255,.3);background:rgba(10,16,30,.85);color:#dfe8f5;font-size:12px;">
+    <div style="display:flex;gap:6px;margin-top:7px;">
+      <button class="btn" id="setImpBtn" style="flex:1;padding:9px 0;font-size:13px;margin:0;letter-spacing:0;">📥 导入</button>
+      <button class="btn" id="setCopyBtn" style="flex:1;padding:9px 0;font-size:13px;margin:0;letter-spacing:0;">📋 复制</button>
+      <button class="btn" id="setShareBtn" style="flex:1;padding:9px 0;font-size:13px;margin:0;letter-spacing:0;">🔗 分享</button>
+    </div>
+  </div>
+  <div class="sub" id="setMsg" style="font-size:12px;color:#8ff0ff;min-height:18px">--</div>
+  <button class="btn" id="setBackBtn" style="padding:11px 32px;font-size:15px;background:rgba(40,60,100,.85)">返回</button>
+</div>
+<script src="js/01-core.js"></script>
+<script src="js/02-map-grid.js"></script>
+<script src="js/03-utils.js"></script>
+<script src="js/04-towers.js"></script>
+<script src="js/05-cards.js"></script>
+<script src="js/06-upgrades.js"></script>
+<script src="js/07-enemies.js"></script>
+<script src="js/08-boss.js"></script>
+<script src="js/09-fire.js"></script>
+<script src="js/10-waves.js"></script>
+<script src="js/11-fx.js"></script>
+<script src="js/12-draw.js"></script>
+<script src="js/13-hud.js"></script>
+<script src="js/14-input.js"></script>
+<script src="js/15-settings.js"></script>
+<script src="js/16-loop.js"></script>
+<script src="js/17-flow.js"></script>
+<script src="js/18-stars.js"></script>
+<script src="js/19-endless.js"></script>
+<script src="js/20-book.js"></script>
+<script src="js/21-boot.js"></script>
+</body>
+</html>
