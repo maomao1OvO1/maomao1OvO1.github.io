@@ -153,6 +153,7 @@ var unlockBought = 0;        /* 本局已花钱买过的次数（决定价格递
 var UNLOCK_FREE = 6;         /* 开局免费给几个塔位 */
 var UNLOCK_BASE = 40;        /* 第一个额外塔位的价格 */
 var UNLOCK_GROW = 1.75;      /* 每买一个，价格乘以它 */
+var SLOT_MIN_GAP = 2;        /* v9.7：塔位之间至少隔几格（切比雪夫距离），防满屏障碍 */
 
 /* 下一个塔位的解锁价（本局内随购买次数递增） */
 function unlockCost(){ return Math.round(UNLOCK_BASE * Math.pow(UNLOCK_GROW, unlockBought)); }
@@ -180,6 +181,20 @@ function buildSlots(){
     }
   }
   slotAll.sort(function(a, b){ return a.d - b.d || a.c - b.c || a.r - b.r; });
+  /* v9.7 稀疏化（毛毛：「障碍太多太密，看着不对」）：
+     贴路径的格子本来有九十个上下，全画成障碍就是满地石头树 + 满屏价签。
+     这里按「彼此至少隔 SLOT_MIN_GAP 格」筛一遍，留下真正有战术意义的点位，
+     数量降到二十来个 —— 既像障碍，也看得出哪儿值得占。 */
+  var _sparse = [];
+  for (var _i = 0; _i < slotAll.length; _i++){
+    var _s = slotAll[_i], _ok = true;
+    for (var _j = 0; _j < _sparse.length; _j++){
+      var _t2 = _sparse[_j];
+      if (Math.max(Math.abs(_t2.c - _s.c), Math.abs(_t2.r - _s.r)) < SLOT_MIN_GAP){ _ok = false; break; }
+    }
+    if (_ok) _sparse.push(_s);
+  }
+  slotAll = _sparse;
   for (var i = 0; i < Math.min(UNLOCK_FREE, slotAll.length); i++){
     unlockSet[slotAll[i].c + ',' + slotAll[i].r] = 1;
   }

@@ -180,7 +180,7 @@ function drawStaticBg(){
        底下一行小金币标签告诉玩家清理要多少钱。 */
     if (typeof slotAll !== 'undefined' && slotAll && slotAll.length){
       var _cost = (typeof unlockCost === 'function') ? unlockCost() : 0;
-      var _u = CELL / 100;                                   /* 单位缩放 */
+      var _u = CELL / 128;                                   /* v9.7 单位缩放：整体缩到原来的 ~78%，障碍不再顶满格子 */
       for (var _si = 0; _si < slotAll.length; _si++){
         var _sl = slotAll[_si], _kk = _sl.c + ',' + _sl.r;
         if (unlockSet[_kk]) continue;                        /* 已清理：干净空地 */
@@ -226,13 +226,13 @@ function drawStaticBg(){
           g.fillStyle = '#6d8a55'; g.beginPath(); g.arc(_cx0 - _u*2, _cy0 - _u*29, _u*7, 0, 6.284); g.fill();
         }
         /* 价格小标签（金币色） */
-        var _by = _sy + CELL * 0.78, _bh = CELL * 0.20;
-        g.fillStyle = 'rgba(18,13,34,.82)';
-        g.fillRect(_sx + CELL * 0.10, _by, CELL * 0.80, _bh);
-        g.strokeStyle = 'rgba(230,185,92,.5)'; g.lineWidth = 1;
-        g.strokeRect(_sx + CELL * 0.10, _by, CELL * 0.80, _bh);
+        var _by = _sy + CELL * 0.80, _bh = CELL * 0.165;
+        g.fillStyle = 'rgba(18,13,34,.72)';
+        g.fillRect(_sx + CELL * 0.16, _by, CELL * 0.68, _bh);
+        g.strokeStyle = 'rgba(230,185,92,.38)'; g.lineWidth = 1;
+        g.strokeRect(_sx + CELL * 0.16, _by, CELL * 0.68, _bh);
         g.fillStyle = '#e6b95c';
-        g.font = 'bold ' + Math.max(8, Math.round(CELL * 0.155)) + 'px monospace';
+        g.font = 'bold ' + Math.max(7, Math.round(CELL * 0.135)) + 'px monospace';
         var _oa = g.textAlign, _ob = g.textBaseline;
         g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillText(String(_cost), _sx + CELL / 2, _by + _bh / 2);
