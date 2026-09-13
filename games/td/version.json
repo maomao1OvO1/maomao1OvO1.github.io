@@ -1,8 +1,8 @@
 {
-  "version": "9.10",
-  "versionCode": 100,
+  "version": "9.11",
+  "versionCode": 101,
   "date": "2026-09-13",
   "size": "4.6MB",
-  "note": "v9.10 修教学关「任务 1/0：undefined」：v9.9 撤掉任务清单后，tutBarSync() 仍在教学关显示任务条、并按空任务表拼出 1/0 与 undefined（毛毛截图）。现改为任务条**永远隐藏**、tutBarText 不再产出任何「任务 N/M」文案 —— 任务条正式退役。保留 v9.9 的弱指引：8 处「首次动作后才飘一行小字」的提示，4.2 秒自动淡出、不挡操作。玩法数值与存档格式零改动，可覆盖安装。",
+  "note": "v9.11 修【星核误发】（毛毛：「你的星核检测也有 bug，有的关卡死了也有星核」）：根因是每日挑战标记 isDaily 的状态泄漏 —— 它只在「通关结算」里被清，失败结算没清，于是「每日挑战失败 → isDaily 残留为 true → 之后任何普通关卡通关都被当成每日挑战发星核」。另外原代码把 isDaily = false 写在 if(isDaily) 块内部，「今天已领过」那条分支同样漏清。现改为通关与失败两条路径**都无条件清理** isDaily 与 dailyWeatherLock。玩法数值与存档格式零改动，可覆盖安装。",
   "url": "https://maomao1ovo1.github.io/games/td/maomao-td-latest.apk"
 }
