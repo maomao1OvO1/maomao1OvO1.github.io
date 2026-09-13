@@ -20,6 +20,10 @@
     running = true; paused = false; last = 0;
   });
   on('pauseBtn', function(){ if (running && !paused) pauseGame(); });
+  /* v9.16 支持作者入口（主界面页脚 / 通关结算 / 失败结算）—— 三处都开同一个页面 */
+  on('supportBtn', openSupport);
+  on('clearSupport', openSupport);
+  on('overSupport', openSupport);
   on('wxBox', function(){ showWeatherHelp(); });      /* v8.18：点 HUD 天气框看完整说明 */
   on('homeVer', function(){ toggleVerInfo(); });       /* v8.23：点版本号 → 开/关版本信息面板 */
   on('verCloseBtn', function(){ hideVerInfo(); });

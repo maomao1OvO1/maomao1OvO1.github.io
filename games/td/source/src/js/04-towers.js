@@ -681,7 +681,8 @@ function wxReset(){ weather = 'none'; wxIdx = 0; nextWeather = pickWeather(); }
 /* ===== v8.9 每日挑战（含种子）=====
    毛毛发的方案里「短局 + 长线、每日挑战、种子分享」那一条。
    每天一个固定种子：固定天气 + 固定的敌人/经济修正 + 指定的关卡；
-   通关给星核（当天首次通关才给），同一天所有玩家的挑战完全相同 → 可分享、可比拼。 */
+   通关给奖励（当天首次通关才给）—— **v9.16 起星核只从无尽模式获取**（毛毛：「把星核和无尽模式绑死」），
+   每日挑战的奖励改成「下一局开局金币」，同一天所有玩家的挑战完全相同 → 可分享、可比拼。 */
 var isDaily = false, dailySeed = 0, dailyMods = null, dailyWeatherLock = null;
 /* 今日种子 = 年月日拼成的整数（如 20260913）；每日挑战与种子分享都用它 */
 function todaySeed(){
@@ -703,7 +704,7 @@ function dailyDesc(m){
     + '　击杀金币 ×' + m.gold.toFixed(2)
     + (m.count > 1 ? '　敌人数量 ×' + m.count.toFixed(2) : '');
 }
-/* 今天是否已通关每日挑战（决定是否还给星核）*/
+/* 今天是否已通关每日挑战（决定是否还发奖励）*/
 function dailyDoneToday(){
   return prog.daily === String(todaySeed());
 }
@@ -722,7 +723,7 @@ function startDaily(fromNode){
   var tipEl = document.getElementById('lvName');
   if (tipEl) tipEl.textContent = '📅 每日挑战';
   showBanner('📅 每日挑战 #' + dailySeed);
-  showTip('今日挑战：' + dailyDesc(m) + (dailyDoneToday() ? '（今天已领过奖励，重打不再给星核）' : '　通关可得星核'));
+  showTip('今日挑战：' + dailyDesc(m) + (dailyDoneToday() ? '（今天已领过奖励，重打不再给）' : '　通关可得金币奖励'));
 }
 /* ===== v8.8 敌人词缀 =====
    毛毛发的方案里「敌人必须有变化，不能一套阵容到底」那一条。
