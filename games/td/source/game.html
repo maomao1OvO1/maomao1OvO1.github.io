@@ -923,7 +923,20 @@ html, body, #wrap{ background:var(--px-bg) !important; color:var(--px-txt); }
 
 /* ── ② 全屏弹层（主界面 / 图鉴 / 暂停 / 结算 / 选关 / 强化卡…）── */
 .ov{ background:rgba(18,13,34,.975) !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
-.ov .home-bg, .ov .home-aura{ display:none !important; }   /* 去掉背景光晕层，改用纯色 */
+/* ⚠️ v9.0 修正（毛毛 18:38 截图发现）：主界面的 .home-bg **不能隐藏**！
+   它是盖住底层 HUD 的遮罩层 —— 一 display:none，底下的 #top（左上状态栏）和
+   #sideWin（左侧 5 个信息格）就会透出来，变成几个莫名其妙的灰框。
+   正确做法：保留这层，把「渐变光晕」换成「像素网格底」—— 既盖住底层又符合像素风。 */
+.ov .home-bg{
+  display:block !important;
+  opacity:1 !important;
+  background:#120d22 !important;
+  background-image:
+    linear-gradient(rgba(124,92,191,.065) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,92,191,.065) 1px, transparent 1px) !important;
+  background-size:26px 26px !important;
+}
+.ov .home-aura{ display:none !important; }    /* 光晕层可以去（背景层已经盖住了） */
 
 /* ── ③ 面板 / 卡片 / 列表：直角 + 2px 描边 + 硬投影，去渐变 ── */
 .card, .el, .tw, .swRow, .swSec, .swChip, .swT, .badge,
@@ -1031,6 +1044,13 @@ button:active, .btn:active, .btn-hero:active{
 
 /* ── 图鉴页签：激活态金色 ── */
 #lvList .on, .bookTab.on{ border-color:var(--c-gold) !important; color:var(--c-gold) !important; }
+
+
+/* ── ⑪ 弹层底：确保任何全屏弹层都盖住底层 UI（含每日挑战 / 图鉴 / 结算 / 暂停）── */
+.ov{ background:#120d22 !important; }
+#startOv{ background:#120d22 !important; }
+/* 弹层内滚动区若是半透明也一并压住 */
+.home-wrap, .home-menu, .home-stats{ background:transparent !important; }
 </style>
 </head>
 <body>
