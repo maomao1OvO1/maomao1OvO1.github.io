@@ -90,8 +90,8 @@ ok(cnt(g1, SOLID) === 2, 'groupStar=2 → 对群段实心 ★ = 2（实测 ' + c
 ok(cnt(g1, HOLLOW) === 3, 'groupStar=2 → 对群段空星 ☆ = 3（实测 ' + cnt(g1, HOLLOW) + '）');
 ok(s1.indexOf('#ffd76a') >= 0, '对单星级用暖色 #ffd76a');
 ok(g1.indexOf('#8fe4ff') >= 0, '对群星级用冷色 #8fe4ff');
-ok(s1.indexOf('rgba(160,180,210,.35)') >= 0 && g1.indexOf('rgba(160,180,210,.35)') >= 0,
-   '空星用 rgba(160,180,210,.35)');
+ok(s1.indexOf('rgba(180,170,215,.35)') >= 0 && g1.indexOf('rgba(180,170,215,.35)') >= 0,
+   '空星用 rgba(180,170,215,.35)');
 ok(h1.indexOf('statLine') < 0 && h1.indexOf('\u4f24\u5bb3 ') >= 0 && h1.indexOf('\u653b\u901f ') >= 0
    && h1.indexOf('\u5c04\u7a0b ') >= 0, '数值行「伤害/攻速/射程」文案未改动（deep5 依赖）');
 ok(cnt(h1, SOLID) + cnt(h1, HOLLOW) === 10, '整张卡片恰好 10 颗星（5+5，未多渲染）');

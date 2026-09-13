@@ -71,7 +71,7 @@ var shapeBad = 0;
 Object.keys(T.ENEMY_SHAPE).forEach(function(t3){
   drawCalls = 0;
   T.setArt('shapes');
-  var tex = T.enemySprite('#7ea8d8', 12, false, 'shapes', t3);
+  var tex = T.enemySprite('#9a8cd0', 12, false, 'shapes', t3);
   if (!tex || drawCalls < 2) shapeBad++;
 });
 ok(shapeBad === 0, '所有敌人类型都能画出对应几何外形（' + Object.keys(T.ENEMY_SHAPE).length + ' 种，0 失败）');
