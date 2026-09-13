@@ -173,7 +173,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 100;                    /* v9.10：修教学关「任务 1/0：undefined」——任务条退役；与 version.json 同步 */
+var BUILD_CODE = 101;                    /* v9.11：修星核误发（isDaily 状态残留）；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -1102,8 +1102,12 @@ function levelClear(){
     } else if (dEl2){
       dEl2.textContent = String(dEl2.textContent || '') + '　📅 今天的每日挑战已领过奖励（#' + todaySeed() + '）';
     }
-    isDaily = false;
   }
+  /* v9.11 修 bug（毛毛：「有的关卡死了也有星核」）：
+     原来 isDaily = false 写在 if(isDaily) 块**内部** —— 走「今天已领过」那条 else if 分支时不会重置，
+     状态就残留到下一局。现已移到块外（见下方统一清理）。 */
+  /* v9.11：每日挑战标记**无条件清理**（无论本局是不是每日、不管有没有领过奖励） */
+  isDaily = false; dailyWeatherLock = null;
   document.getElementById('clearInfo').textContent = LEVELS[lvIndex].name + ' 通关！击杀 ' + kills + ' · 建塔 ' + built;
   document.getElementById('clearOv').classList.remove('hidden');
   SFX.clear();
@@ -1114,6 +1118,11 @@ function startGame(){ hideAll(); startLevel(0); }
 function gameOver(){
   running = false;
   bgmSetVol(0.22);
+  /* v9.11 修 bug（毛毛：「有的关卡死了也有星核」）：
+     主因就在这一行缺失 —— 每日挑战开局会把 isDaily 置 true，而只有通关才会清。
+     于是「每日挑战失败 → isDaily 残留 → 之后随便打一关普通关卡通关，就被当成每日挑战发星核」。
+     失败结算在这里无条件清干净，状态不再跨局泄漏。 */
+  isDaily = false; dailyWeatherLock = null;
   var best = 0;
   try { best = parseInt(localStorage.getItem('td_best') || '0', 10) || 0; } catch (e) { best = 0; }
   if (wave > best){ best = wave; try { localStorage.setItem('td_best', String(best)); } catch (e) {} }
