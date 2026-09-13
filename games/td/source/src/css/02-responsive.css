@@ -1,0 +1,129 @@
+/* ══════════════════════════════════════════════════════════════════════════
+ * 02-responsive.css —— 自适应分档：小屏与横屏（@media）
+ *
+ * 来源：game.html 第 495-616 行（由 _split_game.sh 拆出，代码正文逐字符未改）
+ * 作用域：独立样式表，由 index.html 按序号引入
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ===== v5.1 小屏 / 横屏自适应（修「页面显示不全」）===== */ @media (max-height:480px) {
+  .ov {
+    gap:7px;
+    padding:10px 16px;
+  }
+  .ov h1 {
+    font-size:24px;
+    letter-spacing:3px;
+  }
+  .ov .sub {
+    font-size:12px;
+    line-height:1.5;
+  }
+  .ov .el {
+    font-size:11.5px;
+    line-height:1.55;
+    max-width:420px;
+  }
+  .ov .btn {
+    padding:9px 24px !important;
+    font-size:15px !important;
+    margin-top:3px !important;
+  }
+  #lvList {
+    gap:5px !important;
+  }
+  #lvList .btn {
+    padding:8px 16px !important;
+    font-size:14px !important;
+    letter-spacing:1px !important;
+  }
+  #buffList {
+    gap:6px !important;
+  }
+  #buffList .btn {
+    padding:10px 14px !important;
+    font-size:14px !important;
+  }
+  #top {
+    padding:5px 8px;
+    gap:5px;
+    row-gap:4px;
+  }
+  .stat {
+    padding:3px 8px;
+    font-size:11px;
+  }
+  .stat b {
+    font-size:13px;
+  }
+  #hpbar {
+    height:10px;
+  }
+  #waveInfo {
+    padding:3px 8px;
+    font-size:10.5px;
+  }
+  #tip {
+    font-size:11px;
+    padding:4px 10px;
+    bottom:5px;
+  }
+  #sel {
+    max-height:94vh;
+  }
+}
+@media (max-width:560px) {
+  #top {
+    gap:5px;
+    row-gap:4px;
+    padding:6px 8px;
+  }
+  .stat {
+    padding:4px 8px;
+    font-size:11px;
+  }
+  .stat b {
+    font-size:13px;
+  }
+  #lvName {
+    font-size:10.5px !important;
+  }
+  #tip {
+    white-space:normal;
+    line-height:1.4;
+    max-width:92vw;
+  }
+}
+#sel .row {
+  display:flex;
+  gap:6px;
+}
+#sel button {
+  flex:1;
+  padding:9px 8px;
+  border-radius:10px;
+  border:1px solid rgba(120,180,255,.35);
+  background:rgba(30,48,84,.9);
+  color:#dfe8f5;
+  font-size:13px;
+  line-height:1.35;
+}
+#sel button:active {
+  background:rgba(60,110,190,.9);
+}
+#sel .t {
+  font-size:11px;
+  color:#8fb4dc;
+  text-align:center;
+  margin-bottom:6px;
+}
+#sel .sell {
+  border-color:rgba(255,120,120,.4);
+  background:rgba(70,30,40,.9);
+}
+#sel .refund {
+  border-color:rgba(255,215,106,.55);
+  background:rgba(72,56,18,.92);
+}
+#sel .refund:active {
+  background:rgba(130,100,30,.95);
+}

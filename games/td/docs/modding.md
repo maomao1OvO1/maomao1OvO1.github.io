@@ -163,6 +163,10 @@ slime: { name:'史莱姆', hp:300, speed:0.9, gold:20, color:'#8f8', r:13, fx:'�
 
 ## 五、这游戏的"骨架"长什么样（想大改先看这个）
 
+> 仓库里的源码已经**按模块拆开**在 `src/`（HTML 骨架 + 3 个 CSS + 21 个 JS，每个文件开头都写清了职责），
+> 下面是**打包成单文件 / APK 之后**的样子 —— 两者内容完全等价，`node src/build.js` 可以把 `src/` 拼回单文件。
+> 想按模块改就看 `src/`，想直接改一个文件就按下面来。
+
 ```
 单文件 index.html
 ├── <style>            全部 CSS（含横屏/小屏自适应、纯 CSS 动效）
@@ -183,11 +187,11 @@ slime: { name:'史莱姆', hp:300, speed:0.9, gold:20, color:'#8f8', r:13, fx:'�
 
 ## 六、测试（推荐但非必须）
 
-原版带了 44 套自动化测试，跑一遍能挡住大部分改坏的情况：
+原版带了 55 套自动化测试，跑一遍能挡住大部分改坏的情况：
 
 ```bash
 node test/deep4.js game.html        # 单跑一套
-for t in test/deep*.js test/audit_fuzz.js; do node "$t" game.html | tail -1; done   # 跑全套
+for t in test/*.js; do node "$t" game.html | tail -1; done   # 跑全套（55 套）
 ```
 
 其中 `audit_fuzz.js` 会做**静态体检 + 4000 次随机操作 fuzz**，很适合改完之后自检。
