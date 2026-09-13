@@ -1162,7 +1162,7 @@ body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !im
   <div class="home-bg"></div>
   <div class="home-aura"></div>
   <div class="home-wrap">
-    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.6 ▾</button></div>
+    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.7 ▾</button></div>
     <div class="home-logo">
       <h1 class="logo">共鸣之塔</h1>
       <div class="logo-tag">元 素 共 鸣 · 塔 防</div>
@@ -1559,6 +1559,7 @@ var unlockBought = 0;        /* 本局已花钱买过的次数（决定价格递
 var UNLOCK_FREE = 6;         /* 开局免费给几个塔位 */
 var UNLOCK_BASE = 40;        /* 第一个额外塔位的价格 */
 var UNLOCK_GROW = 1.75;      /* 每买一个，价格乘以它 */
+var SLOT_MIN_GAP = 2;        /* v9.7：塔位之间至少隔几格（切比雪夫距离），防满屏障碍 */
 
 /* 下一个塔位的解锁价（本局内随购买次数递增） */
 function unlockCost(){ return Math.round(UNLOCK_BASE * Math.pow(UNLOCK_GROW, unlockBought)); }
@@ -1586,6 +1587,20 @@ function buildSlots(){
     }
   }
   slotAll.sort(function(a, b){ return a.d - b.d || a.c - b.c || a.r - b.r; });
+  /* v9.7 稀疏化（毛毛：「障碍太多太密，看着不对」）：
+     贴路径的格子本来有九十个上下，全画成障碍就是满地石头树 + 满屏价签。
+     这里按「彼此至少隔 SLOT_MIN_GAP 格」筛一遍，留下真正有战术意义的点位，
+     数量降到二十来个 —— 既像障碍，也看得出哪儿值得占。 */
+  var _sparse = [];
+  for (var _i = 0; _i < slotAll.length; _i++){
+    var _s = slotAll[_i], _ok = true;
+    for (var _j = 0; _j < _sparse.length; _j++){
+      var _t2 = _sparse[_j];
+      if (Math.max(Math.abs(_t2.c - _s.c), Math.abs(_t2.r - _s.r)) < SLOT_MIN_GAP){ _ok = false; break; }
+    }
+    if (_ok) _sparse.push(_s);
+  }
+  slotAll = _sparse;
   for (var i = 0; i < Math.min(UNLOCK_FREE, slotAll.length); i++){
     unlockSet[slotAll[i].c + ',' + slotAll[i].r] = 1;
   }
@@ -4328,7 +4343,7 @@ function drawStaticBg(){
        底下一行小金币标签告诉玩家清理要多少钱。 */
     if (typeof slotAll !== 'undefined' && slotAll && slotAll.length){
       var _cost = (typeof unlockCost === 'function') ? unlockCost() : 0;
-      var _u = CELL / 100;                                   /* 单位缩放 */
+      var _u = CELL / 128;                                   /* v9.7 单位缩放：整体缩到原来的 ~78%，障碍不再顶满格子 */
       for (var _si = 0; _si < slotAll.length; _si++){
         var _sl = slotAll[_si], _kk = _sl.c + ',' + _sl.r;
         if (unlockSet[_kk]) continue;                        /* 已清理：干净空地 */
@@ -4374,13 +4389,13 @@ function drawStaticBg(){
           g.fillStyle = '#6d8a55'; g.beginPath(); g.arc(_cx0 - _u*2, _cy0 - _u*29, _u*7, 0, 6.284); g.fill();
         }
         /* 价格小标签（金币色） */
-        var _by = _sy + CELL * 0.78, _bh = CELL * 0.20;
-        g.fillStyle = 'rgba(18,13,34,.82)';
-        g.fillRect(_sx + CELL * 0.10, _by, CELL * 0.80, _bh);
-        g.strokeStyle = 'rgba(230,185,92,.5)'; g.lineWidth = 1;
-        g.strokeRect(_sx + CELL * 0.10, _by, CELL * 0.80, _bh);
+        var _by = _sy + CELL * 0.80, _bh = CELL * 0.165;
+        g.fillStyle = 'rgba(18,13,34,.72)';
+        g.fillRect(_sx + CELL * 0.16, _by, CELL * 0.68, _bh);
+        g.strokeStyle = 'rgba(230,185,92,.38)'; g.lineWidth = 1;
+        g.strokeRect(_sx + CELL * 0.16, _by, CELL * 0.68, _bh);
         g.fillStyle = '#e6b95c';
-        g.font = 'bold ' + Math.max(8, Math.round(CELL * 0.155)) + 'px monospace';
+        g.font = 'bold ' + Math.max(7, Math.round(CELL * 0.135)) + 'px monospace';
         var _oa = g.textAlign, _ob = g.textBaseline;
         g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillText(String(_cost), _sx + CELL / 2, _by + _bh / 2);
@@ -6684,7 +6699,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 96;                     /* v9.6：修「点哪都解锁」+ 障碍美术（石堆/枯树）；与 version.json 同步 */
+var BUILD_CODE = 97;                     /* v9.7：塔位稀疏化（不再满地障碍）+ 障碍缩小；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
