@@ -174,29 +174,69 @@ function drawStaticBg(){
       g.stroke();
       g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(36,26,74,.95)';
     }
-    /* ── v9.5：锁着的塔位画成「暗格 + 锁 + 价格」──
-       只在静态层画（每帧一次 drawImage），所以不增加每帧开销。 */
+    /* ── v9.5：未清理的塔位画成「像素风障碍物」──
+       毛毛：「都是锁不好看，做点美术，障碍的」。所以不再画暗格+锁，
+       改成石堆 / 枯树两种障碍（按格子坐标做稳定哈希二选一，同一格永远长一样），
+       底下一行小金币标签告诉玩家清理要多少钱。 */
     if (typeof slotAll !== 'undefined' && slotAll && slotAll.length){
       var _cost = (typeof unlockCost === 'function') ? unlockCost() : 0;
+      var _u = CELL / 100;                                   /* 单位缩放 */
       for (var _si = 0; _si < slotAll.length; _si++){
         var _sl = slotAll[_si], _kk = _sl.c + ',' + _sl.r;
-        if (unlockSet[_kk]) continue;                       /* 已解锁：保持普通空地 */
+        if (unlockSet[_kk]) continue;                        /* 已清理：干净空地 */
         var _sx = OX + _sl.c * CELL, _sy = OY + _sl.r * CELL;
-        g.fillStyle = 'rgba(28,20,52,.74)';
-        g.fillRect(_sx + 2, _sy + 2, CELL - 4, CELL - 4);
-        g.strokeStyle = 'rgba(107,79,160,.9)'; g.lineWidth = 2;
-        g.strokeRect(_sx + 2, _sy + 2, CELL - 4, CELL - 4);
-        var _ls = CELL * 0.30, _lx = _sx + CELL / 2, _ly = _sy + CELL * 0.44;
-        g.strokeStyle = '#bb9cff'; g.fillStyle = '#7c5cbf';
-        g.lineWidth = Math.max(1.5, CELL * 0.085);
-        g.beginPath(); g.arc(_lx, _ly - _ls * 0.34, _ls * 0.42, Math.PI, 0); g.stroke();
-        g.fillRect(_lx - _ls * 0.62, _ly - _ls * 0.30, _ls * 1.24, _ls * 0.86);
+        var _cx0 = _sx + CELL / 2, _cy0 = _sy + CELL / 2;
+        /* 稳定伪随机：同一格每次重绘都长同一个样 */
+        var _hsh = ((_sl.c * 73856093) ^ (_sl.r * 19349663)) >>> 0;
+        var _h = (_hsh % 1000) / 1000;
+        if (_h < 0.5){
+          /* 石堆：三块石头 + 亮面 */
+          g.fillStyle = '#3d3157'; g.strokeStyle = '#8f7fc0';
+          g.lineWidth = Math.max(1.2, _u * 3); g.lineJoin = 'round';
+          g.beginPath();
+          g.moveTo(_cx0 - _u*30, _cy0 + _u*22);
+          g.lineTo(_cx0 - _u*17, _cy0 - _u*14);
+          g.lineTo(_cx0 + _u*2,  _cy0 - _u*27);
+          g.lineTo(_cx0 + _u*23, _cy0 - _u*12);
+          g.lineTo(_cx0 + _u*31, _cy0 + _u*22);
+          g.closePath(); g.fill(); g.stroke();
+          g.fillStyle = '#6b5a94';
+          g.beginPath();
+          g.moveTo(_cx0 - _u*17, _cy0 - _u*14);
+          g.lineTo(_cx0 + _u*2,  _cy0 - _u*27);
+          g.lineTo(_cx0 + _u*1,  _cy0 - _u*4);
+          g.closePath(); g.fill();
+          g.fillStyle = '#4a3c68';
+          g.beginPath();
+          g.moveTo(_cx0 + _u*23, _cy0 - _u*12);
+          g.lineTo(_cx0 + _u*31, _cy0 + _u*22);
+          g.lineTo(_cx0 + _u*15, _cy0 + _u*22);
+          g.closePath(); g.fill();
+        } else {
+          /* 枯树：树干 + 两根枝 + 两团暗绿树冠 */
+          g.strokeStyle = '#5c4033'; g.lineCap = 'round';
+          g.lineWidth = Math.max(2, _u * 7);
+          g.beginPath();
+          g.moveTo(_cx0, _cy0 + _u*28); g.lineTo(_cx0, _cy0 - _u*8);
+          g.moveTo(_cx0, _cy0 - _u*2);  g.lineTo(_cx0 - _u*17, _cy0 - _u*19);
+          g.moveTo(_cx0, _cy0 - _u*6);  g.lineTo(_cx0 + _u*16, _cy0 - _u*21);
+          g.stroke();
+          g.fillStyle = '#3f5f33'; g.beginPath(); g.arc(_cx0 - _u*7, _cy0 - _u*20, _u*15, 0, 6.284); g.fill();
+          g.fillStyle = '#556f42'; g.beginPath(); g.arc(_cx0 + _u*8, _cy0 - _u*25, _u*12, 0, 6.284); g.fill();
+          g.fillStyle = '#6d8a55'; g.beginPath(); g.arc(_cx0 - _u*2, _cy0 - _u*29, _u*7, 0, 6.284); g.fill();
+        }
+        /* 价格小标签（金币色） */
+        var _by = _sy + CELL * 0.78, _bh = CELL * 0.20;
+        g.fillStyle = 'rgba(18,13,34,.82)';
+        g.fillRect(_sx + CELL * 0.10, _by, CELL * 0.80, _bh);
+        g.strokeStyle = 'rgba(230,185,92,.5)'; g.lineWidth = 1;
+        g.strokeRect(_sx + CELL * 0.10, _by, CELL * 0.80, _bh);
         g.fillStyle = '#e6b95c';
-        g.font = 'bold ' + Math.max(8, Math.round(CELL * 0.25)) + 'px monospace';
-        var _oldA = g.textAlign, _oldB = g.textBaseline;
+        g.font = 'bold ' + Math.max(8, Math.round(CELL * 0.155)) + 'px monospace';
+        var _oa = g.textAlign, _ob = g.textBaseline;
         g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText(String(_cost), _lx, _sy + CELL * 0.85);
-        g.textAlign = _oldA; g.textBaseline = _oldB;
+        g.fillText(String(_cost), _sx + CELL / 2, _by + _bh / 2);
+        g.textAlign = _oa; g.textBaseline = _ob;
       }
     }
     bgKey = key;

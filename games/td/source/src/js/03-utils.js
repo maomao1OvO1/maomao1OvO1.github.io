@@ -158,6 +158,13 @@ var UNLOCK_GROW = 1.75;      /* 每买一个，价格乘以它 */
 function unlockCost(){ return Math.round(UNLOCK_BASE * Math.pow(UNLOCK_GROW, unlockBought)); }
 /* 该格是否已解锁（可直接建塔） */
 function isUnlocked(c, r){ return !!unlockSet[c + ',' + r]; }
+/* v9.5 修补：该格是否「塔位候选」—— 只有贴路径的格子才是塔位。
+   毛毛报「点击哪里都解锁」：因为老代码只判断 isUnlocked，远处空地不在候选里、
+   自然也不是已解锁 → 被误当成「可购买」处理。这里补上候选判定。 */
+function isSlot(c, r){
+  for (var i = 0; i < slotAll.length; i++){ if (slotAll[i].c === c && slotAll[i].r === r) return true; }
+  return false;
+}
 
 /* 重建本关塔位：buildPath() 之后调用（路径变了塔位也就变了） */
 function buildSlots(){
