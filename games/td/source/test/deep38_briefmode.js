@@ -82,7 +82,7 @@ marks.forEach(function(m){
 });
 ok(html.indexOf('class="udesc"') >= 0 && (SRC.match(/udesc/g) || []).length >= 9,
    '共 ' + (SRC.match(/udesc/g) || []).length + ' 处说明文字被标记');
-var keepCore = SRC.indexOf("'<b>' + p.name + '</b><br><span style=\"font-size:12px;color:#9fc4f0\">' + p.desc");
+var keepCore = SRC.indexOf("'<b>' + p.name + '</b><br><span style=\"font-size:12px;color:#bb9cff\">' + p.desc");
 ok(keepCore >= 0, '契约面板的「代价与收益」保留（那是核心信息，不藏）');
 
 console.log('=== ③ 每个文本面板都能就地切换 ===');
