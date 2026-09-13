@@ -889,8 +889,7 @@ function levelNewEnemies(idx){
  * ══════════════════════════════════════════════════════════════════════════ */
 function waveIntroTips(w){
   var k, i;
-  if (tutorial) return;                        /* 教学关有自己的弱指引，这里全程安静 */
-  if (!endless && lvIndex === 0) return;       /* 第 1 关（新手关）的信息由开局弹层讲，不重复飘字 */
+  if (tutorial) return;                        /* 教学关有自己的弱指引，这里全程安静（新手提示只归新手教程） */
   /* ① 本波首次登场的敌人（按 ENEMY_INTRO_WAVE 的表） */
   for (k in ENEMY_INTRO_WAVE){
     if (ENEMY_INTRO_WAVE[k] !== w) continue;
@@ -918,75 +917,13 @@ function waveIntroTips(w){
     }
   }
 }
-/* 打开关卡开幕提示弹层：列出本关新敌人与新机制，测试可用 NO_INTRO 跳过这个阻塞式弹层 */
+/* 关卡开幕弹层 —— v9.15 起**已停用**（毛毛：「只有新手教程有，第一关没有对吧」）：
+   普通关卡（含第 1 关）一律**直接开打**，不再弹这个阻塞式弹层；
+   「新手提示」只属于「🎓 新手教学」模式（教学关自带弱指引 + 顶部小字）。
+   本关的新敌人 / 新机制 / 新解锁技能 / 双入口地图，改由 waveIntroTips() 在对应波次飘一行小字。
+   这里保留一个空壳函数，避免旧调用点（startLevel 等）报错。 */
 function showLevelIntro(idx){
-  /* 自动化测试 / 批量模拟可以设全局 NO_INTRO = true 跳过这个阻塞式弹层（否则游戏会一直暂停） */
-  if (typeof NO_INTRO !== 'undefined' && NO_INTRO){ running = true; paused = false; return; }
-  var L = LEVELS[idx];
-  /* v9.14 修 bug（毛毛：「为啥这游戏每一关都有新手提示啊😡」）：
-     原来每关都**无条件**弹这个阻塞式弹层（要手动点「开始战斗」才开打），而且弹层里大段是上一关就说过的旧信息
-     （「已有：技能…」、「本关暂无可用技能」、「🗺 地图…」），第 2 关起读起来就是每关重放一遍新手教程。
-     现在改为：**只有第 1 关（真·新手关）弹**；其余关卡的「新敌人 / 新机制 / 双入口地图」信息
-     改由 waveIntroTips() 在对应波次开始时飘一行顶部小字（不挡操作、不用点掉、每类一辈子只说一次）。 */
-  var news = levelNewEnemies(idx), mech = levelNewMech(idx), skNew = [];
-  SKILLS.forEach(function(sk){
-    if (skillUnlockedAt(sk.key, idx) && skillUnlockLv(sk.key) === idx + 1) skNew.push(sk);
-  });
-  if (idx !== 0){ running = true; paused = false; last = 0; return; }
-  document.getElementById('introTitle').textContent = '第 ' + (idx + 1) + ' 关 · ' + (L.name.split('·')[1] || '').trim();
-  document.getElementById('introSub').textContent = L.waves + ' 波 · 初始金币 ' + L.gold + ' · 难度系数 ' + L.diff;
-  var h = '';
-  if (news.length){
-    h += '<div style="font-size:12.5px;font-weight:700;color:#ffd76a;margin:2px 0 5px;">🆕 本关新出现（上一关还没有）</div>';
-    news.forEach(function(n){
-      var e = ENEMIES[n.key];
-      h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:10px;background:rgba(28,20,52,.8);'
-        + 'border:1px solid rgba(255,200,110,.28);margin-bottom:5px;">'
-        + '<span style="flex:0 0 auto;font-size:11px;color:#a894d8;padding-top:1px;">第' + n.wave + '波</span>'
-        + '<span style="flex:1;min-width:0;">'
-        + '<b style="font-size:13.5px;color:' + e.color + '">' + e.name + '</b>'
-        + '<span style="display:block;font-size:11.5px;color:#d8cff0;line-height:1.45;">' + (e.fx || '') + '</span>'
-        + (e.tip ? '<span class="udesc" style="display:block;font-size:11px;color:#7cf5c0;line-height:1.4;">→ ' + e.tip + '</span>' : '')
-        + '</span></div>';
-    });
-  } else {
-    h += '<div style="font-size:12.5px;color:#bb9cff;padding:8px 10px;border-radius:10px;background:rgba(28,20,52,.7);">'
-      + '本关没有新敌人 —— 但强度更高、波数更多，注意把塔升级和凑共鸣。</div>';
-  }
-  if (idx === 0){
-    h += '<div style="font-size:11.5px;color:#a894d8;margin-top:8px;line-height:1.5;">💡 新手提示：相邻放不同元素的塔会触发<b>元素共鸣</b>；'
-      + '同元素相邻则是<b>共振</b>。点已建好的塔可以看到每发伤害与暴击伤害。</div>';
-  }
-  /* 本关的新机制（天气开启 / BOSS / 双 BOSS / 高强度阶段） */
-  if (mech.length){
-    h += '<div style="font-size:12.5px;font-weight:700;color:#8ff0ff;margin:9px 0 5px;">⚙️ 本关新机制</div>';
-    mech.forEach(function(m){
-      h += '<div style="font-size:11.5px;color:#d8cff0;line-height:1.5;padding:6px 9px;border-radius:10px;'
-        + 'background:rgba(28,24,56,.8);border:1px solid rgba(120,200,255,.28);margin-bottom:5px;">'
-        + '<span style="color:#a894d8;">第' + m.wave + '波起</span>　' + m.text + '</div>';
-    });
-  }
-  /* 本关新解锁的主动技能（v9.14：只讲「本关新增」，不再每关罗列一遍已有技能） */
-  if (skNew.length){
-    h += '<div style="font-size:12.5px;font-weight:700;color:#ffd08a;margin:9px 0 5px;">⚡ 本关新解锁技能</div>';
-    skNew.forEach(function(sk){
-      h += '<div style="font-size:12px;color:#fff0c0;line-height:1.5;padding:6px 9px;border-radius:10px;'
-        + 'background:rgba(96,66,16,.75);border:1px solid rgba(255,200,110,.5);margin-bottom:5px;">'
-        + '🆕 <b>' + sk.icon + ' ' + sk.name + '</b>（冷却 ' + sk.cd + ' 秒）　' + skHowTo(sk.key)
-        + '<span style="display:block;font-size:11px;color:#ffd08a;">' + sk.desc + '</span></div>';
-    });
-  }
-  /* 地图特征（双入口会额外醒目提示 —— 只堆一边必定漏怪） */
-  if (L.path2){
-    h += '<div style="font-size:12.5px;font-weight:700;color:#ffd76a;margin:9px 0 5px;">🛣️ 双入口地图</div>'
-      + '<div style="font-size:11.5px;color:#ffe6c0;line-height:1.5;padding:6px 9px;border-radius:10px;'
-      + 'background:rgba(96,62,16,.75);border:1px solid rgba(255,200,110,.45);margin-bottom:5px;">'
-      + '敌人会随机从<b>两条路</b>同时进攻（各 ' + L.path.length + ' / ' + L.path2.length + ' 个拐点），'
-      + '只守一边必然漏怪 —— 注意两侧都要布防，或者把主力放在两条路的交汇处附近。</div>';
-  }
-  document.getElementById('introBody').innerHTML = h;
-  running = false; paused = true;
-  document.getElementById('introOv').classList.remove('hidden');
+  running = true; paused = false; last = 0;
 }
 /* ===== v8.19 无尽模式的专属开场 =====
    毛毛报的 bug：「点无尽模式进去是有一个第 1 关的提示，点开始游戏才是无尽模式」。

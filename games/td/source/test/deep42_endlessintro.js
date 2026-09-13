@@ -71,15 +71,12 @@ ok(s.endless === true, '确实是无尽模式（endless=true）');
 ok(s.WAVES_TOTAL === 999, '波次无上限（WAVES_TOTAL=999）');
 ok(String(T.el('lvName').textContent) === '♾ 无尽', '顶部地图名显示「♾ 无尽」（不是「直廊」）');
 
-console.log('=== ④ 普通关卡没被改坏：仍弹它自己那一关 ===');
+console.log('=== ④ 普通关卡：开局弹层已停用（v9.15）—— 点进去直接开打 ===');
 T.startLevel(0);
-ok(shown(), '第 1 关仍然弹开场提示');
-ok(title().indexOf('第 1 关') === 0, '第 1 关弹的是「第 1 关 · …」（' + title() + '）');
-ok(body().indexOf('新手提示') >= 0, '第 1 关的「新手提示」还在');
-/* v9.14（毛毛：每一关都弹提示太烦）：开局弹层只在第 1 关；第 2 关起直接开打、不再弹 */
+ok(shown() === false, '★ v9.15：第 1 关也不再弹开场提示（新手提示只归「🎓 新手教学」）');
+ok(T.getS().running === true && T.getS().paused === false, '第 1 关直接就是运行态');
 T.startLevel(2);
-ok(shown() === false, '★ v9.14：第 3 关不再弹开局弹层（改由波内一行小字播报）');
-ok(T.getS().running === true && T.getS().paused === false, '第 3 关直接就是运行态（不阻塞）');
+ok(shown() === false, '第 3 关同样不弹');
 ok(T.getS().endless === false, '普通关卡不会残留 endless 标记');
 
 console.log('=== ⑤ 无尽「续玩」不弹开场（玩家已经知道自己要接着打）===');
