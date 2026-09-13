@@ -173,7 +173,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 104;                    /* v9.14：开局弹层只在第 1 关弹（其余关卡改成波内一行小字）—— 修「每一关都有新手提示」；与 version.json 同步 */
+var BUILD_CODE = 105;                    /* v9.15：普通关卡彻底不弹开局弹层、底部新手提示条只留新手教程（毛毛：新手提示只归新手教程）；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -910,7 +910,7 @@ function startTutorial(){
   hideSel();
   speedMul = 1; updateSpeedBtn();                      /* 教学关也回到 1x */
   document.getElementById('lvName').textContent = TUTORIAL.name;
-  hintBar(false);                                      /* 教学关不显示底部通用提示：任务栏已经写了同样的话，少一行战场更宽 */
+  hintBar(true);                                       /* v9.15：底部「新手提示条」只在新手教程显示（任务栏已退役，原来的理由不成立了）—— 毛毛：新手提示只归新手教程 */
   initAudio(); bgmPlay(); startWave(); updateHud(); updateWaveInfo();
   spawnTimer = 6.0;                                    /* 教学关专属：第 1 只怪 6 秒后才出现，先让玩家把塔建起来 */
   tutBarSync();
@@ -1010,7 +1010,7 @@ function startLevel(i, asEndless, noIntro){
   speedMul = 1; updateSpeedBtn();      // 每次开新关卡回到 1x
   document.getElementById('lvName').textContent = LEVELS[i].name;
   bgmPlay();                     // 进入关卡开始放 BGM（首次点击已满足浏览器手势要求）
-  hintBar(i === 0);            // 1-1 显示新手提示，2 关起隐藏（重玩 1-1 会再出现）
+  hintBar(false);             /* v9.15：底部新手提示条普通关卡一律不显示（毛毛：新手提示只归新手教程）*/
   initAudio(); startWave(); updateHud(); updateWaveInfo();
   /* v8.19：按模式分流 —— 无尽弹自己的开场，别再借用第 1 关的模板（毛毛报的 bug） */
   if (noIntro){ running = true; paused = false; }
@@ -1101,7 +1101,7 @@ function startEndless(silent){
 }
 /* 从暂停/面板恢复游戏：收起弹层、解除冻结、恢复 BGM 音量并继续主循环 */
 function resumeGame(){
-  hideAll(); hintBar(!endless && lvIndex === 0); paused = false; menuPause = false; running = true; last = 0;
+  hideAll(); hintBar(false); paused = false; menuPause = false; running = true; last = 0;   /* v9.15：同上，不再给第 1 关单独开提示条 */
   bgmSetVol(0.42); bgmPlay();
 }
 /* 暂停游戏：冻结战场、压低 BGM、刷新暂停面板上的进度信息 */

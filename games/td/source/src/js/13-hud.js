@@ -312,7 +312,7 @@ function updateHud(){
 }
 /* 底部提示语剩余显示秒数（showTip 设值，draw 里倒计时）*/
 var tipT = 0;
-var HINT_ON = true;          // 新手提示栏只在第 1 关显示
+var HINT_ON = false;         /* v9.15：底部新手提示条默认关闭 —— 新手提示只属于「🎓 新手教学」*/
 /* 显示/隐藏新手提示栏（仅第 1 关显示）*/
 function hintBar(on){
   HINT_ON = !!on;
