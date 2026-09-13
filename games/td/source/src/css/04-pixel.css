@@ -1,0 +1,87 @@
+/* ============================================================================
+ * 04-pixel.css —— 像素风主题（B 方案）· 2026-09-13
+ *
+ * 【思路】**不改动任何原始样式**，只在本文件里做「覆盖」。所有规则带 !important，
+ *         且在 index.html 里最后加载，优先级最高。
+ * 【配色】取自作品集网站主色板（紫系）：#7c5cbf / #6543a5 / #bb9cff / #e5dcff。
+ * 【想退回原样】删掉本文件 + index.html 里的这一行 <link> 即可，其余代码零改动。
+ * 【内容】① 底色与字色统一 ② 去掉全部渐变与发光 ③ 圆角→直角、加粗描边与硬投影
+ * ========================================================================== */
+
+:root{
+  --px-bg:    #120d22;
+  --px-panel: #1b1338;
+  --px-panel2:#241a4a;
+  --px-line:  #4b3573;
+  --px-line2: #6b4fa0;
+  --px-p:     #7c5cbf;
+  --px-pd:    #6543a5;
+  --px-pl:    #bb9cff;
+  --px-pp:    #e5dcff;
+  --px-gold:  #e6b95c;
+  --px-red:   #c46a94;
+  --px-txt:   #dcd2ff;
+  --px-dim:   #8f83b5;
+}
+
+/* ── ① 全局：底色、字色、去发光 ── */
+html, body, #wrap{ background:var(--px-bg) !important; color:var(--px-txt); }
+*{ text-shadow:none !important; }
+
+/* ── ② 全屏弹层（主界面 / 图鉴 / 暂停 / 结算 / 选关 / 强化卡…）── */
+.ov{ background:rgba(18,13,34,.975) !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+.ov .home-bg, .ov .home-aura{ display:none !important; }   /* 去掉背景光晕层，改用纯色 */
+
+/* ── ③ 面板 / 卡片 / 列表：直角 + 2px 描边 + 硬投影，去渐变 ── */
+.card, .el, .tw, .swRow, .swSec, .swChip, .swT, .badge,
+#sel, #sideWin, #waveInfo, #tutBar, #tip, #lvList, #buffList, #towers,
+.home-menu, .home-stats, .home-wrap, .home-foot, #top, #bottom{
+  background:var(--px-panel) !important;
+  background-image:none !important;
+  border:2px solid var(--px-line) !important;
+  border-radius:0 !important;
+  box-shadow:3px 3px 0 rgba(0,0,0,.42) !important;
+}
+
+/* ── ④ 按钮：主紫实心 + 亮紫描边 + 硬位移投影 ── */
+.btn, .btn-hero, button{
+  background:var(--px-p) !important;
+  background-image:none !important;
+  border:2px solid var(--px-pl) !important;
+  border-radius:0 !important;
+  color:#fff !important;
+  box-shadow:3px 3px 0 var(--px-pd) !important;
+  font-weight:700;
+  letter-spacing:.5px;
+}
+button:active, .btn:active, .btn-hero:active{
+  box-shadow:1px 1px 0 var(--px-pd) !important;
+  transform:translate(2px,2px);
+}
+
+/* ── ⑤ 顶部状态栏 ── */
+#top{ border-left:0 !important; border-right:0 !important; border-top:0 !important; }
+.stat{ background:var(--px-panel2) !important; border:2px solid var(--px-line) !important; border-radius:0 !important; }
+.stat b{ color:var(--px-gold) !important; }
+
+/* ── ⑥ 血条：直角 + 纯色（去渐变）── */
+#hpbar{ background:#2b2150 !important; border:2px solid var(--px-line) !important; border-radius:0 !important; }
+#hpfill{ background:var(--px-pl) !important; border-radius:0 !important; }
+
+/* ── ⑦ 主界面标题：像素感粗描边字 ── */
+.logo{ color:var(--px-pp) !important; letter-spacing:4px !important; font-weight:700;
+  text-shadow:2px 2px 0 var(--px-pd) !important; }
+.logo-tag{ color:var(--px-pl) !important; letter-spacing:3px !important; }
+.home-top span{ color:var(--px-dim) !important; letter-spacing:2px; }
+
+/* ── ⑧ 文字层级 ── */
+.sub, #tip, .home-hint, .home-foot, #waveInfo{ color:var(--px-dim) !important; }
+.card .cn, .tw .nm, .swT{ color:var(--px-pp) !important; }
+
+/* ── ⑨ 像素图标（22-pixel.js 动态插入的 <img class="pxi">）── */
+.pxi{
+  width:1.05em; height:1.05em; vertical-align:-.15em; margin:0 1px;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+  display:inline-block;
+}
+.tw .pxi, .card .pxi{ width:1.15em; height:1.15em; }
