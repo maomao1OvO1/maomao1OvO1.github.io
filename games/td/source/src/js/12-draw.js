@@ -174,6 +174,31 @@ function drawStaticBg(){
       g.stroke();
       g.lineWidth = CELL * 0.86; g.strokeStyle = 'rgba(36,26,74,.95)';
     }
+    /* ── v9.5：锁着的塔位画成「暗格 + 锁 + 价格」──
+       只在静态层画（每帧一次 drawImage），所以不增加每帧开销。 */
+    if (typeof slotAll !== 'undefined' && slotAll && slotAll.length){
+      var _cost = (typeof unlockCost === 'function') ? unlockCost() : 0;
+      for (var _si = 0; _si < slotAll.length; _si++){
+        var _sl = slotAll[_si], _kk = _sl.c + ',' + _sl.r;
+        if (unlockSet[_kk]) continue;                       /* 已解锁：保持普通空地 */
+        var _sx = OX + _sl.c * CELL, _sy = OY + _sl.r * CELL;
+        g.fillStyle = 'rgba(28,20,52,.74)';
+        g.fillRect(_sx + 2, _sy + 2, CELL - 4, CELL - 4);
+        g.strokeStyle = 'rgba(107,79,160,.9)'; g.lineWidth = 2;
+        g.strokeRect(_sx + 2, _sy + 2, CELL - 4, CELL - 4);
+        var _ls = CELL * 0.30, _lx = _sx + CELL / 2, _ly = _sy + CELL * 0.44;
+        g.strokeStyle = '#bb9cff'; g.fillStyle = '#7c5cbf';
+        g.lineWidth = Math.max(1.5, CELL * 0.085);
+        g.beginPath(); g.arc(_lx, _ly - _ls * 0.34, _ls * 0.42, Math.PI, 0); g.stroke();
+        g.fillRect(_lx - _ls * 0.62, _ly - _ls * 0.30, _ls * 1.24, _ls * 0.86);
+        g.fillStyle = '#e6b95c';
+        g.font = 'bold ' + Math.max(8, Math.round(CELL * 0.25)) + 'px monospace';
+        var _oldA = g.textAlign, _oldB = g.textBaseline;
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(String(_cost), _lx, _sy + CELL * 0.85);
+        g.textAlign = _oldA; g.textBaseline = _oldB;
+      }
+    }
     bgKey = key;
   }
   ctx.drawImage(bgCv, 0, 0, W, H);
