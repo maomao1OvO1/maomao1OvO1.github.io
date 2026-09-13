@@ -1103,13 +1103,16 @@ button:active, .btn:active, .btn-hero:active{
 .ov h1, .ov h2, .ov h3{ color:#e5dcff !important; letter-spacing:1px; }
 
 
-/* ── ⑬ v9.3 消除冷启动闪动 ──
-   主界面 #startOv 初始带 .boot，renderHome() 渲染完第一帧（战绩胶囊/继续进度/菜单）
-   才移除 → 浏览器不会再先画一帧空战绩的旧态再补，肉眼就不会「闪一下」。 */
-#startOv.boot{ opacity:0 !important; }
+/* ── ⑬ v9.4 消除冷启动闪动（修正 v9.3 的做法）──
+   v9.3 把 .boot 加在 #startOv 上（整块不可见），结果主界面要等 renderHome() 才现身，
+   中间那 1 秒会露出底下的战斗界面（HUD/血条/左侧栏）—— 毛毛报「进入游戏会卡一秒这个，才进去主页」。
+   正确做法：**主界面照常显示**（它本身就是盖住底层的遮罩），只把底层战斗界面藏起来，
+   renderHome() 渲染完再放出。这样既不会闪到战斗界面，也不会「空战绩跳变」。 */
+body.boot #top, body.boot #waveInfo, body.boot #tutBar,
+body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !important; }
 </style>
 </head>
-<body>
+<body class="boot">
 <!-- ================= 游戏主体（#wrap 是全屏 flex 竖排容器）================= -->
 <div id="wrap">
   <!-- 顶部状态栏：金币 / 波次 / 当前地图 / 天气（可点开说明）· 技能按钮栏 · 倍速 · 暂停 · 基地血条（含护盾值）-->
@@ -1155,11 +1158,11 @@ button:active, .btn:active, .btn-hero:active{
 <!-- v8.18 交叉淡化第二声道：平时 preload=none 不占内存，首次播放成功后再预热 -->
 <audio id="bgm2" loop preload="none" src="music/bgm.ogg" style="display:none"></audio>
 <!-- ===== 弹层：首页 startOv ===== 主标题、战绩统计、开始防御、选关/无尽/每日挑战/教学/图鉴/设置入口 -->
-<div class="ov boot" id="startOv">
+<div class="ov" id="startOv">
   <div class="home-bg"></div>
   <div class="home-aura"></div>
   <div class="home-wrap">
-    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.3 ▾</button></div>
+    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.4 ▾</button></div>
     <div class="home-logo">
       <h1 class="logo">共鸣之塔</h1>
       <div class="logo-tag">元 素 共 鸣 · 塔 防</div>
@@ -6293,10 +6296,11 @@ function renderHome(){
     else if (prog && prog.tutorialDone) hint.textContent = '';
     else hint.textContent = '🎓 第一次玩？先过一遍新手教学（6 波、5 步引导）';
   }
-  /* v9.3：冷启动时主界面先以 .boot 隐藏，等这一帧把战绩/提示/菜单都渲染完再显示 ——
-     否则浏览器会先画一帧「空战绩 + 无尽」的旧态，再补渲染，肉眼就是「闪一下」。 */
-  var _so = document.getElementById('startOv');
-  if (_so && _so.classList) _so.classList.remove('boot');
+  /* v9.4：冷启动防闪动的正确做法 —— 主界面 #startOv 照常显示（它本身就盖住底层），
+     只把 body 上的 .boot 摘掉，让底下的战斗界面（HUD/战场）露出来。
+     v9.3 曾把 .boot 加在 #startOv 上，结果启动那 1 秒主界面不可见 → 露出战斗界面，
+     毛毛报「进入游戏会卡一秒这个，才进去主页」。 */
+  if (document.body && document.body.classList) document.body.classList.remove('boot');
 }
 /* ===== v6.8 存档分享：导出成一段码，别人粘贴就能用（纯离线、无服务器） ===== */
 function saveChecksum(b64){
@@ -6553,7 +6557,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 93;                     /* v9.3：修冷启动闪动 + 图标替换改同步 + 剩余蓝转紫；与 version.json 同步 */
+var BUILD_CODE = 94;                     /* v9.4：修「进游戏先露出战斗界面 1 秒」——boot 标记改挂 body；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
