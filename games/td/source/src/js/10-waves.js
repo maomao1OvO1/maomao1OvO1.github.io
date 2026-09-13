@@ -68,6 +68,7 @@ function startWave(){
   waveActive = true; spawnTimer = 0;
   document.getElementById('wave').textContent = wave;
   showBanner('第 ' + wave + ' 波');
+  waveIntroTips(wave);        /* v9.14：新敌人 / 新机制改在这里飘一行小字（不再每关弹开局弹层） */
   SFX.wave();
   if (BUFFS.regen > 0){                                       // v7.5 满血时转成护盾（永远有用，不再"看起来没用"）
     if (hp < MAXHP){
