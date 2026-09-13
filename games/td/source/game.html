@@ -1051,6 +1051,56 @@ button:active, .btn:active, .btn-hero:active{
 #startOv{ background:#120d22 !important; }
 /* 弹层内滚动区若是半透明也一并压住 */
 .home-wrap, .home-menu, .home-stats{ background:transparent !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * ⑫ v9.1 弹层内统一像素风 —— 修「点进去美术就没了」
+ *
+ * 毛毛反馈：主界面是像素风，但点一下（进图鉴 / 玩法 / 设置 / 选关 / 暂停 / 结算…）美术就没了。
+ * 根因：游戏里有 12 个独立弹层，各有各的 id 和一大堆内部 class；
+ *       之前只覆盖了 .ov 与主界面的几个类，**弹层内部基本没管**。
+ * 做法：① 弹层内一切圆角归零（安全项，不影响颜色与布局）
+ *       ② 所有弹层容器统一深紫底
+ *       ③ 按游戏里「实际存在」的类名补卡片 / 行 / 格子的底与描边
+ *       ④ 弹层内按钮统一像素风；次要按钮用暗紫，别抢主按钮
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ① 圆角全归零 */
+.ov, .ov *{ border-radius:0 !important; }
+
+/* ② 12 个弹层容器统一底色 */
+#bookOv, #buffOv, #setOv, #levelsOv, #pauseOv, #overOv, #introOv,
+#helpOv, #updOv, #verOv, #clearOv, #tutDoneOv{ background:#120d22 !important; }
+
+/* ③ 弹层内的卡片 / 行 / 格子（类名全部取自游戏里真实使用的） */
+.ov .row, .ov .st, .ov .el, .ov .card, .ov .ci, .ov .cp, .ov .cr,
+.ov .cs, .ov .cu, .ov .ce, .ov .k, .ov .t, .ov .ti, .ov .udesc,
+.ov .swRow, .ov .swSec, .ov .swT, .ov .swCardLine, .ov .refund, .ov .sell{
+  background:#1b1338 !important;
+  background-image:none !important;
+  border:2px solid #4b3573 !important;
+  box-shadow:3px 3px 0 rgba(0,0,0,.4) !important;
+}
+
+/* ④ 弹层内按钮（含动态生成的）统一像素风 */
+.ov button, .ov .btn{
+  background:#7c5cbf !important; background-image:none !important;
+  border:2px solid #bb9cff !important; color:#fff !important;
+  box-shadow:3px 3px 0 #6543a5 !important;
+}
+/* 关闭 / 返回 / 次要按钮：暗紫，别抢主按钮 */
+.ov #bookBackBtn, .ov #helpBackBtn, .ov #lvBackBtn, .ov #verCloseBtn,
+.ov #updCancelBtn, .ov #setBackBtn, .ov #againBtn, .ov #retryBtn{
+  background:#2b2150 !important; border-color:#6b4fa0 !important;
+  box-shadow:3px 3px 0 rgba(0,0,0,.4) !important;
+}
+
+/* ⑤ 纯文字区（图鉴列表 / 玩法说明 / 版本信息）：压住底色，别透出底层 */
+.ov #bookList, .ov #buffList, .ov #introBody, .ov #verBody, .ov #pauseInfo{
+  background:#1b1338 !important; border:2px solid #4b3573 !important;
+}
+
+/* ⑥ 弹层内的标题栏统一：亮紫字 + 下描边 */
+.ov h1, .ov h2, .ov h3{ color:#e5dcff !important; letter-spacing:1px; }
 </style>
 </head>
 <body>

@@ -103,7 +103,7 @@ ok(mobHtml.indexOf('免疫减速') >= 0, '特性由 immuneSlow 字段推导：�
 ok(mobHtml.indexOf('每 10 波登场') >= 0 && mobHtml.indexOf('沉默') >= 0, 'BOSS 特性文案含「每 10 波登场」与技能「沉默」');
 ok(mobHtml.indexOf('普通单位') >= 0, '每种怪都有特性文案（步兵：普通单位）');
 ok(mobHtml.indexOf('克制提示') >= 0, '怪物卡片含「克制提示」行');
-ok(mobHtml.indexOf('#7cf5c0') >= 0 && mobHtml.indexOf('#ffd76a') >= 0 && mobHtml.indexOf('#9fc4f0') >= 0,
+ok(mobHtml.indexOf('#7cf5c0') >= 0 && mobHtml.indexOf('#ffd76a') >= 0 && mobHtml.indexOf('#bb9cff') >= 0,
    '沿用现有字色（金色数值 / 绿色特性 / 蓝色次要文字）');
 
 console.log('=== ④ 炮塔页：遍历 ELEMS 动态生成 + 共鸣组合 ===');

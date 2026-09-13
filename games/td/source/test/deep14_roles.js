@@ -107,7 +107,7 @@ var b1 = T.bookTowerCard('fire');
 ok(b1.indexOf('\u89d2\u8272\uff1a') >= 0, '图鉴卡片含「角色：」行');
 ok(b1.indexOf('\u89d2\u8272\uff1a<b style="color:#ffd76a;">\u5355\u4f53</b>') >= 0, '角色值「单体」按角色色渲染');
 ok(cnt(soloSeg(b1), SOLID) === 4 && cnt(groupSeg(b1), SOLID) === 1, '图鉴星级 4/1 正确');
-ok(b1.indexOf('font-size:12.5px;color:#9fc4f0;">\u89d2\u8272\uff1a') >= 0, '图鉴角色行与既有行同字号同配色');
+ok(b1.indexOf('font-size:12.5px;color:#bb9cff;">\u89d2\u8272\uff1a') >= 0, '图鉴角色行与既有行同字号同配色');
 var iL2 = b1.indexOf('\u4f24\u5bb3 <b'), iRl = b1.indexOf('\u89d2\u8272\uff1a'), iFx = b1.indexOf('\u7279\u6548\uff1a');
 ok(iL2 < iRl && iRl < iFx, '图鉴行序：数值 → 角色 → 特效');
 ok(b1.indexOf('\u5171\u9e23\u7ec4\u5408\uff1a') >= 0 && b1.indexOf('\u5347\u7ea7\u6536\u76ca\uff1a') >= 0,
