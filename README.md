@@ -1,6 +1,11 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:7c5cbf,100:2b1b4d&height=190&section=header&text=%E6%AF%9B%E6%AF%9B%E7%9A%84%E7%BD%91%E7%AB%99&fontSize=56&fontColor=ffffff&desc=AI%20%E4%BD%99%E9%A2%9D%E6%9F%A5%E8%AF%A2%20%C2%B7%20%E5%B0%8F%E6%B8%B8%E6%88%8F%E5%A4%A7%E5%8E%85%20%C2%B7%20%E5%8E%9F%E5%88%9B%E5%A1%94%E9%98%B2%20%C2%B7%20%E7%A1%AC%E4%BB%B6%E6%B5%8B%E8%AF%95%20%C2%B7%20%E9%9F%B3%E4%B9%90%E7%9B%B8%E5%86%8C&descSize=15&descAlignY=78&animation=fadeIn" width="100%" alt="毛毛的网站" />
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:7c5cbf,100:2b1b4d&height=210&section=header&text=%E6%AF%9B%E6%AF%9B%E7%9A%84%E7%BD%91%E7%AB%99&fontSize=58&fontColor=ffffff&animation=fadeIn" width="100%" alt="毛毛的网站" />
+
+**AI 余额查询盒 · 小游戏大厅 · 原创塔防 · 硬件测试实验室 · 音乐与相册**
+
+🚀 **快速入口**　[🗼 玩《共鸣之塔》](https://maomao1ovo1.github.io/games/td/) ｜ [🎮 游戏大厅](https://maomao1ovo1.github.io/games.html) ｜ [🏆 排行榜](https://maomao1ovo1.github.io/games/ranking.html) ｜ [📱 硬件测试](https://maomao1ovo1.github.io/hardware-lab/) ｜ [🎵 音乐](https://maomao1ovo1.github.io/music.html) ｜ [📷 相册](https://maomao1ovo1.github.io/photo.html)
+
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
