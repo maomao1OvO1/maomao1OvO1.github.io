@@ -217,3 +217,16 @@ button:active, .btn:active, .btn-hero:active{
    renderHome() 渲染完再放出。这样既不会闪到战斗界面，也不会「空战绩跳变」。 */
 body.boot #top, body.boot #waveInfo, body.boot #tutBar,
 body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !important; }
+
+
+/* ── ⑭ v9.9 弱指引提示层 ──
+   「要弱指引，不要强制，让玩家一种是他自己发现的感觉」：顶部一行小字，
+   4 秒自己淡掉；pointer-events:none 所以完全不挡点击，也不暂停游戏。 */
+#hintLine{
+  position:fixed; left:50%; top:16px; transform:translate(-50%,-10px);
+  background:rgba(28,20,52,.95); border:2px solid #7c5cbf; color:#e5dcff;
+  padding:9px 18px; font-size:13px; letter-spacing:.3px; line-height:1.5;
+  opacity:0; pointer-events:none; z-index:70; max-width:88vw; text-align:center;
+  box-shadow:3px 3px 0 rgba(0,0,0,.45); transition:opacity .35s ease, transform .35s ease;
+}
+#hintLine.on{ opacity:1; transform:translate(-50%,0); }

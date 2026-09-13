@@ -82,7 +82,7 @@ ok(l1 > 0 && l2 > l1 && html.slice(l1, l2).indexOf('TUTORIAL') < 0, '教学配�
 ok(html.indexOf('id="tutBar"') > 0 && /id="tutBar"[^>]*display:none/.test(html), '#tutBar 默认 display:none（仅教学关显示）');
 ok(T.LEVELS.length === 15, 'LEVELS 共 ' + T.LEVELS.length + ' 关（v8.4 从 5 关扩到 15 关）');
 ok(T.TUTORIAL && T.TUTORIAL.waves > 0 && T.TUTORIAL.path.length >= 2, '独立教学配置 TUTORIAL 就绪（' + T.TUTORIAL.name + ' / ' + T.TUTORIAL.waves + ' 波 / 金币 ' + T.TUTORIAL.gold + '）');
-ok(T.TUT_STEPS.length === 5, '教学步骤共 5 步');
+ok(/var TUT_TOTAL = 0/.test(html) && /var TUT_STEPS = \[\]/.test(html), 'v9.9 弱指引：任务清单已撤（TUT_TOTAL=0 / TUT_STEPS=[]）');
 
 console.log('=== ② 非教学模式：#tutBar 不显示 ===');
 T.startLevel(0);
@@ -111,32 +111,32 @@ ok(s.gold === T.TUTORIAL.gold, '金币 = TUTORIAL.gold（' + s.gold + '）');
 ok(JSON.stringify(s.WAYPOINTS) === JSON.stringify(T.TUTORIAL.path), '路径 = TUTORIAL.path（' + JSON.stringify(s.WAYPOINTS) + '）');
 ok(s.wave === 1 && s.hp === 20 && s.towers.length === 0, '开局状态干净（第 1 波 / 20 血 / 0 塔）');
 ok(T.el('tutBar').style.display === 'block', '教学关 #tutBar 显示');
-ok(String(T.el('tutBar').textContent).indexOf('任务 1/5') === 0, '任务条文案：' + T.el('tutBar').textContent);
+/* v9.9：旧的「任务条 / 第 N 步推进」断言已随任务清单一起撤除 */
 ok(T.el('startOv')._hidden === true, '首页弹窗已收起');
 
-console.log('=== ⑤ 第 1 步：建塔 → 推进到 2/5 ===');
+console.log('=== v9.9 弱指引：不派任务、只在首次动作后飘一行提示 ===');
 T.addTower(0, 5, 'fire');
 step(1);
-ok(T.getS().tutStep === 2, '建一座 🔥 火焰塔 → ' + T.getS().tutStep + '/5');
-ok(hasFloat('✅ 完成'), '完成时飘字「✅ 完成」');
-ok(String(T.el('tutBar').textContent).indexOf('任务 2/5') === 0, '任务条刷新：' + T.el('tutBar').textContent);
+/* v9.9：旧的「任务条 / 第 N 步推进」断言已随任务清单一起撤除 */
+/* v9.9：旧「任务完成飘字」断言已随任务清单撤除 */
+/* v9.9：旧的「任务条 / 第 N 步推进」断言已随任务清单一起撤除 */
 
-console.log('=== ⑥ 第 2 步：相邻不同元素（热震共鸣）→ 推进到 3/5 ===');
+console.log('=== v9.9 弱指引：不派任务、只在首次动作后飘一行提示 ===');
 T.addTower(1, 5, 'ice');
 step(1);
 var tw = T.getS().towers;
 ok(tw.length === 2 && tw[0].res && tw[0].res.tags.length > 0, '相邻 🔥+❄️ 触发共鸣（' + (tw[0].res ? tw[0].res.tags.join('+') : '-') + '）');
-ok(T.getS().tutStep === 3, '相邻建不同元素塔 → ' + T.getS().tutStep + '/5');
+/* v9.9：旧的「任务条 / 第 N 步推进」断言已随任务清单一起撤除 */
 
-console.log('=== ⑦ 第 3 步：升级到 Lv2 → 推进到 4/5 ===');
+console.log('=== v9.9 弱指引：不派任务、只在首次动作后飘一行提示 ===');
 T.setGold(9999);
 T.openTower(T.getS().towers[0], 100, 100);
 selEl.firePointer({ up: '1' });          // 走真实的「升级」按钮点击路径
 step(1);
 ok(T.getS().towers[0].lv >= 2, '塔已升到 Lv' + T.getS().towers[0].lv);
-ok(T.getS().tutStep === 4, '升级到 Lv2 → ' + T.getS().tutStep + '/5');
+/* v9.9：旧的「任务条 / 第 N 步推进」断言已随任务清单一起撤除 */
 
-console.log('=== ⑧ 第 4 步：一波结束后选强化卡 → 推进到 5/5 ===');
+console.log('=== v9.9 弱指引：不派任务、只在首次动作后飘一行提示 ===');
 var guard = 0, picked = 0, waveEnded = false;
 while (guard < 62000){
   t0 += 16.7; T.frame(t0); guard++;
@@ -151,10 +151,10 @@ while (guard < 62000){
 }
 ok(waveEnded && picked === 1, '第 1 波结束弹出三选一（' + (guard/62).toFixed(1) + 's 游戏时间）');
 step(1);
-ok(T.getS().tutStep === 5, '点强化卡 → ' + T.getS().tutStep + '/5');
-ok(String(T.el('tutBar').textContent).indexOf('任务 5/5') === 0, '任务条文案：' + T.el('tutBar').textContent);
+/* v9.9：旧的「任务条 / 第 N 步推进」断言已随任务清单一起撤除 */
+/* v9.9：旧的「任务条 / 第 N 步推进」断言已随任务清单一起撤除 */
 
-console.log('=== ⑨ 第 5 步：守家 → 教学通关 ===');
+console.log('=== v9.9 弱指引：不派任务、只在首次动作后飘一行提示 ===');
 T.setGold(99999);
 var placed = 0, elems = ['fire','ice','thunder','poison','phys'];
 for (var c = 0; c < 9 && placed < 26; c++){
