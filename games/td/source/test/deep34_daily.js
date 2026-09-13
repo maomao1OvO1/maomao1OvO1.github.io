@@ -69,20 +69,22 @@ T.setWave(1); T.startWave();
 ok(T.getWeather() === m1.weather, '第 1 波天气就被锁定成挑战天气（普通局这里是「平稳」）');
 ok(/每日挑战/.test(String(T.el('lvName').textContent)), '顶栏显示挑战标识（' + T.el('lvName').textContent + '）');
 
-console.log('=== ③ 通关奖励：当天首次给星核，之后不重复 ===');
-T.getProg().daily = null;
+console.log('=== ③ 通关奖励：当天首次给「下一局开局金币」，之后不重复（v9.16：星核不再从这里出）===');
+T.getProg().daily = null; T.getProg().dailyBonus = 0;
 var sc0 = T.starcore();
 T.setHp(18);
 T.levelClear();
-var gained = T.starcore() - sc0;
-ok(gained >= 5, '首次通关按剩余血给星核（剩余 18 血 → +' + gained + ' 颗）');
+ok(T.starcore() === sc0, '★ v9.16：每日挑战通关**不再给星核**（星核只从无尽模式来）');
+var db = T.getProg().dailyBonus;
+ok(db >= 300, '首次通关给「下一局开局金币」（剩余 18 血 → +' + db + '）');
 ok(T.getProg().daily === String(seed), '记录「今天已领奖」（prog.daily=' + T.getProg().daily + '）');
 ok(T.dailyDoneToday() === true, 'dailyDoneToday() = true');
 var sc1 = T.starcore();
-T.startDaily();                       /* 真实场景：再打一次是重新进入挑战（而不是复用上一局状态） */
+T.startDaily();                       /* 真实场景：再打一次是重新进入挑战（上一局的奖励金币会在开局发放并清零） */
 T.setHp(20);
 T.levelClear();
-ok(T.starcore() === sc1, '同一天再打不给星核（防止刷分）');
+ok(T.starcore() === sc1, '同一天再打不给星核（星核只从无尽来）');
+ok(T.getProg().dailyBonus === 0, '同一天再打不再累加奖励（今天已领过 → 不再给）');
 ok(/已领过奖励/.test(String(T.el('clearNewRec').textContent)), '界面提示已领过（' + T.el('clearNewRec').textContent + '）');
 
 console.log('=== ④ 不污染普通关卡 ===');

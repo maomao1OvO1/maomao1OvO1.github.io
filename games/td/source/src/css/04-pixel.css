@@ -230,3 +230,20 @@ body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !im
   box-shadow:3px 3px 0 rgba(0,0,0,.45); transition:opacity .35s ease, transform .35s ease;
 }
 #hintLine.on{ opacity:1; transform:translate(-50%,0); }
+
+
+/* ── ⑮ v9.16 支持作者入口（主界面页脚 / 通关 / 失败，三处低调小字）──
+   点开是线上「谢谢你玩到这里」页（赞赏码带访问量闸门）。
+   APK 内走原生桥交给系统浏览器，网页版走新标签页。 */
+.home-support{
+  margin-top:9px; font-size:12px; letter-spacing:.6px; color:#8f7fb8;
+  cursor:pointer; text-align:center;
+  text-decoration:underline; text-underline-offset:3px;
+}
+.home-support:active{ color:#ffd76a; border-color:#ffd76a; }
+.support-line{
+  margin-top:11px; font-size:12px !important; color:#8f7fb8 !important;
+  cursor:pointer; letter-spacing:.4px;
+  text-decoration:underline; text-underline-offset:3px;
+}
+.support-line:active{ color:#ffd76a !important; }

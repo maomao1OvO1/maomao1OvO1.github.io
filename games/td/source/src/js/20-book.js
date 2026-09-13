@@ -173,7 +173,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 105;                    /* v9.15：普通关卡彻底不弹开局弹层、底部新手提示条只留新手教程（毛毛：新手提示只归新手教程）；与 version.json 同步 */
+var BUILD_CODE = 106;                    /* v9.16：补回「支持作者」入口三处（主界面页脚 / 通关 / 失败）；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -214,6 +214,20 @@ function checkUpdate(){
   }).catch(function(e){
     showTip('检查更新失败（网络不可用或域名被拦）：' + (e && e.message ? e.message : ''));
   });
+}
+/* ===== v9.16 支持作者入口 =====
+   三处低调小字：主界面页脚 / 通关结算 / 失败结算 → 打开线上「谢谢你玩到这里」页。
+   ⚠️ 历史教训：这个入口在 v8.29 做过，**v9.0 像素风重构时整段丢了**（毛毛 2026-09-13 发现
+   "喜欢这个游戏的按钮去哪里？没法打赏了"）→ 现在补回，并且加了专项测试 deep44_support.js 看住它。
+   APK 内：走原生桥 Android.openUrl（http/https 交系统浏览器，游戏本体留在后台）；
+   网页版：window.open 新标签页；都没有时退化成提示手动打开。 */
+var SUPPORT_URL = 'https://maomao1ovo1.github.io/games/td/support.html';
+function openSupport(){
+  if (window.Android && window.Android.openUrl){
+    try { window.Android.openUrl(SUPPORT_URL); showTip('已交给浏览器打开 💛'); return; } catch (e) {}
+  }
+  try { window.open(SUPPORT_URL, '_blank'); showTip('已打开支持页 💛'); }
+  catch (e2){ showTip('请手动打开：' + SUPPORT_URL); }
 }
 /* 执行更新下载：优先交给 Android 原生桥打开下载页，否则用 window.open 兜底 */
 function doUpdateDownload(){
@@ -989,6 +1003,13 @@ function startLevel(i, asEndless, noIntro){
     goldAdd(tb); prog.tutBonus = 0; prog.tutReward = true; saveProg();
     addFloat(W / 2, H * 0.38, '🎓 教学奖励  +' + tb + ' 金币', '#ffd76a');
   }
+  /* v9.16 每日挑战奖励：星核与无尽模式绑死后，挑战奖励改成「开局金币」——在这里发放（任何关卡开局都发） */
+  if (prog.dailyBonus > 0){
+    var db = prog.dailyBonus | 0;
+    prog.dailyBonus = 0; saveProg();
+    goldAdd(db);
+    addFloat(W / 2, H * 0.46, '📅 每日挑战奖励  +' + db + ' 金币', '#ffd76a');
+  }
   BUFFS = { dmg:1, rate:1, range:1, gold:1, crit:0, combo:0, reso:1, splash:1, aura:1,
             costCut:0, interest:0, regen:0, bossDmg:0, pierceAdd:0, slowAdd:0, shieldHP:0,
             splashDmg:0, dotAdd:0, elBoost:0,
@@ -1140,16 +1161,18 @@ function levelClear(){
       ? '🎉 新纪录！剩余血量 ' + hp + ' → ' + st + ' 星'
       : '本次 ' + st + ' 星 · 历史最好 ' + Math.max(st, s0) + ' 星';
   }
-  /* v8.9 每日挑战：当天首次通关给星核（剩余血越多给得越多）
+  /* v8.9 每日挑战奖励 → **v9.16 改版**（毛毛：「你把星核和无尽模式绑死不就好了」）：
+     **星核只从无尽模式获取** —— 每日挑战（普通关卡）不再发星核，改成「下一局开局金币」（剩余血越多给得越多）。
      注意：这段必须在星级提示之后就位，并用「追加」而不是覆盖，否则挑战奖励提示会被星级文本盖掉 */
   if (isDaily){
     var dEl2 = document.getElementById('clearNewRec');
     if (!dailyDoneToday()){
-      var gain = 2 + Math.floor(hp / 5);
-      addStarcore(gain);
+      var gain = 120 + hp * 20;               /* 剩余血越多给得越多：满血 20 → +520 金币 */
+      prog.dailyBonus = (prog.dailyBonus || 0) + gain;
       prog.daily = String(todaySeed());
-      if (dEl2) dEl2.textContent = String(dEl2.textContent || '') + '　📅 每日挑战 +' + gain + ' 星核（累计 ' + starcore() + '）';
-      addFloat(W / 2, H * 0.42, '📅 每日挑战 +' + gain + ' 星核', '#ffd76a');
+      saveProg();
+      if (dEl2) dEl2.textContent = String(dEl2.textContent || '') + '　📅 每日挑战奖励：下一局开局 +' + gain + ' 金币';
+      addFloat(W / 2, H * 0.42, '📅 每日挑战奖励 +' + gain + ' 金币（下一局生效）', '#ffd76a');
     } else if (dEl2){
       dEl2.textContent = String(dEl2.textContent || '') + '　📅 今天的每日挑战已领过奖励（#' + todaySeed() + '）';
     }
@@ -1201,9 +1224,12 @@ function gameOver(){
       + (endless ? ('　🏆 本局评分 ' + score + ' · 评分王 ' + bestScore) : '')
       + (gained > 0 ? ('　🌟 转生 +' + gained + ' 星核（累计 ' + starcore() + '）') : '');
   }
+  /* v9.16（毛毛：「星核和无尽模式绑死」）：传承天赋只在**无尽模式**的失败面板出现 ——
+     原来这里是无条件 `inline-block`，普通关卡失败也挂着一个「🌟 传承天赋（星核 N）」，
+     看起来就像"每一关死都给星核"。现在普通关卡完全不显示（星核相关 UI 只在无尽出现）。 */
   var tbEl = document.getElementById('talentBtn');
   if (tbEl){
-    tbEl.style.display = 'inline-block';
+    tbEl.style.display = endless ? 'inline-block' : 'none';
     tbEl.textContent = '🌟 传承天赋（星核 ' + starcore() + '）';
   }
   document.getElementById('overOv').classList.remove('hidden');
