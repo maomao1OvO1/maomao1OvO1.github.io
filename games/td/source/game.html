@@ -1175,7 +1175,7 @@ body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !im
   <div class="home-bg"></div>
   <div class="home-aura"></div>
   <div class="home-wrap">
-    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.11 ▾</button></div>
+    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.12 ▾</button></div>
     <div class="home-logo">
       <h1 class="logo">共鸣之塔</h1>
       <div class="logo-tag">元 素 共 鸣 · 塔 防</div>
@@ -6577,7 +6577,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 101;                    /* v9.11：修星核误发（isDaily 状态残留）；与 version.json 同步 */
+var BUILD_CODE = 102;                    /* v9.12：统一开局状态清理，堵住跨局泄漏；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
@@ -7323,9 +7323,49 @@ function startTutorial(){
   addFloat(W / 2, H * 0.45, '任务 1/5：' + TUT_STEPS[0], '#ffd76a');
 }
 /* 开始指定关卡：重置战场与全部局内状态、套用关卡与每日修正、初始化天赋，然后弹开幕提示。无尽也走它开局 */
+/* ══════════════════════════════════════════════════════════════════════════
+ * v9.12 统一开局状态清理（毛毛：「不希望有 bug」→ 系统性 debug 的产物）
+ *
+ * 背景：原来只在 startLevel 里零散重置了十几个变量，而**跨局状态远不止这些** ——
+ *   漏掉的那批会从上一局漏进来。实际会出这些症状：
+ *     · skillMode 残留   → 新局一进去就在等「点一个目标放技能」
+ *     · banMode / 手牌残留 → 新局自带上一局的禁卡表与换批次数
+ *     · buffChoiceOpen   → 选卡面板状态错乱
+ *     · menuPause        → 新局一进就被当成「菜单打开中」而暂停
+ *     · sideOpen         → 左侧信息栏自动展开
+ *     · pvOn / pvTower   → 战场上残留一圈射程预览
+ *     · comboT / comboTxt → 第 0 波就飘出上一局的连杀提示
+ * 做法：把「一局之内必须是干净初值」的状态集中到这里，startLevel 一进来先调它。
+ *    以后新增任何局内状态，都加到这个函数里，别再零散地写（这就是上次漏的原因）。
+ * ══════════════════════════════════════════════════════════════════════════ */
+function resetRunState(){
+  /* —— 主动技能：取消「等待选目标」状态 —— */
+  skillMode = null;
+  if (typeof skillBtns !== 'undefined') skillBtns = [];
+  /* —— 强化卡：关闭选卡面板 + 重置换批/禁卡工具与手牌 —— */
+  buffChoiceOpen = false;
+  if (typeof closeBuffPanel === 'function'){ try { closeBuffPanel(); } catch (e) {} }
+  if (typeof resetDraftTools === 'function'){ try { resetDraftTools(); } catch (e) {} }
+  /* —— 面板 / 暂停 / 侧栏 —— */
+  menuPause = false;
+  lastPanel = null;
+  sideOpen = false;
+  /* —— 射程预览 —— */
+  pvOn = false; pvC = -1; pvR = -1; pvElem = ''; pvTower = null; pvT = 0;
+  /* —— 连杀提示（comboCount 已在 startLevel 里清，这里清提示态）—— */
+  comboT = 0; comboTxt = '';
+  comboShown = -99; comboShownN = -1; comboShownTier = -1;
+  /* —— 节流计时 —— */
+  if (typeof accentT !== 'undefined') accentT = 0;
+  if (typeof tipT !== 'undefined') tipT = 0;
+  /* —— 教学弱指引：清掉「本局基准」（提示本身一辈子只说一次，不受影响）—— */
+  tutSellBase = -1;
+}
+
 function startLevel(i, asEndless, noIntro){
   /* v8.19：asEndless = 以无尽模式开局（无尽借用地形时才不会弹「第 1 关」的开幕提示）；
      noIntro = 不弹开场（无尽续玩用 —— 玩家已经知道自己要接着打第 N 波了）。 */
+  resetRunState();   /* v9.12：先把所有跨局状态清干净，避免上一局漏进来 */
   endless = !!asEndless;                // 普通关卡：关闭无尽模式标记
   lvIndex = i;
   WAYPOINTS = LEVELS[i].path;

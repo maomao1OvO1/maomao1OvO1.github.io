@@ -1,8 +1,8 @@
 {
-  "version": "9.11",
-  "versionCode": 101,
+  "version": "9.12",
+  "versionCode": 102,
   "date": "2026-09-13",
   "size": "4.6MB",
-  "note": "v9.11 修【星核误发】（毛毛：「你的星核检测也有 bug，有的关卡死了也有星核」）：根因是每日挑战标记 isDaily 的状态泄漏 —— 它只在「通关结算」里被清，失败结算没清，于是「每日挑战失败 → isDaily 残留为 true → 之后任何普通关卡通关都被当成每日挑战发星核」。另外原代码把 isDaily = false 写在 if(isDaily) 块内部，「今天已领过」那条分支同样漏清。现改为通关与失败两条路径**都无条件清理** isDaily 与 dailyWeatherLock。玩法数值与存档格式零改动，可覆盖安装。",
+  "note": "v9.12 统一开局状态清理（系统性 debug 产物，毛毛：「不希望有 bug」）：原来 startLevel 只零散重置十来个变量，而跨局状态远不止这些，漏掉的一批会从上一局漏进来 —— 症状包括：新局一进去就在等「点目标放技能」（skillMode 残留）、自带上一局的禁卡表与换批次数（banMode/curPicks/rerollLeft/banLeft 残留）、选卡面板状态错乱（buffChoiceOpen）、一进就被暂停（menuPause）、左侧信息栏自动展开（sideOpen）、战场残留射程预览（pvOn/pvTower）、第 0 波就飘上一局的连杀提示（comboT/comboTxt）。现新增 resetRunState() 集中清理这 14 类状态，startLevel 一进来先调它；并写明约定：以后新增任何局内状态都加到该函数里，不再零散写。玩法数值与存档格式零改动，可覆盖安装。",
   "url": "https://maomao1ovo1.github.io/games/td/maomao-td-latest.apk"
 }
