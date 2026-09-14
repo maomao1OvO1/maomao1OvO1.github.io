@@ -1,5 +1,5 @@
 /* 🎙️ 声库网页版 Service Worker：静态资源 + 模型缓存（下载一次，之后离线可用） */
-const VERSION = 'tts-web-v23';   // 2026-09-14：index.html 补 lang/description/favicon/theme-color，需破缓存
+const VERSION = 'tts-web-v24';   // 2026-09-14：index.html 补 lang/description/favicon/theme-color，需破缓存
 const MODELS_CACHE = 'tts-web-models-v7';
 const CORE = [
   './',

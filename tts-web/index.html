@@ -46,6 +46,12 @@ body.dark-mode { background:#121212; color:#fff; }
 .dark-mode #progWrap > div > div { background:#333 !important; }
 </style>
 <!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<!-- 登录门禁依赖（2026-09-15 新增）：Firebase Auth SDK + 毛毛网站共用的 Web 配置。
+     用 defer 加载，不阻塞页面渲染；门禁遮罩本身在页面一渲染就显示（见 body 末尾），
+     所以不会出现「先用上、后被拦」的闪现。 -->
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script defer src="../firebase-config.js?v=2"></script>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
@@ -142,5 +148,108 @@ if (localStorage.getItem("theme") === "dark") { document.body.classList.add("dar
 </script>
 <script src="php2lex.js?v=22"></script>
 <script src="app.js?v=22"></script>
+
+<!-- ============================================================================
+     登录门禁（2026-09-15 新增）：网页版声库与毛毛的网站账号绑定。
+     规则：未登录 → 用遮罩挡住整页，只显示登录入口；登录成功 → 自动放行。
+     为什么要遮罩而不是隐藏内容：防止「先能看到页面、再被拦」，观感更清楚。
+     登录方式与主站一致（Google / GitHub 弹窗），共用同一套 Firebase 账号体系，
+     所以在主站登录过的用户，这里点一下登录即认。
+     ============================================================================ -->
+<div id="gateMask" style="display:flex;position:fixed;inset:0;z-index:9999;
+     background:linear-gradient(160deg,#2b1b4d 0%,#4a3572 60%,#2b1b4d 100%);
+     align-items:center;justify-content:center;padding:20px;">
+  <div style="max-width:420px;width:100%;background:#fff;border-radius:16px;padding:26px 22px;
+       box-shadow:0 18px 50px rgba(0,0,0,.35);text-align:center;font-family:system-ui,-apple-system,'PingFang SC',sans-serif;">
+    <div style="font-size:40px;line-height:1;">🔐</div>
+    <h2 style="margin:12px 0 6px;font-size:20px;color:#2b1b4d;">声库实验室 · 网页版</h2>
+    <p style="margin:0 0 4px;font-size:13px;color:#555;line-height:1.7;">
+      这个声库和毛毛的网站账号绑定了 —— <b>登录后即可免费使用</b>。
+    </p>
+    <p style="margin:0 0 18px;font-size:12px;color:#888;line-height:1.7;">
+      文字只在你本机合成、不上传任何服务器；登录仅用于确认身份。
+    </p>
+    <button id="gateGoogle" style="width:100%;padding:12px;margin-bottom:10px;border:0;border-radius:10px;
+            background:#7C5CBF;color:#fff;font-size:15px;font-weight:600;cursor:pointer;">用 Google 账号登录</button>
+    <button id="gateGithub" style="width:100%;padding:12px;border:1px solid #d5cdeb;border-radius:10px;
+            background:#fff;color:#2b1b4d;font-size:15px;font-weight:600;cursor:pointer;">用 GitHub 账号登录</button>
+    <p id="gateMsg" style="margin:14px 0 0;font-size:12px;color:#c0392b;min-height:16px;"></p>
+    <p style="margin:10px 0 0;font-size:11px;color:#aaa;line-height:1.6;">
+      登录遇到问题？回 <a href="../index.html" style="color:#7C5CBF;">毛毛的网站</a> 登录一次再来。
+    </p>
+  </div>
+</div>
+
+<!-- 已登录后的状态条（右下角，可退出换账号） -->
+<div id="userBar" style="display:none;position:fixed;right:12px;bottom:12px;z-index:9998;
+     background:rgba(43,27,77,.92);color:#fff;padding:7px 12px;border-radius:20px;font-size:12px;
+     font-family:system-ui,-apple-system,'PingFang SC',sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25);">
+  <span id="userEmail">已登录</span>
+  <button id="gateLogout" style="margin-left:8px;border:0;border-radius:12px;padding:3px 9px;
+          background:rgba(255,255,255,.18);color:#fff;font-size:12px;cursor:pointer;">退出</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var mask = document.getElementById("gateMask");
+  var msg = document.getElementById("gateMsg");
+  var bar = document.getElementById("userBar");
+  var emailEl = document.getElementById("userEmail");
+
+  function show(text) {
+    if (mask) mask.style.display = "flex";
+    if (bar) bar.style.display = "none";
+    if (msg && typeof text === "string") msg.textContent = text;
+  }
+  function pass(user) {
+    if (mask) mask.style.display = "none";
+    if (bar) bar.style.display = "block";
+    if (emailEl) emailEl.textContent = (user.email || user.displayName || "已登录");
+  }
+
+  // 登录入口：与主站一致，用弹窗授权
+  function login(providerName) {
+    if (msg) msg.textContent = "正在打开登录窗口…";
+    try {
+      var p = providerName === "github"
+        ? new firebase.auth.GithubAuthProvider()
+        : new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(p)
+        .then(function () { if (msg) msg.textContent = ""; })
+        .catch(function (e) {
+          if (msg) msg.textContent = "登录失败：" + (e && e.code ? e.code : "未知错误") + "（可回主站登录后再来）";
+        });
+    } catch (e) {
+      if (msg) msg.textContent = "登录组件未就绪，请刷新页面重试。";
+    }
+  }
+  var g = document.getElementById("gateGoogle");
+  var h = document.getElementById("gateGithub");
+  if (g) g.onclick = function () { login("google"); };
+  if (h) h.onclick = function () { login("github"); };
+
+  // Firebase 用 defer 加载 → 这里在 DOMContentLoaded 后执行一定已经就绪
+  function init() {
+    if (!window.firebase || !window.FIREBASE_CONFIG) {
+      show("登录组件加载失败（可能是网络问题），刷新一次试试。");
+      return;
+    }
+    try { if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG); } catch (e) {}
+    firebase.auth().onAuthStateChanged(function (user) {
+      if (user) { pass(user); } else { show(""); }
+    });
+  }
+  var lo = document.getElementById("gateLogout");
+  if (lo) lo.onclick = function () { try { firebase.auth().signOut(); } catch (e) {} show("已退出，请重新登录。"); };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+
 </body>
 </html>
