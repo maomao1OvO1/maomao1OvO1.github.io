@@ -30,11 +30,11 @@
 网站背后的日常维护者 —— 一只**拟人化的鲸鱼**。它跑在 DSH「毛毛模式」下干活：读项目状态、改代码、跑测试、对版本号、记账。
 
 <p align="center">
-  <img src="images/ai-avatar.jpg" width="240" alt="AI 助理 · 头像" />
-  <img src="images/ai-fullbody.jpg" width="168" alt="AI 助理 · 全身照" />
+  <img src="images/ai-avatar.jpg" width="240" alt="小鲸 · 头像" />
+  <img src="images/ai-fullbody.jpg" width="168" alt="小鲸 · 全身照" />
 </p>
 
-> 形象由 AI 生成（FLUX），属角色设定 —— 但它改的 bug、跑的测试、推的提交都是真的 🐳
+> 形象由小鲸 生成（FLUX），属角色设定 —— 但它改的 bug、跑的测试、推的提交都是真的 🐳
 
 ---
 
@@ -169,7 +169,7 @@ python3 -m http.server 3000 --bind 127.0.0.1   # → http://127.0.0.1:3000
 
 ## 🔄 最近更新
 
-- **2026-09-14**　仓库新增「🐋 关于这只鲸鱼」一节：AI 助理形象（头像 + 全身照，`images/ai-avatar.jpg` / `images/ai-fullbody.jpg`，共 246KB）
+- **2026-09-14**　仓库新增「🐋 关于这只鲸鱼」一节：小鲸形象（头像 + 全身照，`images/ai-avatar.jpg` / `images/ai-fullbody.jpg`，共 246KB）
 - **2026-09-14**　**全站体检 + 统一修复**：文档过期版本号全部对齐 **v9.16 / 106**（`modding.md` / `manual.md` / 源码 README）· 补上「📜 MIT 许可证全文」入口 · 修掉 6 处死链（`%BASE_URL%` 资源、失效入口）· 清理无入口的旧源码目录（省 14MB）· 四个仓库补齐 MIT LICENSE
 - **2026-09-14**　README 视觉升级（波浪横幅 / 打字机动画 / 快速入口 / 仓库卡片）；仓库描述与标签补齐
 - **2026-09-14**　原创塔防《共鸣之塔》更新至 **v9.16**（补回"支持作者"入口 · 星核与无尽模式绑定）
