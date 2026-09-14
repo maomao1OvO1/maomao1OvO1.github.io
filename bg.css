@@ -1,35 +1,33 @@
 /* ============================================================================
-   文件：bg.css —— 全站背景「ColorOS 16 光场」（毛毛 2026-09-15 选定的质感）
+   文件：bg.css —— 全站视觉统一层（ColorOS 16「光场」质感，毛毛 2026-09-15 选定）
    ----------------------------------------------------------------------------
-   这文件干什么：给页面铺一层「光场」底色 —— 几团超大、极低饱和的柔光叠加，
-     不是明显的光斑，而是像系统壁纸那样有呼吸感的底。
-   为什么单独成文件：本站有 4 套样式体系（主站 style.css / 游戏页内联 /
-     硬件大厅 hardware.css / 管理页内联），做成公共文件各套引一份即可，改只改这里。
+   ★ 这是全站**唯一**的背景与卡片质感来源：45 个页面全部引用本文件。
+     改质感只改这里，不会再出现「有的页面变了、有的没变」。
+   内容 = ① 光场背景  ② 卡片玻璃质感（含明暗两套）
    实现要点（都为不出 bug、不拖慢）：
-     1. position:fixed 的 body::before —— 固定不随滚动重绘，手机省电；
-        不用 background-attachment:fixed（那个在移动端滚动掉帧）。
-     2. z-index:-1 落在「内容之下、底色之上」，不挡任何元素。
-     3. pointer-events:none —— 绝不拦截点击。
-     4. 纯 CSS 径向渐变：零图片、零外部请求，不增加首屏负担。
-     5. **静止无动画**（ColorOS 的光场本身就是静的）：不耗电、不持续重绘。
-     6. 明暗两套：默认浅色；body.dark-mode 下换成低饱和的紫/青/品红。
-     7. 兜底：各页面原有 body 底色保持不变，本文件即使加载失败也能正常看。
+     1. 背景用 position:fixed 的 body::before —— 不随滚动重绘（手机省电）；
+        不用 background-attachment:fixed（移动端滚动会掉帧）。
+     2. z-index:-1 落在「内容之下、底色之上」；pointer-events:none 绝不挡点击。
+     3. 纯 CSS 径向渐变：零图片、零外部请求，不增加首屏负担；静止无动画。
+     4. 卡片玻璃 = 半透明底 + 1px 亮边 + 顶部内高光 + 多层柔影；
+        **只改视觉属性，内边距/尺寸/布局一律不动** → 不会把页面挤变形。
+     5. 毛玻璃 backdrop-filter 只加在卡片上（整页加会掉帧）；老浏览器降级为半透明底。
+     6. 明暗两套：默认浅色；body.dark-mode 下换成低饱和紫/青（不是简单反色）。
    ========================================================================== */
 
+/* ── ① 光场背景 ─────────────────────────────────────────────── */
 body::before {
     content: "";
     position: fixed;
-    inset: -5%;                   /* 稍微溢出，避免边缘出现硬切边 */
-    z-index: -1;                  /* 内容之下、底色之上 */
-    pointer-events: none;         /* 不挡点击 */
+    inset: -5%;
+    z-index: -1;
+    pointer-events: none;
     background-repeat: no-repeat;
     background-image:
         radial-gradient(58% 44% at 12% 8%,  rgba(122, 142, 255, .20), transparent 70%),
         radial-gradient(52% 42% at 88% 18%, rgba(255, 150, 205, .16), transparent 70%),
         radial-gradient(70% 55% at 50% 100%, rgba(130, 215, 255, .15), transparent 72%);
 }
-
-/* 深色：压暗底色后重新配的低饱和光晕（不是简单反色） */
 body.dark-mode::before {
     background-image:
         radial-gradient(58% 44% at 12% 8%,  rgba(120, 110, 255, .26), transparent 70%),
@@ -37,7 +35,63 @@ body.dark-mode::before {
         radial-gradient(70% 55% at 50% 100%, rgba(236, 72, 153, .13), transparent 72%);
 }
 
-/* 打印时不画背景（省墨、也不影响打印结果） */
+/* ── ② 卡片玻璃质感（全站所有"块状容器"类名，已逐页核对）─────────
+   覆盖清单来源（已用"按页面实际容器逐页挖取"的办法核对过两轮）：主站 .card/.mygame-card/.music-player/.gate-card/.sub-page
+                ＋ 游戏页 .game-card/.game-box    ＋ 管理页 .box/.gate/.sec/.rank-card/.item
+                ＋ 硬件页 .card/.item/.hardware-test-box ＋ 404 .err-box ＋ 声库页 .box/container
+                ＋ 相册 .photo-gallery ＋ 硬件 .test-list ＋ 手柄页 .event-box/.log-gamepad
+                ＋ 象棋 .chess-wrapper ＋ 排行榜 .rank        */
+.card, .mygame-card, .music-player, .gate-card,
+.game-card, .game-box, .rank-card, .err-box,
+.hardware-test-box, .box, .gate, .sec,
+.item, .sub-page, .test-list, .photo-gallery,
+.event-box, .log-gamepad, .chess-wrapper, .container,
+.rank {
+    background: rgba(255, 255, 255, .62);
+    border: 1px solid rgba(255, 255, 255, .75);
+    border-radius: 24px;
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9),
+                0 12px 30px rgba(31, 26, 58, .10),
+                0 2px 8px rgba(31, 26, 58, .05);
+}
+/* 列表项类给更小的圆角与更轻的阴影，避免"一列大圆角"看着笨重 */
+.item {
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85),
+                0 4px 14px rgba(31, 26, 58, .07);
+}
+.card:hover, .mygame-card:hover, .game-card:hover, .rank-card:hover {
+    background: rgba(255, 255, 255, .72);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95),
+                0 16px 38px rgba(31, 26, 58, .14),
+                0 3px 10px rgba(31, 26, 58, .06);
+}
+
+/* 深色：重新配的玻璃（压暗底 + 更弱亮边），同样只动视觉属性 */
+body.dark-mode .card, body.dark-mode .mygame-card, body.dark-mode .music-player, body.dark-mode .gate-card,
+body.dark-mode .game-card, body.dark-mode .game-box, body.dark-mode .rank-card, body.dark-mode .err-box,
+body.dark-mode .hardware-test-box, body.dark-mode .box, body.dark-mode .gate, body.dark-mode .sec,
+body.dark-mode .item, body.dark-mode .sub-page, body.dark-mode .test-list, body.dark-mode .photo-gallery,
+body.dark-mode .event-box, body.dark-mode .log-gamepad, body.dark-mode .chess-wrapper, body.dark-mode .container,
+body.dark-mode .rank {
+    background: rgba(255, 255, 255, .065);
+    border-color: rgba(255, 255, 255, .11);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08),
+                0 12px 30px rgba(0, 0, 0, .5),
+                0 2px 8px rgba(0, 0, 0, .3);
+}
+body.dark-mode .card:hover, body.dark-mode .mygame-card:hover,
+body.dark-mode .game-card:hover, body.dark-mode .rank-card:hover {
+    background: rgba(255, 255, 255, .095);
+}
+
+/* 打印与减弱动效：不做多余装饰 */
+@media (prefers-reduced-motion: reduce) {
+    .card, .mygame-card, .music-player, .gate-card, .game-card, .game-box, .rank-card, .err-box,
+    .hardware-test-box, .box, .gate, .sec, .item { transition: none; }
+}
 @media print {
     body::before { display: none; }
 }
