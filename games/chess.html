@@ -33,11 +33,10 @@
 ============================================================ -->
 <html lang="zh-CN">
 <head>
-<script src="/device-check.js?v=18"></script>
-    <script src="/anti-bot.js?v=5"></script>
 <meta charset="UTF-8">
-<link rel="icon" type="image/png" href="../icon.png"
-<link rel="apple-touch-icon" href="../icon.png">>
+<script defer src="/gate.js?v=1"></script>
+<link rel="icon" type="image/png" href="../icon.png">
+<link rel="apple-touch-icon" href="../icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="♟️ 国际象棋 —— 毛毛的自制小游戏，浏览器直接打开就能玩">
 <meta name="theme-color" content="#7C5CBF">
@@ -93,6 +92,10 @@ body.dark-mode .cell{color:#000;}
 .anim-piece.black-piece{color:black;text-shadow:none;}
 </style>
 
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 <body>
 <!-- 进入页面先读 localStorage 的 theme：若是暗色主题就立刻给 body 加上 dark-mode 类，

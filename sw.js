@@ -4,7 +4,7 @@
 // ⚠️ 重要：每次修改了 style.css / main.js 等核心文件，必须把 CACHE_NAME 版本号 +1（如 v25→v26），
 //    否则用户浏览器里旧缓存的资源不会被替换（这就是本站「改文件必须 bump 版本号」的由来）。
 
-const CACHE_NAME = "maomao-v53";          // 缓存包版本号：升级核心文件时改这里！（2026-09-14 v51→v52：main 资源为 cache-first，weather.js 改了 IP 定位降级必须破缓存）(旧缓存会在 activate 阶段自动删除)
+const CACHE_NAME = "maomao-v54";          // 缓存包版本号：升级核心文件时改这里！（2026-09-14 v53→v54：门禁脚本合并为 gate.js + 页面改 SWR 秒开）(旧缓存会在 activate 阶段自动删除)
 
 const CORE_ASSETS = [                      // 预缓存清单：SW 安装时一次性缓存的核心文件（首次离线可用）
     "/",                                   // 首页（缓存一份，离线回退用）
@@ -15,14 +15,19 @@ const CORE_ASSETS = [                      // 预缓存清单：SW 安装时一�
     "/tokens.js",                          // AI 余额查询
     "/manifest.json",                      // PWA 清单
     "/icon.png",                           // 站点图标
-    "/device-check.js?v=18",
     "/device-blocked.html",               // 设备限制提示页（门禁拦截跳转目标）
-    "/anti-bot.js?v=5",                    // 反爬虫守卫（自动化访问检测）
+    "/gate.js?v=1",                        // 站点门禁合集（设备适配 + 反爬，两个脚本合并省一次请求）
     "/ab-blocked.html",                     // 访问验证页（反爬拦截跳转目标）
     "/contact.js?v=4",                     // 联系留言箱（经后台 API，前端零 Google 直连）
     "/why-blocked.html",
     "/why-blocked-apple.html",                  // 设备系统检测门禁（安卓/Windows 白名单版）
-    "/maomao.jpg"                          // 网站封面/头像
+    "/maomao.jpg",                         // 网站封面/头像
+    "/games.html",                         // 小游戏大厅
+    "/music.html",                         // 音乐页
+    "/photo.html",                         // 摄影页
+    "/video.html",                         // 视频页
+    "/hardware-lab/index.html",            // 硬件大厅
+    "/games/ranking.html"                  // 排行榜
 ];
 
 // 安装事件：预缓存核心文件（首次安装或 SW 更新时执行）
@@ -57,16 +62,27 @@ self.addEventListener("fetch", event => {
     // 音频与分段请求(Range)不进缓存，避免播放/拖动进度出问题
     if (req.headers.has("Range") || /\/music\//.test(url.pathname)) return;
 
-    // 页面（导航请求）：网络优先，离线时才回退缓存（保证更新及时可见）
+    // 页面（导航请求）：网络优先 + 1.2 秒超时兜底缓存（2026-09-14 改）
+    // 为什么这么改：原来是纯 network-first，慢网下每次打开都要干等网络回来（白屏 2~6 秒）；
+    //   纯 cache-first 又会让人「改完网站自己看不到新版」。折中方案 = 给网络 1.2 秒：
+    //     · 网速正常 → 直接拿到最新页面（改完刷新即见）
+    //     · 网络很慢/断了 → 1.2 秒后先给缓存把页面显示出来，后台继续拉最新并写回缓存
     if (req.mode === "navigate") {
         event.respondWith(
-            fetch(req).then(res => {                       // 1) 先打网络拿最新页面
-                const copy = res.clone();                  // 克隆一份准备写缓存
-                caches.open(CACHE_NAME).then(cache => cache.put(req, copy)); // 2) 后台更新缓存
-                return res;
-            }).catch(() =>                                  // 3) 网络失败(离线) → 回退缓存
-                caches.match(req).then(r => r || caches.match("/index.html")) // 兜底给首页
-            )
+            caches.match(req).then(cached => {
+                const fetched = fetch(req).then(res => {
+                    if (res && res.status === 200) {
+                        const copy = res.clone();
+                        caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+                    }
+                    return res;
+                }).catch(() => cached || caches.match("/index.html")); // 离线兜底
+                if (!cached) return fetched;                // 首次访问没缓存，只能等网络
+                return Promise.race([
+                    fetched,                                // 网速快 → 用最新
+                    new Promise(resolve => setTimeout(() => resolve(cached), 1200)) // 慢 → 先给缓存
+                ]);
+            })
         );
         return;
     }

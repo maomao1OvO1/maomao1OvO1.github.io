@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/png" href="icon.png"
-<link rel="apple-touch-icon" href="icon.png">>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <meta name="theme-color" content="#7C5CBF">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>访问验证 - 毛毛的个人主页</title>
@@ -43,6 +43,10 @@
   button:hover { background: #7dd3fc; }
   .hint { margin-top: 16px; font-size: 12px; color: #64748b; }
 </style>
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 <body>
   <div class="card">

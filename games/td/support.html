@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="theme-color" content="#7C5CBF">
-<link rel="icon" type="image/png" href="../../icon.png"
-<link rel="apple-touch-icon" href="../../icon.png">>
+<link rel="icon" type="image/png" href="../../icon.png">
+<link rel="apple-touch-icon" href="../../icon.png">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>谢谢你玩到这里 · 共鸣之塔</title>
 <style>
@@ -36,6 +36,10 @@
   .back{display:block;text-align:center;color:var(--dim);font-size:12.5px;margin-top:30px;text-decoration:none;letter-spacing:.5px}
   .stat{text-align:center;color:#4e5666;font-size:11px;margin-top:14px;letter-spacing:.6px}
 </style>
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 <body>
 <div class="card">

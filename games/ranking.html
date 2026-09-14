@@ -18,12 +18,11 @@
 <html lang="zh-CN">
 
 <head>
-<script src="/device-check.js?v=18"></script>
-    <script src="/anti-bot.js?v=5"></script>
 <meta charset="UTF-8">
+<script defer src="/gate.js?v=1"></script>
 <meta name="theme-color" content="#7C5CBF">
-<link rel="icon" type="image/png" href="../icon.png"
-<link rel="apple-touch-icon" href="../icon.png">>
+<link rel="icon" type="image/png" href="../icon.png">
+<link rel="apple-touch-icon" href="../icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>毛毛小游戏排行榜</title>
 <style>
@@ -82,6 +81,10 @@ body.dark-mode{ background:#121212; color:white; }
 .dark-mode select { background:#333; color:#eee; border-color:#555; }
 .dark-mode .back-home { background:#333; color:#bb9cff; }
 </style>
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 
 <body>

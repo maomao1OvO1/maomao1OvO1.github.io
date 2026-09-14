@@ -1141,6 +1141,10 @@ body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !im
 }
 .support-line:active{ color:#ffd76a !important; }
 </style>
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 <body class="boot">
 <!-- ================= 游戏主体（#wrap 是全屏 flex 竖排容器）================= -->

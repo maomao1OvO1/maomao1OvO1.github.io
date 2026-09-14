@@ -45,6 +45,10 @@ body.dark-mode { background:#121212; color:#fff; }
 #progWrap .msg { margin-top:4px; }
 .dark-mode #progWrap > div > div { background:#333 !important; }
 </style>
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 <body>
 

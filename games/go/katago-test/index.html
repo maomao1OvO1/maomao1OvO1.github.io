@@ -36,7 +36,11 @@
     <link rel="modulepreload" crossorigin href="./assets/icons-KjLYJNjz.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-DHJuC0dy.js">
     <link rel="stylesheet" crossorigin href="./assets/main-CymcNESQ.css">
-  </head>
+  <!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
+</head>
   <body>
     <div id="root"></div>
   </body>

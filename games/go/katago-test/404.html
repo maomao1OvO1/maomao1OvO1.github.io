@@ -12,6 +12,10 @@
         window.location.replace(base);
       })();
     </script>
-  </head>
+  <!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
+</head>
   <body></body>
 </html>

@@ -207,8 +207,6 @@ else{
 
     ipLocate()
 
-    .then(response => response.json())
-
     .then(location => {
 
         getWeather(
@@ -217,35 +215,61 @@ else{
             location.longitude
         );
 
+    })
+
+    .catch(error => {
+
+        console.log("IP定位失败:", error);
+
+        document.getElementById("weather-location").innerHTML = "📍 未获取到位置";
+
+        document.getElementById("weather-info").innerHTML = "定位失败，请手动输入城市";
+
     });
 
 }
 
 
 
-// ===== IP 定位（2026-09-14 修：原 ipapi.co 已返回 403，改为多源降级）=====
-// 说明：ipapi.co 免费接口从 2026-09 起对本站返回 403（带浏览器 UA 也一样，实测），
-//       改为「ipwho.is 主 + ipinfo.io 备」，两者都返回 HTTPS + 无需 key；任一失败则抛错由调用方兜底。
+// ===== IP 定位（2026-09-14 重写：多源降级 + 超时；任一源可用即可，全挂才报错）=====
+// 背景：ipapi.co 返 403 → 改 ipwho.is（会被限流 429）→ 备 ipinfo.io（429 / CORS 拒绝）。
+//       单点必然挂，故改 4 级降级链，每级 6 秒超时；全挂则 reject，由调用方提示手动输入城市。
+// 注意：本函数 resolve 的是「已解析好的对象」{city, latitude, longitude}，调用方不要再 .json()。
 function ipLocate(){
-    return fetch("https://ipwho.is/")
-    .then(response => response.json())
-    .then(d => {
-        if(d && d.success !== false && d.latitude && d.longitude){
-            return { city: d.city || d.region || "北京", latitude: d.latitude, longitude: d.longitude };
+    // 顺序 = 实测可用性排序（2026-09-14 浏览器实测：ip.sb 可用；ipwho.is 间歇 429；
+    //   ipwhois.app 带 Origin 时 403；ipinfo.io 常被 CORS 拦 → 后者一律留作兜底）
+    var sources = [
+        { url: "https://api.ip.sb/geoip", pick: function(d){
+            if(d && d.latitude && d.longitude) return { city: d.city || d.region || "北京", latitude: +d.latitude, longitude: +d.longitude };
+            throw new Error("ip.sb 数据无效");
+        }},
+        { url: "https://ipwhois.app/json/", pick: function(d){
+            if(d && d.latitude && d.longitude) return { city: d.city || d.region || "北京", latitude: +d.latitude, longitude: +d.longitude };
+            throw new Error("ipwhois.app 数据无效");
+        }},
+        { url: "https://ipwho.is/", pick: function(d){
+            if(d && d.success !== false && d.latitude && d.longitude) return { city: d.city || d.region || "北京", latitude: +d.latitude, longitude: +d.longitude };
+            throw new Error("ipwho.is 数据无效");
+        }},
+        { url: "https://ipinfo.io/json", pick: function(d){
+            var loc = (d.loc || "").split(",");
+            if(loc.length === 2) return { city: d.city || "北京", latitude: parseFloat(loc[0]), longitude: parseFloat(loc[1]) };
+            throw new Error("ipinfo.io 数据无效");
+        }}
+    ];
+    function attempt(i){
+        if(i >= sources.length) return Promise.reject(new Error("所有 IP 定位服务都不可用"));
+        var src = sources[i], ctl = null, timer = null;
+        if(typeof AbortController === "function"){
+            ctl = new AbortController();
+            timer = setTimeout(function(){ try { ctl.abort(); } catch(e){} }, 6000);
         }
-        throw new Error("ipwho.is 无有效数据");
-    })
-    .catch(() =>
-        fetch("https://ipinfo.io/json")
-        .then(response => response.json())
-        .then(d => {
-            let loc = (d.loc || "").split(",");
-            if(loc.length === 2){
-                return { city: d.city || "北京", latitude: parseFloat(loc[0]), longitude: parseFloat(loc[1]) };
-            }
-            throw new Error("ipinfo.io 无有效数据");
-        })
-    );
+        return fetch(src.url, ctl ? { signal: ctl.signal } : undefined)
+        .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .then(function(d){ if(timer) clearTimeout(timer); return src.pick(d); })
+        .catch(function(){ if(timer) clearTimeout(timer); return attempt(i + 1); });
+    }
+    return attempt(0);
 }
 
 // ===== 手动修改城市 =====
@@ -372,8 +396,6 @@ if(ipWeatherBtn){
 
 
         ipLocate()
-
-        .then(response => response.json())
 
         .then(location => {
 

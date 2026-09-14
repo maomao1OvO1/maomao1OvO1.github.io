@@ -13,11 +13,10 @@
 ════════════════════════════════════════════════════════════════ -->
 
 <head>
-<script src="/device-check.js?v=18"></script>
-    <script src="/anti-bot.js?v=5"></script>
 <meta charset="UTF-8">
-<link rel="icon" type="image/png" href="icon.png"
-<link rel="apple-touch-icon" href="icon.png">>
+<script defer src="/gate.js?v=1"></script>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="毛毛的音乐作品 —— 原创与翻唱，在线试听">
 <meta name="theme-color" content="#7C5CBF">
@@ -26,6 +25,10 @@
 <!-- 引入全局样式表（与其它页面共用，统一外观） -->
 <link rel="stylesheet" href="style.css">
 
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 
 <!-- body 带 sub-page 类：表示这是二级子页面（区别于主页，样式更简洁） -->

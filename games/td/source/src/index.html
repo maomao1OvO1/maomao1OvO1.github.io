@@ -66,6 +66,10 @@
   <link rel="stylesheet" href="css/02-responsive.css">
   <link rel="stylesheet" href="css/03-home.css">
   <link rel="stylesheet" href="css/04-pixel.css">
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 <body class="boot">
 <!-- ================= 游戏主体（#wrap 是全屏 flex 竖排容器）================= -->
