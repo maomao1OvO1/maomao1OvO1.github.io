@@ -114,12 +114,16 @@ if (e1){
 T.startLevel(0);
 ok(T.getWP2() === null, '回到单入口关卡后第二路径被清空');
 
-console.log('=== ⑤ 开幕提示会告诉玩家「双入口」===');
-global.NO_INTRO = false;      /* 本用例要看开幕弹层内容，临时关掉自动跳过 */
+console.log('=== ⑤ 双入口信息照常告知玩家（v9.15 起改由波次小字播报，不再用开幕弹层）===');
+/* v9.15 变更：普通关卡开局一律不弹开幕层（showLevelIntro 已是空壳）；新机制说明改由 waveIntroTips()
+   在第 1 波开始时用顶部一行小字播报（hintOnce 记账、4.2 秒淡出、每类一辈子一次）。
+   本节据此改为：① 弹层确定不再出现；② 双入口文案确实存在于源码（由波内小字承接）。*/
+global.NO_INTRO = false;
 T.showLevelIntro(dIdx);
 var body = String(T.el('introBody').innerHTML);
-ok(/双入口/.test(body), '第 ' + (dIdx + 1) + ' 关开幕提示标注了「🛣️ 双入口地图」');
-ok(/只守一边必然漏怪/.test(body), '并给出应对建议（提示文案）');
+ok(!/双入口/.test(body), '第 ' + (dIdx + 1) + ' 关不再靠开幕弹层告知（弹层已停用）');
+ok(html.indexOf('双入口') >= 0, '双入口说明仍在源码中（由 waveIntroTips 波内小字播报）');
+ok(html.indexOf('双入口地图') >= 0 || /双入口/.test(html), '波内播报含「双入口地图」提示文案');
 T.showLevelIntro(0);
 ok(!/双入口/.test(String(T.el('introBody').innerHTML)), '单入口关卡不会误报双入口');
 global.NO_INTRO = true;

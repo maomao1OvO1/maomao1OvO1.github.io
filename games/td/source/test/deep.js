@@ -14,7 +14,8 @@ code = code.replace(marker,
   '    running: running, paused: paused, BUFFS: BUFFS, spawnQueue: spawnQueue, curGroup: curGroup,\n' +
   '    kills: kills, WAVES_TOTAL: WAVES_TOTAL, SKILLS: SKILLS, comboCount: comboCount }; },\n' +
   '  showBuff: function(){ try { showBuffChoices(); return !!document.getElementById("buffOv"); } catch(e){ return "ERR:"+e.message; } },\n' +
-  '  elHidden: function(id){ return document.getElementById(id)._hidden; } };\n' +
+  '  elHidden: function(id){ return document.getElementById(id)._hidden; },\n' +
+  '  setGold: function(v){ gold = v; } };\n' +
   marker);
 
 // ---------- Stub ----------
@@ -97,6 +98,9 @@ else {
 }
 
 console.log('=== 测试 3：建 4 座塔（不同元素，验证共鸣）===');
+/* 2026-09-14 维护：塔价随版本上调（现约 76/72/104/88，且动态造价逐座递增），
+   第 1 关初始金币已不够建 4 座 → 先补足金币，本节的目的是验共鸣而非经济，故显式给钱。 */
+T.setGold(9999);
 T.addTower(0, 0, 'fire'); T.addTower(1, 0, 'ice');
 T.addTower(2, 0, 'thunder'); T.addTower(3, 0, 'poison');
 s = T.getS();
