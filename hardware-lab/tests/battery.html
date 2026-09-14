@@ -65,11 +65,11 @@ h1{
 }
 
 /* 卡片容器：承载电池信息 */
-.card{
+.card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     max-width:460px;
     margin:15px auto;
     padding:24px 20px;
-    background:white;
+    background: rgba(255, 255, 255, .62);
     border-radius:22px;
     box-shadow:0 5px 20px #0002;
 }
@@ -129,9 +129,9 @@ h1{
 }
 
 /* 单个数据卡片 */
-.item{
+.item{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     padding:15px 8px;
-    background:#f3f3f3;
+    background: rgba(255, 255, 255, .62);
     border-radius:16px;
 }
 
@@ -191,8 +191,8 @@ body.dark-mode{
 }
 
 /* 深色模式：卡片 */
-body.dark-mode .card{
-    background:#1e1e1e;
+body.dark-mode .card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
 }
 
 /* 深色模式：辅助文字 */
@@ -203,8 +203,8 @@ body.dark-mode .note{
 }
 
 /* 深色模式：数据卡片 */
-body.dark-mode .item{
-    background:#292929;
+body.dark-mode .item{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
 }
 
 /* 深色模式：状态条 */
@@ -226,7 +226,7 @@ body.dark-mode button{
 
 
 
-<link rel="stylesheet" href="../hardware.css">
+<link rel="stylesheet" href="../hardware.css?v=2">
 
 
 <style>
@@ -234,16 +234,13 @@ body.dark-mode button{
 body.dark-mode{
     background:#121212 !important;
     color:#eeeeee !important;
-}
-body.dark-mode .card,
-body.dark-mode .desc,
-body.dark-mode .note,
-body.dark-mode .item,
-body.dark-mode .test-list button,
-body.dark-mode button,
-body.dark-mode input,
-body.dark-mode select{
+}body.dark-mode .desc, body.dark-mode .note, body.dark-mode .test-list button, body.dark-mode button, body.dark-mode input, body.dark-mode select{
     background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+body.dark-mode .card, body.dark-mode .item{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eeeeee !important;
     border-color:#333333 !important;
 }
@@ -263,7 +260,7 @@ body.dark-mode .hardware-back{
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
-<link rel="stylesheet" href="../../bg.css?v=7">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
+<link rel="stylesheet" href="../../bg.css?v=8">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
 </head>
 
 

@@ -114,8 +114,8 @@ body.dark-mode{
 
 /* 两个主要容器：测试控制台(.controller)与卡片(.card)同步换成深灰底 + 浅色字 */
 body.dark-mode .controller,
-body.dark-mode .card{
-    background:#1e1e1e !important;
+body.dark-mode .card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eee !important;
 }
 
@@ -184,8 +184,8 @@ body.hardware-dark{
 }
 
 body.hardware-dark .controller,
-body.hardware-dark .card{
-    background:#1e1e1e !important;
+body.hardware-dark .card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eee !important;
 }
 
@@ -244,12 +244,13 @@ body.hardware-dark .hardware-back{
 body.dark-mode{
     background:#121212 !important;
     color:#eeeeee !important;
-}
-
-body.dark-mode .controller,
-body.dark-mode .card,
-body.dark-mode .test-list button{
+}body.dark-mode .test-list button{
     background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important; /* 统一补深色边框，让卡片边界更清晰 */
+}
+body.dark-mode .controller, body.dark-mode .card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eeeeee !important;
     border-color:#333333 !important; /* 统一补深色边框，让卡片边界更清晰 */
 }
@@ -284,12 +285,14 @@ body.dark-mode input{
     background:#1e1e1e !important;
     color:#eeeeee !important;
     border-color:#333333 !important;
-}
-
-/* 各测试页通用的「测试盒子」与「测试按钮」：深灰底 + 浅字 + 深色边框 */
-body.dark-mode .hardware-test-box,
-body.dark-mode .hardware-test-button{
+}body.dark-mode .hardware-test-button{
     background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+/* 各测试页通用的「测试盒子」与「测试按钮」：深灰底 + 浅字 + 深色边框 */
+body.dark-mode .hardware-test-box{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eeeeee !important;
     border-color:#333333 !important;
 }

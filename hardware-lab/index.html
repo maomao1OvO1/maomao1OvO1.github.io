@@ -150,13 +150,13 @@ body.dark-mode .test-list button{
 </style>
 
 <!-- 引入各测试页通用样式表：呼应 hardware.css 中的硬件测试深色体系与返回按钮 -->
-<link rel="stylesheet" href="hardware.css">
+<link rel="stylesheet" href="hardware.css?v=2">
 
 
 
 
 <!-- ===== 内嵌样式块 2：深色模式「返回主页」按钮样式（优先级最高的一层） ===== -->
-<style id="index-back-final">
+<style>
 
 /* ===== 返回主页按钮（深色下保持淡紫底/深紫字，并加 !important 覆盖其他层） ===== */
 
@@ -176,18 +176,15 @@ body.dark-mode .hardware-back{
 body.dark-mode{
     background:#121212 !important;
     color:#eeeeee !important;
+}body.dark-mode .desc, body.dark-mode .note, body.dark-mode .test-list button, body.dark-mode button, body.dark-mode input, body.dark-mode select{
+    background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
 }
 /* 需要改黑底的容器类：卡片、描述、注释、列表项、测试按钮、通用按钮/输入/下拉框，
    统一改为 #1e1e1e 深灰底 + 浅字 + 深色边框 */
-body.dark-mode .card,
-body.dark-mode .desc,
-body.dark-mode .note,
-body.dark-mode .item,
-body.dark-mode .test-list button,
-body.dark-mode button,
-body.dark-mode input,
-body.dark-mode select{
-    background:#1e1e1e !important;
+body.dark-mode .card, body.dark-mode .item{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eeeeee !important;
     border-color:#333333 !important;
 }
@@ -210,7 +207,7 @@ body.dark-mode .hardware-back{
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
-<link rel="stylesheet" href="../bg.css?v=7">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
+<link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
 </head>
 
 <body>

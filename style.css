@@ -59,9 +59,9 @@ height:auto;
 /* 个人主页的居中名片：白底 + 大圆角 + 柔和投影，是页面主体视觉焦点。
    width 固定 300px，padding 留白，text-align 让名片内文字居中，
    box-shadow 用低透明度紫色调营造「从页面浮起」的立体感。 */
-.card {
+.card { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
 
-    background: #ffffff;
+    background: rgba(255, 255, 255, .62);
 
     width: 300px;
 
@@ -171,7 +171,7 @@ to {
 
     width:280px;
 
-    background:#ffffffcc;      /* 半透明白（cc≈80% 不透明） */
+    background: rgba(255, 255, 255, .62);      /* 半透明白（cc≈80% 不透明） */
 
     backdrop-filter:blur(10px);  /* 背景高斯模糊，毛玻璃质感 */
 
@@ -318,8 +318,8 @@ body.dark-mode {
 
 
 /* 深色模式：卡片改用深炭紫底，避免刺眼纯黑。 */
-body.dark-mode .card {
-    background: #1e1e1e;   /* 紫调深卡片 */
+body.dark-mode .card { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);   /* 紫调深卡片 */
 }
 
 
@@ -337,8 +337,8 @@ body.dark-mode .tags span {
 
 
 /* 深色模式：播放器改半透明深底（dd≈87%），仍保留毛玻璃模糊。 */
-body.dark-mode .music-player {
-    background: #222222dd;
+body.dark-mode .music-player { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
 }
 
 
@@ -622,7 +622,7 @@ body.dark-mode .progress-bar {
 
     z-index: 9999;
 
-    background: #ffffffcc;       /* 半透明白 */
+    background: rgba(255, 255, 255, .62);       /* 半透明白 */
 
     backdrop-filter: blur(10px);  /* 背景高斯模糊（毛玻璃） */
 
@@ -676,9 +676,9 @@ body.dark-mode .progress-bar {
 /* ===== 深色模式天气 ===== */
 
 /* 深色模式：天气卡片翻深底 + 白字，与整体深色基调统一。 */
-body.dark-mode #weather-box {
+body.dark-mode #weather-box { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
 
-    background: #222222dd;
+    background: rgba(30, 30, 42, .72);
 
     color: #eeeeee;
 
@@ -1071,7 +1071,7 @@ button {
 
 /* 歌曲列表弹窗：默认隐藏，fixed 居中（top/left 50% + translate 回退自身一半），
    宽 80% 上限 350px，高度超出 70vh 可在内部滚动，圆角+白底+高层级。 */
-#playlist-window{
+#playlist-window{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
 
     display:none;              /* 默认隐藏，由 JS 控制显示 */
 
@@ -1089,7 +1089,7 @@ button {
 
     overflow:auto;             /* 内容超高可滚动 */
 
-    background:white;
+    background: rgba(255, 255, 255, .62);
 
     padding:20px;
 
@@ -1179,7 +1179,7 @@ button {
 
 /* 歌单弹窗（第二版定义，层级更高）：与前面重复但 z-index 提高到 10001，
    保证浮在遮罩之上；竖向溢出用 overflow-y:auto。 */
-#playlist-window{
+#playlist-window{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
 
     display:none;
 
@@ -1191,7 +1191,7 @@ button {
 
     transform:translate(-50%,-50%);  /* 居中定位 */
 
-    background:white;
+    background: rgba(255, 255, 255, .62);
 
     width:80%;
 
@@ -1213,9 +1213,9 @@ button {
 
 /* ===== 歌曲列表深色模式 ===== */
 
-body.dark-mode #playlist-window{
+body.dark-mode #playlist-window{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
 
-    background:#222222;
+    background: rgba(30, 30, 42, .72);
 
     color:#eeeeee;
 
@@ -1700,12 +1700,12 @@ body.dark-mode .particle:nth-child(3n + 2) {
 
 /* ===== 硬件测试大厅入口 ===== */
 
-.hardware-test-box{
+.hardware-test-box{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     margin:25px auto;
     padding:20px;
     max-width:500px;
     border-radius:22px;
-    background:#f5f5f5;
+    background: rgba(255, 255, 255, .62);
     box-shadow:0 5px 20px #0002;
 }
 
@@ -1732,8 +1732,8 @@ body.dark-mode .particle:nth-child(3n + 2) {
 
 /* ===== 深色模式 ===== */
 
-body.dark .hardware-test-box{
-    background:#252525;
+body.dark .hardware-test-box{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
 }
 
 body.dark .hardware-test-button{
@@ -1746,12 +1746,12 @@ body.dark .hardware-test-button{
 
 /* ===== 硬件测试大厅入口 ===== */
 
-.hardware-test-box{
+.hardware-test-box{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     margin:25px auto;
     padding:20px;
     max-width:500px;
     border-radius:22px;
-    background:#f5f5f5;
+    background: rgba(255, 255, 255, .62);
     box-shadow:0 5px 20px #0002;
 }
 
@@ -1778,8 +1778,8 @@ body.dark .hardware-test-button{
 
 /* ===== 深色模式 ===== */
 
-body.dark .hardware-test-box{
-    background:#252525;
+body.dark .hardware-test-box{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
 }
 
 body.dark .hardware-test-button{
@@ -1839,8 +1839,8 @@ body.hardware-dark{
 }
 
 body.hardware-dark .controller,
-body.hardware-dark .card{
-    background:#1e1e1e !important;
+body.hardware-dark .card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eee;
 }
 
@@ -1885,8 +1885,8 @@ body.hardware-dark input{
 
 /* ===== 硬件测试入口：深色模式 ===== */
 
-body.dark-mode .hardware-test-box{
-    background:#252525;
+body.dark-mode .hardware-test-box{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
     color:#eee;
 }
 
@@ -1909,7 +1909,7 @@ body.dark-mode .hardware-test-button{
 
     z-index: 9999;
 
-    background: #ffffffcc;
+    background: rgba(255, 255, 255, .62);
 
     backdrop-filter: blur(10px);
 
@@ -2015,9 +2015,9 @@ body.dark-mode .hardware-test-button{
 
 /* ===== 深色模式 ===== */
 
-body.dark-mode #tokens-box {
+body.dark-mode #tokens-box { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
 
-    background: #222222dd;
+    background: rgba(30, 30, 42, .72);
 
     color: #eeeeee;
 
@@ -2450,7 +2450,7 @@ body.dark-mode .vip-num{
     background:#6543a5;
 }
 
-#userBox{
+#userBox{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     position:fixed;
     bottom:20px;
     right:20px;
@@ -2458,7 +2458,7 @@ body.dark-mode .vip-num{
     align-items:center;
     gap:8px;
     padding:8px 12px;
-    background:#fff;
+    background: rgba(255, 255, 255, .62);
     border-radius:20px;
     box-shadow:0 4px 12px #0002;
     font-size:14px;
@@ -2473,15 +2473,15 @@ body.dark-mode .vip-num{
     cursor:pointer;
     font-size:13px;
 }
-body.dark-mode #userBox{
-    background:#222;
+body.dark-mode #userBox{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
     color:#eee;
 }
 
-#loginModal{
+#loginModal{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     position:fixed;
     inset:0;
-    background:rgba(0,0,0,.5);
+    background: rgba(255, 255, 255, .62);
     display:none;
     align-items:center;
     justify-content:center;
@@ -2680,10 +2680,10 @@ body.dark-mode .login-card input{
     display:flex;
 }
 
-.gate-card{
+.gate-card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     width:100%;
     max-width:350px;
-    background:#fff;
+    background: rgba(255, 255, 255, .62);
     border-radius:24px;
     padding:28px 22px;
     box-shadow:0 20px 60px rgba(0,0,0,.4);
@@ -2737,8 +2737,8 @@ body.dark-mode .login-card input{
     font-size:14px;
 }
 
-body.dark-mode .gate-card{
-    background:#222;
+body.dark-mode .gate-card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
     color:#eee;
 }
 body.dark-mode .gate-card h2,
@@ -2888,13 +2888,13 @@ body.dark-mode .contact-locked{
 
 /* ===== 账号菜单 ===== */
 
-#accountMenu{
+#accountMenu{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     position:fixed;
     bottom:76px;
     right:20px;
     z-index:9999;
     width:260px;
-    background:#fff;
+    background: rgba(255, 255, 255, .62);
     border-radius:16px;
     box-shadow:0 8px 30px #0004;
     padding:12px;
@@ -2965,8 +2965,8 @@ body.dark-mode .contact-locked{
     font-size:14px;
 }
 
-body.dark-mode #accountMenu{
-    background:#222;
+body.dark-mode #accountMenu{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
     color:#eee;
 }
 body.dark-mode .acc-header{
@@ -3046,29 +3046,14 @@ body.dark-mode .acc-hint{
 body.dark-mode{
     background: #121212;
     color: #eeeeee;
-}
-
-/* 卡片/面板统一：紫调深底 + 淡紫边 */
-body.dark-mode .card,
-body.dark-mode .music-player,
-body.dark-mode #playlist-window,
-body.dark-mode #weather-box,
-body.dark-mode #tokens-box,
-body.dark-mode #tokens-settings,
-body.dark-mode #tokens-settings-panel,
-body.dark-mode #status,
-body.dark-mode .hardware-test-box,
-body.dark-mode .hardware-test-button,
-body.dark-mode #accountMenu,
-body.dark-mode .gate-card,
-body.dark-mode #accountBtn,
-body.dark-mode .lg-btn,
-body.dark-mode .acc-row,
-body.dark-mode .acc-small,
-body.dark-mode input[type="email"],
-body.dark-mode input[type="password"],
-body.dark-mode input[type="text"]{
+}body.dark-mode #tokens-settings, body.dark-mode #tokens-settings-panel, body.dark-mode #status, body.dark-mode .hardware-test-button, body.dark-mode #accountBtn, body.dark-mode .lg-btn, body.dark-mode .acc-row, body.dark-mode .acc-small, body.dark-mode input[type="email"], body.dark-mode input[type="password"], body.dark-mode input[type="text"]{
     background: #1e1e1e;
+    color: #eeeeee;
+    border-color: #333333;
+}
+/* 卡片/面板统一：紫调深底 + 淡紫边 */
+body.dark-mode .card, body.dark-mode .music-player, body.dark-mode #playlist-window, body.dark-mode #weather-box, body.dark-mode #tokens-box, body.dark-mode .hardware-test-box, body.dark-mode #accountMenu, body.dark-mode .gate-card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
     color: #eeeeee;
     border-color: #333333;
 }
@@ -3142,15 +3127,16 @@ body.dark-mode #playlist button{
     background: #1e1e1e;
     color: #eeeeee;
     border-color: #333333;
-}
-
-/* ============================================================
+}/* ============================================================
    深色模式 · 登录/登录门组件紫调补漏(2026-08-26)
    ============================================================ */
 
-body.dark-mode .login-card,
-body.dark-mode .gate-card{
+body.dark-mode .login-card{
     background:#1e1e1e;
+    color:#eeeeee;
+}
+body.dark-mode .gate-card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
     color:#eeeeee;
 }
 body.dark-mode .login-card h3,
@@ -3323,8 +3309,8 @@ body.dark-mode #nicknameShow{
     align-items:center;justify-content:center;padding:20px;
     background:linear-gradient(160deg,#7C5CBF,#5a4a9c,#3a356e);
 }
-.mail-card{
-    width:100%;max-width:400px;background:#fff;border-radius:24px;
+.mail-card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    width:100%;max-width:400px;background: rgba(255, 255, 255, .62);border-radius:24px;
     padding:26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center;
 }
 .mail-card h3{margin:0 0 8px;color:#6543a5;}
@@ -3332,24 +3318,24 @@ body.dark-mode #nicknameShow{
 .mail-card textarea{margin-bottom:12px;}
 .mail-ops{text-align:right;margin-top:4px;}
 .mail-ops .lg-btn{margin-left:6px;}
-.mail-panel{
-    max-width:640px;margin:14px auto;background:#fff;
+.mail-panel{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    max-width:640px;margin:14px auto;background: rgba(255, 255, 255, .62);
     border:1px solid #e5dcff;border-radius:20px;padding:14px 16px;
     box-shadow:0 3px 12px rgba(0,0,0,.12);text-align:left;
 }
 .mail-panel .mail-head{color:#6543a5;font-weight:700;}
 .mail-panel .mail-list{margin-top:10px;font-size:14px;line-height:1.8;color:#555;}
-.mail-item{border:1px solid #e5dcff;border-radius:12px;padding:8px 12px;margin-bottom:8px;background:#f7f4ff;}
+.mail-item{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);border:1px solid #e5dcff;border-radius:12px;padding:8px 12px;margin-bottom:8px;background: rgba(255, 255, 255, .62);}
 .mail-item small{color:#997dcc;}
-body.dark-mode .mail-card{background:#1e1e1e;color:#eee;}
+body.dark-mode .mail-card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);background: rgba(30, 30, 42, .72);color:#eee;}
 body.dark-mode .mail-card h3{color:#bb9cff;}
-body.dark-mode .mail-panel{background:#1e1e1e;border-color:#4a3a78;color:#ddd;}
-body.dark-mode .mail-item{background:#2a2142;border-color:#4a3a78;}
+body.dark-mode .mail-panel{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);background: rgba(30, 30, 42, .72);border-color:#4a3a78;color:#ddd;}
+body.dark-mode .mail-item{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);background: rgba(30, 30, 42, .72);border-color:#4a3a78;}
 body.dark-mode .mail-item small{color:#8f7ac2;}
 
 
 /* ===== 自制游戏下载卡片（紧凑一行式；深浅色主题各自适配） ===== */
-.mygame-card {
+.mygame-card { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -3358,7 +3344,7 @@ body.dark-mode .mail-item small{color:#8f7ac2;}
     margin: 10px auto 4px;
     padding: 9px 12px;
     border-radius: 16px;
-    background: #ffffff;
+    background: rgba(255, 255, 255, .62);
     box-shadow: 0 6px 18px rgba(100, 80, 150, 0.15);
     text-align: left;
     text-decoration: none;
@@ -3379,7 +3365,7 @@ body.dark-mode .mail-item small{color:#8f7ac2;}
     white-space: nowrap;
 }
 /* 深色模式：沿用网站的深炭紫底 + 淡紫字 */
-body.dark-mode .mygame-card { background: #1e1e1e; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+body.dark-mode .mygame-card { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); background: rgba(30, 30, 42, .72); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
 body.dark-mode .mygame-card .gm-name { color: #bb9cff; }
 body.dark-mode .mygame-card .gm-meta { color: #9a9a9a; }
 body.dark-mode .mygame-card .gm-btn { background: #33245c; color: #d8c7ff; }

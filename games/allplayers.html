@@ -34,9 +34,9 @@
 body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
 h1 { color:#7C5CBF; }
 /* ===== 门禁卡片：登录校验前显示的提示框，居中卡片样式 ===== */
-.gate { max-width:480px; margin:40px auto; background:#fff; padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
+.gate { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); max-width:480px; margin:40px auto; background: rgba(255, 255, 255, .62); padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
 /* ===== 内容盒子：成绩表格所在的大卡片容器 ===== */
-.box { max-width:900px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
+.box { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); max-width:900px; margin:10px auto; background: rgba(255, 255, 255, .62); padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
 /* ===== 按钮样式（紫色主题 + 悬停加深）===== */
 button { padding:9px 14px; border:none; border-radius:10px; font-size:15px; margin:4px; background:#7C5CBF; color:#fff; cursor:pointer; }
 button:hover { background:#6543a5; }
@@ -55,7 +55,7 @@ th.pname, td.pname { text-align:left; font-weight:bold; }
 .scroll { overflow-x:auto; }
 /* ===== 深色模式配色（跟随全局 theme 变量）===== */
 body.dark-mode { background:#121212; color:#fff; }
-.dark-mode .box, .dark-mode .gate { background:#1e1e1e; color:#eee; }
+.dark-mode .box, .dark-mode .gate { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); background: rgba(30, 30, 42, .72); color:#eee; }
 .dark-mode th { background:#2a2438; color:#bb9cff; }
 .dark-mode th, .dark-mode td { border-color:#333; }
 .dark-mode .back-home { background:#333; color:#bb9cff; }
@@ -64,7 +64,7 @@ body.dark-mode { background:#121212; color:#fff; }
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
-<link rel="stylesheet" href="../bg.css?v=7">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
+<link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
 </head>
 
 <body>

@@ -1,8 +1,52 @@
 /* ============================================================================
-   文件：bg.css —— 全站视觉统一层
+   文件：bg.css —— 全站光场背景（ColorOS 16 质感 · 毛毛 2026-09-15 选定）
    ----------------------------------------------------------------------------
-   ⚠️ 2026-09-15 暂时停用：上一版（v7）的深色模式适配出错，毛毛反馈「深色模式全改坏了」。
-      为免影响使用，这里先清空全部样式（= 网站立刻回到原样），
-      待深色问题彻底查清后再重新接入。原内容已备份到 ~/tmp/bg.css.broken。
-      记录见 PROJECT_STATE.md「📝 修改记录」。
+   本文件**只做一件事**：给页面铺一层"光场"底色（几团超大、极低饱和的柔光）。
+   卡片/面板的玻璃质感不在这里 —— 那些是直接改进各页面与 style.css / hardware.css
+   的原始规则里的（毛毛要求"把 css 找出来一个一个改"，所以不再用外部覆盖）。
+   因此本文件与任何现有规则都不冲突：它只用 body::before 这个没人用过的伪元素。
+   要点：
+     · position:fixed 的伪元素 → 不随滚动重绘，手机省电
+     · z-index:-1 + pointer-events:none → 落在内容之下，且绝不拦截点击
+     · 纯 CSS 径向渐变：零图片零外部请求
+     · 明暗两套；深色同时兼容 dark-mode（现行）与 hardware-dark（硬件页历史类名）
+     · 动画只漂移 background-position，22 秒一循环；系统开「减弱动效」自动静止
+     · 不改 body 的背景色（各页面自己管），避免任何深色模式被干扰
    ========================================================================== */
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: -10%;
+    z-index: -1;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-size: 130% 130%;
+    background-image:
+        radial-gradient(70% 55% at 15% 6%,  rgba(139, 122, 255, .34), transparent 66%),
+        radial-gradient(62% 48% at 88% 16%, rgba(255, 122, 190, .28), transparent 66%),
+        radial-gradient(78% 62% at 48% 104%, rgba(86, 198, 255, .30), transparent 68%);
+    background-position: 0% 0%, 100% 0%, 50% 100%;
+    animation: mmFieldDrift 22s ease-in-out infinite alternate;
+}
+
+/* 深色：低饱和紫 / 青 / 品红；两种深色类名都覆盖 */
+body.dark-mode::before,
+body.hardware-dark::before {
+    background-image:
+        radial-gradient(70% 55% at 15% 6%,  rgba(126, 108, 255, .34), transparent 66%),
+        radial-gradient(62% 48% at 88% 16%, rgba(56, 189, 248, .20), transparent 66%),
+        radial-gradient(78% 62% at 48% 104%, rgba(236, 72, 153, .18), transparent 68%);
+}
+
+@keyframes mmFieldDrift {
+    0%   { background-position: 0% 0%, 100% 0%, 50% 100%; }
+    100% { background-position: 20% 16%, 80% 24%, 42% 84%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body::before { animation: none; }
+}
+@media print {
+    body::before { display: none; }
+}

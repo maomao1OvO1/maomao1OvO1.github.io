@@ -35,15 +35,15 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
 h1 { color:#7C5CBF; }
 .hd { color:#6543a5; }
-.gate { max-width:480px; margin:40px auto; background:#fff; padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
-.box { max-width:640px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
+.gate { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); max-width:480px; margin:40px auto; background: rgba(255, 255, 255, .62); padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
+.box { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); max-width:640px; margin:10px auto; background: rgba(255, 255, 255, .62); padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
 button { padding:9px 14px; border:none; border-radius:10px; font-size:15px; margin:4px; background:#7C5CBF; color:#fff; cursor:pointer; }
 button:hover { background:#6543a5; }
 button.sec { background:#e5dcff; color:#6543a5; }
 .msg { color:#666; margin:6px 0; }
 .msg.err { color:#c94f4f; }
 .msg.ok { color:#2a8a3f; }
-.item { border:1px solid #e5dcff; border-radius:12px; padding:9px 12px; margin-bottom:8px; background:#f7f4ff; text-align:left; }
+.item { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border:1px solid #e5dcff; border-radius:12px; padding:9px 12px; margin-bottom:8px; background: rgba(255, 255, 255, .62); text-align:left; }
 .item b { color:#6543a5; }
 .item small { color:#997dcc; }
 .item .txt { margin-top:3px; color:#444; word-break:break-word; }
@@ -53,11 +53,11 @@ button.sec { background:#e5dcff; color:#6543a5; }
 body.dark-mode { background:#121212; color:#fff; }
 body.dark-mode h1 { color:#bb9cff; }
 .dark-mode .hd { color:#bb9cff; }
-.dark-mode .box, .dark-mode .gate { background:#1e1e1e; color:#eee; }
+.dark-mode .box, .dark-mode .gate { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); background: rgba(30, 30, 42, .72); color:#eee; }
 .dark-mode .msg { color:#bbb; }
 .dark-mode .msg.err { color:#ff8a8a; }
 .dark-mode .msg.ok { color:#7be08a; }
-.dark-mode .item { background:#2a2142; border-color:#4a3a78; }
+.dark-mode .item { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); background: rgba(30, 30, 42, .72); border-color:#4a3a78; }
 .dark-mode .item b { color:#bb9cff; }
 .dark-mode .item small { color:#8f7ac2; }
 .dark-mode .item .txt { color:#ccc; }
@@ -69,7 +69,7 @@ body.dark-mode h1 { color:#bb9cff; }
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
-<link rel="stylesheet" href="../bg.css?v=7">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
+<link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
 </head>
 
 <body>

@@ -36,7 +36,7 @@ content="width=device-width,initial-scale=1.0">
 
 <title>🔦 手电筒测试</title>
 
-<link rel="stylesheet" href="../hardware.css">
+<link rel="stylesheet" href="../hardware.css?v=2">
 
 <style>
 /* ==== 浅色模式基础样式（页面默认外观） ==== */
@@ -65,8 +65,8 @@ h1{
     margin-bottom:25px;
 }
 
-.card{
-    background:white;
+.card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(255, 255, 255, .62);
     border-radius:24px;
     padding:25px 20px;
     margin:18px 0;
@@ -145,7 +145,7 @@ button:active{
 
 
 
-<style id="flashlight-dark-mode">
+<style>
 /* ==== 本页深色模式样式（由 applyMainTheme() 切换 body.dark-mode 时生效） ==== */
 /* 说明：深色模式下调整背景/卡片/文字/返回按钮/关闭态按钮的配色 */
 
@@ -158,8 +158,8 @@ body.dark-mode .subtitle{
     color:#aaa;
 }
 
-body.dark-mode .card{
-    background:#24212b;
+body.dark-mode .card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
     box-shadow:0 5px 20px #0006;
 }
 
@@ -193,16 +193,13 @@ body.dark-mode #message{
 body.dark-mode{
     background:#121212 !important;
     color:#eeeeee !important;
-}
-body.dark-mode .card,
-body.dark-mode .desc,
-body.dark-mode .note,
-body.dark-mode .item,
-body.dark-mode .test-list button,
-body.dark-mode button,
-body.dark-mode input,
-body.dark-mode select{
+}body.dark-mode .desc, body.dark-mode .note, body.dark-mode .test-list button, body.dark-mode button, body.dark-mode input, body.dark-mode select{
     background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+body.dark-mode .card, body.dark-mode .item{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eeeeee !important;
     border-color:#333333 !important;
 }
@@ -222,7 +219,7 @@ body.dark-mode .hardware-back{
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
-<link rel="stylesheet" href="../../bg.css?v=7">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
+<link rel="stylesheet" href="../../bg.css?v=8">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
 </head>
 
 <body>

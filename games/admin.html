@@ -38,7 +38,7 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 <style>
 body { text-align:center; font-family:Arial, sans-serif; background:#f5f5f5; margin:0; padding:15px; }
 h1 { color:#7C5CBF; }
-.box { max-width:620px; margin:10px auto; background:#fff; padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
+.box { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); max-width:620px; margin:10px auto; background: rgba(255, 255, 255, .62); padding:15px 18px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); text-align:left; }
 select, input, button { padding:9px 12px; border:none; border-radius:10px; font-size:15px; margin:4px; box-sizing:border-box; }
 select, input { border:1px solid #ccc; background:#fff; }
 button { background:#7C5CBF; color:#fff; cursor:pointer; }
@@ -46,7 +46,7 @@ button:hover { background:#6543a5; }
 button.sec { background:#e5dcff; color:#6543a5; }
 button.danger { background:#c94f4f; }
 button.danger:hover { background:#a83838; }
-.gate { max-width:480px; margin:40px auto; background:#fff; padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
+.gate { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); max-width:480px; margin:40px auto; background: rgba(255, 255, 255, .62); padding:25px; border-radius:15px; box-shadow:0 3px 12px rgba(0,0,0,0.12); }
 .rowhead { font-weight:bold; color:#7C5CBF; margin:6px 0; }
 .rowsc { margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #eee; }
 .rowsc .rmeta { display:inline-block; margin-right:8px; }
@@ -59,7 +59,7 @@ button.danger:hover { background:#a83838; }
 #list { max-width:600px; }
 .back-home { position:fixed; top:20px; right:20px; background:#e5dcff; color:#6543a5; padding:10px 15px; border-radius:20px; text-decoration:none; font-size:16px; z-index:9; }
 body.dark-mode { background:#121212; color:#fff; }
-.dark-mode .box, .dark-mode .gate { background:#1e1e1e; color:#eee; }
+.dark-mode .box, .dark-mode .gate { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); background: rgba(30, 30, 42, .72); color:#eee; }
 .dark-mode select, .dark-mode input { background:#333; color:#eee; border-color:#555; }
 .dark-mode button.sec { background:#333; color:#bb9cff; }
 .dark-mode .back-home { background:#333; color:#bb9cff; }
@@ -69,7 +69,7 @@ body.dark-mode { background:#121212; color:#fff; }
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
-<link rel="stylesheet" href="../bg.css?v=7">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
+<link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
 </head>
 
 <body>
