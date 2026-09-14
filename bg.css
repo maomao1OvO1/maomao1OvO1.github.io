@@ -1,0 +1,56 @@
+/* ============================================================================
+   文件：bg.css —— 全站背景美化「柔光」（毛毛 2026-09-15 选定的 D 方案）
+   ----------------------------------------------------------------------------
+   这文件干什么：给页面加三层柔光光斑（浅色/深色各一套），让背景不再是一块死色。
+   为什么单独成文件：本站有 4 套样式体系（主站 style.css / 游戏页内联 / 硬件大厅
+     hardware.css / 管理页内联），做成公共文件后各套都引它一份即可，改也只改这里。
+   实现要点（都是为了不出 bug、不拖慢）：
+     1. 用 position:fixed 的 body::before 画背景 —— 固定不随滚动重绘，手机上省电；
+        不用 background-attachment:fixed（那个在移动端滚动会掉帧）。
+     2. z-index:-1 让它落在「内容之下、底色之上」，不会挡住任何内容。
+     3. pointer-events:none —— 绝不拦截点击，按钮链接照常能点。
+     4. 纯 CSS 径向渐变，零图片、零外部请求，不增加首屏负担。
+     5. 明暗两套：默认浅色；body.dark-mode 下换深色光斑（本站明暗切换就是这个类）。
+     6. 动画只改 background-position、30 秒一循环；系统开「减弱动效」时自动静止。
+     7. 兜底：各页面原有的 body 底色保持不变，即使本文件没加载也照样能看。
+   ========================================================================== */
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;                     /* 铺满视口（top/right/bottom/left 全 0） */
+    z-index: -1;                  /* 内容之下、底色之上 */
+    pointer-events: none;         /* 不挡点击 */
+    background-repeat: no-repeat;
+    background-image:
+        radial-gradient(closest-side, rgba(255, 196, 235, .50), transparent 70%),
+        radial-gradient(closest-side, rgba(196, 208, 255, .50), transparent 70%),
+        radial-gradient(closest-side, rgba(214, 196, 255, .46), transparent 72%);
+    background-size: 55% 40%, 60% 45%, 70% 40%;
+    background-position: 8% 12%, 92% 22%, 50% 96%;
+    animation: mmSoftFloat 30s ease-in-out infinite alternate;
+}
+
+/* 深色模式：光斑换成紫 / 青 / 品红，压暗一档，避免刺眼 */
+body.dark-mode::before {
+    background-image:
+        radial-gradient(closest-side, rgba(167, 139, 250, .40), transparent 70%),
+        radial-gradient(closest-side, rgba(56, 189, 248, .24), transparent 70%),
+        radial-gradient(closest-side, rgba(236, 72, 153, .18), transparent 72%);
+}
+
+/* 缓慢飘动：只动 background-position，GPU 直接处理，不触发重排 */
+@keyframes mmSoftFloat {
+    0%   { background-position: 8% 12%, 92% 22%, 50% 96%; }
+    100% { background-position: 18% 22%, 78% 12%, 40% 88%; }
+}
+
+/* 尊重系统「减弱动效」：开了就静止不动 */
+@media (prefers-reduced-motion: reduce) {
+    body::before { animation: none; }
+}
+
+/* 打印时不画背景（省墨、也不影响打印结果） */
+@media print {
+    body::before { display: none; }
+}

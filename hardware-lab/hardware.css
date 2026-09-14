@@ -293,3 +293,49 @@ body.dark-mode .hardware-test-button{
     color:#eeeeee !important;
     border-color:#333333 !important;
 }
+
+
+/* ============================================================================
+   背景美化「柔光」—— 与 bg.css 同源（2026-09-15 小鲸接入，毛毛选定 D 方案）。
+   主站页面（首页/音乐/摄影/视频/404）引用的是本文件，因此这里内联一份；
+   其它三套样式体系（游戏页 / 硬件大厅 / 管理页）则各自引用 bg.css，改的时候两边一起改。
+   ========================================================================== */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;                     /* 铺满视口（top/right/bottom/left 全 0） */
+    z-index: -1;                  /* 内容之下、底色之上 */
+    pointer-events: none;         /* 不挡点击 */
+    background-repeat: no-repeat;
+    background-image:
+        radial-gradient(closest-side, rgba(255, 196, 235, .50), transparent 70%),
+        radial-gradient(closest-side, rgba(196, 208, 255, .50), transparent 70%),
+        radial-gradient(closest-side, rgba(214, 196, 255, .46), transparent 72%);
+    background-size: 55% 40%, 60% 45%, 70% 40%;
+    background-position: 8% 12%, 92% 22%, 50% 96%;
+    animation: mmSoftFloat 30s ease-in-out infinite alternate;
+}
+
+/* 深色模式：光斑换成紫 / 青 / 品红，压暗一档，避免刺眼 */
+body.dark-mode::before {
+    background-image:
+        radial-gradient(closest-side, rgba(167, 139, 250, .40), transparent 70%),
+        radial-gradient(closest-side, rgba(56, 189, 248, .24), transparent 70%),
+        radial-gradient(closest-side, rgba(236, 72, 153, .18), transparent 72%);
+}
+
+/* 缓慢飘动：只动 background-position，GPU 直接处理，不触发重排 */
+@keyframes mmSoftFloat {
+    0%   { background-position: 8% 12%, 92% 22%, 50% 96%; }
+    100% { background-position: 18% 22%, 78% 12%, 40% 88%; }
+}
+
+/* 尊重系统「减弱动效」：开了就静止不动 */
+@media (prefers-reduced-motion: reduce) {
+    body::before { animation: none; }
+}
+
+/* 打印时不画背景（省墨、也不影响打印结果） */
+@media print {
+    body::before { display: none; }
+}
