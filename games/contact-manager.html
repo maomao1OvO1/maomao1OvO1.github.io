@@ -14,6 +14,7 @@
 <html lang="zh-CN">
 
 <head>
+<meta charset="UTF-8">
 <script>
 // #maomao-lc-redirect 域名大小写统一：GitHub Pages 大小写同站，但 Firebase 授权域名区分大小写 → 强制全小写
 if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== location.hostname.toLowerCase()) {
@@ -22,12 +23,10 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 }
 </script>
 
-<script src="/device-check.js?v=18"></script>
-    <script src="/anti-bot.js?v=5"></script>
-<meta charset="UTF-8">
+<script defer src="/gate.js?v=1"></script>
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/png" href="../icon.png"
-<link rel="apple-touch-icon" href="../icon.png">>
+<link rel="icon" type="image/png" href="../icon.png">
+<link rel="apple-touch-icon" href="../icon.png">
 <meta name="theme-color" content="#7C5CBF">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
@@ -66,6 +65,10 @@ body.dark-mode h1 { color:#bb9cff; }
 .dark-mode button.sec { background:#333; color:#bb9cff; }
 .dark-mode .back-home { background:#333; color:#bb9cff; }
 </style>
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 
 <body>

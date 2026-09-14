@@ -37,15 +37,14 @@
 <html lang="zh-CN">
 
 <head>
-<script src="/device-check.js?v=18"></script>
-    <script src="/anti-bot.js?v=5"></script>
+<meta charset="UTF-8">
+<script defer src="/gate.js?v=1"></script>
 
 <!-- ====== 页面头部：字符集、移动端视口设置、页面标题 ====== -->
 
-<meta charset="UTF-8">
 <meta name="description" content="⌨️ 输入设备测试 —— 毛毛网站的硬件测试工具，浏览器打开即用">
-<link rel="icon" type="image/png" href="../../icon.png"
-<link rel="apple-touch-icon" href="../../icon.png">>
+<link rel="icon" type="image/png" href="../../icon.png">
+<link rel="apple-touch-icon" href="../../icon.png">
 <meta name="theme-color" content="#7C5CBF">
 
 <meta name="viewport"
@@ -309,6 +308,10 @@ body.dark-mode .hardware-back{
     color:#bb9cff !important;
 }
 </style>
+<!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 
 

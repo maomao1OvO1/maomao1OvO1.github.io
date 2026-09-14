@@ -24,6 +24,7 @@
 ═════════════════════════════════════════════════════════════════════ -->
 
 <head>
+<meta charset="UTF-8">
 <script>
 // #maomao-lc-redirect 域名大小写统一：GitHub Pages 大小写同站，但 Firebase 授权域名区分大小写 → 强制全小写
 if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== location.hostname.toLowerCase()) {
@@ -32,11 +33,9 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 }
 </script>
 
-<script src="/device-check.js?v=18"></script>
-    <script src="/anti-bot.js?v=5"></script>
+<script defer src="/gate.js?v=1"></script>
 
 <!-- head 区：存放页面元信息（编码、图标、标题、样式），不直接显示在页面上 -->
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="毛毛的个人主页 —— 摄影 / 视频 / 音乐作品，自制小游戏，硬件测试与实用小工具">
 <meta name="theme-color" content="#7C5CBF">
@@ -50,8 +49,8 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 <link rel="manifest" href="manifest.json">
 
 <!-- 浏览器标签页 / 收藏夹里显示的网站图标（PNG） -->
-<link rel="icon" type="image/png" href="icon.png"
-<link rel="apple-touch-icon" href="icon.png">>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 
 <!-- 浏览器标签页标题：浏览器窗口顶部显示的文字 -->
 <title>毛毛的个人主页</title>
@@ -59,6 +58,10 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 <!-- 全局样式表；v=32 是版本号，改样式时递增即可强制浏览器重新下载（避免缓存旧版） -->
 <link rel="stylesheet" href="style.css?v=37">
 
+<!-- 性能：提前建立关键外部连接（Firebase SDK / 数据接口），省掉 DNS+TLS 往返 -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://ipwho.is">
 </head>
 
 <!-- body 带有 loading 类：页面隐藏加载动画，等资源就绪后再显示主体内容 -->
@@ -128,7 +131,7 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 </div>
 
 <!-- 加载 weather.js（defer：HTML 解析完后再执行，保证 id=weather-box 已存在） -->
-<script src="weather.js?v=2" defer></script>
+<script src="weather.js?v=4" defer></script>
 
 <!-- ===== AI 余额盒子（自助查询，每个访客用自己的 Key） ===== -->
 <!-- AI 余额查询区块：访客自己粘贴自己的 API Key 来查询余额。
@@ -730,9 +733,9 @@ updateTime();
 <!-- ===== Firebase Auth SDK ===== -->
 <!-- 防火墙后端认证依赖：firebase-app-compat(核心) + firebase-auth-compat(认证)；
      加上项目各自的 firebase-config.js 与登录逻辑 login.js（defer 延迟执行） -->
-<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script defer src="firebase-config.js?v=2"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js?v=2"></script>
 <script src="login.js?v=22" defer></script>
 <script src="contact.js?v=4" defer></script>
 
