@@ -129,12 +129,15 @@ var twK = Object.keys(s3.BUFFS.tw || {});
 ok(boosted.length > 0 || s3.BUFFS.aura > 1 || twK.length > 0,
    '点击局部强化确实生效（' + (twK.length ? 'v7.8 专属强化 → ' + twK.join(',') : '专精 ' + JSON.stringify(s3.BUFFS.el)) + '）');
 
-console.log('=== ⑥ 新手提示栏只在 1-1 显示 ===');
-T.startLevel(0); ok(T.el('tip').style.display === 'block', '第 1 关显示提示栏');
+console.log('=== ⑥ 新手提示栏只归「新手教学」（v9.15 起：普通关卡含第 1 关都不显示）===');
+/* 变更记录：v4.0 时本节的预期是「只在 1-1 显示」；毛毛在 v9.15 明确要求「新手提示 100% 只存在于新手教学」，
+   于是 HINT_ON 默认改为 false、startLevel 里一律 hintBar(false)，教学关 startTutorial() 才 hintBar(true)。
+   本节断言随之改为验证「普通关卡都不显示」，教学关显示由 deep43_quietintro.js 覆盖。 */
+T.startLevel(0); ok(T.el('tip').style.display === 'none', '第 1 关不显示提示栏（v9.15：只归教学关）');
 T.startLevel(1); ok(T.el('tip').style.display === 'none', '第 2 关隐藏提示栏');
 T.startLevel(4); ok(T.el('tip').style.display === 'none', '第 5 关隐藏提示栏');
-T.startLevel(0); ok(T.el('tip').style.display === 'block', '重玩 1-1 提示栏再次出现');
-ok(html.indexOf('点空地建塔 · 点塔升级/出售 · 相邻不同元素会共鸣') >= 0, '提示栏文字未改动');
+T.startLevel(0); ok(T.el('tip').style.display === 'none', '重玩 1-1 同样不显示提示栏');
+ok(html.indexOf('点空地建塔 · 点塔升级/出售 · 相邻不同元素会共鸣') >= 0, '提示栏文字仍保留在源码（教学关 hintBar(true) 时才展示）');
 
 console.log('=== ⑦ 稳定性：连跑 4 波无报错 ===');
 T.startLevel(0); T.setGold(99999);

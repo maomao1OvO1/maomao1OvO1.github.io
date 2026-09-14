@@ -113,32 +113,31 @@ ok(T.levelNewMech(1).length === 0, '第 2 关不重复提示天气（天气在�
 ok(T.levelNewMech(0).map(function(m){ return m.wave; }).indexOf(4) >= 0 && T.levelNewMech(0).map(function(m){ return m.wave; }).indexOf(10) >= 0,
    '第 1 关提示「元素天气开启」（第 4 波）与「BOSS 登场」（第 10 波）');
 
-console.log('=== ④ 开幕提示界面与交互 ===');
+console.log('=== ④ 开幕弹层已停用（v9.15：普通关卡含第 1 关都不再弹，改由波次小字播报）===');
+/* 变更记录：v8.4 起普通关卡开局会弹「关卡开幕提示」阻塞式弹层；v9.14 收敛为只在第 1 关弹；
+   v9.15 按毛毛要求「新手提示 100% 只存在于新手教学」把普通关卡弹层整体停用 ——
+   showLevelIntro() 变成只恢复运行状态的空壳，新敌人/新机制/新技能/双入口/地图信息
+   改由 waveIntroTips() 在对应波次开始时用顶部一行小字播报（hintOnce 记账、每类一辈子一次）。
+   本节据此改为验证「弹层确实不再注入任何内容」。 */
 T.showLevelIntro(1);
 var body = String(T.el('introBody').innerHTML);
-ok(/本关新出现/.test(body) && /盗金贼/.test(body), '第 2 关提示列出「本关新出现」的盗金贼');
-ok(/本关新机制/.test(body) === false || true, '（无新机制时不显机制块）');
+ok(!/本关新出现/.test(body), '第 2 关不再靠弹层列新敌人（弹层已停用）');
 T.showLevelIntro(5);
 body = String(T.el('introBody').innerHTML);
-ok(/双 BOSS/.test(body), '第 6 关提示出现「双 BOSS」机制说明');
-ok(/本关没有新敌人/.test(body), '第 6 关如实说明没有新兵种');
-ok(/地图：/.test(body) && /蛇行/.test(body), '提示里包含本关地图信息');
-ok(String(T.el('introTitle').textContent).indexOf('第 6 关') >= 0, '标题显示关卡号与名称（' + T.el('introTitle').textContent + '）');
-ok(String(T.el('introSub').textContent).indexOf('20 波') >= 0, '副标题显示波数与金币（' + T.el('introSub').textContent + '）');
+ok(!/双 BOSS/.test(body), '第 6 关不再靠弹层说明机制');
 T.showLevelIntro(0);
-ok(/新手提示/.test(String(T.el('introBody').innerHTML)), '第 1 关额外给新手提示（共鸣/共振）');
+ok(!/新手提示/.test(String(T.el('introBody').innerHTML)), '第 1 关同样不再弹层（新手提示只归教学关）');
+ok(typeof T.showLevelIntro === 'function', 'showLevelIntro 仍保留（空壳，兼容旧调用点与无尽/教学关）');
+ok(html.indexOf('waveIntroTips') >= 0, '波次小字播报 waveIntroTips 已接入（承接被移除的弹层信息）');
 
-console.log('=== ⑤ 弹提示时游戏暂停，点「开始战斗」才开打 ===');
+console.log('=== ⑤ 进入关卡直接开打（v9.15：不再需要点「开始战斗」）===');
 T.setUnlocked(15);
 T.startLevel(0);
 var st = T.getS();
-ok(st.running === false && st.paused === true, '进入关卡时游戏处于暂停状态（不点开始就不会掉血）');
-ok(html.indexOf('id="introOv"') >= 0 && html.indexOf('id="introBody"') >= 0, '开幕提示用独立覆盖层（introOv + introBody）');
-T.el('introBtn').fire('click');
-var st2 = T.getS();
-ok(st2.running === true && st2.paused === false, '点「开始战斗」后恢复运行');
+ok(st.running === true && st.paused === false, '进入关卡后直接处于运行状态（不再阻塞等待点击）');
+ok(html.indexOf('id="introOv"') >= 0 && html.indexOf('id="introBody"') >= 0, '开幕层 DOM 仍保留（无尽模式开场/教学关复用）');
 T.hideAll();
-ok(html.indexOf("'introOv'") >= 0, 'hideAll 会把开幕层一起收纳（切关不残留）');
+ok(html.indexOf("'introOv'") >= 0, 'hideAll 仍会把开幕层一起收纳（切关不残留）');
 
 console.log('=== ⑥ 全部 15 关都能正常开局（含新地图）===');
 var startBad = 0;
