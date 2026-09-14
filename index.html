@@ -200,7 +200,7 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 
 <!-- ===== 彩蛋触发头像 ===== -->
 <!-- 头像：150x150px；decoding=async 让浏览器异步解码图片，不阻塞页面渲染 -->
-<img id="avatar" src="maomao.jpg" width="150" height="150" decoding="async">
+<img id="avatar" src="maomao.jpg" alt="毛毛的头像" width="150" height="150" decoding="async">
 
 <!-- 彩蛋元素：显示「彩蛋 😋」提示 + CSS 绘制的一大一小两个圆；
      点击头像会触发某个彩蛋效果/弹窗（交互逻辑在 main.js） -->
@@ -269,7 +269,7 @@ showTime();
 <div class="music-player">
 
 <!-- 专辑封面图：loading=lazy 延迟到临近视口才加载，省流量；decoding=async 异步解码 -->
-<img src="images/FLXE-001.jpg" loading="lazy" decoding="async">
+<img src="images/FLXE-001.jpg" alt="网站封面图" loading="lazy" decoding="async">
 
 <!-- 当前歌名：默认「正在加载...」，由 player.js 在歌曲就绪后填入歌名 -->
 <div id="songName">正在加载...</div>
@@ -638,7 +638,7 @@ updateTime();
 <!-- 登录后才显示的账号按钮（默认 display:none 隐藏）：左下/固定角显示头像、昵称、角色和下拉箭头 -->
 <button id="accountBtn" style="display:none;" onclick="toggleAccountMenu(event)">
     <!-- 用户头像（登录后填 src） -->
-    <img id="accPhoto" width="26" height="26" style="border-radius:50%;object-fit:cover;">
+    <img id="accPhoto" alt="账号头像" width="26" height="26" style="border-radius:50%;object-fit:cover;">
     <!-- 头像旁的文字列：昵称 + 角色 + （管理员才出现的「用户管理」链接） -->
     <span id="accLabelWrap" style="display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.2;">
         <span id="accName">游客</span>
@@ -658,7 +658,7 @@ updateTime();
 <div id="accountMenu" style="display:none;">
     <!-- 菜单头部：显示当前登录者的头像、昵称和邮箱 -->
     <div class="acc-header">
-        <img id="menuPhoto" width="42" height="42" style="border-radius:50%;object-fit:cover;">
+        <img id="menuPhoto" alt="账号头像" width="42" height="42" style="border-radius:50%;object-fit:cover;">
         <div>
             <div id="menuName"></div>
             <div id="menuEmail"></div>
