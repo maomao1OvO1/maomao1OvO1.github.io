@@ -4,7 +4,7 @@
 // ⚠️ 重要：每次修改了 style.css / main.js 等核心文件，必须把 CACHE_NAME 版本号 +1（如 v25→v26），
 //    否则用户浏览器里旧缓存的资源不会被替换（这就是本站「改文件必须 bump 版本号」的由来）。
 
-const CACHE_NAME = "maomao-v52";          // 缓存包版本号：升级核心文件时改这里！（2026-09-14 v51→v52：main 资源为 cache-first，weather.js 改了 IP 定位降级必须破缓存）(旧缓存会在 activate 阶段自动删除)
+const CACHE_NAME = "maomao-v53";          // 缓存包版本号：升级核心文件时改这里！（2026-09-14 v51→v52：main 资源为 cache-first，weather.js 改了 IP 定位降级必须破缓存）(旧缓存会在 activate 阶段自动删除)
 
 const CORE_ASSETS = [                      // 预缓存清单：SW 安装时一次性缓存的核心文件（首次离线可用）
     "/",                                   // 首页（缓存一份，离线回退用）
@@ -17,7 +17,7 @@ const CORE_ASSETS = [                      // 预缓存清单：SW 安装时一�
     "/icon.png",                           // 站点图标
     "/device-check.js?v=18",
     "/device-blocked.html",               // 设备限制提示页（门禁拦截跳转目标）
-    "/anti-bot.js?v=4",                    // 反爬虫守卫（自动化访问检测）
+    "/anti-bot.js?v=5",                    // 反爬虫守卫（自动化访问检测）
     "/ab-blocked.html",                     // 访问验证页（反爬拦截跳转目标）
     "/contact.js?v=4",                     // 联系留言箱（经后台 API，前端零 Google 直连）
     "/why-blocked.html",
