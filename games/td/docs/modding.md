@@ -159,7 +159,7 @@ slime: { name:'史莱姆', hp:300, speed:0.9, gold:20, color:'#8f8', r:13, fx:'�
 3. **别改 `data-mk` / `id=` 这些属性名**：界面的事件绑定靠它们，改了按钮就点不动了。
 4. **存的是 localStorage**：改测试用浏览器开控制台执行 `localStorage.clear()` 就能重置进度。
 5. **体积会变大**：`index.html` 是明文单文件，你自己加的东西直接加上去；但注意别把大图片塞进去（原版全靠纯 CSS 和 Canvas 画，没有图片资源）。
-6. **想自己发版本**：记得改 `var BUILD_CODE`（当前值 98，发新版本时 +1，位置在 `src/js/20-book.js`）（游戏内「检查更新」靠它和线上 version.json 比大小）——当然，你要是不用那个功能就无所谓。
+6. **想自己发版本**：记得改 `var BUILD_CODE`（当前值 106，发新版本时 +1，位置在 `src/js/20-book.js`）（游戏内「检查更新」靠它和线上 version.json 比大小）——当然，你要是不用那个功能就无所谓。
 
 ---
 
@@ -228,4 +228,4 @@ apksigner sign --ks my.jks --out 我的共鸣之塔.apk unsigned.apk
 完全欢迎。这份文档和游戏源码都以「可自由修改」的方式给出。
 如果做了有意思的版本，欢迎告诉作者 —— 但**没有这个义务**，你想怎么改就怎么改。
 
-*本指南对应 v8.20 / versionCode 67。数值权威说明见 [manual.md](manual.md)。*
+*本指南对应 v9.16 / versionCode 106。数值权威说明见 [manual.md](manual.md)。*
