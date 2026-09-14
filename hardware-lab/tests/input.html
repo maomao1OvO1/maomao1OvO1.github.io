@@ -80,12 +80,12 @@ h1{
     margin-bottom:18px;
 }
 
-.card{
+.card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     width:100%;
     max-width:700px;
     margin:15px auto;
     padding:20px;
-    background:white;
+    background: rgba(255, 255, 255, .62);
     border-radius:22px;
     box-shadow:0 5px 20px #0002;
 }
@@ -114,10 +114,10 @@ h1{
     word-break:break-word;
 }
 
-.event-box{
+.event-box{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     min-height:90px;
     padding:15px;
-    background:white;
+    background: rgba(255, 255, 255, .62);
     border-radius:14px;
     margin-top:12px;
 }
@@ -242,8 +242,8 @@ body.dark-mode{
     color:#eee;
 }
 
-body.dark-mode .card{
-    background:#1e1e1e;
+body.dark-mode .card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
 }
 
 body.dark-mode .desc,
@@ -254,12 +254,11 @@ body.dark-mode .event-title{
 
 body.dark-mode .section{
     background:#292929;
-}
-
-body.dark-mode .event-box,
-body.dark-mode .stat,
-body.dark-mode .log{
+}body.dark-mode .stat, body.dark-mode .log{
     background:#333;
+}
+body.dark-mode .event-box{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72);
 }
 
 body.dark-mode button:not(.hardware-back){
@@ -283,16 +282,13 @@ body.dark-mode button:not(.hardware-back){
 body.dark-mode{
     background:#121212 !important;
     color:#eeeeee !important;
-}
-body.dark-mode .card,
-body.dark-mode .desc,
-body.dark-mode .note,
-body.dark-mode .item,
-body.dark-mode .test-list button,
-body.dark-mode button,
-body.dark-mode input,
-body.dark-mode select{
+}body.dark-mode .desc, body.dark-mode .note, body.dark-mode .test-list button, body.dark-mode button, body.dark-mode input, body.dark-mode select{
     background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+body.dark-mode .card, body.dark-mode .item{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eeeeee !important;
     border-color:#333333 !important;
 }
@@ -312,8 +308,8 @@ body.dark-mode .hardware-back{
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
-<link rel="stylesheet" href="../hardware.css">  <!-- 与其它硬件测试页共用样式（含深色模式与柔光背景） -->
-<link rel="stylesheet" href="../../bg.css?v=7">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
+<link rel="stylesheet" href="../hardware.css?v=2">  <!-- 与其它硬件测试页共用样式（含深色模式与柔光背景） -->
+<link rel="stylesheet" href="../../bg.css?v=8">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
 </head>
 
 

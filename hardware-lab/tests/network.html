@@ -61,11 +61,11 @@ h1{
 }
 
 /* 卡片容器：分别承载 网络状态 / 延迟 / 下载速度 */
-.card{
+.card{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
     max-width:420px;
     margin:15px auto;
     padding:22px;
-    background:white;
+    background: rgba(255, 255, 255, .62);
     border-radius:22px;
     box-shadow:0 5px 20px #0002;
 }
@@ -121,7 +121,7 @@ button:active{
 
 
 
-<link rel="stylesheet" href="../hardware.css">
+<link rel="stylesheet" href="../hardware.css?v=2">
 
 
 <style>
@@ -129,16 +129,13 @@ button:active{
 body.dark-mode{
     background:#121212 !important;
     color:#eeeeee !important;
-}
-body.dark-mode .card,
-body.dark-mode .desc,
-body.dark-mode .note,
-body.dark-mode .item,
-body.dark-mode .test-list button,
-body.dark-mode button,
-body.dark-mode input,
-body.dark-mode select{
+}body.dark-mode .desc, body.dark-mode .note, body.dark-mode .test-list button, body.dark-mode button, body.dark-mode input, body.dark-mode select{
     background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+body.dark-mode .card, body.dark-mode .item{ backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    background: rgba(30, 30, 42, .72) !important;
     color:#eeeeee !important;
     border-color:#333333 !important;
 }
@@ -158,7 +155,7 @@ body.dark-mode .hardware-back{
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
-<link rel="stylesheet" href="../../bg.css?v=7">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
+<link rel="stylesheet" href="../../bg.css?v=8">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
 </head>
 
 <body>
