@@ -4,12 +4,13 @@
 // ⚠️ 重要：每次修改了 style.css / main.js 等核心文件，必须把 CACHE_NAME 版本号 +1（如 v25→v26），
 //    否则用户浏览器里旧缓存的资源不会被替换（这就是本站「改文件必须 bump 版本号」的由来）。
 
-const CACHE_NAME = "maomao-v55";          // 缓存包版本号：升级核心文件时改这里！（2026-09-14 v54→v55：main.js 加载兜底 6s→3s + 非关键脚本延后加载）(旧缓存会在 activate 阶段自动删除)
+const CACHE_NAME = "maomao-v56";          // 缓存包版本号：升级核心文件时改这里！（2026-09-15 v55→v56：接入背景美化 bg.css + 主站/硬件/管理/游戏四套样式统一）(旧缓存会在 activate 阶段自动删除)
 
 const CORE_ASSETS = [                      // 预缓存清单：SW 安装时一次性缓存的核心文件（首次离线可用）
     "/",                                   // 首页（缓存一份，离线回退用）
     "/index.html",                         // 主页
     "/style.css",                          // 全站样式
+    "/bg.css",                             // 全站背景美化（柔光）
     "/player.js",                          // 音乐播放器逻辑
     "/main.js",                            // 主页主逻辑
     "/tokens.js",                          // AI 余额查询
