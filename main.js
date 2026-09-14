@@ -247,8 +247,11 @@ function hideLoader(){
             el.addEventListener("load", onOne, { once:true });                     // 加载完成
             el.addEventListener("error", onOne, { once:true });                    // 加载失败也计数
         });
-        // 兜底: 6 秒后仍未完成 → 强制完成(防资源卡死)
-        setTimeout(function(){ if(!finished){ done = total; maybeFinish(); } }, 6000);
+        // 兜底: 3 秒后仍未完成 → 强制完成(防资源卡死)
+        // 2026-09-14 性能优化：原为 6 秒。慢网（国内访问 GitHub 每个资源 2~6 秒）下，
+        // 等满 6 秒才显示内容，访客体感就是"网站卡住了"；缩短到 3 秒，页面先用起来，
+        // 没下完的资源继续在后台加载（图片/脚本各自就绪后自己补上）。
+        setTimeout(function(){ if(!finished){ done = total; maybeFinish(); } }, 3000);
     }
 
     track();
