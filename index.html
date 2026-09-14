@@ -730,9 +730,9 @@ updateTime();
 <!-- ===== Firebase Auth SDK ===== -->
 <!-- 防火墙后端认证依赖：firebase-app-compat(核心) + firebase-auth-compat(认证)；
      加上项目各自的 firebase-config.js 与登录逻辑 login.js（defer 延迟执行） -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="firebase-config.js?v=2"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script defer src="firebase-config.js?v=2"></script>
 <script src="login.js?v=22" defer></script>
 <script src="contact.js?v=4" defer></script>
 
