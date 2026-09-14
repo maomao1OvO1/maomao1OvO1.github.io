@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- ════════════════════════════════════════════════════════════════════
+  文件：404.html —— 自定义「页面走丢了」页（GitHub Pages 全站 404 兜底）
+  用途：访问不存在的地址时，代替 GitHub Pages 默认的英文 404 页，
+        给出中文提示 + 一键回首页，保持与主站一致的观感。
+  说明：GitHub Pages 对「根目录的 404.html」会自动用于整站任意 404 路径。
+  引用资源：style.css（全局样式，含深色模式）、icon.png（标签页图标）
+  创建：2026-09-14（网站体检时补上，此前无自定义 404 页）
+  注意：本页不引用任何脚本库，也不发任何网络请求，纯静态展示。
+════════════════════════════════════════════════════════════════════ -->
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="页面走丢了 —— 找不到你要访问的页面，点这里回到首页">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="stylesheet" href="style.css">
+
+<title>页面走丢了 · 毛毛的网站</title>
+
+<style>
+/* 404 专属：只补充本页需要的居中卡片，其余样式复用 style.css */
+.err-box {
+    max-width: 520px;
+    margin: 12vh auto 0;
+    padding: 34px 26px;
+    text-align: center;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.10);
+}
+body.dark-mode .err-box {
+    background: rgba(30, 30, 40, 0.72);
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+}
+.err-code {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 2px;
+    opacity: 0.85;
+}
+.err-box h1 { font-size: 24px; margin: 14px 0 8px; }
+.err-box p  { font-size: 15px; line-height: 1.7; opacity: 0.8; margin: 6px 0; }
+.err-links {
+    margin-top: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+}
+.err-links a {
+    display: inline-block;
+    padding: 11px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 15px;
+    background: #6543a5;
+    color: #fff;
+}
+.err-links a.ghost {
+    background: transparent;
+    border: 1.5px solid #6543a5;
+    color: #6543a5;
+}
+body.dark-mode .err-links a.ghost {
+    border-color: #bb9cff;
+    color: #bb9cff;
+}
+</style>
+
+</head>
+
+<!-- body 挂 sub-page 类，复用主站子页面布局样式 -->
+<body class="sub-page">
+
+<!-- 返回主页链接：与其它子页保持一致（右上角固定） -->
+<a href="/index.html" class="back-home">
+🏠 返回主页
+</a>
+
+<div class="err-box">
+    <div class="err-code">404</div>
+    <h1>这个页面走丢了 🐾</h1>
+    <p>你要找的页面不存在、或者地址打错了一个字。</p>
+    <p>要不直接回首页逛逛？那里有塔防、小游戏、摄影、音乐和视频。</p>
+    <div class="err-links">
+        <a href="/index.html">🏠 回到首页</a>
+        <a class="ghost" href="/games.html">🎮 小游戏大厅</a>
+        <a class="ghost" href="/games/td/maomao-td-latest.apk">📥 下载《共鸣之塔》</a>
+    </div>
+</div>
+
+<script>
+// 与其它子页一致：读取 localStorage 的主题设置，深色模式时给 body 挂 .dark-mode
+if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark-mode");
+}
+</script>
+
+</body>
+
+</html>

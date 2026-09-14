@@ -205,7 +205,7 @@ if(savedCity && savedLat && savedLon){
 
 else{
 
-    fetch("https://ipapi.co/json/")
+    ipLocate()
 
     .then(response => response.json())
 
@@ -222,6 +222,31 @@ else{
 }
 
 
+
+// ===== IP 定位（2026-09-14 修：原 ipapi.co 已返回 403，改为多源降级）=====
+// 说明：ipapi.co 免费接口从 2026-09 起对本站返回 403（带浏览器 UA 也一样，实测），
+//       改为「ipwho.is 主 + ipinfo.io 备」，两者都返回 HTTPS + 无需 key；任一失败则抛错由调用方兜底。
+function ipLocate(){
+    return fetch("https://ipwho.is/")
+    .then(response => response.json())
+    .then(d => {
+        if(d && d.success !== false && d.latitude && d.longitude){
+            return { city: d.city || d.region || "北京", latitude: d.latitude, longitude: d.longitude };
+        }
+        throw new Error("ipwho.is 无有效数据");
+    })
+    .catch(() =>
+        fetch("https://ipinfo.io/json")
+        .then(response => response.json())
+        .then(d => {
+            let loc = (d.loc || "").split(",");
+            if(loc.length === 2){
+                return { city: d.city || "北京", latitude: parseFloat(loc[0]), longitude: parseFloat(loc[1]) };
+            }
+            throw new Error("ipinfo.io 无有效数据");
+        })
+    );
+}
 
 // ===== 手动修改城市 =====
 
@@ -346,7 +371,7 @@ if(ipWeatherBtn){
             "📍 正在获取位置...";
 
 
-        fetch("https://ipapi.co/json/")
+        ipLocate()
 
         .then(response => response.json())
 
