@@ -1,34 +1,27 @@
 /* ============================================================================
    文件：bg.css —— 全站视觉统一层（ColorOS 16「光场」质感 · 毛毛 2026-09-15 选定）
    ----------------------------------------------------------------------------
-   ★ 全站**唯一**的背景与卡片质感来源（45 个页面统一引用本文件）。
-     改质感只改这里，不会再出现「有的页面变了、有的没变」。
-   内容 = ① 统一底色 ② 光场背景（含缓慢漂移动画） ③ 卡片玻璃质感（class + id 全覆盖）
-   实现要点：
-     1. 背景用 position:fixed 的 body::before —— 不随滚动重绘，手机省电；
-        不用 background-attachment:fixed（移动端滚动会掉帧）。
-     2. z-index:-1 落在「内容之下、底色之上」；pointer-events:none 绝不挡点击。
-     3. 纯 CSS 径向渐变：零图片、零外部请求。
-     4. 卡片玻璃 = 半透明底 + 1px 亮边 + 顶部内高光 + 多层柔影；
-        **只改视觉属性，内边距/尺寸/布局一律不动** → 不会把页面挤变形。
-     5. 毛玻璃 backdrop-filter 只加在卡片上（整页加会掉帧）；老浏览器降级为半透明底。
-     6. 明暗两套，且**明暗都保证"肉眼看得出来"**（浅色此前做得太淡，已加重）。
-     7. 动画只漂移 background-position、22 秒一循环（原来的 36 秒太慢，肉眼看不出来）；系统开「减弱动效」时自动静止。
+   ★ 全站唯一的背景与卡片质感来源。
+   ⚠️ 为什么全篇用 !important：
+      各页面自己写了更高优先级的选择器（例如 body.dark-mode .card 权重 30 > .card 权重 10，
+      硬件页甚至用的是 body.hardware-dark 而不是 dark-mode），
+      只靠"相同选择器 + 靠后加载"盖不住 ⇒ 会表现为「有的页面变了、有的没变」。
+      本文件是主题覆盖层，用 !important 压住页面自带值才是可靠做法。
+      覆盖清单来自脚本扫描全站 319 条"带背景色"的规则、逐个挑出的容器类（如下）。
+   只改视觉属性（背景/描边/圆角/阴影），内边距尺寸布局一律不动 → 不会挤变形。
+   刻意排除（加了会出事故）：#loginGate / #playlist-mask / #fullscreenBox 等全屏遮罩与容器，
+   以及 .rank-card.owner（排行榜金银铜的名次配色）—— 它们不是卡片，是覆盖层与特殊态。
    ========================================================================== */
 
-/* ── ① 统一底色：覆盖各页面原有的杂色底，让光场成为主角 ───────────── */
-body {
-    background-color: #f4f6fd;      /* 极浅冷白，衬托彩色光场 */
-}
-body.dark-mode {
-    background-color: #0e0e13;
-}
+/* ── ① 统一底色 ─────────────────────────────────────────────── */
+body { background-color: #f4f6fd !important; }
+body.dark-mode, body.hardware-dark { background-color: #0e0e13 !important; }
 
-/* ── ② 光场背景（浅色加重版：透明度 0.38~0.46，肉眼清晰可见）───────── */
+/* ── ② 光场背景（浅色加重：透明度 .38~.46，肉眼清晰可见）─────────── */
 body::before {
     content: "";
     position: fixed;
-    inset: -10%;                    /* 溢出一些，漂移时不会露边 */
+    inset: -10%;
     z-index: -1;
     pointer-events: none;
     background-repeat: no-repeat;
@@ -40,82 +33,97 @@ body::before {
     background-position: 0% 0%, 100% 0%, 50% 100%;
     animation: mmFieldDrift 22s ease-in-out infinite alternate;
 }
-
-/* 深色：低饱和紫 / 青 / 品红，压暗一档但不失可见度 */
-body.dark-mode::before {
+body.dark-mode::before, body.hardware-dark::before {
     background-image:
         radial-gradient(70% 55% at 15% 6%,  rgba(126, 108, 255, .40), transparent 66%),
         radial-gradient(62% 48% at 88% 16%, rgba(56, 189, 248, .26), transparent 66%),
         radial-gradient(78% 62% at 48% 104%, rgba(236, 72, 153, .22), transparent 68%);
 }
-
-/* 缓慢漂移：只动 background-position，GPU 处理，不触发重排 */
 @keyframes mmFieldDrift {
     0%   { background-position: 0% 0%, 100% 0%, 50% 100%; }
     100% { background-position: 20% 16%, 80% 24%, 42% 84%; }
 }
 
-/* ── ③ 卡片玻璃质感 ──────────────────────────────────────────────
-   覆盖清单（两轮「按页面实际容器逐个挖取」核对出来，class + id 都要写）：
-     class：.card .mygame-card .music-player .gate-card .sub-page .game-card .game-box
-            .rank-card .err-box .hardware-test-box .box .gate .sec .item
-            .test-list .photo-gallery .event-box .log-gamepad .chess-wrapper .container .rank
-     id   ：#weather-box #tokens-box #playlist-window #accountMenu   ← 上一版漏掉的就是这几个
-   注意：**不要**把 .sub-page 当卡片 —— 音乐/相册/视频页的 <body> 自身就带这个类，
-         当卡片会把整页变成半透明玻璃（上一版踩过这个坑，已剔除）。
-   ───────────────────────────────────────────────────────────────── */
-.card, .mygame-card, .music-player, .gate-card,
-.game-card, .game-box, .rank-card,
-.err-box, .hardware-test-box, .box, .gate,
-.sec, .item, .test-list, .photo-gallery,
-.event-box, .log-gamepad, .chess-wrapper, .container, .rank,
-#weather-box, #tokens-box, #playlist-window, #accountMenu {
-    background: rgba(255, 255, 255, .56);
-    border: 1px solid rgba(255, 255, 255, .92);
-    border-radius: 24px;
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+/* ── ③ 卡片玻璃质感 · 浅色（41 个容器选择器全覆盖，!important 压住页面自带值）── */
+.card, .box, .gate,
+.item, .game-box, .err-box,
+.mygame-card, .music-player, .gate-card,
+.game-card, .rank-card, .hardware-test-box,
+.event-box, #weather-box, #tokens-box,
+#playlist-window, #accountMenu, #game,
+.sec, .test-list, .photo-gallery,
+.log-gamepad, .chess-wrapper, .container,
+.rank, #board-wrapper,
+.section,
+.back-games, #userBox,
+#loginModal, .login-card,
+.gate-main, .gate-main.guest, .mail-card,
+.mail-panel, .mail-item {
+    background: rgba(255, 255, 255, .56) !important;
+    border: 1px solid rgba(255, 255, 255, .92) !important;
+    border-radius: 24px !important;
+    backdrop-filter: blur(22px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(180%) !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1),
                 0 18px 42px rgba(88, 68, 158, .16),
-                0 3px 10px rgba(88, 68, 158, .09);
+                0 3px 10px rgba(88, 68, 158, .09) !important;
 }
-/* 列表项 / 小容器：更小圆角、更轻阴影，避免"一列大圆角"显得笨重 */
-.item, .sec { border-radius: 16px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 6px 16px rgba(88, 68, 158, .08); }
-/* 悬浮/按压反馈（纯视觉，不影响交互） */
-.card:hover, .mygame-card:hover, .game-card:hover, .rank-card:hover:hover {
-    background: rgba(255, 255, 255, .68);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1),
-                0 22px 50px rgba(88, 68, 158, .20),
-                0 4px 12px rgba(88, 68, 158, .10);
-}
+.item, .sec { border-radius: 16px !important; }
 
-/* 深色：重新配的玻璃（压暗底 + 更弱亮边），同样只动视觉属性 */
-body.dark-mode .card, body.dark-mode .mygame-card, body.dark-mode .music-player, body.dark-mode .gate-card,
-body.dark-mode body.dark-mode .game-card, body.dark-mode .game-box, body.dark-mode .rank-card,
-body.dark-mode .err-box, body.dark-mode .hardware-test-box, body.dark-mode .box, body.dark-mode .gate,
-body.dark-mode .sec, body.dark-mode .item, body.dark-mode .test-list, body.dark-mode .photo-gallery,
-body.dark-mode .event-box, body.dark-mode .log-gamepad, body.dark-mode .chess-wrapper, body.dark-mode .container,
-body.dark-mode .rank, body.dark-mode #weather-box, body.dark-mode #tokens-box,
-body.dark-mode #playlist-window, body.dark-mode #accountMenu {
-    background: rgba(255, 255, 255, .075);
-    border-color: rgba(255, 255, 255, .13);
+/* ── ④ 卡片玻璃质感 · 深色（三种深色挂法都压住：body.dark-mode / .dark-mode / body.hardware-dark）── */
+body.dark-mode .card, body.dark-mode .box, body.dark-mode .gate,
+body.dark-mode .item, body.dark-mode .game-box, body.dark-mode .err-box,
+body.dark-mode .mygame-card, body.dark-mode .music-player, body.dark-mode .gate-card,
+body.dark-mode .game-card, body.dark-mode .rank-card, body.dark-mode .hardware-test-box,
+body.dark-mode .event-box, body.dark-mode #weather-box, body.dark-mode #tokens-box,
+body.dark-mode #playlist-window, body.dark-mode #accountMenu, body.dark-mode #game,
+body.dark-mode .sec, body.dark-mode .test-list, body.dark-mode .photo-gallery,
+body.dark-mode .log-gamepad, body.dark-mode .chess-wrapper, body.dark-mode .container,
+body.dark-mode .rank, body.dark-mode #board-wrapper, body.dark-mode,
+body.dark-mode body.dark-mode .section, body.dark-mode,
+body.dark-mode .back-games, body.dark-mode body.dark-mode #userBox,
+body.dark-mode #loginModal, body.dark-mode .login-card, body.dark-mode,
+body.dark-mode .gate-main, body.dark-mode .gate-main.guest, body.dark-mode .mail-card,
+body.dark-mode .mail-panel, body.dark-mode .mail-item,
+.dark-mode .card, .dark-mode .box, .dark-mode .gate,
+.dark-mode .item, .dark-mode .game-box, .dark-mode .err-box,
+.dark-mode .mygame-card, .dark-mode .music-player, .dark-mode .gate-card,
+.dark-mode .game-card, .dark-mode .rank-card, .dark-mode .hardware-test-box,
+.dark-mode .event-box, .dark-mode #weather-box, .dark-mode #tokens-box,
+.dark-mode #playlist-window, .dark-mode #accountMenu, .dark-mode #game,
+.dark-mode .sec, .dark-mode .test-list, .dark-mode .photo-gallery,
+.dark-mode .log-gamepad, .dark-mode .chess-wrapper, .dark-mode .container,
+.dark-mode .rank, .dark-mode #board-wrapper, .dark-mode,
+.dark-mode .dark-mode .section, .dark-mode,
+.dark-mode .back-games, .dark-mode .dark-mode #userBox,
+.dark-mode #loginModal, .dark-mode .login-card, .dark-mode,
+.dark-mode .gate-main, .dark-mode .gate-main.guest, .dark-mode .mail-card,
+.dark-mode .mail-panel, .dark-mode .mail-item,
+body.hardware-dark .card, body.hardware-dark .box, body.hardware-dark .gate,
+body.hardware-dark .item, body.hardware-dark .game-box, body.hardware-dark .err-box,
+body.hardware-dark .mygame-card, body.hardware-dark .music-player, body.hardware-dark .gate-card,
+body.hardware-dark .game-card, body.hardware-dark .rank-card, body.hardware-dark .hardware-test-box,
+body.hardware-dark .event-box, body.hardware-dark #weather-box, body.hardware-dark #tokens-box,
+body.hardware-dark #playlist-window, body.hardware-dark #accountMenu, body.hardware-dark #game,
+body.hardware-dark .sec, body.hardware-dark .test-list, body.hardware-dark .photo-gallery,
+body.hardware-dark .log-gamepad, body.hardware-dark .chess-wrapper, body.hardware-dark .container,
+body.hardware-dark .rank, body.hardware-dark #board-wrapper, body.hardware-dark,
+body.hardware-dark body.hardware-dark .section, body.hardware-dark,
+body.hardware-dark .back-games, body.hardware-dark body.hardware-dark #userBox,
+body.hardware-dark #loginModal, body.hardware-dark .login-card, body.hardware-dark,
+body.hardware-dark .gate-main, body.hardware-dark .gate-main.guest, body.hardware-dark .mail-card,
+body.hardware-dark .mail-panel, body.hardware-dark .mail-item {
+    background: rgba(255, 255, 255, .075) !important;
+    border-color: rgba(255, 255, 255, .13) !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10),
                 0 18px 42px rgba(0, 0, 0, .55),
-                0 3px 10px rgba(0, 0, 0, .32);
-}
-body.dark-mode .card:hover, body.dark-mode .mygame-card:hover,
-body.dark-mode .game-card:hover, body.dark-mode .rank-card:hover {
-    background: rgba(255, 255, 255, .11);
+                0 3px 10px rgba(0, 0, 0, .32) !important;
 }
 
-/* ── ④ 无障碍与打印 ─────────────────────────────────────────── */
+/* ── ⑤ 无障碍与打印 ───────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-    body::before { animation: none; }
-    .card, .mygame-card, .music-player, .gate-card, .game-card, .game-box,
-    .rank-card, .err-box, .hardware-test-box, .box, .gate, .sec, .item, .test-list,
-    .photo-gallery, .event-box, .log-gamepad, .chess-wrapper, .container, .rank,
-    #weather-box, #tokens-box, #playlist-window, #accountMenu { transition: none; }
+    body::before { animation: none !important; }
 }
 @media print {
-    body::before { display: none; }
+    body::before { display: none !important; }
 }
