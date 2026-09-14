@@ -3435,46 +3435,74 @@ body.dark-mode .gm-docs a { color: #bb9cff; border-bottom-color: rgba(187, 156, 
 
 
 /* ============================================================================
-   背景美化「柔光」—— 与 bg.css 同源（2026-09-15 小鲸接入，毛毛选定 D 方案）。
-   主站页面（首页/音乐/摄影/视频/404）引用的是本文件，因此这里内联一份；
-   其它三套样式体系（游戏页 / 硬件大厅 / 管理页）则各自引用 bg.css，改的时候两边一起改。
+   ColorOS 16 光场质感 · 卡片（2026-09-15 小鲸接入，毛毛选定的质感）
+   ----------------------------------------------------------------------------
+   只改「视觉属性」——背景、描边、圆角、阴影；**内边距、尺寸、布局一律不动**，
+   所以不会把任何页面挤变形。
+   玻璃感三件套：① 半透明底 ② 1px 亮边 + 顶部内高光 ③ 多层柔影（大扩散 + 贴地）
+   毛玻璃 backdrop-filter 只加在卡片上（整页加会掉帧）；不支持的老浏览器自动降级成半透明底。
+   ========================================================================== */
+.card, .mygame-card, .music-player, .gate-card {
+    background: rgba(255, 255, 255, .62);
+    border: 1px solid rgba(255, 255, 255, .75);
+    border-radius: 24px;
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9),
+                0 12px 30px rgba(31, 26, 58, .10),
+                0 2px 8px rgba(31, 26, 58, .05);
+}
+.card:hover, .mygame-card:hover {
+    background: rgba(255, 255, 255, .72);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95),
+                0 16px 38px rgba(31, 26, 58, .14),
+                0 3px 10px rgba(31, 26, 58, .06);
+}
+
+/* 深色：重新配的玻璃（压暗底 + 更弱的亮边），同样只动视觉属性 */
+body.dark-mode .card, body.dark-mode .mygame-card,
+body.dark-mode .music-player, body.dark-mode .gate-card {
+    background: rgba(255, 255, 255, .065);
+    border-color: rgba(255, 255, 255, .11);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08),
+                0 12px 30px rgba(0, 0, 0, .5),
+                0 2px 8px rgba(0, 0, 0, .3);
+}
+body.dark-mode .card:hover, body.dark-mode .mygame-card:hover {
+    background: rgba(255, 255, 255, .095);
+}
+
+/* 系统开「减弱动效」时，去掉一切过渡（本段本身不含动画，这里只兜底保险） */
+@media (prefers-reduced-motion: reduce) {
+    .card, .mygame-card, .music-player, .gate-card { transition: none; }
+}
+
+
+/* ============================================================================
+   背景「ColorOS 16 光场」（2026-09-15 小鲸接入）—— 与仓库根 bg.css 同源。
+   主站（首页/音乐/摄影/视频/404）与硬件大厅引用的是本文件，所以这里内联一份；
+   游戏页 / 管理页 / 声库页引用的是 bg.css。改的时候两边一起改，别只改一处。
+   要点：position:fixed 的 body::before（不随滚动重绘）· z-index:-1 落在内容之下 ·
+        pointer-events:none 不挡点击 · 纯 CSS 零请求 · 静止无动画 · 明暗两套。
    ========================================================================== */
 body::before {
     content: "";
     position: fixed;
-    inset: 0;                     /* 铺满视口（top/right/bottom/left 全 0） */
-    z-index: -1;                  /* 内容之下、底色之上 */
-    pointer-events: none;         /* 不挡点击 */
+    inset: -5%;
+    z-index: -1;
+    pointer-events: none;
     background-repeat: no-repeat;
     background-image:
-        radial-gradient(closest-side, rgba(255, 196, 235, .50), transparent 70%),
-        radial-gradient(closest-side, rgba(196, 208, 255, .50), transparent 70%),
-        radial-gradient(closest-side, rgba(214, 196, 255, .46), transparent 72%);
-    background-size: 55% 40%, 60% 45%, 70% 40%;
-    background-position: 8% 12%, 92% 22%, 50% 96%;
-    animation: mmSoftFloat 30s ease-in-out infinite alternate;
+        radial-gradient(58% 44% at 12% 8%,  rgba(122, 142, 255, .20), transparent 70%),
+        radial-gradient(52% 42% at 88% 18%, rgba(255, 150, 205, .16), transparent 70%),
+        radial-gradient(70% 55% at 50% 100%, rgba(130, 215, 255, .15), transparent 72%);
 }
-
-/* 深色模式：光斑换成紫 / 青 / 品红，压暗一档，避免刺眼 */
 body.dark-mode::before {
     background-image:
-        radial-gradient(closest-side, rgba(167, 139, 250, .40), transparent 70%),
-        radial-gradient(closest-side, rgba(56, 189, 248, .24), transparent 70%),
-        radial-gradient(closest-side, rgba(236, 72, 153, .18), transparent 72%);
+        radial-gradient(58% 44% at 12% 8%,  rgba(120, 110, 255, .26), transparent 70%),
+        radial-gradient(52% 42% at 88% 18%, rgba(56, 189, 248, .16), transparent 70%),
+        radial-gradient(70% 55% at 50% 100%, rgba(236, 72, 153, .13), transparent 72%);
 }
-
-/* 缓慢飘动：只动 background-position，GPU 直接处理，不触发重排 */
-@keyframes mmSoftFloat {
-    0%   { background-position: 8% 12%, 92% 22%, 50% 96%; }
-    100% { background-position: 18% 22%, 78% 12%, 40% 88%; }
-}
-
-/* 尊重系统「减弱动效」：开了就静止不动 */
-@media (prefers-reduced-motion: reduce) {
-    body::before { animation: none; }
-}
-
-/* 打印时不画背景（省墨、也不影响打印结果） */
 @media print {
     body::before { display: none; }
 }
