@@ -98,3 +98,30 @@
         }, 800);
     }
 })();
+
+/* ==== 2026-09-14 新增：清理 body 开头的孤立「>」文本节点 ====
+   现象：毛毛反馈「每个页面都有一个 >，点也点不动」。实测（Chrome DevTools Protocol 读 DOM）确认
+        document.body.firstChild 是一个内容为 ">\n\n" 的文本节点，出现在 body 标签之后、第一个注释之前；
+        但该字符在 HTML 源码、CSS（content 全为空）、以及本页所有脚本里都搜不到，源头未能定位。
+   处理：这里做一次防御性清理 —— 只有当 body 的第一个子节点是「纯 > 与空白」的文本节点时才移除它，
+        不影响任何真实内容；多个连续的同类节点也一并清掉。
+   安全性：条件极其严格（nodeType 必须是文本、内容必须只含 > 和空白），命中即删、不命中不动。 */
+(function () {
+    function cleanStrayGt() {
+        try {
+            var body = document.body;
+            if (!body) return;
+            var n = body.firstChild;
+            while (n && n.nodeType === 3 && /^[\s>]+$/.test(n.nodeValue) && n.nodeValue.indexOf('>') >= 0) {
+                var next = n.nextSibling;
+                body.removeChild(n);
+                n = next;
+            }
+        } catch (e) { /* 静默：清理失败不影响页面 */ }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', cleanStrayGt, { once: true });
+    } else {
+        cleanStrayGt();
+    }
+})();
