@@ -17,7 +17,7 @@
     - weather.js   —— 天气数据逻辑（IP 定位 / 城市搜索）
     - tokens.js?v=3 —— 第三方 AI 余额查询
     - player.js?v=3  —— 音乐播放器逻辑
-    - main.js?v=7    —— 主页主逻辑（交互增强）
+    - main.js?v=8    —— 主页主逻辑（交互增强）
     - Firebase Auth SDK + firebase-config.js?v=2 + login.js?v=22 —— 登录体系
     - images/FLXE-001.jpg、maomao.jpg           —— 封面与头像图片
   说明：本注释为教学文档，仅插入注释，未改动任何代码行为。
@@ -25,6 +25,22 @@
 
 <head>
 <meta charset="UTF-8">
+<script>
+/* 性能兜底（2026-09-14）：从 HTML 一开始解析就计时。
+   本页原本要等「加载动画双 100%」才显示内容，而那个计时是从 main.js 执行后才开始的；
+   在慢网（国内访问 GitHub 常年 2~6 秒/请求）下，等于先白等资源、再等动画兜底 —— 实测要 5 秒以上。
+   这里提前挂一个硬计时：1.8 秒内无论如何都把内容显示出来（正常网速下动画 1 秒就播完了，不会被打断）（后台资源继续加载，各自就绪后自己补上）。
+   注：main.js 里的 3 秒兜底保留，两者互为保险。 */
+setTimeout(function () {
+    var b = document.body;
+    if (b && b.classList.contains("loading")) {
+        b.classList.remove("loading");
+        b.classList.add("page-show");
+        var l = document.getElementById("loader");
+        if (l) l.style.display = "none";
+    }
+}, 1800);
+</script>
 <script>
 // #maomao-lc-redirect 域名大小写统一：GitHub Pages 大小写同站，但 Firebase 授权域名区分大小写 → 强制全小写
 if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== location.hostname.toLowerCase()) {
@@ -62,6 +78,8 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
+<link rel="dns-prefetch" href="https://api.open-meteo.com">
+<link rel="dns-prefetch" href="https://api.ip.sb">
 </head>
 
 <!-- body 带有 loading 类：页面隐藏加载动画，等资源就绪后再显示主体内容 -->
@@ -81,15 +99,20 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
      fetch 请求一个 Cloudflare Worker 返回的 JSON，
      then 链把返回的 visitors 数字写进 span，catch 捕获网络/接口失败时提示「获取失败」 -->
 <script>
-fetch("https://maomao-counter.maomao1ovo1.workers.dev")
-.then(response => response.json())
-.then(data => {
-    // 拿到 JSON 后把 visitor 数字填进 id=visitor 的 span
-    document.getElementById("visitor").innerText = data.visitors;
-})
-.catch(() => {
-    // 请求失败（网络/接口异常）显示友好提示，避免空白
-    document.getElementById("visitor").innerText = "获取失败";
+// 性能优化（2026-09-14）：访问计数只是一个小数字，等首屏加载完再请求，不抢带宽
+window.addEventListener("load", function(){
+    setTimeout(function(){
+        fetch("https://maomao-counter.maomao1ovo1.workers.dev")
+        .then(response => response.json())
+        .then(data => {
+            // 拿到 JSON 后把 visitor 数字填进 id=visitor 的 span
+            document.getElementById("visitor").innerText = data.visitors;
+        })
+        .catch(() => {
+            // 请求失败（网络/接口异常）显示友好提示，避免空白
+            document.getElementById("visitor").innerText = "获取失败";
+        });
+    }, 500);
 });
 </script>
 
@@ -130,8 +153,19 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
 
 </div>
 
-<!-- 加载 weather.js（defer：HTML 解析完后再执行，保证 id=weather-box 已存在） -->
-<script src="weather.js?v=4" defer></script>
+<!-- 性能优化（2026-09-14）：天气盒子与 AI 余额盒子都不是首屏关键内容，
+     改为「页面加载完成后」再注入脚本，避免和首屏资源抢带宽（慢网下尤其明显）。
+     两个脚本都自包含、且已适配「事件已触发」的初始化时机，晚加载不影响功能。 -->
+<script>
+window.addEventListener("load", function(){
+    ["weather.js?v=4", "tokens.js?v=3"].forEach(function(src){
+        var el = document.createElement("script");
+        el.src = src;
+        el.async = true;
+        document.body.appendChild(el);
+    });
+});
+</script>
 
 <!-- ===== AI 余额盒子（自助查询，每个访客用自己的 Key） ===== -->
 <!-- AI 余额查询区块：访客自己粘贴自己的 API Key 来查询余额。
@@ -178,9 +212,6 @@ fetch("https://maomao-counter.maomao1ovo1.workers.dev")
     <div id="tokens-result"></div>
 
 </div>
-
-<!-- 加载 tokens.js（v=2 为版本号），defer 延迟执行；随页面优先加载查询逻辑 -->
-<script src="tokens.js?v=3" defer></script>
 
 <!-- ===== 加载动画 ===== -->
 <!-- 加载动画：初始盖住页面的「正在加载...」提示，配合 body.loading 使用；
@@ -585,7 +616,7 @@ updateTime();
 <script defer src="./player.js?v=3"></script>
 
 <!-- 主页交互主逻辑（昵称、主题、彩蛋、登录后展示邮箱等） -->
-<script defer src="./main.js?v=7"></script>
+<script defer src="./main.js?v=8"></script>
 
 <!-- ===== 登录门（加载条结束后弹出） ===== -->
 <!-- 登录门/登录弹窗：页面加载完成后弹出的全屏遮罩登录框（逻辑在 login.js）。

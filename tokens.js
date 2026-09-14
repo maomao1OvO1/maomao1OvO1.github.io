@@ -159,10 +159,17 @@ function checkBalance() {
 }
 
 // 页面加载后：恢复上次的厂商 + Key；若已存有 Key，则自动再查一次（刷新后余额也在）
-document.addEventListener("DOMContentLoaded", function(){
+// 2026-09-14 性能优化：本脚本改为「页面加载完成后才注入」（不抢首屏带宽），
+// 那时 DOMContentLoaded 已经触发过，故这里必须兼容「事件已过」的情况，否则初始化不会执行。
+function tokensInit(){
     restoreState();
     const k = document.getElementById("tokens-key");
     if(k && k.value.trim()){
         checkBalance();
     }
-});
+}
+if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", tokensInit);
+}else{
+    tokensInit();
+}
