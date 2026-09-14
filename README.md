@@ -153,6 +153,16 @@ python3 -m http.server 3000 --bind 127.0.0.1   # → http://127.0.0.1:3000
 
 ---
 
+## 📸 界面预览
+
+<p align="center">
+  <img src="images/screenshots/home.jpg" width="235" alt="首页 —— AI 余额盒 / 天气 / 作品入口 / 自制小游戏 / 音乐播放器">
+  <img src="images/screenshots/games.jpg" width="235" alt="小游戏大厅 —— 8 款浏览器直接玩的小游戏">
+  <img src="images/screenshots/ranking.jpg" width="235" alt="小游戏排行榜 —— 全球榜单，每款游戏各一份">
+</p>
+
+> 手机 Chrome 实拍（2026-09-14）。网站整站纯静态 HTML/CSS/JS，无框架、无构建步骤。
+
 ## 🔄 最近更新
 
 - **2026-09-14**　**全站体检 + 统一修复**：文档过期版本号全部对齐 **v9.16 / 106**（`modding.md` / `manual.md` / 源码 README）· 补上「📜 MIT 许可证全文」入口 · 修掉 6 处死链（`%BASE_URL%` 资源、失效入口）· 清理无入口的旧源码目录（省 14MB）· 四个仓库补齐 MIT LICENSE
