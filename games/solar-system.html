@@ -254,7 +254,7 @@ BODIES.forEach(function (b) { TEXCACHE[b.id] = makeTexture(b); });
  * 本地图片会「污染 canvas」，读像素会被安全策略拒绝；若被 try/catch 包着就会**静默失败**：
  * 页面照常、贴图永远不生效，最难查。这里只保留 Image 对象，渲染时用 drawImage 按列贴上去。 */
 var IMGS = {};
-/* 网站版：贴图走相对路径 textures/（HTTP 下正常按需加载、可缓存）——
+/* 网站版：贴图走相对路径 textures/（HTTP 下按需加载、可缓存）——
  * 从文件管理器打开时 URL 是 content://…，相对路径 textures/ 不解析，贴图会永远加载不上。
  * 内嵌之后无论怎么打开都能看到真实地表。 */
 var TEXB64 = {sun:'textures/2k_sun.jpg',mercury:'textures/2k_mercury.jpg',venus:'textures/2k_venus_surface.jpg',earth:'textures/2k_earth_daymap.jpg',mars:'textures/2k_mars.jpg',jupiter:'textures/2k_jupiter.jpg',saturn:'textures/2k_saturn.jpg',uranus:'textures/2k_uranus.jpg',neptune:'textures/2k_neptune.jpg',moon:'textures/2k_moon.jpg',ceres:'textures/2k_ceres_fictional.jpg',pluto:'textures/2k_eris_fictional.jpg'};
@@ -446,11 +446,11 @@ function drawOrbit(b, center) {
 /** 球体：逐列采样纹理 + 按太阳方向打光 —— 自转与弧面全靠这一步 */
 function drawSphere(cx, cy, r, body, screenSun, spin) {
   if (r < 0.6) { ctx.fillStyle = body.color; ctx.beginPath(); ctx.arc(cx, cy, Math.max(1, r), 0, 6.283); ctx.fill(); return; }
-  var img = IMGS[body.id];                       // 真实贴图（加载成功才有值）
+  var img = IMGS[body.id];                       // 真实贴图（2K 原图，逐列贴到球面）
   var cols = TEXCACHE[body.id];
   if (!cols || !cols.length) cols = [[170, 176, 190]];   // 极端兜底：宁可画成灰球，也绝不让整体渲染崩掉
   var texW = cols.length;
-  var N = Math.max(12, Math.min(96, Math.round(r * 1.6)));
+  var N = Math.max(16, Math.min(192, Math.round(r * 2.4)));   // 列数翻倍（上限 192）：2K 贴图的细节才保得住
 
   var lx = screenSun.x - cx, ly = screenSun.y - cy;      // 光方向：从行星指向太阳
   var ll = Math.hypot(lx, ly) || 1; lx /= ll; ly /= ll;
@@ -480,15 +480,19 @@ function drawSphere(cx, cy, r, body, screenSun, spin) {
       ctx.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')';
       ctx.fillRect(dx, dy, wpx, dh);
     }
-    // 统一叠光照：法线与光方向点积，暗面压暗
-    var lam = px * lx + pz * (ly * .35 + .65);
-    lam = lam < 0 ? 0 : lam;
-    var shade = .12 + .88 * Math.pow(lam, .8);
-    if (shade < .995) {
-      ctx.fillStyle = 'rgba(2,4,12,' + ((1 - shade) * .92).toFixed(3) + ')';
-      ctx.fillRect(dx, dy, wpx, dh);
-    }
   }
+
+  // ── 光照：一次整体径向渐变（2026-09-15 改）──
+  // 原来是逐列压暗，列与列之间会有硬边、看着假；改成整球一次渐变 —— 平滑，
+  // 而且自然带出「受光面亮、边缘与背面暗」的立体感（limb darkening），真实星球就是这样。
+  var ox = cx + lx * r * .55, oy = cy + ly * r * .55;   // 亮点朝太阳那侧偏移
+  var lit = ctx.createRadialGradient(ox, oy, r * .05, cx, cy, r * 1.02);
+  lit.addColorStop(0, 'rgba(255,252,244,.20)');
+  lit.addColorStop(.42, 'rgba(255,255,255,0)');
+  lit.addColorStop(.78, 'rgba(3,5,14,.34)');
+  lit.addColorStop(1, 'rgba(2,3,9,.88)');
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283);
+  ctx.fillStyle = lit; ctx.fill();
 }
 
 function hexA(hex, a) {
