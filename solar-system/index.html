@@ -44,6 +44,17 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
   border-radius:18px;padding:16px 16px 18px;backdrop-filter:blur(18px);display:none;
   box-shadow:0 18px 60px rgba(0,0,0,.6);-webkit-overflow-scrolling:touch}
 #card.show{display:block;animation:up .26s ease}
+
+/* 跟拍时的退出按钮：右下角、大号、好按。
+   原来只有顶部那排小标签：手机屏幕窄、6 个按钮挤一行，实际根本看不见。 */
+#exitFollow{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom) + 62px);
+  display:none;pointer-events:auto;z-index:9;align-items:center;gap:6px;
+  background:linear-gradient(135deg,rgba(86,132,255,.95),rgba(150,92,255,.95));
+  color:#fff;font-size:14.5px;font-weight:600;letter-spacing:.5px;
+  padding:12px 20px;border-radius:26px;box-shadow:0 6px 22px rgba(0,0,0,.5);
+  border:1px solid rgba(255,255,255,.22);cursor:pointer;user-select:none}
+#exitFollow.show{display:inline-flex;animation:up .22s ease}
+#exitFollow:active{transform:scale(.95)}
 @keyframes up{from{transform:translateY(18px);opacity:0}to{transform:none;opacity:1}}
 #card h2{font-size:18px;margin-bottom:2px;display:flex;align-items:center;gap:8px}
 #card h2 .en{font-size:11.5px;color:#7b88ad;font-weight:400;letter-spacing:.6px}
@@ -89,6 +100,9 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
     <button id="cFree">自由视角</button>
   </div>
 </div>
+
+<!-- 跟拍时出现的退出按钮：独立于顶部那排小标签，右下角大号、一眼能看到 -->
+<div id="exitFollow">✕ 退出跟拍</div>
 
 <script>
 'use strict';
@@ -353,7 +367,7 @@ function viewCenter() {
   // 这样跟拍时两指拖动 = 绕着星球挪视角（起「轨道环绕」的作用），而不是把跟拍顶掉。
   if (S.follow && S.selected) {
     var w = worldOf(S.selected);
-    if (w) return { x: w.x + S.panX, y: w.y + S.panY, z: w.z + S.panZ };
+    if (w) return w;   // 关键：不叠加 pan，否则一拖就把星球推出画面
   }
   // 自愈：跟拍开着却没有目标（比如卡片被关掉时顺手清空了选中）→ 退回全景，
   // 否则相机距离还是贴近值、中心却回到原点(太阳)，就会出现「跟拍跑到太阳去」的现象。
@@ -650,15 +664,22 @@ cv.addEventListener('pointermove', function (e) {
     if (S.pinchMid) {
       var ddx = mid.x - S.pinchMid.x, ddy = mid.y - S.pinchMid.y;
       if (Math.abs(ddx) + Math.abs(ddy) > 0.5) {
-        // 屏幕位移 → 世界位移：按当前缩放折算，并按水平/俯仰角把方向转回世界坐标系
-        // 换算：投影里 屏幕 = 世界 × 900/(900+camZ) × zoom ⇒ 1 像素 = (900+camZ)/(900×zoom) 世界单位
-        var k = (900 + S.camZ) / (900 * S.zoom);
-        var cy0 = Math.cos(S.rotY), sy0 = Math.sin(S.rotY);
-        var cx0 = Math.cos(S.rotX), sx0 = Math.sin(S.rotX);
-        S.panX += (-ddx * cy0 + ddy * sy0 * sx0) * k;
-        S.panZ += ( ddx * sy0 + ddy * cy0 * sx0) * k;
-        S.panY += (-ddy * cx0) * k;
-        // 平移不再退出跟拍：viewCenter 已把两个中心合并，拖动 = 绕着星球挪视角
+          if (S.follow) {
+            // ── 跟拍中：双指拖动 = 绕着星球转视角（只改相机角度，中心纹丝不动）──
+            // 这样无论怎么拖，星球永远钉在画面正中，跟拍不可能「被拖没」。
+            S.rotY += ddx * .008;
+            S.rotX = Math.max(-1.45, Math.min(1.45, S.rotX + ddy * .008));
+          } else {
+            // ── 自由视角：拖动才真正平移视角中心 ──
+            // 屏幕位移 → 世界位移：按当前缩放折算，并按水平/俯仰角把方向转回世界坐标系
+            // 换算：投影里 屏幕 = 世界 × 900/(900+camZ) × zoom ⇒ 1 像素 = (900+camZ)/(900×zoom) 世界单位
+            var k = (900 + S.camZ) / (900 * S.zoom);
+            var cy0 = Math.cos(S.rotY), sy0 = Math.sin(S.rotY);
+            var cx0 = Math.cos(S.rotX), sx0 = Math.sin(S.rotX);
+            S.panX += (-ddx * cy0 + ddy * sy0 * sx0) * k;
+            S.panZ += ( ddx * sy0 + ddy * cy0 * sx0) * k;
+            S.panY += (-ddy * cx0) * k;
+          }
       }
     }
     S.pinchMid = mid;
@@ -707,9 +728,13 @@ cv.addEventListener('wheel', function (e) {
  * ══════════════════════════════════════════════════════════════════════ */
 function setFollowUI(on) {
   var el = document.getElementById('bFollow');
-  if (!el) return;
-  el.style.display = on ? '' : 'none';
-  if (on && S.selected) el.textContent = '跟拍：' + S.selected.name + ' ✕';
+  if (el) {
+    el.style.display = on ? '' : 'none';
+    if (on && S.selected) el.textContent = '跟拍：' + S.selected.name + ' ✕';
+  }
+  // 右下角大按钮跟着一起显示/隐藏（它才是实际会点的那个入口）
+  var big = document.getElementById('exitFollow');
+  if (big) { if (on) big.classList.add('show'); else big.classList.remove('show'); }
 }
 
 function exitFollow() {
@@ -742,10 +767,13 @@ document.getElementById('cFollow').addEventListener('click', function () {
   S.follow = true;
   // 跟拍不再重置缩放：缩放交给相机距离 + 用户捏合，重置会打断「跟拍后继续放大看细节」的手感。
   S.panX = 0; S.panY = 0; S.panZ = 0;   // 进跟拍先归零，中心正好落在星球上
+  document.getElementById('card').classList.remove('show');   // 收起资料卡片，别挡住跟拍画面
   setFollowUI(true);
-  document.getElementById('hint').textContent = '跟拍中：相机已贴近，可继续加速看它绕太阳走';
+  document.getElementById('hint').textContent = '跟拍中：捏合放大看细节 · 双指拖动绕它转 · 点右下角「✕ 退出跟拍」回全景';
 });
 document.getElementById('cFree').addEventListener('click', exitFollow);
+// 右下角大按钮：跟拍时最主要的退出口，千万别让它失灵
+document.getElementById('exitFollow').addEventListener('click', exitFollow);
 document.getElementById('bFollow').addEventListener('click', exitFollow);   // 点顶部标签也能退出跟拍
 
 /* ══════════════════════════════════════════════════════════════════════
