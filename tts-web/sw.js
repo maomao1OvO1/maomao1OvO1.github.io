@@ -1,5 +1,5 @@
 /* 🎙️ 声库网页版 Service Worker：静态资源 + 模型缓存（下载一次，之后离线可用） */
-const VERSION = 'tts-web-v25';   // 2026-09-15：v24 之后 index.html 又改过（01:30 质感重做 + 门禁），补升版本破缓存
+const VERSION = 'tts-web-v26';   // 2026-09-15：门禁改「放行后才下模型」+ 导航改网络优先，破缓存
 const MODELS_CACHE = 'tts-web-models-v7';
 const CORE = [
   './',
@@ -51,6 +51,19 @@ self.addEventListener('fetch', (e) => {
   }
 
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+
+  /* 页面导航：网络优先（2026-09-15 加）—— 原来导航也走 cache-first，改完页面老用户要二次访问才看到新版。 */
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).then((res) => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          caches.open(VERSION).then((c) => c.put(e.request, res.clone()));
+        }
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
 
   // 静态资源：缓存优先 + 后台更新（页面资源改动靠 bump VERSION 失效）
   e.respondWith(

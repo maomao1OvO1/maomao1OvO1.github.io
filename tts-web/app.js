@@ -466,5 +466,28 @@
     });
   }
 
-  startWorker();
+  /* 启动时机（2026-09-15 改）：
+   * 原来是无条件 startWorker() —— 未登录用户打开页面照样拉 12 MB wasm + 170 MB 模型
+   * （门禁只把 UI 遮住，资源一点没省）。现在三档逻辑：
+   *   ① 门禁放行（已登录）→ 立即启动；
+   *   ② 门禁判定为「未登录」→ 先不启动，等用户登录后 pass() 再启动（省流量）；
+   *   ③ 门禁脚本没跑起来（Firebase 被墙 / 报错）→ 3 秒兜底启动，保证「一定能用」。 */
+  (function startAfterGate() {
+    var started = false;
+    function go(reason) {
+      if (started) return;
+      started = true;
+      console.log('[tts] 启动合成引擎：' + reason);
+      startWorker();
+    }
+    window.__ttsGatePass = function () { go('门禁已放行'); };
+    if (window.__ttsGatePassed) { go('页面加载时已登录'); return; }
+    setTimeout(function () {
+      if (window.__ttsGateDecided && !window.__ttsGatePassed) {
+        console.log('[tts] 门禁判定为「未登录」→ 不预载模型（省流量）；登录后会自动启动');
+        return;
+      }
+      go('门禁未在 3 秒内回应 → 兜底启动');
+    }, 3000);
+  })();
 })();
