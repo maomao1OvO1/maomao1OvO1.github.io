@@ -20,6 +20,12 @@ html,body {
   color:#dfe8f5;
   font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif;
 }
+/* 战场画布：禁止浏览器的默认手势（2026-09-15 加）。
+ * 不加的话，手指在画布上拖动会被当成「滚动 / 下拉刷新」，建塔与拖拽操作可能被吞掉；
+ * 只加在画布上（不加到 body），页面其它区域的正常滚动不受影响。 */
+canvas {
+  touch-action:none;
+}
 /* ===== 页面骨架：竖排全屏布局（顶部 HUD → 波次情报 → 教学任务条 → 战场）===== */
 #wrap {
   position:fixed;

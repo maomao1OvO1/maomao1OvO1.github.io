@@ -119,7 +119,7 @@
   on('bookTabInfo', function(){ bookTab = 'info'; bookRender(); SFX.bookTab(); });
   /* v8.25 补：v8.18 的「🌤 天气」与 v8.21 的「🏆 成就」两个页签当时忘了绑点击 →
      点上去毫无反应（毛毛报的 bug）。以后新增图鉴页签，除了 bookRenderTabs 的 ids 表和
-     bookRender 的分支，**必须在这里补一行绑定** —— test/deep45_uiwiring.js 会自动查这件事。 */
+     bookRender 的分支，**必须在这里补一行绑定** —— test/deep45b_uiwiring.js 会自动查这件事。 */
   on('bookTabWx', function(){ bookTab = 'wx'; bookRender(); SFX.bookTab(); });
   on('bookTabAch', function(){ bookTab = 'ach'; bookRender(); SFX.bookTab(); });
   on('bookBackBtn', bookHide);

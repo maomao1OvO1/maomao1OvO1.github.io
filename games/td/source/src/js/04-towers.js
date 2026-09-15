@@ -198,7 +198,7 @@ var ACHIEVEMENTS = [
   { key:'e30',      icon:'♾', name:'撑住 30 波', desc:'无尽模式打到第 30 波', test:function(){ return endlessBest() >= 30; } },
   { key:'e50',      icon:'💪', name:'撑住 50 波', desc:'无尽模式打到第 50 波', test:function(){ return endlessBest() >= 50; } },
   { key:'e100',     icon:'🔥', name:'撑住 100 波', desc:'无尽模式打到第 100 波', test:function(){ return endlessBest() >= 100; } },
-  { key:'rebirth',  icon:'🌟', name:'第一次转生', desc:'无尽转生拿到第 1 颗星核', test:function(){ return starcore() > 0 || (typeof prog.starTotal === 'number' && prog.starTotal > 0); } },
+  { key:'rebirth',  icon:'🌟', name:'第一次转生', desc:'无尽转生拿到第 1 颗星核', test:function(){ return starcore() > 0; } },   /* v9.17：删掉 prog.starTotal 分支 —— 该字段全项目只读不写，恒为 false（死代码） */
   { key:'sets3',    icon:'🧩', name:'套装大师',  desc:'一局同时激活 3 个元素套装',
     test:function(){ var n = 0; for (var k in ELEM_SETS) if (setOn(k)) n++; return n >= 3; } },
   { key:'tower40',  icon:'🏰', name:'塔海',      desc:'一局建满 40 座塔', test:function(){ return built >= 40; } },
