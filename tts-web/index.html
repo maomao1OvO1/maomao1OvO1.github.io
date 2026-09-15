@@ -199,11 +199,17 @@ if (localStorage.getItem("theme") === "dark") { document.body.classList.add("dar
   var emailEl = document.getElementById("userEmail");
 
   function show(text) {
+    /* 2026-09-15：把「门禁已作出判定」告诉 app.js —— 未登录时它会跳过 170 MB 模型预载 */
+    window.__ttsGateDecided = true;
     if (mask) mask.style.display = "flex";
     if (bar) bar.style.display = "none";
     if (msg && typeof text === "string") msg.textContent = text;
   }
   function pass(user) {
+    /* 2026-09-15：登录放行 → 通知 app.js 开始建 worker、下模型（此前是无条件启动） */
+    window.__ttsGateDecided = true;
+    window.__ttsGatePassed = true;
+    if (typeof window.__ttsGatePass === "function") window.__ttsGatePass();
     if (mask) mask.style.display = "none";
     if (bar) bar.style.display = "block";
     if (emailEl) emailEl.textContent = (user.email || user.displayName || "已登录");
