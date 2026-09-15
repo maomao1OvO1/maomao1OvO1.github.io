@@ -44,3 +44,6 @@ inTable.forEach(function(id){ ok(onBound.has(id), 'id 表里的 #' + id + ' 也�
 
 console.log(fail === 0 ? '\n✅✅ v8.25 按钮绑定自检全部通过（0 失败）' : '\n❌❌ 共 ' + fail + ' 项失败');
 process.exit(fail ? 1 : 0);
+
+/* 退出码：失败时返回非零，便于批量跑与 CI 感知失败（2026-09-15 加） */
+if (fail > 0) process.exit(1);

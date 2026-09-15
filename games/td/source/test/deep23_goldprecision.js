@@ -110,3 +110,6 @@ ok(T.goldText() === String(150 - c0), '小额下扣费与原逻辑一致（150 �
 ok(errs.length === 0, '全程无运行时错误（' + errs.length + '）');
 console.log('');
 console.log(fail === 0 ? '  ✅✅ v7.9 金币精确记账专项全部通过（0 失败）' : '  ❌ v7.9 专项 ' + fail + ' 项失败');
+
+/* 退出码：失败时返回非零，便于批量跑与 CI 感知失败（2026-09-15 加） */
+if (fail > 0) process.exit(1);

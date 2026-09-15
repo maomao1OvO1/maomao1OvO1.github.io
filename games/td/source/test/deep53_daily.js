@@ -136,3 +136,6 @@ ok(T.isDailyNow() === false, '通关后 isDaily 同样归零（两条路径都�
 ok(T.endlessNow() === false, '普通关卡 endless = false（无尽标记不跨局继承）');
 console.log('');
 console.log(fail === 0 ? '✅✅ v9.11 星核误发修复验证通过（0 失败）' : '❌❌ 共 ' + fail + ' 项失败');
+
+/* 退出码：失败时返回非零，便于批量跑与 CI 感知失败（2026-09-15 加） */
+if (fail > 0) process.exit(1);

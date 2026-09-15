@@ -197,3 +197,6 @@ if (errs.length) errs.slice(0, 3).forEach(function(x){ console.log('     ' + x);
 console.log('');
 console.log(fail === 0 ? '  ✅✅ v7.8 炮塔专属强化专项全部通过（' + checks + ' 项断言，0 失败）'
                         : '  ❌ v7.8 专项 ' + fail + ' 项失败 / 共 ' + checks + ' 项');
+
+/* 退出码：失败时返回非零，便于批量跑与 CI 感知失败（2026-09-15 加） */
+if (fail > 0) process.exit(1);

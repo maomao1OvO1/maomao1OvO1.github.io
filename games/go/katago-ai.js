@@ -27,7 +27,9 @@ async function loadKataGo(){
     document.getElementById("status").innerHTML =
 "✅ KataGo接口加载完成";
 
-
+}   /* ← 这一行是 2026-09-15 补的：原来 loadKataGo() 少了闭合大括号，
+       整个文件语法错（node --check 报 Unexpected end of input），
+       浏览器加载即 SyntaxError、kataGoMove 永远未定义。 */
 
 // AI请求落子
 
