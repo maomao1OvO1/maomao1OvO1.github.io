@@ -33,6 +33,10 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
   backdrop-filter:blur(12px);color:#c8d4f5}
 #top .btn.on{color:#7deae0;border-color:rgba(125,234,224,.45);background:rgba(20,40,44,.6)}
 #top .btn:active{transform:scale(.96)}
+/* 返回大厅：只在网站版出现（本地单文件版没有「大厅」可回，点了是死链，所以默认藏着） */
+#top #backHall{display:none;text-decoration:none;align-items:center;gap:4px;
+  color:#9fe8ff;border-color:rgba(125,234,224,.4)}
+#top #backHall.show{display:inline-flex}
 
 /* 底部提示 */
 #hint{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 10px);text-align:center;
@@ -77,6 +81,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 <canvas id="cv"></canvas>
 
 <div id="top">
+  <a class="btn" id="backHall" href="../">← 返回大厅</a>
   <div class="pill title">☀️ 太阳系</div>
   <div class="btn" id="bPause">⏸</div>
   <div class="btn" id="bSpeed">×1 天/秒</div>
@@ -772,6 +777,12 @@ document.getElementById('cFollow').addEventListener('click', function () {
   document.getElementById('hint').textContent = '跟拍中：捏合放大看细节 · 双指拖动绕它转 · 点右下角「✕ 退出跟拍」回全景';
 });
 document.getElementById('cFree').addEventListener('click', exitFollow);
+// 「返回大厅」只在网站版显示：本地单文件（file:// / content://）回不到大厅，露出来只会是死链
+(function () {
+  var bh = document.getElementById('backHall');
+  if (!bh) return;
+  if (location.protocol === 'http:' || location.protocol === 'https:') bh.classList.add('show');
+})();
 // 右下角大按钮：跟拍时最主要的退出口，千万别让它失灵
 document.getElementById('exitFollow').addEventListener('click', exitFollow);
 document.getElementById('bFollow').addEventListener('click', exitFollow);   // 点顶部标签也能退出跟拍
