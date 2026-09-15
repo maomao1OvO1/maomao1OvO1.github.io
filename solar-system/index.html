@@ -76,7 +76,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
   <div class="btn" id="bReset">复位</div>
 </div>
 
-<div id="hint">拖拽转视角 · 双指缩放 · 点行星看资料</div>
+<div id="hint">单指拖动转视角 · 双指拖动平移 · 双指捏合缩放 · 点天体看资料</div>
 
 <div id="card">
   <div class="close" id="cardClose">✕</div>
@@ -187,7 +187,8 @@ var S = {
   follow: false,         // 是否跟拍
   t: 0,                  // 真实时间（做动画用）
   spin: 0,               // 自转计时器：独立于「暂停」，暂停时依然在转（方便细看球面）
-  pinch: 0
+  pinch: 0, pinchMid: null,          // 双指捏合的距离与中点（中点用于平移）
+  panX: 0, panY: 0, panZ: 0,         // 视角中心的世界偏移 —— 「自由视角」靠它才能真正离开太阳
 };
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -352,7 +353,8 @@ function viewCenter() {
   // 自愈：跟拍开着却没有目标（比如卡片被关掉时顺手清空了选中）→ 退回全景，
   // 否则相机距离还是贴近值、中心却回到原点(太阳)，就会出现「跟拍跑到太阳去」的现象。
   if (S.follow && !S.selected) { S.follow = false; S.camZ = 900; setFollowUI(false); }
-  return { x: 0, y: 0, z: 0 };
+  // 自由视角 = 相机中心可以停在空间的任何地方（原来固定返回原点，所以只能绕着太阳转）
+  return { x: S.panX, y: S.panY, z: S.panZ };
 }
 
 /**
@@ -632,12 +634,29 @@ cv.addEventListener('pointermove', function (e) {
   var p = pts[e.pointerId];
   if (!p) return;
   var ids = Object.keys(pts);
-  if (ids.length >= 2) {                       // 双指：只做缩放，不转视角
+  if (ids.length >= 2) {                       // 双指：捏合缩放 + 拖动平移
     p.x = e.clientX; p.y = e.clientY;
     var a = pts[ids[0]], b = pts[ids[1]];
     var d = Math.hypot(a.x - b.x, a.y - b.y);
     if (S.pinch) S.zoom = Math.max(.25, Math.min(16, S.zoom * (d / S.pinch)));
     S.pinch = d;
+    // ── 双指中点移动 → 平移视角（这才是「真的自由视角」）──
+    var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    if (S.pinchMid) {
+      var ddx = mid.x - S.pinchMid.x, ddy = mid.y - S.pinchMid.y;
+      if (Math.abs(ddx) + Math.abs(ddy) > 0.5) {
+        // 屏幕位移 → 世界位移：按当前缩放折算，并按水平/俯仰角把方向转回世界坐标系
+        // 换算：投影里 屏幕 = 世界 × 900/(900+camZ) × zoom ⇒ 1 像素 = (900+camZ)/(900×zoom) 世界单位
+        var k = (900 + S.camZ) / (900 * S.zoom);
+        var cy0 = Math.cos(S.rotY), sy0 = Math.sin(S.rotY);
+        var cx0 = Math.cos(S.rotX), sx0 = Math.sin(S.rotX);
+        S.panX += (-ddx * cy0 + ddy * sy0 * sx0) * k;
+        S.panZ += ( ddx * sy0 + ddy * cy0 * sx0) * k;
+        S.panY += (-ddy * cx0) * k;
+        if (S.follow) { S.follow = false; setFollowUI(false); }   // 平移即脱离跟拍，避免两套中心打架
+      }
+    }
+    S.pinchMid = mid;
     moved = 999;                               // 缩放过的手势一律不算点击
     return;
   }
@@ -650,7 +669,7 @@ cv.addEventListener('pointermove', function (e) {
 
 function endPointer(e) {
   delete pts[e.pointerId];
-  if (Object.keys(pts).length < 2) S.pinch = 0;
+  if (Object.keys(pts).length < 2) { S.pinch = 0; S.pinchMid = null; }
   if (Object.keys(pts).length > 0) return;
   // 只有「几乎没动 + 按得短」才算点击 —— 这样拖完视角抬手就不会误弹卡片
   if (down && moved < 12 && Date.now() - down.t < 350) pickAt(down.x, down.y);
@@ -692,7 +711,7 @@ function exitFollow() {
   S.follow = false;
   S.camZ = 900;
   setFollowUI(false);
-  document.getElementById('hint').textContent = '自由视角：拖拽转、双指缩放、点行星看资料';
+  document.getElementById('hint').textContent = '单指拖动转视角 · 双指拖动平移 · 双指捏合缩放 · 点天体看资料';
 }
 
 function selectBody(b) {
@@ -744,8 +763,9 @@ document.getElementById('bLabel').addEventListener('click', function () {
 });
 document.getElementById('bReset').addEventListener('click', function () {
   S.rotX = .42; S.rotY = 0; S.zoom = 1; S.camZ = 900;
+  S.panX = 0; S.panY = 0; S.panZ = 0;          // 平移也归零，回到全景
   S.follow = false; setFollowUI(false); hideCard();
-  document.getElementById('hint').textContent = '拖拽转视角 · 双指缩放 · 点行星看资料';
+  document.getElementById('hint').textContent = '单指拖动转视角 · 双指拖动平移 · 双指捏合缩放 · 点天体看资料';
 });
 
 /* ══════════════════════════════════════════════════════════════════════
