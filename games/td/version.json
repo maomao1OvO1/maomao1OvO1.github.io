@@ -1,8 +1,8 @@
 {
-  "version": "9.17",
-  "versionCode": 107,
+  "version": "9.19",
+  "versionCode": 109,
   "date": "2026-09-15",
   "size": "4.6MB",
-  "note": "v9.17：画布补 touch-action:none（手机上拖动不再被当成滚动）+ 清理死字段；玩法与数值零改动",
+  "note": "v9.19：画布补 touch-action:none（手机拖动不再被当成滚动）+ 清理死字段；外观回到像素风原版（玻璃质感那版已按你的要求撤销），玩法与数值零改动",
   "url": "https://maomao1ovo1.github.io/games/td/maomao-td-latest.apk"
 }
