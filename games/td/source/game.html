@@ -1202,7 +1202,7 @@ body.boot #canvasWrap, body.boot #tip, body.boot #rotHint{ visibility:hidden !im
   <div class="home-bg"></div>
   <div class="home-aura"></div>
   <div class="home-wrap">
-    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.16 ▾</button></div>
+    <div class="home-top"><span>MAOMAO · TOWER DEFENSE</span><button id="homeVer" title="点这里看版本与运行环境（反馈问题时用得上）">v9.19 ▾</button></div>
     <div class="home-logo">
       <h1 class="logo">共鸣之塔</h1>
       <div class="logo-tag">元 素 共 鸣 · 塔 防</div>
@@ -6581,7 +6581,9 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 107;                    /* v9.17：画布补 touch-action:none（防拖动被当滚动）+ 删死字段 starTotal；与 version.json 同步 */
+var BUILD_CODE = 109;                    /* v9.19：接续 v9.17 的两项改动（画布 touch-action + 删死字段）；
+                                           编号跳过 108 —— 毛毛手机上装的是 v9.18（玻璃质感那版），
+                                           版本号必须更高才能覆盖安装；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
