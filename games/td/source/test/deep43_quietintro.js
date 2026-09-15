@@ -90,3 +90,6 @@ ok(errs.length === 0, '全程 0 运行时异常（' + errs.length + '）');
 
 console.log(fail === 0 ? '\n✅✅ v9.15 新手提示收进新手教学专项全部通过（0 失败）' : '\n❌❌ 共 ' + fail + ' 项失败');
 process.exit(fail ? 1 : 0);
+
+/* 退出码：失败时返回非零，便于批量跑与 CI 感知失败（2026-09-15 加） */
+if (fail > 0) process.exit(1);

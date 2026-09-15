@@ -37,12 +37,16 @@ const VER = (function(){
 })();
 
 const lines = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8').split('\n');
-const iLink = lines.findIndex(l => l.indexOf('<link rel="stylesheet"') >= 0);
 const iHeadEnd = lines.findIndex(l => l.trim() === '</head>');
 const iScript = lines.findIndex(l => l.indexOf('<script src=') >= 0);
 const iBodyEnd = lines.findIndex(l => l.trim() === '</body>');
 
-const headTop = lines.slice(0, iLink);                  // DOCTYPE + 文件头说明 + meta
+/* head 区 = <head> 的全部内容，只剔除那 4 条外部样式表引用（CSS 已内联进下面的 <style>）。
+ * ⚠️ 这里原来写的是 `lines.slice(0, iLink)`（切到第一条 stylesheet 为止），会把
+ *    「第一条 stylesheet 之后、</head> 之前」的内容**静默丢弃** —— 正是那几行
+ *    preconnect / dns-prefetch 性能提示，导致按本脚本重建出来的 game.html 与已发布版
+ *    差 4 行、构建不可复现（2026-09-15 定位并修复）。改 head 时请保留此过滤写法。 */
+const headTop = lines.slice(0, iHeadEnd).filter(l => l.indexOf('<link rel="stylesheet"') < 0);
 const bodyMid = lines.slice(iHeadEnd, iScript);   /* 从 </head> 起，含 </head> */     // <body> ... 界面结构
 const tail = lines.slice(iBodyEnd);                     // </body></html>
 

@@ -10,15 +10,32 @@ Disallow: /games/allplayers.html
 Disallow: /games/go/katago-test/
 Disallow: /games/stockfish/
 
-# 搜索引擎爬虫（再次显式放行，防止上面规则误伤收录）
+# 搜索引擎爬虫（显式放行公开页，但**必须重复一遍 Disallow**）：
+# ⚠️ robots 规范是「最长匹配的 UA 组生效、不与 * 组合并」—— 只写 Allow: / 会让这三家
+#    完全忽略上面 * 段的 5 条 Disallow（2026-09-15 审计发现的问题）。
 User-agent: Googlebot
 Allow: /
+Disallow: /games/admin.html
+Disallow: /games/users.html
+Disallow: /games/allplayers.html
+Disallow: /games/go/katago-test/
+Disallow: /games/stockfish/
 
 User-agent: Baiduspider
 Allow: /
+Disallow: /games/admin.html
+Disallow: /games/users.html
+Disallow: /games/allplayers.html
+Disallow: /games/go/katago-test/
+Disallow: /games/stockfish/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /games/admin.html
+Disallow: /games/users.html
+Disallow: /games/allplayers.html
+Disallow: /games/go/katago-test/
+Disallow: /games/stockfish/
 
 # 站点地图（帮助搜索引擎完整收录公开页面）
 Sitemap: https://maomao1ovo1.github.io/sitemap.xml

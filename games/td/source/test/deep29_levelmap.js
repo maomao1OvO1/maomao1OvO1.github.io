@@ -149,3 +149,6 @@ ok(startBad === 0, '15 关逐关开局无异常');
 ok(errs.length === 0, '全程无运行时错误（' + errs.length + '）');
 console.log('');
 console.log(fail === 0 ? '  ✅✅ v8.4 关卡地图 + 开幕提示专项全部通过（0 失败）' : '  ❌ v8.4 专项 ' + fail + ' 项失败');
+
+/* 退出码：失败时返回非零，便于批量跑与 CI 感知失败（2026-09-15 加） */
+if (fail > 0) process.exit(1);

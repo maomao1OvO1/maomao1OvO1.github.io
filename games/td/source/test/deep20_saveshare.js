@@ -81,3 +81,6 @@ ok(errs.length === 0, '全程无运行时错误（' + errs.length + '）');
 if (errs.length) errs.slice(0,3).forEach(function(x){ console.log('     ' + x); });
 console.log('');
 console.log(fail === 0 ? '  ✅✅ v6.8 存档分享验证全部通过（0 失败）' : '  ❌ v6.8 存档分享 ' + fail + ' 项失败');
+
+/* 退出码：失败时返回非零，便于批量跑与 CI 感知失败（2026-09-15 加） */
+if (fail > 0) process.exit(1);
