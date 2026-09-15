@@ -97,23 +97,51 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 </p>
 
 <!-- 内联脚本：拉取访问人数计数接口
-     fetch 请求一个 Cloudflare Worker 返回的 JSON，
-     then 链把返回的 visitors 数字写进 span，catch 捕获网络/接口失败时提示「获取失败」 -->
+     2026-09-15 加固：计数服务在 workers.dev 域名下，国内访问实测很不稳定
+     （3 次里 2 次连接超时），所以做了三层保护：
+       ① 先用上次成功值占位（localStorage 缓存）→ 不会一进页面就闪「获取失败」
+       ② 失败自动重试 3 次（间隔 1.2s / 2.4s，带 4.5 秒超时，避免一直转圈）
+       ③ 三次都失败且没有缓存时，显示「—」而不是「获取失败」这个吓人的词
+     计数本身仍由 Cloudflare Worker 提供，接口地址没变。 -->
 <script>
-// 性能优化（2026-09-14）：访问计数只是一个小数字，等首屏加载完再请求，不抢带宽
-window.addEventListener("load", function(){
-    setTimeout(function(){
-        fetch("https://maomao-counter.maomao1ovo1.workers.dev")
-        .then(response => response.json())
-        .then(data => {
-            // 拿到 JSON 后把 visitor 数字填进 id=visitor 的 span
-            document.getElementById("visitor").innerText = data.visitors;
-        })
-        .catch(() => {
-            // 请求失败（网络/接口异常）显示友好提示，避免空白
-            document.getElementById("visitor").innerText = "获取失败";
-        });
-    }, 500);
+window.addEventListener("load", function () {
+    var el = document.getElementById("visitor");
+    if (!el) return;
+    var KEY = "mm_visitors";
+    var cached = null;
+    try { cached = localStorage.getItem(KEY); } catch (e) {}
+    if (cached) el.innerText = cached;          // ① 先用上次的值占位
+
+    var URL_COUNTER = "https://maomao-counter.maomao1ovo1.workers.dev";
+
+    // 别让人干等：4 秒还没结果就先把「加载中...」换成「—」，
+    // 后台继续重试，一旦成功会覆盖成真实数字（体验上不再出现长时间转圈）。
+    setTimeout(function () {
+        if (el.innerText === "加载中...") el.innerText = "—";
+    }, 4000);
+
+    function attempt(n) {
+        var ctl = ("AbortController" in window) ? new AbortController() : null;
+        var timer = ctl ? setTimeout(function () { try { ctl.abort(); } catch (e) {} }, 4500) : null;
+        fetch(URL_COUNTER, ctl ? { signal: ctl.signal } : undefined)
+            .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+            .then(function (data) {
+                if (timer) clearTimeout(timer);
+                if (data && data.visitors != null) {
+                    el.innerText = data.visitors;
+                    try { localStorage.setItem(KEY, String(data.visitors)); } catch (e) {}
+                }
+            })
+            .catch(function () {
+                if (timer) clearTimeout(timer);
+                if (n < 3) {
+                    setTimeout(function () { attempt(n + 1); }, 1200 * n);   // ② 退避重试
+                } else if (!cached) {
+                    el.innerText = "—";                                       // ③ 兜底不吓人
+                }
+            });
+    }
+    attempt(1);
 });
 </script>
 
