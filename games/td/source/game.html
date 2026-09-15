@@ -938,7 +938,7 @@ html, body, #wrap{ background:var(--px-bg) !important; color:var(--px-txt); }
 .ov .home-bg{
   display:block !important;
   opacity:1 !important;
-  background:#120d22 !important;
+  background:rgba(18,13,34,.82) !important;
   background-image:
     linear-gradient(rgba(124,92,191,.065) 1px, transparent 1px),
     linear-gradient(90deg, rgba(124,92,191,.065) 1px, transparent 1px) !important;
@@ -1083,22 +1083,28 @@ button:active, .btn:active, .btn-hero:active{
 .ov .row, .ov .st, .ov .el, .ov .card, .ov .ci, .ov .cp, .ov .cr,
 .ov .cs, .ov .cu, .ov .ce, .ov .k, .ov .t, .ov .ti, .ov .udesc,
 .ov .swRow, .ov .swSec, .ov .swT, .ov .swCardLine, .ov .refund, .ov .sell{
-  background:#1b1338 !important;
+  background:rgba(27,19,56,.62) !important;
   background-image:none !important;
+  backdrop-filter:blur(12px) saturate(150%) !important;
+  -webkit-backdrop-filter:blur(12px) saturate(150%) !important;
   border:2px solid #4b3573 !important;
   box-shadow:3px 3px 0 rgba(0,0,0,.4) !important;
 }
 
 /* ④ 弹层内按钮（含动态生成的）统一像素风 */
 .ov button, .ov .btn{
-  background:#7c5cbf !important; background-image:none !important;
+  background:rgba(124,92,191,.62) !important; background-image:none !important;
+  backdrop-filter:blur(12px) saturate(155%) !important;
+  -webkit-backdrop-filter:blur(12px) saturate(155%) !important;
   border:2px solid #bb9cff !important; color:#fff !important;
   box-shadow:3px 3px 0 #6543a5 !important;
 }
 /* 关闭 / 返回 / 次要按钮：暗紫，别抢主按钮 */
 .ov #bookBackBtn, .ov #helpBackBtn, .ov #lvBackBtn, .ov #verCloseBtn,
 .ov #updCancelBtn, .ov #setBackBtn, .ov #againBtn, .ov #retryBtn{
-  background:#2b2150 !important; border-color:#6b4fa0 !important;
+  background:rgba(43,33,80,.62) !important; border-color:#6b4fa0 !important;
+  backdrop-filter:blur(10px) saturate(150%) !important;
+  -webkit-backdrop-filter:blur(10px) saturate(150%) !important;
   box-shadow:3px 3px 0 rgba(0,0,0,.4) !important;
 }
 
@@ -6579,7 +6585,7 @@ var RESO_LIST = [
 /* ===== v8.17 一键检查更新 =====
    开始界面点「🔄 检查更新」→ 拉取网站上的 version.json → 与本地版本号比大小；
    有新版就弹窗问「要下载吗」，点确定用系统浏览器打开 APK 下载链接，点取消什么都不做。 */
-var BUILD_CODE = 107;                    /* v9.16：补回「支持作者」入口三处（主界面页脚 / 通关 / 失败）；与 version.json 同步 */
+var BUILD_CODE = 108;                    /* v9.16：补回「支持作者」入口三处（主界面页脚 / 通关 / 失败）；与 version.json 同步 */
 /* v8.23：版本号只有「主界面那个占位符」一个来源（打包时 sed 注入），这里解析出来复用，
    避免以后发版忘了同步第二处（v8.18 就踩过 BUILD_CODE 漏改的坑）。 */
 function gameVerStr(){
