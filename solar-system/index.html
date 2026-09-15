@@ -349,7 +349,12 @@ function project(x, y, z) {
  * 注意：太阳**永远在原点** —— 跟随只是平移「观察中心」，不能把太阳也搬走（搬走光照方向就全错）。
  */
 function viewCenter() {
-  if (S.follow && S.selected) { var w = worldOf(S.selected); if (w) return w; }
+  // 跟拍 + 平移叠加：中心 = 星球实时位置 + 平移偏移。
+  // 这样跟拍时两指拖动 = 绕着星球挪视角（起「轨道环绕」的作用），而不是把跟拍顶掉。
+  if (S.follow && S.selected) {
+    var w = worldOf(S.selected);
+    if (w) return { x: w.x + S.panX, y: w.y + S.panY, z: w.z + S.panZ };
+  }
   // 自愈：跟拍开着却没有目标（比如卡片被关掉时顺手清空了选中）→ 退回全景，
   // 否则相机距离还是贴近值、中心却回到原点(太阳)，就会出现「跟拍跑到太阳去」的现象。
   if (S.follow && !S.selected) { S.follow = false; S.camZ = 900; setFollowUI(false); }
@@ -452,7 +457,7 @@ function drawSphere(cx, cy, r, body, screenSun, spin) {
   var cols = TEXCACHE[body.id];
   if (!cols || !cols.length) cols = [[170, 176, 190]];   // 极端兜底：宁可画成灰球，也绝不让整体渲染崩掉
   var texW = cols.length;
-  var N = Math.max(16, Math.min(192, Math.round(r * 2.4)));   // 列数翻倍（上限 192）：2K 贴图的细节才保得住
+  var N = Math.max(16, Math.min(384, Math.round(r * 2.4)));   // 列数按半径给，上限 384：贴脸放大时球面边缘才不显棱角
 
   var lx = screenSun.x - cx, ly = screenSun.y - cy;      // 光方向：从行星指向太阳
   var ll = Math.hypot(lx, ly) || 1; lx /= ll; ly /= ll;
@@ -563,7 +568,7 @@ function loop(ts) {
   // 视角中心（跟拍时跟着行星走）；太阳固定在原点，相对中心就是 -center
   var center = viewCenter();
   // 跟拍 = 相机真正凑近：目标距离按行星大小算（大行星站远点、小行星贴近看）
-  var camTarget = (S.follow && S.selected) ? Math.max(26, S.selected.rPlanet * 7.5) : 900;
+  var camTarget = (S.follow && S.selected) ? Math.max(10, S.selected.rPlanet * 4.2) : 900;   // 10 单位下限：月球这种小球也能贴近
   S.camZ += (camTarget - S.camZ) * Math.min(1, dt * 2.6);
   var screenSun = project(-center.x, -center.y, -center.z);
 
@@ -638,7 +643,7 @@ cv.addEventListener('pointermove', function (e) {
     p.x = e.clientX; p.y = e.clientY;
     var a = pts[ids[0]], b = pts[ids[1]];
     var d = Math.hypot(a.x - b.x, a.y - b.y);
-    if (S.pinch) S.zoom = Math.max(.25, Math.min(16, S.zoom * (d / S.pinch)));
+    if (S.pinch) S.zoom = Math.max(.2, Math.min(48, S.zoom * (d / S.pinch)));   // 上限 48 倍：能怼到贴脸看细节
     S.pinch = d;
     // ── 双指中点移动 → 平移视角（这才是「真的自由视角」）──
     var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -653,7 +658,7 @@ cv.addEventListener('pointermove', function (e) {
         S.panX += (-ddx * cy0 + ddy * sy0 * sx0) * k;
         S.panZ += ( ddx * sy0 + ddy * cy0 * sx0) * k;
         S.panY += (-ddy * cx0) * k;
-        if (S.follow) { S.follow = false; setFollowUI(false); }   // 平移即脱离跟拍，避免两套中心打架
+        // 平移不再退出跟拍：viewCenter 已把两个中心合并，拖动 = 绕着星球挪视角
       }
     }
     S.pinchMid = mid;
@@ -694,7 +699,7 @@ function pickAt(cx, cy) {
 
 cv.addEventListener('wheel', function (e) {
   e.preventDefault();
-  S.zoom = Math.max(.25, Math.min(14, S.zoom * (e.deltaY > 0 ? .92 : 1.08)));
+  S.zoom = Math.max(.2, Math.min(48, S.zoom * (e.deltaY > 0 ? .92 : 1.08)));   // 双指/滚轮同一套范围
 }, { passive: false });
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -735,7 +740,8 @@ function hideCard() {
 document.getElementById('cardClose').addEventListener('click', hideCard);
 document.getElementById('cFollow').addEventListener('click', function () {
   S.follow = true;
-  S.zoom = 1;                       // 缩放交给相机距离去做，避免双重放大过头
+  // 跟拍不再重置缩放：缩放交给相机距离 + 用户捏合，重置会打断「跟拍后继续放大看细节」的手感。
+  S.panX = 0; S.panY = 0; S.panZ = 0;   // 进跟拍先归零，中心正好落在星球上
   setFollowUI(true);
   document.getElementById('hint').textContent = '跟拍中：相机已贴近，可继续加速看它绕太阳走';
 });
