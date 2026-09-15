@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#03040c">
+<meta name="description" content="3D 太阳系：行星公转自转、可缩放细看、时间加速、轨道显示，附带每颗行星的科普资料。">
+<title>太阳系 · 3D 可探索模型</title>
+<link rel="icon" href="../icon.png">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+ * 太阳系 · 3D 可探索模型（solar-system.html）
+ *
+ * 干什么：把八大行星按真实相对关系（距离/大小经过可视化夸张）摆出来，让它们真的在转。
+ * 能干什么：拖拽转视角 · 双指缩放凑近看 · 点行星跟随并看科普 · 时间加速看轨道跑 · 开关轨道与标签。
+ * 怎么实现的：纯 Canvas 2D 手写 3D —— 旋转矩阵 + 透视投影；球体用「逐列采样纹理」画出弧面与自转，
+ *            光照按太阳方向算，所以亮面永远朝着太阳（这是它看起来像真的关键）。
+ * ══════════════════════════════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#03040c;color:#dfe8ff;
+  font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+
+/* 顶部控制条 */
+#top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;pointer-events:none}
+#top .pill{background:rgba(14,18,36,.66);border:1px solid rgba(120,150,255,.2);border-radius:11px;
+  padding:6px 10px;font-size:12.5px;backdrop-filter:blur(12px)}
+#top .title{font-weight:600;color:#a9c2ff;letter-spacing:.4px}
+#top .spacer{flex:1}
+#top .btn{pointer-events:auto;cursor:pointer;background:rgba(14,18,36,.66);
+  border:1px solid rgba(120,150,255,.2);border-radius:11px;padding:6px 10px;font-size:12.5px;
+  backdrop-filter:blur(12px);color:#c8d4f5}
+#top .btn.on{color:#7deae0;border-color:rgba(125,234,224,.45);background:rgba(20,40,44,.6)}
+#top .btn:active{transform:scale(.96)}
+
+/* 底部提示 */
+#hint{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 10px);text-align:center;
+  font-size:12px;color:#7b88ad;pointer-events:none;transition:opacity .4s}
+
+/* 科普卡片 */
+#card{position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);
+  max-height:58vh;overflow-y:auto;background:rgba(12,16,32,.9);border:1px solid rgba(120,150,255,.24);
+  border-radius:18px;padding:16px 16px 18px;backdrop-filter:blur(18px);display:none;
+  box-shadow:0 18px 60px rgba(0,0,0,.6);-webkit-overflow-scrolling:touch}
+#card.show{display:block;animation:up .26s ease}
+@keyframes up{from{transform:translateY(18px);opacity:0}to{transform:none;opacity:1}}
+#card h2{font-size:18px;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+#card h2 .en{font-size:11.5px;color:#7b88ad;font-weight:400;letter-spacing:.6px}
+#card .type{font-size:12px;color:#8ea4d8;margin-bottom:10px}
+#card table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:10px}
+#card td{padding:5px 0;border-bottom:1px solid rgba(120,150,255,.1);vertical-align:top}
+#card td:first-child{color:#8b9ac4;width:38%}
+#card td:last-child{color:#e2eaff}
+#card p{font-size:13px;line-height:1.85;color:#b9c6ea}
+#card .close{position:absolute;right:14px;top:14px;width:30px;height:30px;border-radius:50%;
+  background:rgba(40,50,80,.7);border:1px solid rgba(120,150,255,.24);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;font-size:15px;color:#c8d4f5}
+#card .focus{margin-top:12px;display:flex;gap:8px}
+#card .focus button{flex:1;padding:10px;border-radius:11px;border:1px solid rgba(120,150,255,.25);
+  background:rgba(30,38,70,.6);color:#dfe8ff;font-size:13px;cursor:pointer;font-family:inherit}
+#card .focus button.primary{background:linear-gradient(135deg,#3b5bdb,#7048e8);border-color:transparent;font-weight:600}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="top">
+  <div class="pill title">☀️ 太阳系</div>
+  <div class="btn" id="bPause">⏸</div>
+  <div class="btn" id="bSpeed">×1 天/秒</div>
+  <div class="spacer"></div>
+  <div class="btn on" id="bOrbit">轨道</div>
+  <div class="btn on" id="bLabel">名称</div>
+  <div class="btn" id="bFollow" style="display:none">跟拍中 ✕</div>
+  <div class="btn" id="bReset">复位</div>
+</div>
+
+<div id="hint">拖拽转视角 · 双指缩放 · 点行星看资料</div>
+
+<div id="card">
+  <div class="close" id="cardClose">✕</div>
+  <h2><span id="cName">地球</span><span class="en" id="cEn">Earth</span></h2>
+  <div class="type" id="cType"></div>
+  <table id="cTable"></table>
+  <p id="cDesc"></p>
+  <div class="focus">
+    <button id="cFollow">跟拍这颗</button>
+    <button id="cFree">自由视角</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════════════════════
+ * 一、天体数据
+ *   rOrbit = 轨道半径（视觉单位，真实距离做了对数式压缩，见下方 note）
+ *   period = 公转周期（地球日）；spin = 自转周期（小时，负值表示逆向自转）
+ *   tex    = 表面纹理的类型（程序生成：条纹 / 大陆 / 陨石坑 / 冰盖 / 纯色）
+ *   科普数据取自公开天文资料（直径、距离、周期均为实测值）
+ * ══════════════════════════════════════════════════════════════════════ */
+var BODIES = [
+  { id:'sun', name:'太阳', en:'Sun', type:'恒星（G2V 黄矮星）', color:'#ffd166', glow:'#ff9d3c',
+    rOrbit:0, rPlanet:26, period:0, spin:609.12, tex:'sun',
+    facts:[['直径','1,392,700 km（约 109 个地球）'],['质量','占太阳系总质量 99.86%'],
+      ['表面温度','约 5,500 ℃'],['核心温度','约 1,500 万 ℃'],['年龄','约 46 亿年'],
+      ['自转周期','赤道 25.4 天 / 两极 35 天'],['组成','氢约 73% · 氦约 25%']],
+    desc:'太阳是太阳系唯一的恒星，靠核心的氢核聚变发光发热 —— 每秒钟把约 6 亿吨氢变成氦，其中约 400 万吨质量直接变成能量。它已经稳定燃烧了 46 亿年，还能再烧约 50 亿年。你看到的阳光，其实是核心产生能量后、经过十几万年才从内部挤到表面、再用 8 分 20 秒飞到地球的。' },
+
+  { id:'mercury', name:'水星', en:'Mercury', type:'类地行星', color:'#9a8f88', glow:'#c9bdb4',
+    rOrbit:78, rPlanet:3.4, period:87.97, e:0.2056, inc:7.00, au:0.387, radiusKm:2439.7, spin:1407.6, tex:'crater',
+    facts:[['直径','4,879 km'],['距日','0.39 AU（约 5,790 万 km）'],['公转','88 天'],
+      ['自转','58.6 天'],['卫星','0 颗'],['温度','−173 ℃ ~ 427 ℃（昼夜温差最大）']],
+    desc:'离太阳最近、也是最小的行星。它几乎没有大气来保温，白天被晒到 427 ℃、夜里又降到 −173 ℃。水星上的一「天」（自转一周）比一「年」（绕日一周）还长 —— 自转 58.6 天，公转只要 88 天。' },
+
+  { id:'venus', name:'金星', en:'Venus', type:'类地行星', color:'#e8cda2', glow:'#ffe6b0',
+    rOrbit:104, rPlanet:6.0, period:224.7, e:0.0068, inc:3.39, au:0.723, radiusKm:6051.8, spin:-5832, tex:'cloud',
+    facts:[['直径','12,104 km'],['距日','0.72 AU'],['公转','225 天'],['自转','243 天（逆向）'],
+      ['卫星','0 颗'],['表面温度','约 464 ℃'],['气压','地球的 92 倍']],
+    desc:'地球的「孪生兄弟」，大小几乎一样，却是太阳系最热的地方 —— 浓密的二氧化碳大气造成失控温室效应，表面比水星还烫。它还「倒着转」：自转方向与公转相反，而且转得极慢，一天比一年还长。' },
+
+  { id:'earth', name:'地球', en:'Earth', type:'类地行星（我们的家）', color:'#4a90d9', glow:'#7fc4ff',
+    rOrbit:132, rPlanet:6.4, period:365.26, e:0.0167, inc:0.00, au:1.000, radiusKm:6371.0, spin:23.93, tex:'earth', moon:true,
+    facts:[['直径','12,756 km'],['距日','1 AU（约 1.496 亿 km）'],['公转','365.26 天'],
+      ['自转','23 小时 56 分'],['卫星','1 颗（月球）'],['轴倾角','23.4°（带来四季）'],
+      ['已知生命','目前唯一的样本']],
+    desc:'唯一已知存在生命的天体。液态水、合适的大气、恰到好处的磁场与距离，凑成了一个能长期稳定的环境。23.4° 的自转轴倾角让阳光分布随季节变化 —— 四季由此而来。' },
+
+  { id:'mars', name:'火星', en:'Mars', type:'类地行星', color:'#c1440e', glow:'#ff8a5c',
+    rOrbit:168, rPlanet:4.6, period:686.98, e:0.0934, inc:1.85, au:1.524, radiusKm:3389.5, spin:24.62, tex:'mars',
+    facts:[['直径','6,792 km'],['距日','1.52 AU'],['公转','687 天'],['自转','24 小时 37 分'],
+      ['卫星','2 颗（火卫一、火卫二）'],['最高峰','奥林匹斯山 21.9 km（太阳系最高）']],
+    desc:'红色来自表面的氧化铁（铁锈）。这里有过河流与湖泊的痕迹，如今水大多以冰的形式藏在两极与地下。它的自转周期与地球几乎一样，一天只长 37 分钟 —— 所以火星车也得按「火星日」作息。' },
+
+  { id:'jupiter', name:'木星', en:'Jupiter', type:'气态巨行星', color:'#d8b48c', glow:'#ffcf9e',
+    rOrbit:250, rPlanet:15.5, period:4332.6, e:0.0489, inc:1.30, au:5.204, radiusKm:69911, spin:9.93, tex:'bands',
+    facts:[['直径','142,984 km（地球的 11 倍）'],['距日','5.20 AU'],['公转','11.86 年'],
+      ['自转','9 小时 56 分（最快）'],['卫星','95 颗以上'],['大红斑','持续数百年的巨型风暴']],
+    desc:'太阳系最大的行星，质量是其它七颗行星总和的 2.5 倍。它自转极快，把云层拉成一条条带纹；那枚「大红斑」是一场比地球还大的风暴，至少已经刮了几百年。它强大的引力还替内太阳系挡下了不少彗星与小行星。' },
+
+  { id:'saturn', name:'土星', en:'Saturn', type:'气态巨行星', color:'#e3d3a3', glow:'#fff0bd',
+    rOrbit:320, rPlanet:13, period:10759, e:0.0565, inc:2.49, au:9.583, radiusKm:58232, spin:10.66, tex:'bands', ring:true,
+    facts:[['直径','120,536 km'],['距日','9.58 AU'],['公转','29.45 年'],['自转','10 小时 40 分'],
+      ['卫星','146 颗以上'],['平均密度','0.687 g/cm³（比水还轻）'],['光环','主要由冰粒与岩屑组成']],
+    desc:'最上镜的行星。平均密度比水还小 —— 理论上有个足够大的水池，它能浮起来。光环由无数冰块与碎石组成，宽度可达 28 万公里，厚度却往往只有十几米到几十米。' },
+
+  { id:'uranus', name:'天王星', en:'Uranus', type:'冰巨行星', color:'#9fe3e3', glow:'#d6ffff',
+    rOrbit:378, rPlanet:9, period:30687, e:0.0457, inc:0.77, au:19.19, radiusKm:25362, spin:-17.24, tex:'plain',
+    facts:[['直径','51,118 km'],['距日','19.2 AU'],['公转','84 年'],['自转','17 小时 14 分（逆向）'],
+      ['卫星','28 颗'],['轴倾角','97.8°（几乎躺着转）'],['温度','约 −224 ℃']],
+    desc:'它几乎是「躺着」绕太阳公转的 —— 自转轴倾斜近 98°，可能是早期被一颗大天体撞倒的。青蓝色来自大气中的甲烷。它的一年长达 84 个地球年，1781 年被赫歇尔发现，是人类用望远镜找到的第一颗行星。' },
+
+  { id:'neptune', name:'海王星', en:'Neptune', type:'冰巨行星', color:'#3f54ba', glow:'#7f9bff',
+    rOrbit:432, rPlanet:8.6, period:60190, e:0.0113, inc:1.77, au:30.07, radiusKm:24622, spin:16.11, tex:'plain',
+    facts:[['直径','49,528 km'],['距日','30.05 AU'],['公转','164.8 年'],['自转','16 小时 6 分'],
+      ['卫星','16 颗'],['最大风速','约 2,100 km/h（太阳系最快）'],['发现','1846 年，靠数学算出位置']],
+    desc:'离太阳最远的行星，也是唯一先被「算出来」再被看到的 —— 天文学家从天王星轨道的异常推算出它的位置，随后果然在那里找到了它。这里有着太阳系最猛烈的风，时速可达 2,100 公里。' },
+  { id:'ceres', name:'谷神星', en:'Ceres', type:'矮行星（小行星带）', color:'#a89b8c', glow:'#d8cabc',
+    rOrbit:206, rPlanet:1.8, period:1682, spin:9.07, tex:'crater', e:0.076, inc:10.6, au:2.77, radiusKm:473,
+    facts:[['直径','939.4 km'],['距日','2.77 AU（小行星带内）'],['公转','4.6 年'],['自转','9 小时 4 分'],
+      ['地位','小行星带里最大的天体，也是唯一的矮行星'],['质量','约占整条小行星带的三分之一']],
+    desc:'小行星带里的「老大」，占了整条带约三分之一的质量。它圆得像个行星，因此被归为矮行星。黎明号发现它表面有亮斑 —— 那是盐类沉积，暗示地下可能有过水。' },
+
+  { id:'pluto', name:'冥王星', en:'Pluto', type:'矮行星（柯伊伯带）', color:'#c9b6a2', glow:'#e8d8c8',
+    rOrbit:486, rPlanet:2.6, period:90560, spin:153.3, tex:'crater', e:0.2488, inc:17.16, au:39.5, radiusKm:1188,
+    facts:[['直径','2,376.6 km'],['距日','平均 39.5 AU（近日 29.7 / 远日 49.3）'],['公转','248 年'],['自转','6.39 天'],
+      ['轨道倾角','17.16°（明显偏离黄道）'],['卫星','5 颗，最大的是卡戎'],['身份','2006 年被重新归类为矮行星']],
+    desc:'曾经的「第九大行星」。2006 年国际天文联合会把它重新划为矮行星 —— 因为柯伊伯带里发现了越来越多和它体量相当的天体。它的轨道又扁又斜，有时比海王星还靠近太阳。新视野号在 2015 年飞掠，人类才第一次看清它长什么样。' },
+
+];
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 二、全局状态
+ * ══════════════════════════════════════════════════════════════════════ */
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W = 0, H = 0, DPR = 1;
+
+var S = {
+  days: 0,               // 模拟时间（地球日）
+  speed: 1,              // 每天多少秒（1 = 1 天/秒）
+  paused: false,
+  rotX: 0.42, rotY: 0.0, // 相机俯仰/水平角
+  zoom: 1,               // 缩放
+  camZ: 900,             // 相机到原点的距离（视觉单位）
+  showOrbit: true, showLabel: true,
+  selected: null,        // 选中的天体
+  follow: false,         // 是否跟拍
+  t: 0,                  // 真实时间（做动画用）
+  spin: 0,               // 自转计时器：独立于「暂停」，暂停时依然在转（方便细看球面）
+  pinch: 0
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 三、程序生成行星表面纹理
+ *   为什么要纹理：没有纹理的球体自转看不出来 —— 有了条纹/大陆，转起来才有「活」的感觉。
+ *   做法：离屏 canvas 画一张宽图（横向 = 经度），渲染时逐列采样并叠加光照。
+ * ══════════════════════════════════════════════════════════════════════ */
+var TEXW = 256, TEXH = 8;
+function makeTexture(b) {
+  var c = document.createElement('canvas');
+  c.width = TEXW; c.height = TEXH;
+  var g = c.getContext('2d');
+  g.fillStyle = b.color; g.fillRect(0, 0, TEXW, TEXH);
+
+  function band(y, h, col, alpha) { g.globalAlpha = alpha; g.fillStyle = col; g.fillRect(0, y, TEXW, h); g.globalAlpha = 1; }
+  function spots(n, col, size, alpha) {
+    g.globalAlpha = alpha; g.fillStyle = col;
+    for (var i = 0; i < n; i++) {
+      g.beginPath();
+      g.ellipse(Math.random() * TEXW, Math.random() * TEXH, size * (0.6 + Math.random()), size * 0.8, 0, 0, 6.283);
+      g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+
+  if (b.tex === 'bands') {                      // 木星/土星：横向条纹
+    var cols = b.id === 'jupiter' ? ['#c9a37a', '#e8d5b0', '#a8763f', '#f0e2c6', '#8b5a2b'] : ['#e3d3a3', '#cfbc86', '#f2e8c9'];
+    for (var y = 0; y < TEXH; y++) {
+      band(y, 1, cols[Math.floor((Math.abs(Math.sin(y * 1.3 + b.rOrbit) * cols.length)) % cols.length)], 0.75);
+    }
+    spots(6, '#e8d5b0', 10, 0.5);
+    if (b.id === 'jupiter') { g.globalAlpha = .85; g.fillStyle = '#c1442e'; g.beginPath(); g.ellipse(TEXW * .68, TEXH * .62, 13, 4.5, 0, 0, 6.283); g.fill(); g.globalAlpha = 1; }
+  } else if (b.tex === 'earth') {               // 地球：海洋 + 大陆 + 极冠
+    g.fillStyle = '#1b4f9c'; g.fillRect(0, 0, TEXW, TEXH);
+    spots(18, '#2f7d3a', 9, 0.95); spots(10, '#7d6a35', 6, 0.8); spots(5, '#3b8c46', 7, 0.7);
+    band(0, 1.2, '#f2f6ff', 0.95); band(TEXH - 1.2, 1.2, '#f2f6ff', 0.95);
+  } else if (b.tex === 'mars') {                // 火星：铁锈色 + 暗斑 + 极冠
+    spots(24, '#8f3410', 8, 0.55); spots(14, '#e07a4a', 6, 0.5);
+    band(0, 1, '#f6efe6', 0.9); band(TEXH - 1, '#f6efe6', 0.8);
+  } else if (b.tex === 'crater') {              // 水星：灰色 + 陨石坑
+    spots(40, '#6f6761', 4, 0.6); spots(22, '#c4b9ae', 2.5, 0.6);
+  } else if (b.tex === 'cloud') {               // 金星：厚云层
+    spots(26, '#fff0cf', 11, 0.6); spots(16, '#d8b477', 8, 0.5);
+  } else {                                      // 天王星/海王星：细腻的淡斑
+    spots(10, '#ffffff', 7, 0.14);
+  }
+  var img = g.getImageData(0, 0, TEXW, TEXH).data;
+  var cols2 = [];                                // 预提取每一列的代表色（渲染时直接用，省掉重复取像素）
+  for (var x = 0; x < TEXW; x++) {
+    var r = 0, gg = 0, bb = 0;
+    for (var yy = 0; yy < TEXH; yy++) {
+      var k = (yy * TEXW + x) * 4;
+      r += img[k]; gg += img[k + 1]; bb += img[k + 2];
+    }
+    cols2.push([r / TEXH | 0, gg / TEXH | 0, bb / TEXH | 0]);
+  }
+  return cols2;
+}
+var TEXCACHE = {};
+BODIES.forEach(function (b) { TEXCACHE[b.id] = makeTexture(b); });
+
+/* ── 真实贴图（Solar System Scope 2K · CC BY 4.0，随页面放在 textures/）── */
+/* 注意（2026-09-15 踩过的坑）：**不要用 getImageData 读像素** —— 用 file:// 打开时，
+ * 本地图片会「污染 canvas」，读像素会被安全策略拒绝；若被 try/catch 包着就会**静默失败**：
+ * 页面照常、贴图永远不生效，最难查。这里只保留 Image 对象，渲染时用 drawImage 按列贴上去。 */
+var IMGS = {};
+/* 网站版：贴图走相对路径 textures/（HTTP 下正常按需加载、可缓存）——
+ * 从文件管理器打开时 URL 是 content://…，相对路径 textures/ 不解析，贴图会永远加载不上。
+ * 内嵌之后无论怎么打开都能看到真实地表。 */
+var TEXB64 = {sun:'textures/2k_sun.jpg',mercury:'textures/2k_mercury.jpg',venus:'textures/2k_venus_surface.jpg',earth:'textures/2k_earth_daymap.jpg',mars:'textures/2k_mars.jpg',jupiter:'textures/2k_jupiter.jpg',saturn:'textures/2k_saturn.jpg',uranus:'textures/2k_uranus.jpg',neptune:'textures/2k_neptune.jpg',moon:'textures/2k_moon.jpg',ceres:'textures/2k_ceres_fictional.jpg',pluto:'textures/2k_eris_fictional.jpg'};
+function loadReal(id) {
+  var img = new Image();
+  img.onload = function () { IMGS[id] = img; };
+  img.onerror = function () {};
+  img.src = TEXB64[id];
+}
+
+/* ── 卫星表：在 BODIES 定义之后统一挂载（不往长数组里插文本，稳）── */
+var MOONS = {
+  earth: [
+    { id:'moon', parentId:'earth', name:'月球', en:'Moon', type:'地球的卫星', color:'#c9c9c9', glow:'#ffffff',
+      rOrbit:17, rPlanet:1.9, period:27.32, spin:655.7, tex:'plain',
+      facts:[['直径','3,474.8 km（地球的 0.27 倍）'],['距地','平均 384,400 km'],['公转','27.32 天'],
+        ['自转','27.32 天（潮汐锁定：永远同一面朝地球）'],['表面引力','地球的 1/6'],['形成','约 45 亿年前的大碰撞假说']],
+      desc:'离我们最近的天体，也是人类唯一踏足过的地外星球。它被地球潮汐锁定 —— 自转和公转同步，所以从地球上永远只能看到它的同一面。它的引力拉着海洋形成潮汐，也帮地球稳住了自转轴。' }
+  ],
+  mars: [
+    { id:'phobos', parentId:'mars', name:'火卫一', en:'Phobos', type:'火星的卫星', color:'#9c8f85', glow:'#cfc3b8',
+      rOrbit:9, rPlanet:0.9, period:0.319, spin:7.65, tex:'crater',
+      facts:[['直径','22.5 km（形状不规则）'],['距火星','约 9,376 km'],['公转','7 小时 39 分（比火星自转还快）'],['结局','轨道持续下降，约 5000 万年后撞毁或碎成环']],
+      desc:'太阳系里跑得最快的卫星之一 —— 一天能绕火星三圈。它正一点点向火星坠落。' },
+    { id:'deimos', parentId:'mars', name:'火卫二', en:'Deimos', type:'火星的卫星', color:'#a89b90', glow:'#d6cabe',
+      rOrbit:13, rPlanet:0.7, period:1.263, spin:30.3, tex:'crater',
+      facts:[['直径','12.4 km'],['距火星','约 23,460 km'],['公转','30.3 小时'],['表面','被细尘覆盖，比火卫一平滑']],
+      desc:'火星两颗卫星中较小、较远的那颗。它们大概率都是被火星俘获的小行星。' }
+  ],
+  jupiter: [
+    { id:'io', parentId:'jupiter', name:'木卫一', en:'Io', type:'木星的卫星（伽利略卫星）', color:'#e8d66a', glow:'#fff3a0',
+      rOrbit:30, rPlanet:1.5, period:1.769, spin:42.5, tex:'plain',
+      facts:[['直径','3,643 km'],['公转','1.77 天'],['火山','400 多座活火山，太阳系最活跃'],['颜色','硫黄造就的明黄']],
+      desc:'太阳系火山最猛的地方。木星巨大的潮汐力把它反复揉搓、内部被加热到熔融，喷出的硫黄把它染成明黄色。' },
+    { id:'europa', parentId:'jupiter', name:'木卫二', en:'Europa', type:'木星的卫星（伽利略卫星）', color:'#dcd6c8', glow:'#ffffff',
+      rOrbit:38, rPlanet:1.3, period:3.551, spin:85.2, tex:'plain',
+      facts:[['直径','3,122 km'],['公转','3.55 天'],['表面','冰壳，遍布纵横裂纹'],['地下海洋','冰下可能有 60~150 km 深的液态海洋']],
+      desc:'冰壳下藏着一片全球性海洋，水量可能是地球海洋总和的两倍。这让它成为寻找地外生命最被看好的地方之一。' },
+    { id:'ganymede', parentId:'jupiter', name:'木卫三', en:'Ganymede', type:'木星的卫星（伽利略卫星）', color:'#b8ab98', glow:'#e6dccb',
+      rOrbit:48, rPlanet:2.1, period:7.155, spin:171.7, tex:'crater',
+      facts:[['直径','5,268 km（比水星还大）'],['公转','7.15 天'],['地位','太阳系最大的卫星'],['磁场','唯一拥有自身磁场的卫星']],
+      desc:'比水星还大的卫星 —— 大到如果它单独绕太阳转，会被直接算作行星。它也是唯一有自身磁场的卫星。' },
+    { id:'callisto', parentId:'jupiter', name:'木卫四', en:'Callisto', type:'木星的卫星（伽利略卫星）', color:'#8a8378', glow:'#c2bab0',
+      rOrbit:58, rPlanet:1.9, period:16.689, spin:400.5, tex:'crater',
+      facts:[['直径','4,821 km'],['公转','16.69 天'],['表面','太阳系已知陨石坑最密集'],['环境','远离木星强辐射带，未来基地候选']],
+      desc:'太阳系里被砸得最惨的天体，表面几乎找不到完好的地方。正因为它远离木星强辐射，反倒常被当作未来载人基地的候选。' }
+  ],
+  saturn: [
+    { id:'titan', parentId:'saturn', name:'土卫六', en:'Titan', type:'土星的卫星', color:'#d99b4a', glow:'#ffce85',
+      rOrbit:40, rPlanet:2.0, period:15.945, spin:382.7, tex:'plain',
+      facts:[['直径','5,150 km'],['公转','15.95 天'],['大气','唯一有浓密大气的卫星（以氮为主）'],['表面','存在甲烷湖泊与河流']],
+      desc:'唯一有浓密大气的卫星，也是除地球之外唯一地表有稳定液体的天体 —— 只不过那里的湖是液态甲烷。惠更斯号 2005 年在这里着陆。' }
+  ],
+  neptune: [
+    { id:'triton', parentId:'neptune', name:'海卫一', en:'Triton', type:'海王星的卫星', color:'#c8d4dd', glow:'#f0f8ff',
+      rOrbit:24, rPlanet:1.6, period:5.877, spin:141.0, tex:'plain',
+      facts:[['直径','2,707 km'],['公转','5.88 天（逆向）'],['表面温度','约 −235 ℃'],['来历','逆着海王星自转方向跑，应是被俘获的柯伊伯带天体']],
+      desc:'少见的大个头「逆行卫星」—— 它绕海王星的方向与海王星自转相反，说明它不是原地生成，而是被捕获的外来客。表面还有氮气间歇泉在喷。' }
+  ]
+};
+BODIES.forEach(function (b) {
+  if (MOONS[b.id]) b.moons = MOONS[b.id];
+});
+BODIES.forEach(function (b) {
+  if (TEXB64[b.id]) loadReal(b.id);
+  (b.moons || []).forEach(function (m) {
+    // 卫星也要有程序纹理兜底：TEXCACHE 是在挂载卫星「之前」建的，不补的话取色会得到 undefined → 渲染整体崩掉
+    if (!TEXCACHE[m.id]) TEXCACHE[m.id] = makeTexture(m);
+    if (TEXB64[m.id]) loadReal(m.id);
+  });
+});
+
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 四、3D：旋转 + 透视投影
+ *   相机固定看向原点，靠旋转世界来转视角 —— 比搬相机简单，效果一样。
+ * ══════════════════════════════════════════════════════════════════════ */
+function project(x, y, z) {
+  var cy = Math.cos(S.rotY), sy = Math.sin(S.rotY);
+  var x1 = x * cy - z * sy;
+  var z1 = x * sy + z * cy;
+  var cx = Math.cos(S.rotX), sx = Math.sin(S.rotX);
+  var y1 = y * cx - z1 * sx;
+  var z2 = y * sx + z1 * cx;
+  var sc = 900 / (900 + z2 + S.camZ) * S.zoom;
+  return { x: W / 2 + x1 * sc, y: H / 2 + y1 * sc, s: sc, z: z2 };
+}
+
+/**
+ * 视图中心：自由视角时是原点；跟拍某颗行星时，中心跟着那颗行星走。
+ * 注意：太阳**永远在原点** —— 跟随只是平移「观察中心」，不能把太阳也搬走（搬走光照方向就全错）。
+ */
+function viewCenter() {
+  if (S.follow && S.selected) { var w = worldOf(S.selected); if (w) return w; }
+  // 自愈：跟拍开着却没有目标（比如卡片被关掉时顺手清空了选中）→ 退回全景，
+  // 否则相机距离还是贴近值、中心却回到原点(太阳)，就会出现「跟拍跑到太阳去」的现象。
+  if (S.follow && !S.selected) { S.follow = false; S.camZ = 900; setFollowUI(false); }
+  return { x: 0, y: 0, z: 0 };
+}
+
+/**
+ * 某天体在给定时刻的 3D 位置 —— 用真实轨道要素算，不是正圆：
+ *   · 椭圆：r = a(1−e²)/(1+e·cosθ)，θ 由平近点角一阶近似（够看，也够科普）
+ *   · 倾角：轨道平面相对黄道倾斜真实角度（水星 7°、金星 3.39°…），所以从侧面看不是一张纸
+ *   · 近快远慢：一阶近似里带上了 2e·sinθ 项，近日点附近确实会走得快一点
+ */
+/**
+ * 卫星的世界坐标：绕母星的小圆（半径与周期按真实关系压缩过）
+ */
+function moonWorld(p, m) {
+  var a = (S.days / m.period) * 6.28318530718 - 1.6;
+  return { x: p.x + Math.cos(a) * m.rOrbit, y: p.y + Math.sin(a) * m.rOrbit * 0.35, z: p.z + Math.sin(a) * m.rOrbit };
+}
+
+/** 统一天体列表：主天体 + 它们各自的卫星（一起参与深度排序，远近才对） */
+function allBodies() {
+  var list = [];
+  for (var i = 0; i < BODIES.length; i++) {
+    var b = BODIES[i], wp = posOf(b);
+    list.push({ b: b, wp: wp });
+    var ms = b.moons || [];
+    for (var j = 0; j < ms.length; j++) list.push({ b: ms[j], wp: moonWorld(wp, ms[j]), parent: b });
+  }
+  return list;
+}
+
+/** 某选中天体的世界坐标（卫星要先算母星位置） */
+function worldOf(sel) {
+  if (!sel) return null;
+  if (sel.parentId) {
+    for (var i = 0; i < BODIES.length; i++) {
+      if (BODIES[i].id === sel.parentId) return moonWorld(posOf(BODIES[i]), sel);
+    }
+    return null;
+  }
+  return posOf(sel);
+}
+
+
+function posOf(b) {
+  if (!b.rOrbit) return { x: 0, y: 0, z: 0 };
+  var e = b.e || 0;
+  var M = (S.days / b.period) * 6.28318530718 - 1.6;
+  var th = M + 2 * e * Math.sin(M);
+  var a = b.rOrbit;
+  var r = a * (1 - e * e) / (1 + e * Math.cos(th));
+  var x = Math.cos(th) * r;
+  var z = Math.sin(th) * r;
+  var inc = (b.inc || 0) * Math.PI / 180;
+  var y = z * Math.sin(inc);
+  z = z * Math.cos(inc);
+  return { x: x, y: y, z: z };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 五、渲染
+ * ══════════════════════════════════════════════════════════════════════ */
+var STARS = [];
+for (var i = 0; i < 220; i++) STARS.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + .25, a: Math.random() * .5 + .15, p: Math.random() * 6.28 });
+
+function drawStars() {
+  for (var i = 0; i < STARS.length; i++) {
+    var s = STARS[i];
+    ctx.globalAlpha = s.a * (.75 + .25 * Math.sin(S.t * 1.2 + s.p));
+    ctx.fillStyle = '#cfe0ff';
+    ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** 轨道线：把圆按同一投影摊成椭圆 */
+function drawOrbit(b, center) {
+  var e = b.e || 0, a = b.rOrbit, inc = (b.inc || 0) * Math.PI / 180;
+  ctx.beginPath();
+  var N = 110;
+  for (var i = 0; i <= N; i++) {
+    var th = i / N * 6.2832;
+    var r = a * (1 - e * e) / (1 + e * Math.cos(th));     // 真实椭圆轨道
+    var x = Math.cos(th) * r, z = Math.sin(th) * r;
+    var y = z * Math.sin(inc); z = z * Math.cos(inc);
+    var p = project(x - center.x, y - center.y, z - center.z);
+    i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
+  }
+  ctx.strokeStyle = 'rgba(120,150,255,.18)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+/** 球体：逐列采样纹理 + 按太阳方向打光 —— 自转与弧面全靠这一步 */
+function drawSphere(cx, cy, r, body, screenSun, spin) {
+  if (r < 0.6) { ctx.fillStyle = body.color; ctx.beginPath(); ctx.arc(cx, cy, Math.max(1, r), 0, 6.283); ctx.fill(); return; }
+  var img = IMGS[body.id];                       // 真实贴图（加载成功才有值）
+  var cols = TEXCACHE[body.id];
+  if (!cols || !cols.length) cols = [[170, 176, 190]];   // 极端兜底：宁可画成灰球，也绝不让整体渲染崩掉
+  var texW = cols.length;
+  var N = Math.max(12, Math.min(96, Math.round(r * 1.6)));
+
+  var lx = screenSun.x - cx, ly = screenSun.y - cy;      // 光方向：从行星指向太阳
+  var ll = Math.hypot(lx, ly) || 1; lx /= ll; ly /= ll;
+
+  var halo = ctx.createRadialGradient(cx, cy, r * .9, cx, cy, r * 2.1);
+  halo.addColorStop(0, hexA(body.glow || body.color, .22));
+  halo.addColorStop(1, hexA(body.glow || body.color, 0));
+  ctx.fillStyle = halo;
+  ctx.beginPath(); ctx.arc(cx, cy, r * 2.1, 0, 6.283); ctx.fill();
+
+  for (var i = 0; i < N; i++) {
+    var u = (i + .5) / N;                        // 0..1 横跨可见半球
+    var ang = (u - .5) * Math.PI;                // → −90°..90° 经度
+    var px = Math.sin(ang), pz = Math.cos(ang);
+    var wpx = 2 * r / N + 1;
+    var dx = cx + px * r - wpx / 2, dy = cy - pz * r, dh = 2 * pz * r;
+
+    if (img && img.naturalWidth) {
+      // 有真实贴图：从原图取一条竖带贴到球面这一列（不读像素，file:// 下允许）
+      var sx = ((u + spin) % 1 + 1) % 1 * img.naturalWidth;
+      var sw = Math.max(1, img.naturalWidth / N);
+      if (sx + sw > img.naturalWidth) sw = img.naturalWidth - sx;
+      if (sw > 0) ctx.drawImage(img, sx, 0, sw, img.naturalHeight, dx, dy, wpx, dh);
+    } else {
+      // 没贴图：用程序生成的列色
+      var col = cols[Math.floor(((u + spin) % 1 + 1) % 1 * texW)];
+      ctx.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')';
+      ctx.fillRect(dx, dy, wpx, dh);
+    }
+    // 统一叠光照：法线与光方向点积，暗面压暗
+    var lam = px * lx + pz * (ly * .35 + .65);
+    lam = lam < 0 ? 0 : lam;
+    var shade = .12 + .88 * Math.pow(lam, .8);
+    if (shade < .995) {
+      ctx.fillStyle = 'rgba(2,4,12,' + ((1 - shade) * .92).toFixed(3) + ')';
+      ctx.fillRect(dx, dy, wpx, dh);
+    }
+  }
+}
+
+function hexA(hex, a) {
+  var n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+
+/** 土星环：后半 → 球 → 前半（这样环才会「套」在星球上） */
+function drawRing(cx, cy, r, front) {
+  // 三道环（C 环内 / B 环主体 / A 环外）+ 卡西尼缝，比单一粗环像样得多
+  var bands = [
+    { i: 1.22, o: 1.42, a: .22 },   // C 环（暗、内侧）
+    { i: 1.46, o: 1.86, a: .52 },   // B 环（最亮最宽）
+    { i: 1.96, o: 2.22, a: .34 }    // A 环（外侧，与 B 环之间留出卡西尼缝）
+  ];
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(1, Math.max(.14, Math.abs(Math.sin(S.rotX)) * .5 + .1));
+  for (var k = 0; k < bands.length; k++) {
+    var bd = bands[k];
+    ctx.beginPath();
+    ctx.arc(0, 0, r * (bd.i + bd.o) / 2, front ? 0 : Math.PI, front ? Math.PI : 0);
+    ctx.strokeStyle = 'rgba(232,220,178,' + (bd.a * (front ? 1 : .55)) + ')';
+    ctx.lineWidth = Math.max(1, r * (bd.o - bd.i));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* 小行星带：主带在火星与木星之间（约 2.1~3.3 AU），用一批小点表示，自己也缓慢公转 */
+var BELT = [];
+(function () {
+  for (var i = 0; i < 320; i++) {
+    BELT.push({
+      a: 190 + Math.random() * 46,          // 视觉半径落在火星(168)与木星(250)之间
+      th: Math.random() * 6.2832,
+      inc: (Math.random() - .5) * 0.22,     // 上下略微散开，形成一条「带」
+      sp: 0.55 + Math.random() * 0.25,      // 各自的公转速度略有差别
+      sz: Math.random() * 1.1 + .4
+    });
+  }
+})();
+function drawBelt(center) {
+  ctx.fillStyle = 'rgba(190,190,205,.5)';
+  for (var i = 0; i < BELT.length; i++) {
+    var o = BELT[i];
+    var th = o.th + S.days * 0.0022 * o.sp;
+    var x = Math.cos(th) * o.a, z = Math.sin(th) * o.a;
+    var p = project(x - center.x, z * o.inc - center.y, z - center.z);
+    if (p.s <= 0) continue;
+    var r = Math.max(.5, o.sz * p.s * 1.1);
+    ctx.fillRect(p.x, p.y, r, r);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 六、主循环
+ * ══════════════════════════════════════════════════════════════════════ */
+var last = 0;
+function loop(ts) {
+  var dt = Math.min(.06, (ts - last) / 1000 || 0);
+  last = ts; S.t += dt;
+  if (!S.paused) S.days += dt * S.speed;
+  S.spin += dt * 0.55;      // 自转永远在走：暂停/跟拍时也能看出球面在转
+
+  // 视角中心（跟拍时跟着行星走）；太阳固定在原点，相对中心就是 -center
+  var center = viewCenter();
+  // 跟拍 = 相机真正凑近：目标距离按行星大小算（大行星站远点、小行星贴近看）
+  var camTarget = (S.follow && S.selected) ? Math.max(26, S.selected.rPlanet * 7.5) : 900;
+  S.camZ += (camTarget - S.camZ) * Math.min(1, dt * 2.6);
+  var screenSun = project(-center.x, -center.y, -center.z);
+
+  ctx.fillStyle = '#03040c'; ctx.fillRect(0, 0, W, H);
+  drawStars();
+
+  // 收集所有要画的东西（含深度），远的先画
+  var items = [];
+  allBodies().forEach(function (it) {
+    var wp = it.wp;
+    var rel = { x: wp.x - center.x, y: wp.y - center.y, z: wp.z - center.z };
+    var p = project(rel.x, rel.y, rel.z);
+    items.push({ b: it.b, p: p, rel: rel, parent: it.parent });
+  });
+
+  if (S.showOrbit) {
+    BODIES.forEach(function (b) {
+      if (b.rOrbit) drawOrbit(b, center);
+    });
+  }
+  drawBelt(center);
+
+  items.sort(function (a, c) { return c.p.z - a.p.z; });    // 深度排序：远的先画
+
+  items.forEach(function (it) {
+    var b = it.b, p = it.p;
+    var r = b.rPlanet * p.s * 1.15;
+    var spinDeg = S.spin * 24 / Math.abs(b.spin || 24);    // 自转圈数（用独立计时器）
+    var spin = spinDeg - Math.floor(spinDeg);
+    if (b.ring) drawRing(p.x, p.y, r, false);
+    if (b.id === 'sun') {
+      var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3.4);
+      g.addColorStop(0, 'rgba(255,238,180,.95)');
+      g.addColorStop(.28, 'rgba(255,186,80,.55)');
+      g.addColorStop(1, 'rgba(255,140,40,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 3.4, 0, 6.283); ctx.fill();
+      drawSphere(p.x, p.y, r, b, { x: p.x, y: p.y }, 0.5);
+    } else {
+      drawSphere(p.x, p.y, r, b, screenSun, spin);
+    }
+    if (b.ring) drawRing(p.x, p.y, r, true);
+    if (S.showLabel) {
+      ctx.font = (it.parent ? '10px ' : '11px ') + '-apple-system,"PingFang SC",sans-serif';
+      ctx.fillStyle = S.selected && S.selected.id === b.id ? 'rgba(125,234,224,.95)' : 'rgba(180,196,230,.7)';
+      ctx.textAlign = 'center';
+      ctx.fillText(b.name, p.x, p.y - r - 6);
+    }
+  });
+
+  requestAnimationFrame(loop);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 七、交互
+ * ══════════════════════════════════════════════════════════════════════ */
+var pts = {};              // pointerId → 当前坐标（每个手指各记各的，不再用全局 lastX）
+var down = null;           // 本次按下信息（用于区分「拖视角」和「点行星」）
+var moved = 0;             // 本次手势累计位移
+
+cv.addEventListener('pointerdown', function (e) {
+  pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+  if (Object.keys(pts).length === 1) { down = { x: e.clientX, y: e.clientY, t: Date.now() }; moved = 0; }
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+});
+
+cv.addEventListener('pointermove', function (e) {
+  var p = pts[e.pointerId];
+  if (!p) return;
+  var ids = Object.keys(pts);
+  if (ids.length >= 2) {                       // 双指：只做缩放，不转视角
+    p.x = e.clientX; p.y = e.clientY;
+    var a = pts[ids[0]], b = pts[ids[1]];
+    var d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (S.pinch) S.zoom = Math.max(.25, Math.min(16, S.zoom * (d / S.pinch)));
+    S.pinch = d;
+    moved = 999;                               // 缩放过的手势一律不算点击
+    return;
+  }
+  var dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  moved += Math.abs(dx) + Math.abs(dy);
+  S.rotY += dx * .006;
+  S.rotX = Math.max(-1.45, Math.min(1.45, S.rotX + dy * .006));
+});
+
+function endPointer(e) {
+  delete pts[e.pointerId];
+  if (Object.keys(pts).length < 2) S.pinch = 0;
+  if (Object.keys(pts).length > 0) return;
+  // 只有「几乎没动 + 按得短」才算点击 —— 这样拖完视角抬手就不会误弹卡片
+  if (down && moved < 12 && Date.now() - down.t < 350) pickAt(down.x, down.y);
+  down = null; moved = 0;
+}
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', endPointer);
+
+/** 点选：屏幕距离最近且在命中范围内的天体 */
+function pickAt(cx, cy) {
+  var center = viewCenter();
+  var hit = null, best = 1e9;
+  allBodies().forEach(function (it) {           // 卫星也是可点选天体
+    var b = it.b, wp = it.wp;
+    var p = project(wp.x - center.x, wp.y - center.y, wp.z - center.z);
+    var r = Math.max(26, b.rPlanet * p.s * 2.4); // 小天体给点宽容度，否则手指点不中卫星
+    var d = Math.hypot(p.x - cx, p.y - cy);
+    if (d < r && d < best) { best = d; hit = b; }
+  });
+  if (hit) selectBody(hit); else hideCard();
+}
+
+cv.addEventListener('wheel', function (e) {
+  e.preventDefault();
+  S.zoom = Math.max(.25, Math.min(14, S.zoom * (e.deltaY > 0 ? .92 : 1.08)));
+}, { passive: false });
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 八、科普卡片
+ * ══════════════════════════════════════════════════════════════════════ */
+function setFollowUI(on) {
+  var el = document.getElementById('bFollow');
+  if (!el) return;
+  el.style.display = on ? '' : 'none';
+  if (on && S.selected) el.textContent = '跟拍：' + S.selected.name + ' ✕';
+}
+
+function exitFollow() {
+  S.follow = false;
+  S.camZ = 900;
+  setFollowUI(false);
+  document.getElementById('hint').textContent = '自由视角：拖拽转、双指缩放、点行星看资料';
+}
+
+function selectBody(b) {
+  S.selected = b;
+  document.getElementById('cName').textContent = b.name;
+  document.getElementById('cEn').textContent = b.en;
+  document.getElementById('cType').textContent = b.type;
+  var rows = '';
+  b.facts.forEach(function (f) { rows += '<tr><td>' + f[0] + '</td><td>' + f[1] + '</td></tr>'; });
+  document.getElementById('cTable').innerHTML = rows;
+  document.getElementById('cDesc').textContent = b.desc;
+  document.getElementById('card').classList.add('show');
+  document.getElementById('hint').style.opacity = 0;
+}
+function hideCard() {
+  document.getElementById('card').classList.remove('show');
+  // 关掉卡片**不等于**取消跟拍：正在跟拍时保留选中，否则相机会掉回太阳（这是之前的 bug）
+  if (!S.follow) S.selected = null;
+  document.getElementById('hint').style.opacity = 1;
+}
+document.getElementById('cardClose').addEventListener('click', hideCard);
+document.getElementById('cFollow').addEventListener('click', function () {
+  S.follow = true;
+  S.zoom = 1;                       // 缩放交给相机距离去做，避免双重放大过头
+  setFollowUI(true);
+  document.getElementById('hint').textContent = '跟拍中：相机已贴近，可继续加速看它绕太阳走';
+});
+document.getElementById('cFree').addEventListener('click', exitFollow);
+document.getElementById('bFollow').addEventListener('click', exitFollow);   // 点顶部标签也能退出跟拍
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 九、控制条
+ * ══════════════════════════════════════════════════════════════════════ */
+var SPEEDS = [1, 5, 20, 100, 500];
+document.getElementById('bPause').addEventListener('click', function () {
+  S.paused = !S.paused; this.textContent = S.paused ? '▶' : '⏸';
+  this.classList.toggle('on', S.paused);
+});
+document.getElementById('bSpeed').addEventListener('click', function () {
+  var i = SPEEDS.indexOf(S.speed);
+  S.speed = SPEEDS[(i + 1) % SPEEDS.length];
+  this.textContent = '×' + (S.speed >= 1 ? S.speed + ' 天/秒' : S.speed);
+});
+document.getElementById('bOrbit').addEventListener('click', function () {
+  S.showOrbit = !S.showOrbit; this.classList.toggle('on', S.showOrbit);
+});
+document.getElementById('bLabel').addEventListener('click', function () {
+  S.showLabel = !S.showLabel; this.classList.toggle('on', S.showLabel);
+});
+document.getElementById('bReset').addEventListener('click', function () {
+  S.rotX = .42; S.rotY = 0; S.zoom = 1; S.camZ = 900;
+  S.follow = false; setFollowUI(false); hideCard();
+  document.getElementById('hint').textContent = '拖拽转视角 · 双指缩放 · 点行星看资料';
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 十、启动
+ * ══════════════════════════════════════════════════════════════════════ */
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', function () { setTimeout(resize, 260); });
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
