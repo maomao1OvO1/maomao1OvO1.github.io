@@ -18,12 +18,12 @@ video,
 canvas,
 svg,
 iframe {
-    max-width: 100%;
+    max-width: 100%;   /* 只限最大宽度，不碰 height */
 }
-img,
-video {
-    height: auto;
-}
+/* ⚠️ 2026-09-18 踩坑记录：这里原本还有一条 img, video { height: auto; }。
+   它与 style.css 手机分支里的 img { width:120px; height:120px }（作者为省空间写的）
+   同特异性、又后加载 —— 会顶掉那个 height，把图片变成「120px 宽 × 原始比例高」，
+   在手机上把版面挤乱。撤掉后两端表现一致。**以后别在这层再动 height。** */
 
 /* ── 2. 长链接、长英文串不撑破布局（中文不受影响） ── */
 body {
