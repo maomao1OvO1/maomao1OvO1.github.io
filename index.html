@@ -25,29 +25,8 @@
 
 <head>
 <meta charset="UTF-8">
-<script>
-/* 性能兜底（2026-09-14）：从 HTML 一开始解析就计时。
-   本页原本要等「加载动画双 100%」才显示内容，而那个计时是从 main.js 执行后才开始的；
-   在慢网（国内访问 GitHub 常年 2~6 秒/请求）下，等于先白等资源、再等动画兜底 —— 实测要 5 秒以上。
-   这里提前挂一个硬计时：1.8 秒内无论如何都把内容显示出来（正常网速下动画 1 秒就播完了，不会被打断）（后台资源继续加载，各自就绪后自己补上）。
-   注：main.js 里的 3 秒兜底保留，两者互为保险。 */
-setTimeout(function () {
-    var b = document.body;
-    if (b && b.classList.contains("loading")) {
-        b.classList.remove("loading");
-        b.classList.add("page-show");
-        var l = document.getElementById("loader");
-        if (l) l.style.display = "none";
-    }
-}, 1800);
-</script>
-<script>
-// #maomao-lc-redirect 域名大小写统一：GitHub Pages 大小写同站，但 Firebase 授权域名区分大小写 → 强制全小写
-if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== location.hostname.toLowerCase()) {
-  var __i = location.href.indexOf(location.host);
-  location.replace(location.href.slice(0, __i) + location.hostname.toLowerCase() + location.href.slice(__i + location.host.length));
-}
-</script>
+<script src="/js/home/01-early-loading-fallback.js?v=1"></script>
+<script src="/js/home/02-lowercase-host-redirect.js?v=1"></script>
 
 <script defer src="/gate.js?v=1"></script>
 
@@ -81,6 +60,7 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
 <link rel="dns-prefetch" href="https://api.open-meteo.com">
 <link rel="dns-prefetch" href="https://api.ip.sb">
 <link rel="stylesheet" href="bg.css?v=8">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
+<link rel="stylesheet" href="/responsive.css?v=1">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
 </head>
 
 <!-- body 带有 loading 类：页面隐藏加载动画，等资源就绪后再显示主体内容 -->
@@ -103,47 +83,7 @@ if (location.hostname.indexOf("github.io") >= 0 && location.hostname !== locatio
        ② 失败自动重试 3 次（间隔 1.2s / 2.4s，带 4.5 秒超时，避免一直转圈）
        ③ 三次都失败且没有缓存时，显示「—」而不是「获取失败」这个吓人的词
      计数本身仍由 Cloudflare Worker 提供，接口地址没变。 -->
-<script>
-window.addEventListener("load", function () {
-    var el = document.getElementById("visitor");
-    if (!el) return;
-    var KEY = "mm_visitors";
-    var cached = null;
-    try { cached = localStorage.getItem(KEY); } catch (e) {}
-    if (cached) el.innerText = cached;          // ① 先用上次的值占位
-
-    var URL_COUNTER = "https://maomao-counter.maomao1ovo1.workers.dev";
-
-    // 别让人干等：4 秒还没结果就先把「加载中...」换成「—」，
-    // 后台继续重试，一旦成功会覆盖成真实数字（体验上不再出现长时间转圈）。
-    setTimeout(function () {
-        if (el.innerText === "加载中...") el.innerText = "—";
-    }, 4000);
-
-    function attempt(n) {
-        var ctl = ("AbortController" in window) ? new AbortController() : null;
-        var timer = ctl ? setTimeout(function () { try { ctl.abort(); } catch (e) {} }, 4500) : null;
-        fetch(URL_COUNTER, ctl ? { signal: ctl.signal } : undefined)
-            .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-            .then(function (data) {
-                if (timer) clearTimeout(timer);
-                if (data && data.visitors != null) {
-                    el.innerText = data.visitors;
-                    try { localStorage.setItem(KEY, String(data.visitors)); } catch (e) {}
-                }
-            })
-            .catch(function () {
-                if (timer) clearTimeout(timer);
-                if (n < 3) {
-                    setTimeout(function () { attempt(n + 1); }, 1200 * n);   // ② 退避重试
-                } else if (!cached) {
-                    el.innerText = "—";                                       // ③ 兜底不吓人
-                }
-            });
-    }
-    attempt(1);
-});
-</script>
+<script src="/js/home/03-visitor-counter.js?v=1"></script>
 
 <!-- ===== 天气盒子 ===== -->
 <!-- 天气盒子：整个天气信息区块的容器，包含标题、地点、天气数据、城市输入和两个按钮 -->
@@ -185,16 +125,7 @@ window.addEventListener("load", function () {
 <!-- 性能优化（2026-09-14）：天气盒子与 AI 余额盒子都不是首屏关键内容，
      改为「页面加载完成后」再注入脚本，避免和首屏资源抢带宽（慢网下尤其明显）。
      两个脚本都自包含、且已适配「事件已触发」的初始化时机，晚加载不影响功能。 -->
-<script>
-window.addEventListener("load", function(){
-    ["weather.js?v=4", "tokens.js?v=3"].forEach(function(src){
-        var el = document.createElement("script");
-        el.src = src;
-        el.async = true;
-        document.body.appendChild(el);
-    });
-});
-</script>
+<script src="/js/home/04-lazy-load-weather-tokens.js?v=1"></script>
 
 <!-- ===== AI 余额盒子（自助查询，每个访客用自己的 Key） ===== -->
 <!-- AI 余额查询区块：访客自己粘贴自己的 API Key 来查询余额。
@@ -286,31 +217,7 @@ window.addEventListener("load", function(){
 <div id="time"></div>
 <!-- 内联脚本：showTime() 读取现在并格式化为「X年X月X日 hh:mm:ss」；
      setInterval 每 1000ms(1秒) 刷新一次，末尾先手动调用一次让页面立刻有值 -->
-<script>
-function showTime(){
-    let now = new Date();
-
-    // 取当前日期各部分
-    let year = now.getFullYear();
-    let month = now.getMonth() + 1;      // getMonth() 从 0 开始，所以要 +1 才是真实月份
-    let day = now.getDate();
-
-    // 取当前时间各部分
-    let hour = now.getHours();
-    let minute = now.getMinutes();
-    let second = now.getSeconds();
-
-    // 拼成中文风格时间串，写进 id=time 的 div
-    document.getElementById("time").innerHTML =
-        year + "年" + month + "月" + day + "日 " +
-        hour + ":" + minute + ":" + second;
-}
-
-// 每 1 秒刷新一次
-setInterval(showTime, 1000);
-// 页面刚加载时立刻显示一次，避免开头 1 秒空白
-showTime();
-</script>
+<script src="/js/home/05-clock.js?v=1"></script>
 
 <!-- 一句话自我介绍 -->
 <p>对未来有着无限憧憬的学生</p>
@@ -614,37 +521,7 @@ value="1"
 <p id="runtime"></p>
 
 <!-- 内联脚本：计算网站从上线时间(startTime)到现在的时长，逐级拆成年/天/时/分/秒 -->
-<script>
-// 上线起始时间（网站「生日」），用它作为计时基准
-let startTime = new Date("2026-07-30T15:00:00")
-function updateTime() {
-    let now = new Date();
-    let diff = now - startTime;   // 距今的毫秒差
-
-    let seconds = Math.floor(diff / 1000);
-    let years = Math.floor(seconds / 31536000); // 一年按 365 天算
-    let days = Math.floor((seconds % 31536000) / 86400); // 除掉整年后剩的天
-    let hours = Math.floor((seconds % 86400) / 3600);   // 天数里剩的小时
-    let minutes = Math.floor((seconds % 3600) / 60);    // 小时里剩的分钟
-    let sec = seconds % 60;                            // 分钟里剩的秒
-
-    // 拼成「本站已运行X年X天X小时X分X秒」显示
-    document.getElementById("runtime").innerHTML =
-    "本站已运行：" +
-    years + "年 " +
-    days + "天 " +
-    hours + "小时 " +
-    minutes + "分钟 " +
-    sec + "秒";
-}
-
-// 每 1 秒刷新一次计时
-setInterval(updateTime, 1000);
-// 页面加载后立刻显示一次
-updateTime();
-
-
-</script>
+<script src="/js/home/06-uptime-counter.js?v=1"></script>
 
 <!-- ===== 功能脚本 ===== -->  
   
@@ -807,32 +684,7 @@ updateTime();
 <script src="contact.js?v=4" defer></script>
 
 
-<script>
-(function(){
-  var b = document.getElementById('tdUpdateBtn');
-  if (!b) return;
-  b.addEventListener('click', function(){
-    b.textContent = '🔍 正在检查…';
-    fetch('games/td/version.json?t=' + Date.now(), { cache: 'no-store' })
-      .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(function(j){
-        b.textContent = '🔄 检查更新（看是否已是最新版）';
-        var msg = '最新版本：v' + j.version + '（' + j.versionCode + '）'
-                + (j.date ? '\n发布时间：' + j.date : '')
-                + (j.size ? '\n安装包大小：' + j.size : '')
-                + (j.note ? '\n更新内容：' + j.note : '')
-                + '\n\n要现在下载吗？';
-        if (confirm(msg)){
-          location.href = j.url || 'games/td/maomao-td-latest.apk';
-        }
-      })
-      .catch(function(e){
-        b.textContent = '🔄 检查更新（看是否已是最新版）';
-        alert('检查更新失败：' + (e && e.message ? e.message : '网络不可用'));
-      });
-  });
-})();
-</script>
+<script src="/js/home/07-td-update-button.js?v=1"></script>
 </body>
 
 </html>
