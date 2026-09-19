@@ -51,6 +51,27 @@
 持续更新中，敬请期待
 </p>
 
+<!-- 我的音乐站入口（2026-09-19 毛毛要求加在这一页）
+     指向 nfc-tap 那个独立站。用 target="_blank"：它是完整独立的界面，
+     进去就在里面听歌，不需要「返回主站」这一层，本页也保持开着。
+     样式写在本页专属 <style> 里（配深色模式），不去动全站 style.css。 -->
+<style>
+.music-link{
+    display:block; width:fit-content; margin:20px auto 0; padding:13px 26px;
+    border-radius:14px; background:rgba(255,255,255,.62); color:#5c46a0;
+    text-decoration:none; font-size:15px; font-weight:600;
+    box-shadow:0 6px 18px rgba(100,80,150,.15);
+    transition:transform .12s, box-shadow .15s;
+}
+.music-link:active{ transform:scale(.985); }
+body.dark-mode .music-link{
+    background:rgba(30,30,42,.72); color:#d8c7ff; box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+</style>
+<a class="music-link" href="https://maomao1ovo1.github.io/nfc-tap-9f3a/" target="_blank" rel="noopener">
+🎧 我的音乐站 · Mutown Grooove
+</a>
+
 <script>
 // 深色模式跟随主页设置
 // 从 localStorage 读取主题；若主站选了「深色」，就给当前页 body 加 dark-mode 类，保持风格一致
