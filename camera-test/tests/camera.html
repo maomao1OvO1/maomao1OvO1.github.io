@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>摄像头测试</title>
+
+
+<style>
+
+body{
+    text-align:center;
+    font-family:Arial;
+}
+
+video{
+    width:90%;
+    max-width:500px;
+    margin-top:20px;
+    border-radius:15px;
+    display:none;
+}
+
+button{
+    padding:12px 20px;
+    margin:8px;
+    font-size:16px;
+    border:none;
+    border-radius:15px;
+    background:white;
+    color:#6543a4;
+    box-shadow:0 4px 12px #0002;
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode button:not(.hardware-back){
+    background:#333;
+    color:#fff;
+    box-shadow:0 4px 12px #0006;
+}
+
+</style>
+
+
+<link rel="stylesheet" href="../hardware.css">
+
+
+<style>
+/* ==== 深色模式·黑调覆盖层(主站深色体系) ==== */
+body.dark-mode{
+    background:#121212 !important;
+    color:#eeeeee !important;
+}
+body.dark-mode .card,
+body.dark-mode .desc,
+body.dark-mode .note,
+body.dark-mode .item,
+body.dark-mode .test-list button,
+body.dark-mode button,
+body.dark-mode input,
+body.dark-mode select{
+    background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+body.dark-mode .label,
+body.dark-mode h1,body.dark-mode h2,body.dark-mode h3{
+    color:#bb9cff !important;
+}
+body.dark-mode p,body.dark-mode li,body.dark-mode .desc p{
+    color:#aaaaaa !important;
+}
+body.dark-mode .hardware-back{
+    background:#222222 !important;
+    color:#bb9cff !important;
+}
+</style>
+</head>
+
+
+<body>
+
+<h1>📷 摄像头测试</h1>
+
+
+<button onclick="openCamera()">
+打开摄像头
+</button>
+
+<button onclick="switchCamera()">
+切换摄像头
+</button>
+
+<button onclick="closeCamera()">
+关闭摄像头
+</button>
+
+
+<br>
+
+
+<video
+    id="camera"
+    autoplay
+    playsinline>
+</video>
+
+
+<script>
+
+let stream = null;
+
+let facingMode = "user";
+
+
+// ============================
+// 打开摄像头
+// ============================
+
+async function openCamera(){
+
+    closeCamera();
+
+    try{
+
+        stream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video:{
+                    facingMode:facingMode
+                }
+
+            });
+
+
+        const video =
+            document.getElementById("camera");
+
+
+        video.srcObject =
+            stream;
+
+
+        video.style.display =
+            "block";
+
+
+    }catch(error){
+
+        alert(
+            "无法打开摄像头：" +
+            error
+        );
+
+    }
+
+}
+
+
+// ============================
+// 切换摄像头
+// ============================
+
+async function switchCamera(){
+
+    if(!stream){
+
+        alert("请先打开摄像头");
+
+        return;
+
+    }
+
+
+    if(facingMode === "user"){
+
+        facingMode =
+            "environment";
+
+    }else{
+
+        facingMode =
+            "user";
+
+    }
+
+
+    await openCamera();
+
+}
+
+
+// ============================
+// 关闭摄像头
+// ============================
+
+function closeCamera(){
+
+    if(stream){
+
+        stream
+            .getTracks()
+            .forEach(track => {
+
+                track.stop();
+
+            });
+
+
+        stream = null;
+
+    }
+
+
+    const video =
+        document.getElementById("camera");
+
+
+    video.srcObject =
+        null;
+
+
+    video.style.display =
+        "none";
+
+}
+
+
+// ============================
+// 跟随主站深色模式
+// ============================
+
+function applyMainTheme(){
+
+    const dark =
+        localStorage.getItem("theme")
+        === "dark";
+
+
+    document.body.classList.toggle(
+        "dark-mode",
+        dark
+    );
+
+}
+
+
+applyMainTheme();
+
+</script>
+
+
+<button
+    class="hardware-back"
+    onclick="location.href='../index.html'">
+
+    ← 返回硬件大厅
+
+</button>
+
+
+</body>
+
+</html>

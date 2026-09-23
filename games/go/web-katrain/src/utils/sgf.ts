@@ -1,0 +1,756 @@
+import type { CandidateMove, GameNode, GameState, BoardState, Player, FloatArray, BoardSize } from "../types";
+import { DEFAULT_BOARD_SIZE } from "../types";
+import { encodeKaTrainKtFromAnalysis, KATRAIN_ANALYSIS_FORMAT_VERSION } from './katrainSgfAnalysis';
+import { encodeKayaKaFromAnalysis } from './kayaSgfAnalysis';
+import { createEmptyBoard, normalizeBoardSize } from './boardSize';
+import { downloadBlob } from './objectUrl';
+import { stripUnsafeFilenameControls } from './filename';
+
+// KaTrain convention: auto-generated SGF comments are marked so user notes remain editable.
+export const KATRAIN_SGF_INTERNAL_COMMENTS_MARKER = "\u3164\u200b";
+export const KATRAIN_SGF_SEPARATOR_MARKER = "\u3164\u3164";
+
+const stripNewlines = (value: string): string => value.replace(/^\n+/, '').replace(/\n+$/, '');
+
+export const formatSgfDate = (date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const formatSgfNumber = (value: number): string =>
+    Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+
+export function extractKaTrainUserNoteFromSgfComment(values: string[] | undefined): string {
+    const comments: string[] = [];
+    for (const v of values ?? []) {
+        for (const c of v.split(KATRAIN_SGF_SEPARATOR_MARKER)) {
+            if (!c.trim()) continue;
+            if (c.includes(KATRAIN_SGF_INTERNAL_COMMENTS_MARKER)) continue;
+            comments.push(c);
+        }
+    }
+    return comments.join('').trim();
+}
+
+export function buildKaTrainSgfComment(opts: { note?: string; internalSegments?: string[] }): string | null {
+    const note = (opts.note ?? '').trim();
+    const segments: string[] = [];
+    if (note) segments.push(`${note}\n`); // user note at top
+    for (const seg of opts.internalSegments ?? []) {
+        if (seg.trim()) segments.push(seg);
+    }
+    if (segments.length === 0) return null;
+    return stripNewlines(segments.join(KATRAIN_SGF_SEPARATOR_MARKER));
+}
+
+export type KaTrainSgfExportTrainerConfig = {
+    evalThresholds: number[];
+    saveFeedback: boolean[];
+    saveCommentsPlayer: Record<Player, boolean>;
+    saveAnalysis: boolean;
+    saveMarks: boolean;
+};
+
+export type KaTrainSgfExportOptions = {
+    trainer?: Partial<KaTrainSgfExportTrainerConfig>;
+};
+
+const DEFAULT_TRAINER_CONFIG: KaTrainSgfExportTrainerConfig = {
+    evalThresholds: [12, 6, 3, 1.5, 0.5, 0],
+    saveFeedback: [true, true, true, true, false, false],
+    saveCommentsPlayer: { black: true, white: true },
+    saveAnalysis: true,
+    saveMarks: false,
+};
+
+function normalizeTrainerConfig(opts: KaTrainSgfExportOptions | undefined): KaTrainSgfExportTrainerConfig {
+    const t = opts?.trainer;
+    return {
+        evalThresholds: t?.evalThresholds?.length ? t.evalThresholds : DEFAULT_TRAINER_CONFIG.evalThresholds,
+        saveFeedback: t?.saveFeedback?.length ? t.saveFeedback : DEFAULT_TRAINER_CONFIG.saveFeedback,
+        saveCommentsPlayer: t?.saveCommentsPlayer ?? DEFAULT_TRAINER_CONFIG.saveCommentsPlayer,
+        saveAnalysis: typeof t?.saveAnalysis === 'boolean' ? t.saveAnalysis : DEFAULT_TRAINER_CONFIG.saveAnalysis,
+        saveMarks: typeof t?.saveMarks === 'boolean' ? t.saveMarks : DEFAULT_TRAINER_CONFIG.saveMarks,
+    };
+}
+
+function playerToSgfShort(player: Player): 'B' | 'W' {
+    return player === 'black' ? 'B' : 'W';
+}
+
+function xyToGtp(x: number, y: number, boardSize: BoardSize): string {
+    if (x < 0 || y < 0) return 'pass';
+    const col = x >= 8 ? x + 1 : x; // Skip 'I'
+    const letter = String.fromCharCode(65 + col);
+    return `${letter}${boardSize - y}`;
+}
+
+function formatScoreLead(scoreLead: number): string {
+    const lead = scoreLead >= 0 ? 'B' : 'W';
+    return `${lead}+${Math.abs(scoreLead).toFixed(1)}`;
+}
+
+function formatWinrate(winrateBlack: number): string {
+    const lead = winrateBlack > 0.5 ? 'B' : 'W';
+    const pct = Math.max(winrateBlack, 1 - winrateBlack) * 100;
+    return `${lead} ${pct.toFixed(1)}%`;
+}
+
+function bestMoveFromCandidates(moves: CandidateMove[] | undefined): CandidateMove | null {
+    if (!moves || moves.length === 0) return null;
+    return moves.find((m) => m.order === 0) ?? moves[0] ?? null;
+}
+
+function evaluationClass(pointsLost: number, thresholds: number[]): number {
+    let i = 0;
+    while (i < thresholds.length - 1 && pointsLost < thresholds[i]!) i++;
+    return Math.max(0, Math.min(i, thresholds.length - 1));
+}
+
+function computePointsLost(node: GameNode): number | null {
+    const move = node.move;
+    const parent = node.parent;
+    if (!move || !parent) return null;
+
+    const parentScore = parent.analysis?.rootScoreLead;
+    const childScore = node.analysis?.rootScoreLead;
+    if (typeof parentScore === 'number' && typeof childScore === 'number') {
+        const sign = move.player === 'black' ? 1 : -1;
+        return sign * (parentScore - childScore);
+    }
+
+    const candidate = parent.analysis?.moves.find((m) => m.x === move.x && m.y === move.y);
+    return typeof candidate?.pointsLost === 'number' ? candidate.pointsLost : null;
+}
+
+function policyStats(args: { policy: FloatArray; move: { x: number; y: number }; boardSize: BoardSize }): { rank: number; prob: number; bestMove: string; bestProb: number } | null {
+    const policy = args.policy;
+    const move = args.move;
+    const boardSize = args.boardSize;
+    const idx = move.x < 0 || move.y < 0 ? boardSize * boardSize : move.y * boardSize + move.x;
+    const prob = policy[idx] ?? -1;
+    if (!(prob > 0)) return null;
+
+    let bestProb = -1;
+    let bestIndex = -1;
+    let betterCount = 0;
+    for (let i = 0; i < boardSize * boardSize + 1; i++) {
+        const p = policy[i] ?? -1;
+        if (!(p > 0)) continue;
+        if (p > bestProb) {
+            bestProb = p;
+            bestIndex = i;
+        }
+        if (p > prob) betterCount++;
+    }
+    if (!(bestProb > 0) || bestIndex < 0) return null;
+    const bestMove = bestIndex === boardSize * boardSize ? 'pass' : xyToGtp(bestIndex % boardSize, Math.floor(bestIndex / boardSize), boardSize);
+    return { rank: betterCount + 1, prob, bestMove, bestProb };
+}
+
+function buildKaTrainAutoCommentSegment(args: { node: GameNode; trainer: KaTrainSgfExportTrainerConfig }): string | null {
+    const node = args.node;
+    const parent = node.parent;
+    const move = node.move;
+    if (!parent || !move) return null;
+
+    const boardSize = normalizeBoardSize(node.gameState.board.length, DEFAULT_BOARD_SIZE);
+    const depth = node.gameState.moveHistory.length;
+    const player = playerToSgfShort(move.player);
+    const moveGtp = xyToGtp(move.x, move.y, boardSize);
+
+    if (!node.analysis) return 'Analyzing move...';
+
+    let text = `Move ${depth}: ${player} ${moveGtp}\n`;
+    text += `Score: ${formatScoreLead(node.analysis.rootScoreLead)}\n`;
+    text += `Win rate: ${formatWinrate(node.analysis.rootWinRate)}\n`;
+
+    const topMove = bestMoveFromCandidates(parent.analysis?.moves);
+    if (topMove) {
+        const topMoveGtp = xyToGtp(topMove.x, topMove.y, boardSize);
+        if (topMoveGtp !== moveGtp) {
+            const pointsLost = computePointsLost(node);
+            if (typeof pointsLost === 'number' && pointsLost > 0.5) text += `Estimated point loss: ${pointsLost.toFixed(1)}\n`;
+            text += `Predicted top move was ${topMoveGtp} (${formatScoreLead(topMove.scoreLead)}).\n`;
+        } else {
+            text += 'Move was predicted best move\n';
+        }
+        if (topMove.pv && topMove.pv.length > 0) {
+            text += `PV: ${player}${topMove.pv.join(' ')}\n`;
+        }
+    }
+
+    const parentPolicy = parent.analysis?.policy;
+    if (parentPolicy && parentPolicy.length >= boardSize * boardSize + 1) {
+        const stats = policyStats({ policy: parentPolicy, move, boardSize });
+        if (stats) {
+            text += `Move was #${stats.rank} according to policy  (${(stats.prob * 100).toFixed(2)}%).\n`;
+            if (stats.rank !== 1) text += `Top policy move was ${stats.bestMove} (${(stats.bestProb * 100).toFixed(1)}%).\n`;
+        }
+    }
+
+    if (node.aiThoughts) text += `\n\nAI thought process: ${node.aiThoughts}`;
+    return text.trimEnd();
+}
+
+// Helper to convert SGF coord (e.g. "pd") to {x,y}
+export const sgfCoordToXy = (coord: string): { x: number, y: number } => {
+    if (!coord || coord.length < 2) return { x: -1, y: -1 }; // Pass or empty
+    if (coord === 'tt') return { x: -1, y: -1 }; // Pass in some SGF versions
+
+    const aCode = 'a'.charCodeAt(0);
+    const x = coord.charCodeAt(0) - aCode;
+    const y = coord.charCodeAt(1) - aCode;
+    // SGF coordinates start from top-left.
+    return { x, y };
+};
+
+export const coordinateToSgf = (x: number, y: number): string => {
+  // SGF uses 'aa' for top left 0,0. 'sa' for 18,0. 'ss' for 18,18.
+  // x corresponds to letter index 'a' + x.
+  const aCode = 'a'.charCodeAt(0);
+  const xChar = String.fromCharCode(aCode + x);
+  const yChar = String.fromCharCode(aCode + y);
+  return xChar + yChar;
+};
+
+export const expandSgfPointList = (value: string, boardSize?: number): Array<{ x: number; y: number }> => {
+  const isInBounds = (point: { x: number; y: number }) =>
+    point.x >= 0 &&
+    point.y >= 0 &&
+    (boardSize === undefined || (point.x < boardSize && point.y < boardSize));
+
+  const pointFromCoord = (coord: string): { x: number; y: number } | null => {
+    const point = sgfCoordToXy(coord);
+    return isInBounds(point) ? point : null;
+  };
+
+  const sep = value.indexOf(':');
+  if (sep < 0) {
+    const point = pointFromCoord(value);
+    return point ? [point] : [];
+  }
+
+  const start = pointFromCoord(value.slice(0, sep));
+  const end = pointFromCoord(value.slice(sep + 1));
+  if (!start || !end) return [];
+
+  const xMin = Math.min(start.x, end.x);
+  const xMax = Math.max(start.x, end.x);
+  const yMin = Math.min(start.y, end.y);
+  const yMax = Math.max(start.y, end.y);
+  const points: Array<{ x: number; y: number }> = [];
+
+  for (let y = yMin; y <= yMax; y++) {
+    for (let x = xMin; x <= xMax; x++) {
+      points.push({ x, y });
+    }
+  }
+
+  return points;
+};
+
+const POINT_LIST_PROPERTIES = ['AB', 'AW', 'AE', 'TR', 'SQ', 'CR', 'MA'] as const;
+
+const expandPointListPropertyValues = (values: string[] | undefined, boardSize: BoardSize): string[] | undefined => {
+  if (!values) return undefined;
+
+  return values.flatMap((value) => {
+    if (!value.includes(':')) return [value];
+    const expanded = expandSgfPointList(value, boardSize).map(({ x, y }) => coordinateToSgf(x, y));
+    return expanded.length > 0 ? expanded : [value];
+  });
+};
+
+const expandPointListPropertiesInTree = (node: ParsedSgfNode, boardSize: BoardSize): void => {
+  for (const key of POINT_LIST_PROPERTIES) {
+    const expanded = expandPointListPropertyValues(node.props[key], boardSize);
+    if (expanded) node.props[key] = expanded;
+  }
+  for (const child of node.children) expandPointListPropertiesInTree(child, boardSize);
+};
+
+export const generateSgf = (gameState: GameState): string => {
+  const { moveHistory } = gameState;
+  const date = formatSgfDate();
+  const boardSize = normalizeBoardSize(gameState.board.length, DEFAULT_BOARD_SIZE);
+
+  let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[WebKatrain:0.1]ST[2]\n`;
+  sgf += `SZ[${boardSize}]KM[${formatSgfNumber(gameState.komi)}]\n`;
+  sgf += `DT[${date}]\n`;
+  // Add other metadata?
+
+  // Moves
+  moveHistory.forEach(move => {
+      const color = move.player === 'black' ? 'B' : 'W';
+      let coords = '';
+      if (move.x === -1) {
+          coords = ''; // Pass is B[] or W[]
+      } else {
+          coords = coordinateToSgf(move.x, move.y);
+      }
+      sgf += `;${color}[${coords}]`;
+  });
+
+  sgf += `\n)`;
+
+  return sgf;
+};
+
+export const downloadSgf = (gameState: GameState) => {
+    const sgfContent = generateSgf(gameState);
+    const blob = new Blob([sgfContent], { type: 'application/x-go-sgf' });
+    if (!downloadBlob(blob, `game_${new Date().getTime()}.sgf`)) {
+        throw new Error('Could not start SGF download in this browser.');
+    }
+};
+
+function escapeSgfValue(value: string): string {
+    return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\\/g, '\\\\').replace(/]/g, '\\]');
+}
+
+const sanitizeSgfFilenameStem = (value: string): string | null => {
+    const cleaned = stripUnsafeFilenameControls(value)
+        .trim()
+        .replace(/[/\\?%*:|"<>]/g, '-')
+        .replace(/\s+/g, ' ')
+        .replace(/^[.\s-]+|[.\s-]+$/g, '')
+        .slice(0, 96)
+        .trim();
+    return cleaned || null;
+};
+
+export const getSgfDownloadFilenameFromProperties = (
+    properties: Record<string, string[]> | undefined,
+    timestamp = Date.now()
+): string => {
+    const props = properties ?? {};
+    const gameName = props.GN?.find((value) => value.trim());
+    const gameStem = gameName ? sanitizeSgfFilenameStem(gameName) : null;
+    if (gameStem) return `${gameStem}.sgf`;
+
+    const black = sanitizeSgfFilenameStem(props.PB?.[0] ?? '');
+    const white = sanitizeSgfFilenameStem(props.PW?.[0] ?? '');
+    if (black && white) return `${black} vs ${white}.sgf`;
+    if (black || white) return `${black ?? white}.sgf`;
+
+    return `game_${timestamp}.sgf`;
+};
+
+export const getImportedSgfNameFromProperties = (
+    properties: Record<string, string[]> | undefined,
+    fallback: string
+): string => {
+    const props = properties ?? {};
+    const hasNamedMetadata = Boolean(
+        props.GN?.some((value) => value.trim()) ||
+        props.PB?.[0]?.trim() ||
+        props.PW?.[0]?.trim()
+    );
+    if (hasNamedMetadata) return getSgfDownloadFilenameFromProperties(props);
+
+    return fallback.trim() || 'Loaded SGF';
+};
+
+export const getSgfDownloadFilename = (rootNode: GameNode, timestamp = Date.now()): string =>
+    getSgfDownloadFilenameFromProperties(rootNode.properties, timestamp);
+
+function cloneProps(props: Record<string, string[]> | undefined): Record<string, string[]> {
+    const out: Record<string, string[]> = {};
+    if (!props) return out;
+    for (const [k, v] of Object.entries(props)) out[k] = [...v];
+    return out;
+}
+
+function serializeProps(props: Record<string, string[]>): string {
+    const preferred = [
+        'GM',
+        'FF',
+        'CA',
+        'AP',
+        'ST',
+        'RU',
+        'SZ',
+        'KM',
+        'DT',
+        'PB',
+        'PW',
+        'BR',
+        'WR',
+        'RE',
+        'EV',
+        'GN',
+        'SO',
+        'US',
+        'GC',
+        'PC',
+        'TM',
+        'OT',
+        'HA',
+        'AB',
+        'AW',
+        'AE',
+        'PL',
+        'C',
+        'N',
+        'KTV',
+        'KT',
+        'KA',
+    ] as const;
+    const preferredSet = new Set<string>(preferred);
+
+    const keys = Object.keys(props);
+    const ordered = [
+        ...preferred.filter((k) => keys.includes(k)),
+        ...keys.filter((k) => !preferredSet.has(k)).sort(),
+    ];
+
+    let out = '';
+    for (const key of ordered) {
+        const values = props[key] ?? [];
+        if (values.length === 0) {
+            out += `${key}[]`;
+            continue;
+        }
+        out += `${key}${values.map((value) => `[${escapeSgfValue(value)}]`).join('')}`;
+    }
+    return out;
+}
+
+function rootPlacementsFromBoard(board: BoardState): { AB?: string[]; AW?: string[] } {
+    const ab: string[] = [];
+    const aw: string[] = [];
+    const size = board.length;
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            const v = board[y]?.[x] ?? null;
+            if (v === 'black') ab.push(coordinateToSgf(x, y));
+            else if (v === 'white') aw.push(coordinateToSgf(x, y));
+        }
+    }
+    const out: { AB?: string[]; AW?: string[] } = {};
+    if (ab.length > 0) out.AB = ab;
+    if (aw.length > 0) out.AW = aw;
+    return out;
+}
+
+function serializeMoveNode(node: GameNode, trainer: KaTrainSgfExportTrainerConfig): string {
+    const move = node.move;
+    const boardSize = normalizeBoardSize(node.gameState.board.length, DEFAULT_BOARD_SIZE);
+    const props = cloneProps(node.properties);
+    delete props.B;
+    delete props.W;
+    delete props.C;
+    delete props.KT;
+    delete props.KA;
+    // KT analysis caching (KaTrain trainer/save_analysis)
+    // KA mirrors the compact Kaya SGF cache so games remain portable across both apps.
+    // When disabled, we still export user notes and move tree without embedding analysis blobs.
+    if (trainer.saveAnalysis && node.analysis) {
+        const ownershipMode = node.analysis.ownershipMode ?? 'root';
+        props.KA = [encodeKayaKaFromAnalysis({ analysis: node.analysis, boardSize })];
+        if (ownershipMode !== 'none') props.KT = encodeKaTrainKtFromAnalysis({ analysis: node.analysis, boardSize });
+    }
+
+    if (move) {
+        const key = move.player === 'black' ? 'B' : 'W';
+        const coord = move.x < 0 || move.y < 0 ? '' : coordinateToSgf(move.x, move.y);
+        props[key] = [coord];
+    }
+
+    const noteTrim = (node.note ?? '').trim();
+
+    let internalSegments: string[] | undefined;
+    const parent = node.parent;
+    if (move && parent?.analysis && node.analysis) {
+        const pointsLost = computePointsLost(node);
+        const cls = typeof pointsLost === 'number' ? evaluationClass(pointsLost, trainer.evalThresholds) : null;
+        const showClass = cls === null ? false : !!trainer.saveFeedback?.[cls];
+        const showPlayer = !!trainer.saveCommentsPlayer?.[move.player];
+        const shouldSaveAutoComment = noteTrim.length > 0 || (showPlayer && showClass);
+        if (shouldSaveAutoComment) {
+            const autoComment = buildKaTrainAutoCommentSegment({ node, trainer });
+            if (autoComment) {
+                internalSegments = [`\n${autoComment}${KATRAIN_SGF_INTERNAL_COMMENTS_MARKER}`];
+            }
+
+            if (trainer.saveMarks && parent.analysis) {
+                const top = bestMoveFromCandidates(parent.analysis.moves);
+                if (top && top.x >= 0 && top.y >= 0 && !props.MA) props.MA = [coordinateToSgf(top.x, top.y)];
+                if (!props.SQ) {
+                    const bestSq = parent.analysis.moves
+                        .filter((m) => m.order !== 0 && m.pointsLost <= 0.5 && m.x >= 0 && m.y >= 0)
+                        .map((m) => coordinateToSgf(m.x, m.y));
+                    if (bestSq.length > 0) props.SQ = bestSq;
+                }
+            }
+        }
+    }
+
+    const c = buildKaTrainSgfComment({ note: node.note, internalSegments });
+    if (c) props.C = [c];
+
+    if (!move && Object.keys(props).length === 0) return '';
+    return `;${serializeProps(props)}`;
+}
+
+function serializeSequence(node: GameNode, trainer: KaTrainSgfExportTrainerConfig): string {
+    let out = serializeMoveNode(node, trainer);
+
+    const childSequences = node.children
+        .map((child) => serializeSequence(child, trainer))
+        .filter((childSgf) => childSgf.length > 0);
+    if (childSequences.length === 0) return out;
+    if (childSequences.length === 1) return out + childSequences[0]!;
+
+    for (const childSgf of childSequences) out += `(${childSgf})`;
+    return out;
+}
+
+export const generateSgfFromTree = (rootNode: GameNode, opts?: KaTrainSgfExportOptions): string => {
+    const date = formatSgfDate();
+    const trainer = normalizeTrainerConfig(opts);
+    const boardSize = normalizeBoardSize(rootNode.gameState.board.length, DEFAULT_BOARD_SIZE);
+
+    const props = cloneProps(rootNode.properties);
+    delete props.B;
+    delete props.W;
+    delete props.AB;
+    delete props.AW;
+    delete props.AE;
+    delete props.KT;
+    delete props.KA;
+
+    props.GM = ['1'];
+    props.FF = ['4'];
+    props.CA = ['UTF-8'];
+    props.AP = props.AP?.length ? props.AP : ['WebKatrain:0.1'];
+    props.ST = props.ST?.length ? props.ST : ['2'];
+    props.KTV = props.KTV?.length ? props.KTV : [KATRAIN_ANALYSIS_FORMAT_VERSION];
+    props.SZ = [String(boardSize)];
+    props.KM = [formatSgfNumber(rootNode.gameState.komi)];
+    if (!props.DT?.length) props.DT = [date];
+
+    const placements = rootPlacementsFromBoard(rootNode.gameState.board);
+    if (placements.AB) props.AB = placements.AB;
+    if (placements.AW) props.AW = placements.AW;
+
+    if (trainer.saveAnalysis && rootNode.analysis) {
+        const ownershipMode = rootNode.analysis.ownershipMode ?? 'root';
+        props.KA = [encodeKayaKaFromAnalysis({ analysis: rootNode.analysis, boardSize })];
+        if (ownershipMode !== 'none') props.KT = encodeKaTrainKtFromAnalysis({ analysis: rootNode.analysis, boardSize });
+    }
+
+    delete props.C;
+    const rootSegments: string[] = [];
+    if (trainer.saveMarks) {
+        rootSegments.push(
+            `Moves marked 'X' indicate the top move according to KataGo, those with a square are moves that lose less than 0.5 points${KATRAIN_SGF_INTERNAL_COMMENTS_MARKER}\n`
+        );
+    }
+    rootSegments.push(`\nSGF generated by WebKatrain${KATRAIN_SGF_INTERNAL_COMMENTS_MARKER}\n`);
+    const rootComment = buildKaTrainSgfComment({ note: rootNode.note, internalSegments: rootSegments });
+    if (rootComment) props.C = [rootComment];
+
+    let sgf = `(;${serializeProps(props)}`;
+
+    const childSequences = rootNode.children
+        .map((child) => serializeSequence(child, trainer))
+        .filter((childSgf) => childSgf.length > 0);
+    if (childSequences.length === 1) sgf += childSequences[0]!;
+    else if (childSequences.length > 1) {
+        for (const childSgf of childSequences) sgf += `(${childSgf})`;
+    }
+
+    sgf += ')';
+    return sgf;
+};
+
+export const downloadSgfFromTree = (rootNode: GameNode, opts?: KaTrainSgfExportOptions): string => {
+    const sgfContent = generateSgfFromTree(rootNode, opts);
+    const blob = new Blob([sgfContent], { type: 'application/x-go-sgf' });
+    if (!downloadBlob(blob, getSgfDownloadFilename(rootNode))) {
+        throw new Error('Could not start SGF download in this browser.');
+    }
+    return sgfContent;
+};
+
+export interface ParsedSgfNode {
+    props: Record<string, string[]>;
+    children: ParsedSgfNode[];
+}
+
+export interface ParsedSgf {
+    moves: { x: number, y: number, player: Player }[];
+    initialBoard: BoardState;
+    komi: number;
+    tree?: ParsedSgfNode;
+}
+
+export const parseSgf = (sgfContent: string): ParsedSgf => {
+    const moves: { x: number, y: number, player: Player }[] = [];
+    let boardSize: BoardSize = DEFAULT_BOARD_SIZE;
+    let initialBoard: BoardState = createEmptyBoard(boardSize);
+    let komi = 6.5;
+
+    type SgfNode = ParsedSgfNode;
+
+    // Find the first game tree.
+    let i = sgfContent.indexOf('(');
+    if (i < 0) throw new Error('Invalid SGF: missing game tree');
+    const len = sgfContent.length;
+
+    const skipWhitespace = () => {
+        while (i < len && /\s/.test(sgfContent[i]!)) i++;
+    };
+
+    const parseValue = (): string => {
+        if (sgfContent[i] !== '[') return '';
+        i++; // skip [
+        let value = '';
+        while (i < len) {
+            const char = sgfContent[i]!;
+            if (char === '\\') {
+                // Escape next char (including ] or \). Escaped line breaks are SGF continuations.
+                i++;
+                if (i < len) {
+                    const escaped = sgfContent[i]!;
+                    if (escaped === '\r') {
+                        i++;
+                        if (i < len && sgfContent[i] === '\n') i++;
+                        continue;
+                    }
+                    if (escaped === '\n') {
+                        i++;
+                        continue;
+                    }
+                    value += escaped;
+                }
+                i++;
+                continue;
+            }
+            if (char === ']') break;
+            value += char;
+            i++;
+        }
+        if (sgfContent[i] === ']') i++; // skip ]
+        return value;
+    };
+
+    const parsePropIdent = (): string => {
+        let key = '';
+        while (i < len && /[A-Za-z]/.test(sgfContent[i]!)) {
+            key += sgfContent[i]!;
+            i++;
+        }
+        // Normalize legacy properties like SiZe -> SZ.
+        return key.replace(/[a-z]/g, '');
+    };
+
+    const parseNode = (): SgfNode => {
+        const props: Record<string, string[]> = {};
+        skipWhitespace();
+        while (i < len && /[A-Za-z]/.test(sgfContent[i]!)) {
+            const key = parsePropIdent();
+            if (!key) break;
+            skipWhitespace();
+            const values: string[] = [];
+            while (i < len && sgfContent[i] === '[') {
+                values.push(parseValue());
+                skipWhitespace();
+            }
+            if (values.length > 0) {
+                props[key] = props[key] ? props[key]!.concat(values) : values;
+            } else if (!props[key]) {
+                props[key] = [];
+            }
+            skipWhitespace();
+        }
+        return { props, children: [] };
+    };
+
+    const parseSequence = (): { root: SgfNode; last: SgfNode } => {
+        skipWhitespace();
+        let root: SgfNode | null = null;
+        let last: SgfNode | null = null;
+        while (i < len && sgfContent[i] === ';') {
+            i++; // skip ;
+            const node = parseNode();
+            if (!root) root = node;
+            if (last) last.children.push(node); // continuation of the main line
+            last = node;
+            skipWhitespace();
+        }
+        if (!root || !last) throw new Error('Invalid SGF: missing node sequence');
+        return { root, last };
+    };
+
+    const parseGameTree = (): SgfNode => {
+        skipWhitespace();
+        if (sgfContent[i] !== '(') throw new Error('Invalid SGF: expected "("');
+        i++; // skip (
+        const { root, last } = parseSequence();
+        skipWhitespace();
+        while (i < len && sgfContent[i] === '(') {
+            const childTree = parseGameTree();
+            last.children.push(childTree);
+            skipWhitespace();
+        }
+        if (sgfContent[i] !== ')') throw new Error('Invalid SGF: expected ")"');
+        i++; // skip )
+        return root;
+    };
+
+    const root = parseGameTree();
+
+    const rootKomi = root.props['KM']?.[0];
+    if (rootKomi) {
+        const k = parseFloat(rootKomi);
+        if (!Number.isNaN(k)) komi = k;
+    }
+
+    const rootSize = root.props['SZ']?.[0];
+    if (rootSize) {
+        const sz = Number.parseInt(rootSize, 10);
+        boardSize = normalizeBoardSize(sz, boardSize);
+        initialBoard = createEmptyBoard(boardSize);
+    }
+
+    expandPointListPropertiesInTree(root, boardSize);
+
+    const applyPlacement = (player: Player, coords: string[]) => {
+        for (const coord of coords) {
+            for (const { x, y } of expandSgfPointList(coord, boardSize)) {
+                initialBoard[y][x] = player;
+            }
+        }
+    };
+    if (root.props['AB']) applyPlacement('black', root.props['AB']);
+    if (root.props['AW']) applyPlacement('white', root.props['AW']);
+    if (root.props['AE']) {
+        for (const coord of root.props['AE']) {
+            for (const { x, y } of expandSgfPointList(coord, boardSize)) {
+                initialBoard[y][x] = null;
+            }
+        }
+    }
+
+    // Follow the main branch (first-child chain). Variations are ignored for this basic loader.
+    let node: SgfNode | null = root;
+    while (node) {
+        const b = node.props['B']?.[0];
+        const w = node.props['W']?.[0];
+        if (typeof b === 'string') {
+            const { x, y } = sgfCoordToXy(b);
+            moves.push({ x, y, player: 'black' });
+        } else if (typeof w === 'string') {
+            const { x, y } = sgfCoordToXy(w);
+            moves.push({ x, y, player: 'white' });
+        }
+        node = node.children[0] ?? null;
+    }
+
+    return { moves, initialBoard, komi, tree: root };
+};

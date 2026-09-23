@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>🎮 手柄测试</title>
+
+<link rel="stylesheet" href="../hardware.css">
+
+<style>
+
+body{
+    margin:0;
+    padding:25px;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+}
+
+h1{
+    margin-bottom:10px;
+}
+
+#status{
+    margin:15px;
+    font-size:18px;
+}
+
+#device{
+    color:#666;
+    font-size:14px;
+    word-break:break-all;
+}
+
+.controller{
+    max-width:500px;
+    margin:25px auto;
+    padding:25px;
+    background:white;
+    border-radius:25px;
+    box-shadow:0 5px 20px #0002;
+}
+
+.row{
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    margin:20px 0;
+}
+
+.key{
+    width:55px;
+    height:55px;
+    border-radius:50%;
+    background:#ddd;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+    margin:5px;
+    transition:0.05s;
+}
+
+.key.pressed{
+    background:#555;
+    color:white;
+    transform:scale(1.12);
+}
+
+.trigger{
+    width:110px;
+    height:20px;
+    background:#ddd;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.trigger-fill{
+    width:0%;
+    height:100%;
+    background:#555;
+}
+
+.stick{
+    width:120px;
+    height:120px;
+    border-radius:50%;
+    background:#ddd;
+    position:relative;
+    margin:auto;
+}
+
+.stick-dot{
+    width:25px;
+    height:25px;
+    border-radius:50%;
+    background:#555;
+    position:absolute;
+    left:47px;
+    top:47px;
+}
+
+.value{
+    font-size:13px;
+    margin-top:8px;
+    color:#666;
+}
+
+button{
+    padding:12px 20px;
+    margin:8px;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+}
+
+input{
+    padding:8px;
+    width:70px;
+}
+
+
+/* 深色 */
+
+body.dark-mode{
+    background:#121212;
+    color:#eee;
+}
+
+body.dark-mode .controller{
+    background:#1e1e1e;
+}
+
+body.dark-mode .key{
+    background:#333;
+    color:#eee;
+}
+
+body.dark-mode .stick{
+    background:#333;
+}
+
+body.dark-mode .stick-dot{
+    background:#aaa;
+}
+
+body.dark-mode .trigger{
+    background:#333;
+}
+
+body.dark-mode .value,
+body.dark-mode #device{
+    color:#aaa;
+}
+
+body.dark-mode input{
+    background:#292929;
+    color:white;
+    border:1px solid #555;
+}
+
+</style>
+
+
+
+
+
+
+
+
+
+
+
+<style>
+/* ==== 深色模式·黑调覆盖层(主站深色体系) ==== */
+body.dark-mode{
+    background:#121212 !important;
+    color:#eeeeee !important;
+}
+body.dark-mode .card,
+body.dark-mode .desc,
+body.dark-mode .note,
+body.dark-mode .item,
+body.dark-mode .test-list button,
+body.dark-mode button,
+body.dark-mode input,
+body.dark-mode select{
+    background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+body.dark-mode .label,
+body.dark-mode h1,body.dark-mode h2,body.dark-mode h3{
+    color:#bb9cff !important;
+}
+body.dark-mode p,body.dark-mode li,body.dark-mode .desc p{
+    color:#aaaaaa !important;
+}
+body.dark-mode .hardware-back{
+    background:#222222 !important;
+    color:#bb9cff !important;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎮 手柄测试</h1>
+
+<div id="status">
+请连接手柄，然后按任意普通按键
+</div>
+
+<div id="device"></div>
+
+
+<div class="controller">
+
+<h2>📳 手柄震动</h2>
+
+<p>
+
+左 / 强震动：
+
+<input
+id="strongTime"
+type="number"
+min="0.1"
+step="0.1"
+value="1">
+
+秒
+
+</p>
+
+<p>
+
+右 / 弱震动：
+
+<input
+id="weakTime"
+type="number"
+min="0.1"
+step="0.1"
+value="1">
+
+秒
+
+</p>
+
+<button onclick="vibrateStrong()">
+左振动
+</button>
+
+<button onclick="vibrateWeak()">
+右振动
+</button>
+
+<br>
+
+<button onclick="vibrateBoth()">
+左右同时振动
+</button>
+
+<button onclick="stopGamepadVibration()">
+停止
+</button>
+
+</div>
+
+
+<div class="row">
+
+<div>
+
+<b>LB</b>
+
+<div id="b4" class="key">
+LB
+</div>
+
+</div>
+
+
+<div>
+
+<b>RB</b>
+
+<div id="b5" class="key">
+RB
+</div>
+
+</div>
+
+</div>
+
+
+<div class="row">
+
+<div>
+
+<b>LT</b>
+
+<div class="trigger">
+
+<div id="lt"
+class="trigger-fill">
+</div>
+
+</div>
+
+<div id="ltValue"
+class="value">
+0%
+</div>
+
+</div>
+
+
+<div>
+
+<b>RT</b>
+
+<div class="trigger">
+
+<div id="rt"
+class="trigger-fill">
+</div>
+
+</div>
+
+<div id="rtValue"
+class="value">
+0%
+</div>
+
+</div>
+
+</div>
+
+
+<div class="row">
+
+<div id="b2" class="key">
+X
+</div>
+
+<div id="b3" class="key">
+Y
+</div>
+
+<div id="b1" class="key">
+B
+</div>
+
+<div id="b0" class="key">
+A
+</div>
+
+</div>
+
+
+<div class="row">
+
+<div>
+
+<h3>左摇杆</h3>
+
+<div class="stick">
+
+<div id="leftDot"
+class="stick-dot">
+</div>
+
+</div>
+
+<div id="leftValue"
+class="value">
+
+X 0.00<br>
+Y 0.00
+
+</div>
+
+</div>
+
+
+<div>
+
+<h3>右摇杆</h3>
+
+<div class="stick">
+
+<div id="rightDot"
+class="stick-dot">
+</div>
+
+</div>
+
+<div id="rightValue"
+class="value">
+
+X 0.00<br>
+Y 0.00
+
+</div>
+
+</div>
+
+</div>
+
+
+<h3>十字键</h3>
+
+<div class="row">
+
+<div id="b12" class="key">
+↑
+</div>
+
+</div>
+
+<div class="row">
+
+<div id="b14" class="key">
+←
+</div>
+
+<div id="b13" class="key">
+↓
+</div>
+
+<div id="b15" class="key">
+→
+</div>
+
+</div>
+
+
+<div class="row">
+
+<div id="b8" class="key">
+☰
+</div>
+
+<div id="b9" class="key">
+≡
+</div>
+
+</div>
+
+
+<button
+class="hardware-back hardware-back"
+onclick="location.href='../index.html'">
+← 返回硬件大厅
+</button>
+
+
+<script>
+
+/* ============================
+   主站深色模式
+============================ */
+
+if(localStorage.getItem("theme") === "dark"){
+
+    document.body.classList.add("dark-mode");
+
+}
+
+
+/* ============================
+   手柄
+============================ */
+
+let gamepad = null;
+
+
+window.addEventListener(
+    "gamepadconnected",
+    function(event){
+
+        gamepad = event.gamepad;
+
+        document.getElementById(
+            "status"
+        ).textContent =
+            "🎮 手柄已连接";
+
+        document.getElementById(
+            "device"
+        ).textContent =
+            gamepad.id;
+
+    }
+);
+
+
+window.addEventListener(
+    "gamepaddisconnected",
+    function(event){
+
+        if(
+            gamepad &&
+            event.gamepad.index === gamepad.index
+        ){
+
+            gamepad = null;
+
+        }
+
+        document.getElementById(
+            "status"
+        ).textContent =
+            "手柄已断开";
+
+        document.getElementById(
+            "device"
+        ).textContent = "";
+
+    }
+);
+
+
+/* ============================
+   获取当前手柄
+============================ */
+
+function getCurrentGamepad(){
+
+    const pads =
+        navigator.getGamepads();
+
+    if(
+        gamepad &&
+        pads[gamepad.index]
+    ){
+
+        return pads[gamepad.index];
+
+    }
+
+
+    for(
+        const pad of pads
+    ){
+
+        if(pad){
+
+            gamepad = pad;
+
+            document.getElementById(
+                "status"
+            ).textContent =
+                "🎮 手柄已连接";
+
+            document.getElementById(
+                "device"
+            ).textContent =
+                pad.id;
+
+            return pad;
+
+        }
+
+    }
+
+    return null;
+
+}
+
+
+/* ============================
+   震动
+============================ */
+
+function getVibrationActuator(){
+
+    const pad =
+        getCurrentGamepad();
+
+    if(!pad){
+
+        alert("请先连接手柄");
+
+        return null;
+
+    }
+
+    if(!pad.vibrationActuator){
+
+        alert(
+            "这个手柄没有提供网页震动接口"
+        );
+
+        return null;
+
+    }
+
+    return pad.vibrationActuator;
+
+}
+
+
+function vibrateStrong(){
+
+    const actuator =
+        getVibrationActuator();
+
+    if(!actuator) return;
+
+    const seconds =
+        Number(
+            document.getElementById(
+                "strongTime"
+            ).value
+        );
+
+    actuator.playEffect(
+        "dual-rumble",
+        {
+            duration:
+                seconds * 1000,
+
+            startDelay:0,
+
+            strongMagnitude:1,
+
+            weakMagnitude:0
+
+        }
+    );
+
+}
+
+
+function vibrateWeak(){
+
+    const actuator =
+        getVibrationActuator();
+
+    if(!actuator) return;
+
+    const seconds =
+        Number(
+            document.getElementById(
+                "weakTime"
+            ).value
+        );
+
+    actuator.playEffect(
+        "dual-rumble",
+        {
+            duration:
+                seconds * 1000,
+
+            startDelay:0,
+
+            strongMagnitude:0,
+
+            weakMagnitude:1
+
+        }
+    );
+
+}
+
+
+function vibrateBoth(){
+
+    const actuator =
+        getVibrationActuator();
+
+    if(!actuator) return;
+
+    const strong =
+        Number(
+            document.getElementById(
+                "strongTime"
+            ).value
+        );
+
+    const weak =
+        Number(
+            document.getElementById(
+                "weakTime"
+            ).value
+        );
+
+    actuator.playEffect(
+        "dual-rumble",
+        {
+            duration:
+                Math.max(
+                    strong,
+                    weak
+                ) * 1000,
+
+            startDelay:0,
+
+            strongMagnitude:1,
+
+            weakMagnitude:1
+
+        }
+    );
+
+}
+
+
+function stopGamepadVibration(){
+
+    const actuator =
+        getVibrationActuator();
+
+    if(!actuator) return;
+
+    if(
+        actuator.reset
+    ){
+
+        actuator.reset();
+
+    }
+
+}
+
+
+/* ============================
+   按钮
+============================ */
+
+function updateButton(
+    index,
+    pad
+){
+
+    const element =
+        document.getElementById(
+            "b" + index
+        );
+
+    if(!element) return;
+
+    const button =
+        pad.buttons[index];
+
+    if(
+        button &&
+        button.pressed
+    ){
+
+        element.classList.add(
+            "pressed"
+        );
+
+    }else{
+
+        element.classList.remove(
+            "pressed"
+        );
+
+    }
+
+}
+
+
+/* ============================
+   摇杆
+============================ */
+
+function updateStick(
+    pad,
+    x,
+    y,
+    dotId,
+    valueId
+){
+
+    let px =
+        pad.axes[x] || 0;
+
+    let py =
+        pad.axes[y] || 0;
+
+
+    const dot =
+        document.getElementById(
+            dotId
+        );
+
+
+    dot.style.left =
+        (47 + px * 45) + "px";
+
+    dot.style.top =
+        (47 + py * 45) + "px";
+
+
+    document.getElementById(
+        valueId
+    ).innerHTML =
+        "X " +
+        px.toFixed(2) +
+        "<br>Y " +
+        py.toFixed(2);
+
+}
+
+
+/* ============================
+   扳机
+============================ */
+
+function updateTrigger(
+    pad,
+    index,
+    fillId,
+    valueId
+){
+
+    const value =
+        pad.buttons[index]?.value || 0;
+
+
+    document.getElementById(
+        fillId
+    ).style.width =
+        value * 100 + "%";
+
+
+    document.getElementById(
+        valueId
+    ).textContent =
+        Math.round(
+            value * 100
+        ) + "%";
+
+}
+
+
+/* ============================
+   主循环
+============================ */
+
+function update(){
+
+    const pad =
+        getCurrentGamepad();
+
+
+    if(pad){
+
+        for(
+            let i = 0;
+            i < pad.buttons.length;
+            i++
+        ){
+
+            updateButton(
+                i,
+                pad
+            );
+
+        }
+
+
+        updateStick(
+            pad,
+            0,
+            1,
+            "leftDot",
+            "leftValue"
+        );
+
+
+        updateStick(
+            pad,
+            2,
+            3,
+            "rightDot",
+            "rightValue"
+        );
+
+
+        updateTrigger(
+            pad,
+            6,
+            "lt",
+            "ltValue"
+        );
+
+
+        updateTrigger(
+            pad,
+            7,
+            "rt",
+            "rtValue"
+        );
+
+    }
+
+
+    requestAnimationFrame(
+        update
+    );
+
+}
+
+
+update();
+
+</script>
+
+</body>
+
+</html>
