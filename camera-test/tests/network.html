@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>🌐 网络测试</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:25px 20px;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+}
+
+h1{
+    margin:20px 0 25px;
+}
+
+.card{
+    max-width:420px;
+    margin:15px auto;
+    padding:22px;
+    background:white;
+    border-radius:22px;
+    box-shadow:0 5px 20px #0002;
+}
+
+.item{
+    margin:20px 0;
+}
+
+.label{
+    color:#777;
+    font-size:14px;
+    margin-bottom:6px;
+}
+
+.value{
+    font-size:25px;
+    font-weight:bold;
+}
+
+button{
+    width:90%;
+    max-width:350px;
+    padding:14px 20px;
+    margin:9px;
+    border:none;
+    border-radius:15px;
+    background:white;
+    box-shadow:0 4px 12px #0002;
+    font-size:17px;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+#message{
+    margin:15px;
+    color:#666;
+    min-height:20px;
+}
+
+</style>
+
+
+
+
+
+
+
+<link rel="stylesheet" href="../hardware.css">
+
+
+<style>
+/* ==== 深色模式·黑调覆盖层(主站深色体系) ==== */
+body.dark-mode{
+    background:#121212 !important;
+    color:#eeeeee !important;
+}
+body.dark-mode .card,
+body.dark-mode .desc,
+body.dark-mode .note,
+body.dark-mode .item,
+body.dark-mode .test-list button,
+body.dark-mode button,
+body.dark-mode input,
+body.dark-mode select{
+    background:#1e1e1e !important;
+    color:#eeeeee !important;
+    border-color:#333333 !important;
+}
+body.dark-mode .label,
+body.dark-mode h1,body.dark-mode h2,body.dark-mode h3{
+    color:#bb9cff !important;
+}
+body.dark-mode p,body.dark-mode li,body.dark-mode .desc p{
+    color:#aaaaaa !important;
+}
+body.dark-mode .hardware-back{
+    background:#222222 !important;
+    color:#bb9cff !important;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌐 网络测试</h1>
+
+
+<div class="card">
+
+<div class="item">
+
+<div class="label">
+网络状态
+</div>
+
+<div id="online" class="value">
+检测中……
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+连接方式
+</div>
+
+<div id="connection" class="value">
+检测中……
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="item">
+
+<div class="label">
+📡 延迟
+</div>
+
+<div id="ping" class="value">
+--
+</div>
+
+<div id="pingText">
+等待测试
+</div>
+
+</div>
+
+
+<div class="item">
+
+<div class="label">
+⬇️ 下载速度
+</div>
+
+<div id="download" class="value">
+--
+</div>
+
+<div id="downloadText">
+等待测试
+</div>
+
+</div>
+
+</div>
+
+
+<button onclick="runTest()">
+🚀 开始网络测试
+</button>
+
+<br>
+
+<button onclick="location.href='../index.html'" class="hardware-back">
+← 返回硬件大厅
+</button>
+
+
+<div id="message"></div>
+
+
+<script>
+
+
+// ============================
+// 网络信息
+// ============================
+
+function updateNetworkInfo(){
+
+    const online =
+        document.getElementById("online");
+
+    online.textContent =
+        navigator.onLine
+        ? "🟢 在线"
+        : "🔴 离线";
+
+
+    const connection =
+        navigator.connection ||
+        navigator.mozConnection ||
+        navigator.webkitConnection;
+
+
+    const element =
+        document.getElementById(
+            "connection"
+        );
+
+
+    if(!connection){
+
+        element.textContent =
+            "❓ 浏览器不提供";
+
+        return;
+
+    }
+
+
+    if(connection.type === "wifi"){
+
+        element.textContent =
+            "📶 Wi-Fi";
+
+    }else if(
+        connection.type === "cellular"
+    ){
+
+        element.textContent =
+            "📱 移动网络";
+
+    }else if(
+        connection.effectiveType
+    ){
+
+        element.textContent =
+            connection.effectiveType
+            .toUpperCase();
+
+    }else{
+
+        element.textContent =
+            "❓ 未知";
+
+    }
+
+}
+
+
+// ============================
+// 延迟测试
+// ============================
+
+async function pingServer(){
+
+    const ping =
+        document.getElementById(
+            "ping"
+        );
+
+    const text =
+        document.getElementById(
+            "pingText"
+        );
+
+
+    ping.textContent =
+        "测试中…";
+
+    text.textContent =
+        "";
+
+
+    const times = [];
+
+
+    for(
+        let i = 0;
+        i < 5;
+        i++
+    ){
+
+        const start =
+            performance.now();
+
+
+        try{
+
+            await fetch(
+                "https://maomao1OvO1.github.io/?ping=" +
+                Date.now() +
+                Math.random(),
+                {
+                    method:"HEAD",
+                    cache:"no-store",
+                    mode:"no-cors"
+                }
+            );
+
+
+            const end =
+                performance.now();
+
+
+            times.push(
+                end - start
+            );
+
+
+        }catch(error){
+
+        }
+
+    }
+
+
+    if(!times.length){
+
+        ping.textContent =
+            "失败";
+
+        text.textContent =
+            "❌ 无法连接服务器";
+
+        return;
+
+    }
+
+
+    const average =
+        times.reduce(
+            (a,b) => a + b,
+            0
+        ) / times.length;
+
+
+    const ms =
+        Math.round(average);
+
+
+    ping.textContent =
+        ms + " ms";
+
+
+    if(ms < 50){
+
+        text.textContent =
+            "🟢 非常快";
+
+    }else if(ms < 100){
+
+        text.textContent =
+            "🟢 很快";
+
+    }else if(ms < 200){
+
+        text.textContent =
+            "🟡 一般";
+
+    }else if(ms < 500){
+
+        text.textContent =
+            "🟠 延迟较高";
+
+    }else{
+
+        text.textContent =
+            "🔴 延迟很高";
+
+    }
+
+}
+
+
+// ============================
+// 下载测速
+// ============================
+
+async function downloadTest(){
+
+    const result =
+        document.getElementById(
+            "download"
+        );
+
+    const text =
+        document.getElementById(
+            "downloadText"
+        );
+
+
+    result.textContent =
+        "测试中…";
+
+    text.textContent =
+        "";
+
+
+    try{
+
+        const url =
+            "speedtest.bin?nocache=" +
+            Date.now();
+
+
+        const start =
+            performance.now();
+
+
+        const response =
+            await fetch(
+                url,
+                {
+                    cache:"no-store"
+                }
+            );
+
+
+        if(!response.ok){
+
+            throw new Error(
+                "下载失败"
+            );
+
+        }
+
+
+        const data =
+            await response.arrayBuffer();
+
+
+        const end =
+            performance.now();
+
+
+        const bytes =
+            data.byteLength;
+
+
+        const seconds =
+            (end - start) / 1000;
+
+
+        const megabits =
+            bytes * 8 / 1000000;
+
+
+        const mbps =
+            megabits / seconds;
+
+
+        result.textContent =
+            mbps.toFixed(1) +
+            " Mbps";
+
+
+        text.textContent =
+            "⬇️ " +
+            (mbps / 8).toFixed(1) +
+            " MB/s";
+
+
+    }catch(error){
+
+        result.textContent =
+            "失败";
+
+        text.textContent =
+            "❌ 无法下载测速文件";
+
+    }
+
+}
+
+
+// ============================
+// 完整测试
+// ============================
+
+async function runTest(){
+
+    document.getElementById(
+        "message"
+    ).textContent =
+        "正在测试，请稍等……";
+
+
+    updateNetworkInfo();
+
+
+    await pingServer();
+
+
+    await downloadTest();
+
+
+    document.getElementById(
+        "message"
+    ).textContent =
+        "✅ 测试完成";
+
+}
+
+
+updateNetworkInfo();
+
+
+// ============================
+// 主站深色模式
+// ============================
+
+if(
+    localStorage.getItem("theme")
+    === "dark"
+){
+
+    document.body.classList.add(
+        "dark-mode"
+    );
+
+}
+
+</script>
+
+</body>
+
+</html>

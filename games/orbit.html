@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05060e">
+<meta name="description" content="星轨 · 引力弹弓：拖拽发射飞船，让星球的引力替你转弯，用最少的发射次数命中目标。">
+<title>星轨 · 引力弹弓</title>
+<link rel="icon" href="../icon.png">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+ * 星轨 · 引力弹弓（orbit.html）
+ *
+ * 玩法：按住飞船往后拖 → 松手发射 → 星球引力把航线掰弯 → 撞进目标环
+ * 追求：**用最少的发射次数通关**（1 发命中 = 三星）—— 这是个「算清楚再动手」的游戏
+ * 特点：纯 Canvas、零图片素材、零依赖、单文件；自带轨迹预测与慢动作
+ * ══════════════════════════════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#05060e;color:#e8eefc;
+  font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+
+/* ── 顶部信息条 ─────────────────────────────────────────────── */
+#hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+  display:flex;align-items:center;gap:10px;pointer-events:none;font-size:13px;letter-spacing:.3px}
+#hud .tag{background:rgba(20,26,48,.62);border:1px solid rgba(120,150,255,.22);border-radius:10px;
+  padding:6px 10px;backdrop-filter:blur(10px)}
+#hud .lv{font-weight:600;color:#a9c2ff}
+#hud .dots{display:flex;gap:5px;align-items:center}
+#hud .dot{width:9px;height:9px;border-radius:50%;background:#2b3357;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+#hud .dot.used{background:#fb7185}
+#hud .spacer{flex:1}
+#hud .btn{pointer-events:auto;cursor:pointer;background:rgba(20,26,48,.62);
+  border:1px solid rgba(120,150,255,.22);border-radius:10px;padding:6px 10px;backdrop-filter:blur(10px)}
+#hud .btn.on{color:#7dea e0;color:#7deae0;border-color:rgba(125,234,224,.45)}
+
+/* ── 底部提示 ──────────────────────────────────────────────── */
+#tip{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 14px);text-align:center;
+  font-size:12.5px;color:#8b9ac4;pointer-events:none;transition:opacity .3s}
+
+/* ── 结算浮层 ──────────────────────────────────────────────── */
+#panel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 45%,rgba(12,16,34,.72),rgba(4,5,12,.92))}
+#panel.show{display:flex}
+#panel .card{width:min(88vw,360px);background:rgba(16,21,40,.82);border:1px solid rgba(120,150,255,.22);
+  border-radius:18px;padding:22px 20px;backdrop-filter:blur(16px);text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.55)}
+#panel h2{font-size:19px;margin-bottom:6px;letter-spacing:.5px}
+#panel .stars{font-size:26px;letter-spacing:6px;color:#ffd166;margin:8px 0 12px;min-height:32px}
+#panel p{font-size:13px;color:#9aa8cf;line-height:1.7}
+#panel .row{display:flex;gap:10px;margin-top:18px}
+#panel button{flex:1;padding:12px;border-radius:12px;border:1px solid rgba(120,150,255,.25);
+  background:rgba(30,38,70,.6);color:#dfe8ff;font-size:14px;cursor:pointer;font-family:inherit}
+#panel button.primary{background:linear-gradient(135deg,#3b5bdb,#7048e8);border-color:transparent;font-weight:600}
+#panel button:active{transform:scale(.98)}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div class="tag lv" id="lvName">第 1 关 · 点火</div>
+  <div class="tag dots" id="dots"></div>
+  <div class="spacer"></div>
+  <div class="btn" id="slowBtn">慢动作</div>
+  <div class="btn" id="retryBtn">重来</div>
+</div>
+
+<div id="tip">按住飞船往后拖，松手发射</div>
+
+<div id="panel"><div class="card">
+  <h2 id="pTitle">通关</h2>
+  <div class="stars" id="pStars"></div>
+  <p id="pDesc"></p>
+  <div class="row">
+    <button id="pLeft">重玩本关</button>
+    <button class="primary" id="pRight">下一关</button>
+  </div>
+</div></div>
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════════════════════
+ * 一、关卡数据
+ *   坐标全部用 0~1 归一化（左下角为原点感、屏幕 y 向下），换任何屏幕尺寸都不用改数值。
+ *   planets：[x, y, 半径, 质量]；质量越大，引力越强、轨道弯得越狠。
+ *   par = 满分所需发射次数（1 表示「一发入魂」）。
+ * ══════════════════════════════════════════════════════════════════════ */
+const LEVELS = [
+  { name:'点火',      shots:3, par:1, start:[.50,.86], target:[.50,.14], planets:[] },
+  { name:'第一次转弯', shots:3, par:1, start:[.14,.84], target:[.86,.24], planets:[[.46,.46,.20,1]] },
+  { name:'借力',      shots:3, par:1, start:[.18,.20], target:[.84,.80], planets:[[.52,.52,.22,1]] },
+  { name:'双子',      shots:3, par:1, start:[.10,.86], target:[.90,.86], planets:[[.36,.40,.16,1],[.66,.40,.16,1]] },
+  { name:'窄门',      shots:4, par:1, start:[.50,.88], target:[.50,.12], planets:[[.30,.50,.14,1],[.70,.50,.14,1]] },
+  { name:'反弹',      shots:4, par:1, start:[.16,.52], target:[.84,.52], planets:[[.50,.22,.18,1],[.50,.82,.18,1]] },
+  { name:'三重',      shots:4, par:2, start:[.10,.12], target:[.90,.88], planets:[[.34,.34,.13,1],[.66,.34,.13,1],[.50,.72,.15,1]] },
+  { name:'大质量',    shots:4, par:1, start:[.12,.50], target:[.88,.50], planets:[[.50,.50,.26,1.8]] },
+  { name:'细缝',      shots:4, par:2, start:[.50,.90], target:[.50,.10], planets:[[.26,.50,.15,1],[.74,.50,.15,1],[.50,.50,.10,1.4]] },
+  { name:'绕行',      shots:4, par:1, start:[.90,.18], target:[.10,.82], planets:[[.50,.50,.24,1.3],[.26,.26,.12,1]] },
+  { name:'引力的手',  shots:5, par:2, start:[.06,.50], target:[.94,.50], planets:[[.30,.26,.13,1],[.30,.74,.13,1],[.70,.26,.13,1],[.70,.74,.13,1]] },
+  { name:'行星环',    shots:5, par:2, start:[.50,.94], target:[.50,.06], planets:[[.28,.46,.12,1],[.72,.46,.12,1],[.50,.70,.12,1],[.50,.22,.12,1]] },
+  { name:'反直觉',    shots:5, par:2, start:[.08,.90], target:[.92,.10], planets:[[.30,.70,.12,1],[.62,.30,.12,1],[.86,.74,.13,1]] },
+  { name:'引力井',    shots:5, par:2, start:[.50,.92], target:[.50,.08], planets:[[.50,.50,.30,2.2],[.18,.30,.10,1],[.82,.30,.10,1]] },
+  { name:'最后一程',  shots:6, par:3, start:[.05,.05], target:[.95,.95], planets:[[.28,.28,.12,1],[.72,.28,.12,1],[.28,.72,.12,1],[.72,.72,.12,1],[.50,.50,.14,1.6]] }
+];
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 二、全局状态
+ * ══════════════════════════════════════════════════════════════════════ */
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+
+const G = 0.55;          // 引力常数（手调过：既有明显的弯曲，又不至于一出手就被吸死）
+const SOFT = 0.012;      // 软化半径：避免正对圆心时加速度炸掉
+const DT = 1 / 240;      // 物理步长（固定步长，慢动作只是少跑几步）
+const MAX_PREDICT = 900; // 预测轨迹最多算多少步
+
+const S = {
+  idx: 0,                 // 当前关卡下标
+  lv: null,               // 当前关卡对象
+  shotsLeft: 0,
+  phase: 'aim',           // aim 瞄准 / fly 飞行 / over 结算
+  ship: null,             // {x,y,vx,vy}
+  trail: [],              // 当前这一发的轨迹（世界坐标）
+  history: [],            // 历史轨迹（每一发一条，画出来像轨道图）
+  drag: null,             // {x,y,dx,dy}
+  predict: [],            // 预测轨迹点
+  particles: [],
+  slow: false,
+  t: 0,
+  best: {}                // {关卡下标: 星数}
+};
+try { S.best = JSON.parse(localStorage.getItem('orbit.best') || '{}') || {}; } catch (e) { S.best = {}; }
+
+/* 背景星点：一次生成，永久复用（省电、也不闪） */
+const STARS = [];
+for (let i = 0; i < 150; i++) {
+  STARS.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.3 + .2, a: Math.random() * .5 + .18, p: Math.random() * 6.28 });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 三、物理
+ * ══════════════════════════════════════════════════════════════════════ */
+function accel(x, y) {
+  let ax = 0, ay = 0, crash = false;
+  for (const p of S.lv.planets) {
+    const dx = p[0] - x, dy = p[1] - y;
+    const d2 = dx * dx + dy * dy + SOFT * SOFT;
+    const d = Math.sqrt(d2);
+    if (d < p[2]) crash = true;
+    const a = G * p[3] / d2;
+    ax += a * dx / d;
+    ay += a * dy / d;
+  }
+  return { ax: ax, ay: ay, crash: crash };
+}
+
+/** 用同一套物理往前推演，得到预测轨迹（不改变真实状态） */
+function predictPath(x, y, vx, vy, steps) {
+  const pts = [];
+  let cx = x, cy = y, cvx = vx, cvy = vy;
+  for (let i = 0; i < steps; i++) {
+    const a = accel(cx, cy);
+    if (a.crash) break;
+    cvx += a.ax * DT; cvy += a.ay * DT;
+    cx += cvx * DT; cy += cvy * DT;
+    if (i % 6 === 0) pts.push([cx, cy]);
+    if (cx < -0.3 || cx > 1.3 || cy < -0.3 || cy > 1.3) break;
+    // 命中目标就停（预测线不会穿过目标）
+    if (dist(cx, cy, S.lv.target[0], S.lv.target[1]) < 0.035) break;
+  }
+  return pts;
+}
+
+function dist(x1, y1, x2, y2) { const dx = x1 - x2, dy = y1 - y2; return Math.sqrt(dx * dx + dy * dy); }
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 四、关卡流程
+ * ══════════════════════════════════════════════════════════════════════ */
+function loadLevel(i) {
+  S.idx = i;
+  const raw = LEVELS[i];
+  S.lv = {
+    name: raw.name,
+    target: raw.target.slice(),
+    planets: raw.planets.map(function (p) { return p.slice(); }),
+    start: raw.start.slice(),
+    par: raw.par,
+    shots: raw.shots
+  };
+  S.shotsLeft = S.lv.shots;
+  S.history = []; S.particles = [];
+  resetShip();
+  S.phase = 'aim';
+  document.getElementById('lvName').textContent = '第 ' + (i + 1) + ' 关 · ' + S.lv.name;
+  drawDots();
+  hidePanel();
+  setTip('按住飞船往后拖，松手发射');
+}
+
+function resetShip() {
+  S.ship = { x: S.lv.start[0], y: S.lv.start[1], vx: 0, vy: 0 };
+  S.trail = []; S.predict = []; S.drag = null;
+  S.phase = 'aim';
+}
+
+function fire() {
+  const d = S.drag;
+  if (!d) return;
+  // 拖拽方向的反方向即发射方向；拖得越远初速度越大（上限防止一出手就飞出宇宙）
+  const POWER = 1.55;
+  let vx = (d.sx - d.x) * POWER, vy = (d.sy - d.y) * POWER;
+  const sp = Math.hypot(vx, vy);
+  const MAXV = 1.15;
+  if (sp > MAXV) { vx = vx / sp * MAXV; vy = vy / sp * MAXV; }
+  if (sp < 0.06) { S.drag = null; S.predict = []; return; }   // 拖太短，当误触
+
+  S.ship.vx = vx; S.ship.vy = vy;
+  S.trail = [[S.ship.x, S.ship.y]];
+  S.history.push(S.trail);
+  S.shotsLeft--;
+  S.phase = 'fly';
+  S.drag = null; S.predict = [];
+  drawDots();
+  beep(520, 0.06, 'triangle');
+  setTip('飞行中… 松手前那条虚线就是预测轨迹');
+}
+
+function stepPhysics() {
+  if (S.phase !== 'fly') return;
+  const a = accel(S.ship.x, S.ship.y);
+  if (a.crash) return crash();
+  S.ship.vx += a.ax * DT;
+  S.ship.vy += a.ay * DT;
+  S.ship.x += S.ship.vx * DT;
+  S.ship.y += S.ship.vy * DT;
+  S.trail.push([S.ship.x, S.ship.y]);
+
+  // 命中目标
+  if (dist(S.ship.x, S.ship.y, S.lv.target[0], S.lv.target[1]) < 0.035) return win();
+  // 飞出画面太远 = 这一发废了
+  if (S.ship.x < -0.45 || S.ship.x > 1.45 || S.ship.y < -0.45 || S.ship.y > 1.45) return miss();
+}
+
+function win() {
+  S.phase = 'over';
+  burst(S.lv.target[0], S.lv.target[1], '#7deae0', 34);
+  const used = S.lv.shots - S.shotsLeft;
+  let stars = used <= S.lv.par ? 3 : (used <= S.lv.par + 1 ? 2 : 1);
+  const rec = S.best[S.idx] || 0;
+  if (stars > rec) { S.best[S.idx] = stars; try { localStorage.setItem('orbit.best', JSON.stringify(S.best)); } catch (e) {} }
+  chord(stars === 3);
+  showPanel('通关 · ' + S.lv.name, '★★★☆☆☆'.slice(0, stars) + '☆☆☆'.slice(0, Math.max(0, 3 - stars)).replace(/★/g, ''),
+    (stars === 3 ? '一发入魂。' : '用了 ' + used + ' 发（满分要求 ' + S.lv.par + ' 发）') +
+    (S.best[S.idx] > stars ? '　历史最好：' + '★'.repeat(S.best[S.idx]) : ''),
+    S.idx + 1 < LEVELS.length);
+}
+
+function miss() {
+  S.phase = 'aim';
+  if (S.shotsLeft <= 0) {
+    chord(false);
+    showPanel('燃料用尽', '', '这一关的 ' + S.lv.shots + ' 发都打完了 —— 换个角度再算一次？', false);
+  } else {
+    beep(180, 0.16, 'sine');
+    setTip('没进环，还剩 ' + S.shotsLeft + ' 发');
+    resetShip();
+  }
+}
+
+function crash() {
+  burst(S.ship.x, S.ship.y, '#fb7185', 22);
+  S.phase = 'aim';
+  beep(110, 0.28, 'sawtooth');
+  if (S.shotsLeft <= 0) {
+    showPanel('坠毁', '', '撞上星球了，而且燃料也用完了。', false);
+  } else {
+    setTip('撞星球了，还剩 ' + S.shotsLeft + ' 发');
+    resetShip();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 五、渲染
+ * ══════════════════════════════════════════════════════════════════════ */
+function px(v) { return v * W; }
+function py(v) { return v * H; }
+
+function drawBackground() {
+  const g = ctx.createLinearGradient(0, 0, W * .4, H);
+  g.addColorStop(0, '#070b1c'); g.addColorStop(.55, '#05060e'); g.addColorStop(1, '#0a0714');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  for (const s of STARS) {
+    const tw = .72 + .28 * Math.sin(S.t * 1.4 + s.p);
+    ctx.globalAlpha = s.a * tw;
+    ctx.fillStyle = '#cfe0ff';
+    ctx.beginPath(); ctx.arc(px(s.x), py(s.y), s.r, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawPlanets() {
+  for (const p of S.lv.planets) {
+    const x = px(p[0]), y = py(p[1]), r = px(p[2]) * (W / H > 1 ? H / W : 1) * (H / W < 1 ? W / H : 1);
+    const rr = Math.min(W, H) * p[2];
+    // 光晕
+    const glow = ctx.createRadialGradient(x, y, rr * .6, x, y, rr * 2.6);
+    glow.addColorStop(0, 'rgba(124,92,191,.34)');
+    glow.addColorStop(1, 'rgba(124,92,191,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(x, y, rr * 2.6, 0, 6.283); ctx.fill();
+    // 星体
+    const grad = ctx.createRadialGradient(x - rr * .35, y - rr * .35, rr * .1, x, y, rr);
+    grad.addColorStop(0, '#cbb6ff'); grad.addColorStop(.45, '#6d5bd0'); grad.addColorStop(1, '#2a2352');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(x, y, rr, 0, 6.283); ctx.fill();
+  }
+}
+
+function drawTarget() {
+  const x = px(S.lv.target[0]), y = py(S.lv.target[1]);
+  const rr = Math.min(W, H) * 0.035;
+  const pulse = 1 + .12 * Math.sin(S.t * 3.2);
+  ctx.strokeStyle = 'rgba(125,234,224,.9)'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(x, y, rr * pulse, 0, 6.283); ctx.stroke();
+  ctx.strokeStyle = 'rgba(125,234,224,.32)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y, rr * 2.1 * pulse, 0, 6.283); ctx.stroke();
+  ctx.fillStyle = 'rgba(125,234,224,.16)';
+  ctx.beginPath(); ctx.arc(x, y, rr * pulse, 0, 6.283); ctx.fill();
+}
+
+function drawTrails() {
+  // 历史轨迹（已经打过的每一发都留着，像一张不断添线的轨道图）
+  S.history.forEach(function (tr, i) {
+    if (tr === S.trail) return;
+    ctx.strokeStyle = 'rgba(120,150,255,.18)'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let k = 0; k < tr.length; k++) {
+      const x = px(tr[k][0]), y = py(tr[k][1]);
+      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+  });
+  // 当前轨迹：越新越亮
+  if (S.trail.length > 1) {
+    for (let k = 1; k < S.trail.length; k++) {
+      const a = Math.min(1, k / Math.max(1, S.trail.length - 1));
+      ctx.strokeStyle = 'rgba(125,220,255,' + (0.15 + 0.7 * a) + ')';
+      ctx.lineWidth = 1 + 1.6 * a;
+      ctx.beginPath();
+      ctx.moveTo(px(S.trail[k - 1][0]), py(S.trail[k - 1][1]));
+      ctx.lineTo(px(S.trail[k][0]), py(S.trail[k][1]));
+      ctx.stroke();
+    }
+  }
+  // 预测轨迹（虚线）—— 这是这个游戏最要紧的东西：它让你「先算清楚再松手」
+  if (S.predict.length > 1) {
+    ctx.save();
+    ctx.setLineDash([7, 8]);
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    for (let k = 0; k < S.predict.length; k++) {
+      const x = px(S.predict[k][0]), y = py(S.predict[k][1]);
+      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawShip() {
+  const x = px(S.ship.x), y = py(S.ship.y);
+  // 光晕
+  const g = ctx.createRadialGradient(x, y, 0, x, y, 26);
+  g.addColorStop(0, 'rgba(180,225,255,.55)'); g.addColorStop(1, 'rgba(180,225,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 26, 0, 6.283); ctx.fill();
+
+  if (S.phase === 'fly') {
+    // 朝速度方向画一个小箭头
+    const ang = Math.atan2(S.ship.vy, S.ship.vx);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+    ctx.fillStyle = '#eaf4ff';
+    ctx.beginPath(); ctx.moveTo(9, 0); ctx.lineTo(-6, 5); ctx.lineTo(-3, 0); ctx.lineTo(-6, -5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#eaf4ff';
+    ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 6.283); ctx.fill();
+    // 瞄准时画一圈提示可拖拽
+    ctx.strokeStyle = 'rgba(180,225,255,' + (.35 + .25 * Math.sin(S.t * 3)) + ')';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(x, y, 16, 0, 6.283); ctx.stroke();
+  }
+
+  // 拖拽线（从飞船到手指）
+  if (S.drag) {
+    ctx.strokeStyle = 'rgba(255,209,102,.65)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(px(S.drag.sx), py(S.drag.sy)); ctx.lineTo(px(S.drag.x), py(S.drag.y)); ctx.stroke();
+  }
+}
+
+function drawParticles() {
+  for (const p of S.particles) {
+    ctx.globalAlpha = Math.max(0, p.life / p.max);
+    ctx.fillStyle = p.c;
+    ctx.beginPath(); ctx.arc(px(p.x), py(p.y), p.r, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function burst(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * 6.283, sp = Math.random() * .34 + .06;
+    S.particles.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      r: Math.random() * 2.4 + .8, life: 1, max: 1, c: color });
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 六、主循环
+ * ══════════════════════════════════════════════════════════════════════ */
+let last = 0;
+function loop(ts) {
+  const dt = Math.min(0.05, (ts - last) / 1000 || 0);
+  last = ts;
+  S.t += dt;
+
+  // 物理：固定步长，用倍数控制时间流速（慢动作 = 少跑几步）
+  if (S.phase === 'fly') {
+    const mult = S.slow ? 0.22 : 1;
+    const steps = Math.round(dt / DT * mult);
+    for (let i = 0; i < Math.min(steps, 40); i++) { stepPhysics(); if (S.phase !== 'fly') break; }
+  }
+  // 粒子
+  for (let i = S.particles.length - 1; i >= 0; i--) {
+    const p = S.particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += .12 * dt; p.life -= dt * .9;
+    if (p.life <= 0) S.particles.splice(i, 1);
+  }
+
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  drawPlanets();
+  drawTarget();
+  drawTrails();
+  drawShip();
+  drawParticles();
+
+  requestAnimationFrame(loop);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 七、输入（触摸 + 鼠标统一走 Pointer 事件）
+ * ══════════════════════════════════════════════════════════════════════ */
+function toWorld(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+}
+
+cv.addEventListener('pointerdown', function (e) {
+  if (S.phase !== 'aim') return;
+  const w = toWorld(e);
+  // 只能从飞船附近起拖（避免误触后满屏乱飞）
+  if (dist(w.x, w.y, S.ship.x, S.ship.y) > 0.16) return;
+  S.drag = { sx: S.ship.x, sy: S.ship.y, x: w.x, y: w.y };
+  cv.setPointerCapture(e.pointerId);
+  setTip('拖得越远，初速度越大');
+});
+
+cv.addEventListener('pointermove', function (e) {
+  if (!S.drag || S.phase !== 'aim') return;
+  const w = toWorld(e);
+  S.drag.x = w.x; S.drag.y = w.y;
+  const POWER = 1.55, MAXV = 1.15;
+  let vx = (S.drag.sx - w.x) * POWER, vy = (S.drag.sy - w.y) * POWER;
+  const sp = Math.hypot(vx, vy);
+  if (sp > MAXV) { vx = vx / sp * MAXV; vy = vy / sp * MAXV; }
+  S.predict = predictPath(S.ship.x, S.ship.y, vx, vy, MAX_PREDICT);
+});
+
+cv.addEventListener('pointerup', function () { if (S.phase === 'aim') fire(); });
+cv.addEventListener('pointercancel', function () { S.drag = null; S.predict = []; });
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 八、音效（Web Audio 现场合成，零素材）
+ * ══════════════════════════════════════════════════════════════════════ */
+let AC = null;
+function actx() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+  return AC;
+}
+function beep(freq, dur, type) {
+  const a = actx(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'sine'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, a.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.14, a.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+  o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + dur + 0.02);
+}
+function chord(good) {
+  const notes = good ? [523.25, 659.25, 783.99] : [392, 311.13];
+  notes.forEach(function (f, i) { setTimeout(function () { beep(f, 0.22, 'sine'); }, i * 90); });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 九、界面交互
+ * ══════════════════════════════════════════════════════════════════════ */
+function drawDots() {
+  const box = document.getElementById('dots');
+  let h = '';
+  for (let i = 0; i < S.lv.shots; i++) h += '<i class="dot' + (i < S.lv.shots - S.shotsLeft ? ' used' : '') + '"></i>';
+  box.innerHTML = h;
+}
+function setTip(t) { document.getElementById('tip').textContent = t; }
+function showPanel(title, stars, desc, hasNext) {
+  document.getElementById('pTitle').textContent = title;
+  const st = document.getElementById('pStars');
+  st.textContent = stars ? ('★'.repeat(stars.length) === '' ? '' : stars) : '';
+  document.getElementById('pDesc').textContent = desc || '';
+  document.getElementById('pRight').textContent = hasNext ? '下一关' : '回到第一关';
+  document.getElementById('panel').classList.add('show');
+}
+function hidePanel() { document.getElementById('panel').classList.remove('show'); }
+
+document.getElementById('retryBtn').addEventListener('click', function () { loadLevel(S.idx); });
+document.getElementById('slowBtn').addEventListener('click', function () {
+  S.slow = !S.slow;
+  this.classList.toggle('on', S.slow);
+  setTip(S.slow ? '慢动作：开（方便看清楚引力怎么掰弯航线）' : '慢动作：关');
+});
+document.getElementById('pLeft').addEventListener('click', function () { loadLevel(S.idx); });
+document.getElementById('pRight').addEventListener('click', function () {
+  if (S.idx + 1 < LEVELS.length) loadLevel(S.idx + 1); else loadLevel(0);
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+ * 十、启动
+ * ══════════════════════════════════════════════════════════════════════ */
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', function () { setTimeout(resize, 260); });
+resize();
+
+// 选关入口：URL 加 ?lv=3 直接进第 3 关（方便跳关与调试）
+const m = location.search.match(/lv=(\d+)/);
+loadLevel(Math.min(LEVELS.length - 1, Math.max(0, (parseInt(m && m[1], 10) || 0))));
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,4959 @@
+import { createWithEqualityFn as create } from 'zustand/traditional';
+import { DEFAULT_BOARD_SIZE, type FloatArray, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest, type BoardSize, type KataGoBackendPreference, type EditTool } from '../types';
+import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye, isValidMove } from '../utils/gameLogic';
+import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
+import { coordinateToSgf, expandSgfPointList, extractKaTrainUserNoteFromSgfComment, formatSgfDate, type ParsedSgf } from '../utils/sgf';
+import { getKataGoEngineClient, isKataGoCanceledError } from '../engine/katago/client';
+import type { KataGoAnalysisPayload } from '../engine/katago/types';
+import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
+import { KATAGO_RECOMMENDED_MODEL_URL, KATAGO_SMALL_MODEL_PATH } from '../engine/katago/modelDefaults';
+import { decodeKaTrainKt, kaTrainAnalysisToAnalysisResult } from '../utils/katrainSgfAnalysis';
+import { decodeKayaKa } from '../utils/kayaSgfAnalysis';
+import { publicUrl } from '../utils/publicUrl';
+import { isBoardThemeId } from '../utils/boardThemes';
+import { getPreferredAppLocaleId, isAppLocaleId } from '../utils/locales';
+import { createEmptyBoard, getHandicapPoints, getMaxHandicap, normalizeBoardSize } from '../utils/boardSize';
+import { makeGameStateAnalysisPositionKey } from '../utils/analysisPositionKey';
+import {
+  analysisQueue,
+  isAnalysisQueueCanceledError,
+  isAnalysisQueueStaleError,
+} from '../utils/analysisQueue';
+import {
+  findBranchTargetByIndex,
+  findCurrentLineMoveTarget,
+  findSiblingBranchTarget,
+  getActiveChild,
+  getCurrentLineNodes,
+  getCurrentLineMoveNumber,
+  rememberActiveBranchPath,
+  type ActiveBranchMap,
+} from '../utils/branchNavigation';
+import { getNodePath, resolveNodePath, type PinnedVariation } from '../utils/pinnedVariations';
+import { getResignResult } from '../utils/resign';
+import { readLocalStorage, writeLocalStorage } from '../utils/storage';
+import { getAnimationNow } from '../utils/animationFrame';
+
+type BranchClipboardNode = {
+  move: Move | null;
+  properties: Record<string, string[]>;
+  endState: string | null;
+  timeUsedSeconds: number;
+  note: string;
+  aiThoughts: string;
+  children: BranchClipboardNode[];
+};
+
+type ApplyEditToolOptions = {
+  paintOnly?: boolean;
+};
+
+interface GameStore extends GameState {
+  // Tree State
+  rootNode: GameNode;
+  currentNode: GameNode;
+  treeVersion: number;
+  activeBranchChildIds: ActiveBranchMap;
+
+  // Settings & Modes
+  boardRotation: 0 | 1 | 2 | 3; // 0,90,180,270 degrees clockwise (KaTrain rotate)
+  regionOfInterest: RegionOfInterest | null;
+  isSelectingRegionOfInterest: boolean;
+  isInsertMode: boolean;
+  insertAfterNodeId: string | null; // Main-branch continuation to copy after insert.
+  insertAnchorNodeId: string | null; // Where insert mode started.
+  isEditMode: boolean;
+  editTool: EditTool;
+  copiedBranch: BranchClipboardNode | null;
+  editUndoCount: number;
+  editRedoCount: number;
+  isSelfplayToEnd: boolean;
+  isGameAnalysisRunning: boolean;
+  gameAnalysisType: 'quick' | 'fast' | 'full' | null;
+  gameAnalysisDone: number;
+  gameAnalysisTotal: number;
+  isAiPlaying: boolean;
+  aiColor: Player | null;
+  isAnalysisMode: boolean;
+  isContinuousAnalysis: boolean;
+  isTeachMode: boolean;
+  notification: { message: string, type: 'info' | 'error' | 'success', copyText?: string } | null;
+  analysisData: AnalysisResult | null;
+  analysisCacheSize: number;
+  settings: GameSettings;
+  engineStatus: 'idle' | 'loading' | 'ready' | 'error';
+  engineError: string | null;
+  engineBackend: string | null;
+  engineModelName: string | null;
+
+  // Timer (KaTrain-like)
+  timerPaused: boolean;
+  timerMainTimeUsedSeconds: number; // Shared main time used (KaTrain semantics)
+  timerPeriodsUsed: { black: number; white: number }; // Byo-yomi periods used per player
+
+  // Actions
+  toggleAi: (color: Player) => void;
+  toggleAnalysisMode: () => void;
+  toggleContinuousAnalysis: (quiet?: boolean) => void;
+  stopAnalysis: () => void;
+  clearAnalysisCache: () => void;
+  toggleTeachMode: () => void;
+  clearNotification: () => void;
+  toggleTimerPaused: () => void;
+  playMove: (x: number, y: number, isLoad?: boolean) => void;
+  makeAiMove: (opts?: { force?: boolean }) => void;
+  undoMove: () => void; // Go back
+  navigateBack: () => void;
+  navigateForward: () => void; // Go forward (main branch)
+  navigateToMove: (moveNumber: number) => void;
+  navigateStart: () => void;
+  navigateEnd: () => void;
+  switchBranch: (direction: 1 | -1) => void;
+  switchToBranchIndex: (index: number) => void;
+  undoToBranchPoint: () => void;
+  undoToMainBranch: () => void;
+  makeCurrentNodeMainBranch: () => void;
+  shiftCurrentVariation: (direction: 'left' | 'right') => void;
+  findMistake: (direction: 'undo' | 'redo') => void;
+  deleteCurrentNode: () => void;
+  pruneCurrentBranch: () => void;
+  undoEdit: () => void;
+  redoEdit: () => void;
+  copyCurrentBranch: () => void;
+  pasteCopiedBranch: () => void;
+  jumpToNode: (node: GameNode) => void; // Navigate to arbitrary node
+  pinnedVariations: PinnedVariation[];
+  pinCurrentVariation: () => void;
+  recallVariation: (id: string) => void;
+  unpinVariation: (id: string) => void;
+  clearPinnedVariations: () => void;
+  navigateNextMistake: () => void;
+  navigatePrevMistake: () => void;
+  resetGame: () => void;
+  loadGame: (sgf: ParsedSgf) => void;
+  passTurn: () => void;
+  resign: (player?: Player) => void;
+  runAnalysis: (opts?: {
+    force?: boolean;
+    visits?: number;
+    maxTimeMs?: number;
+    batchSize?: number;
+    maxChildren?: number;
+    topK?: number;
+    analysisPvLen?: number;
+    wideRootNoise?: number;
+    nnRandomize?: boolean;
+    conservativePass?: boolean;
+    reuseTree?: boolean;
+    ownershipRefreshIntervalMs?: number;
+    reportEveryMs?: number;
+  }) => Promise<void>;
+  analyzeExtra: (mode: 'extra' | 'equalize' | 'sweep' | 'alternative' | 'stop') => void;
+  resetCurrentAnalysis: () => void;
+  startSelectRegionOfInterest: () => void;
+  cancelSelectRegionOfInterest: () => void;
+  setRegionOfInterest: (roi: RegionOfInterest | null) => void;
+  toggleInsertMode: () => void;
+  toggleEditMode: () => void;
+  setEditTool: (tool: EditTool) => void;
+  applyEditTool: (x: number, y: number, options?: ApplyEditToolOptions) => void;
+  toggleBoardPointMarkup: (x: number, y: number) => void;
+  clearCurrentNodeSetupStones: () => void;
+  applySetupStones: (stones: Array<{ x: number; y: number; player: Player | null }>) => number;
+  clearCurrentNodeAnnotations: () => void;
+  addSegmentMarkup: (prop: SegmentProperty, sx: number, sy: number, ex: number, ey: number) => void;
+  selfplayToEnd: () => void;
+  stopSelfplayToEnd: () => void;
+  startQuickGameAnalysis: () => void;
+  startFastGameAnalysis: (opts?: { moveRange?: [number, number] | null }) => void;
+  startFullGameAnalysis: (opts: { visits: number; moveRange?: [number, number] | null; mistakesOnly?: boolean }) => void;
+  stopGameAnalysis: () => void;
+  updateSettings: (newSettings: Partial<GameSettings>) => void;
+  setKomi: (komi: number) => void;
+  setHandicap: (handicap: number) => void;
+  setRootProperty: (key: string, value: string) => void;
+  setCurrentNodeNote: (note: string) => void;
+  rotateBoard: () => void;
+  startNewGame: (opts: { komi: number; rules: GameRules; boardSize: BoardSize; handicap: number }) => void;
+}
+
+type StoreNotification = NonNullable<GameStore['notification']>;
+
+const NOTIFICATION_AUTO_DISMISS_MS: Record<StoreNotification['type'], number> = {
+  info: 2500,
+  success: 2500,
+  error: 3500,
+};
+
+const createEmptyTerritory = (boardSize: number): number[][] =>
+  Array.from({ length: boardSize }, () => Array.from({ length: boardSize }, () => 0));
+
+const getBoardSizeFromBoard = (board: BoardState): BoardSize =>
+  normalizeBoardSize(board.length, DEFAULT_BOARD_SIZE);
+
+const applyHandicapStones = (board: BoardState, boardSize: BoardSize, handicap: number): void => {
+  const points = getHandicapPoints(boardSize, handicap);
+  for (const [x, y] of points) {
+    if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
+      board[y]![x] = 'black';
+    }
+  }
+};
+
+const SETTINGS_STORAGE_KEY = 'web-katrain:settings:v3';
+const LEGACY_SETTINGS_STORAGE_KEYS = ['web-katrain:settings:v2', 'web-katrain:settings:v1'] as const;
+const OLD_DEFAULT_KATAGO_VISITS = 500;
+export const DEFAULT_KATAGO_VISITS = 5000;
+
+const normalizeModelUrl = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^(blob:|data:)/i.test(trimmed)) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) {
+    if (trimmed.startsWith('/models/')) return publicUrl(trimmed.slice(1));
+    return trimmed;
+  }
+  if (trimmed.startsWith('models/')) return publicUrl(trimmed);
+  return trimmed;
+};
+
+const normalizeKataGoBackend = (value: unknown): KataGoBackendPreference | null => {
+  return value === 'wasm' || value === 'webgpu' || value === 'cpu' ? value : null;
+};
+
+const isLegacyDefaultModelUrl = (value: string): boolean => {
+  const legacyPath = `/${KATAGO_SMALL_MODEL_PATH}`;
+  return (
+    value === KATAGO_RECOMMENDED_MODEL_URL ||
+    value === publicUrl(KATAGO_SMALL_MODEL_PATH) ||
+    value === KATAGO_SMALL_MODEL_PATH ||
+    value === legacyPath ||
+    value.endsWith(legacyPath)
+  );
+};
+
+const resolveModelUrlForFetch = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (/^(blob:|data:|https?:|file:)/i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('//')) return trimmed;
+  if (typeof window === 'undefined') return trimmed;
+  // Absolute paths (starting with /) resolve against the origin
+  if (trimmed.startsWith('/')) {
+    return new URL(trimmed, window.location.origin).toString();
+  }
+  // Relative paths resolve against the current page href
+  return new URL(trimmed, window.location.href).toString();
+};
+
+const loadStoredSettings = (): Partial<GameSettings> | null => {
+  try {
+    const rawCurrent = readLocalStorage(SETTINGS_STORAGE_KEY);
+    const legacyEntry = rawCurrent
+      ? null
+      : LEGACY_SETTINGS_STORAGE_KEYS.map((key) => ({ key, raw: readLocalStorage(key) })).find((entry) => entry.raw);
+    const raw = rawCurrent ?? legacyEntry?.raw;
+    if (!raw) return null;
+    const isLegacySettings = legacyEntry != null;
+    const isV1Settings = legacyEntry?.key === 'web-katrain:settings:v1';
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if ('katagoModelUrl' in parsed) {
+      const normalized = normalizeModelUrl((parsed as { katagoModelUrl?: unknown }).katagoModelUrl);
+      if (normalized) {
+        (parsed as { katagoModelUrl: string }).katagoModelUrl = isLegacySettings && isLegacyDefaultModelUrl(normalized)
+          ? publicUrl(KATAGO_SMALL_MODEL_PATH)
+          : normalized;
+      } else {
+        delete (parsed as { katagoModelUrl?: unknown }).katagoModelUrl;
+      }
+    }
+    if ('katagoBackend' in parsed) {
+      const backend = normalizeKataGoBackend((parsed as { katagoBackend?: unknown }).katagoBackend);
+      if (backend) {
+        (parsed as { katagoBackend: KataGoBackendPreference }).katagoBackend =
+          isV1Settings && backend === 'wasm' ? 'webgpu' : backend;
+      } else {
+        delete (parsed as { katagoBackend?: unknown }).katagoBackend;
+      }
+    }
+    if ((parsed as { katagoVisits?: unknown }).katagoVisits === OLD_DEFAULT_KATAGO_VISITS) {
+      (parsed as { katagoVisits: number }).katagoVisits = DEFAULT_KATAGO_VISITS;
+    }
+    if ('boardTheme' in parsed) {
+      if (!isBoardThemeId((parsed as { boardTheme?: unknown }).boardTheme)) {
+        delete (parsed as { boardTheme?: unknown }).boardTheme;
+      }
+    }
+    if ('appLocale' in parsed) {
+      if (!isAppLocaleId((parsed as { appLocale?: unknown }).appLocale)) {
+        delete (parsed as { appLocale?: unknown }).appLocale;
+      }
+    }
+    if ('defaultBoardSize' in parsed) {
+      const sizeRaw = (parsed as { defaultBoardSize?: unknown }).defaultBoardSize;
+      const sizeNum = typeof sizeRaw === 'number' ? sizeRaw : Number.parseInt(String(sizeRaw ?? ''), 10);
+      (parsed as { defaultBoardSize: BoardSize }).defaultBoardSize = normalizeBoardSize(sizeNum, DEFAULT_BOARD_SIZE);
+    }
+    if ('defaultHandicap' in parsed) {
+      const size = (parsed as { defaultBoardSize?: BoardSize }).defaultBoardSize ?? DEFAULT_BOARD_SIZE;
+      const max = getMaxHandicap(size);
+      const raw = (parsed as { defaultHandicap?: unknown }).defaultHandicap;
+      const num = typeof raw === 'number' ? raw : Number.parseInt(String(raw ?? ''), 10);
+      (parsed as { defaultHandicap: number }).defaultHandicap = Number.isFinite(num)
+        ? Math.max(0, Math.min(Math.floor(num), max))
+        : 0;
+    }
+    return parsed as Partial<GameSettings>;
+  } catch {
+    return null;
+  }
+};
+
+const saveStoredSettings = (settings: GameSettings): void => {
+  writeLocalStorage(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+};
+
+const rulesToSgfRu = (rules: GameRules): string => {
+  switch (rules) {
+    case 'japanese':
+      return 'Japanese';
+    case 'chinese':
+      return 'Chinese';
+    case 'korean':
+      return 'Korean';
+  }
+};
+
+const parseSgfRu = (ru: string | undefined): GameRules | null => {
+  if (!ru) return null;
+  const v = ru.trim().toLowerCase();
+  if (!v) return null;
+  if (v === 'jp' || v.includes('japanese')) return 'japanese';
+  if (v === 'ko' || v.includes('korean')) return 'korean';
+  if (v === 'cn' || v.includes('chinese')) return 'chinese';
+  return null;
+};
+
+const ownershipToTerritoryGrid = (ownership: ArrayLike<number>, boardSize: number): number[][] => {
+  const territory: number[][] = Array(boardSize)
+    .fill(0)
+    .map(() => Array(boardSize).fill(0));
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      const v = ownership[y * boardSize + x];
+      territory[y][x] = typeof v === 'number' ? v : 0;
+    }
+  }
+  return territory;
+};
+
+const isPassMove = (m: Move | null | undefined): boolean => !!m && (m.x < 0 || m.y < 0);
+
+const moveKey = (m: Move): string => `${m.player}:${m.x},${m.y}`;
+
+const collectNodesInTree = (root: GameNode): GameNode[] => {
+  const out: GameNode[] = [];
+  const stack: GameNode[] = [root];
+  while (stack.length > 0) {
+    const n = stack.pop()!;
+    out.push(n);
+    for (let i = n.children.length - 1; i >= 0; i--) stack.push(n.children[i]!);
+  }
+  return out;
+};
+
+const nodeMoveIndex = (node: GameNode): number => node.gameState.moveHistory.length - 1;
+
+const nodeIsInMoveRange = (node: GameNode, moveRange: [number, number] | null): boolean => {
+  if (!moveRange) return true;
+  const moveIndex = nodeMoveIndex(node);
+  return moveIndex >= moveRange[0] && moveIndex <= moveRange[1];
+};
+
+const nodeIsParentOfMoveInRange = (node: GameNode, moveRange: [number, number] | null): boolean => {
+  if (!moveRange) return false;
+  return node.children.some((child) => nodeIsInMoveRange(child, moveRange));
+};
+
+const computePointsLostForNode = (node: GameNode): number | null => {
+  const move = node.move;
+  const parent = node.parent;
+  if (!move || !parent) return null;
+
+  const parentScore = parent.analysis?.rootScoreLead;
+  const childScore = node.analysis?.rootScoreLead;
+  if (typeof parentScore === 'number' && typeof childScore === 'number') {
+    const sign = move.player === 'black' ? 1 : -1;
+    return sign * (parentScore - childScore);
+  }
+  return null;
+};
+
+const nodeHasMistakeContext = (node: GameNode, mistakesThreshold: number): boolean => {
+  let maxLoss = Math.max(0, computePointsLostForNode(node) ?? 0);
+  for (const child of node.children) {
+    maxLoss = Math.max(maxLoss, Math.max(0, computePointsLostForNode(child) ?? 0));
+  }
+  return maxLoss > mistakesThreshold;
+};
+
+export const selectFullGameAnalysisNodes = (args: {
+  rootNode: GameNode;
+  moveRange: [number, number] | null;
+  mistakesOnly: boolean;
+  mistakesThreshold: number;
+}): GameNode[] => {
+  return collectNodesInTree(args.rootNode).filter((node) => {
+    if (args.moveRange && !nodeIsInMoveRange(node, args.moveRange) && !nodeIsParentOfMoveInRange(node, args.moveRange)) {
+      return false;
+    }
+    if (args.mistakesOnly && !nodeHasMistakeContext(node, args.mistakesThreshold)) return false;
+    return true;
+  });
+};
+
+const normalizeRegionOfInterest = (roi: RegionOfInterest | null, boardSize: number): RegionOfInterest | null => {
+  if (!roi) return null;
+  const xMin = Math.max(0, Math.min(boardSize - 1, Math.min(roi.xMin, roi.xMax)));
+  const xMax = Math.max(0, Math.min(boardSize - 1, Math.max(roi.xMin, roi.xMax)));
+  const yMin = Math.max(0, Math.min(boardSize - 1, Math.min(roi.yMin, roi.yMax)));
+  const yMax = Math.max(0, Math.min(boardSize - 1, Math.max(roi.yMin, roi.yMax)));
+  const isSinglePoint = xMin === xMax && yMin === yMax;
+  const isWholeBoard = xMin === 0 && yMin === 0 && xMax === boardSize - 1 && yMax === boardSize - 1;
+  if (isSinglePoint || isWholeBoard) return null; // KaTrain semantics.
+  return { xMin, xMax, yMin, yMax };
+};
+
+const isMoveInRegion = (m: CandidateMove, roi: RegionOfInterest): boolean => {
+  if (m.x < 0 || m.y < 0) return true; // Pass always allowed.
+  return m.x >= roi.xMin && m.x <= roi.xMax && m.y >= roi.yMin && m.y <= roi.yMax;
+};
+
+const createNode = (
+    parent: GameNode | null,
+    move: Move | null,
+    gameState: GameState,
+    idOverride?: string
+): GameNode => {
+    return {
+        id: idOverride || Math.random().toString(36).substr(2, 9),
+        parent,
+        children: [],
+        move,
+        gameState,
+        endState: null,
+        timeUsedSeconds: 0,
+        analysis: null,
+        analysisVisitsRequested: 0,
+        autoUndo: null,
+        undoThreshold: Math.random(),
+        aiThoughts: '',
+        note: '',
+        properties: {}
+    };
+};
+
+const createRootNodeId = (): string => `root-${Math.random().toString(36).slice(2, 11)}`;
+
+const nodeAnalysisPositionKey = (node: GameNode, rules: GameRules): string =>
+  makeGameStateAnalysisPositionKey(node.gameState, rules);
+
+const parentAnalysisPositionKey = (node: GameNode, rules: GameRules): string | undefined =>
+  node.parent ? nodeAnalysisPositionKey(node.parent, rules) : undefined;
+
+const nodeAnalysisVisitCount = (node: GameNode): number => {
+  const rootVisits = node.analysis?.rootVisits;
+  if (typeof rootVisits === 'number' && Number.isFinite(rootVisits)) return Math.max(0, Math.floor(rootVisits));
+  const requested = node.analysisVisitsRequested ?? 0;
+  return Number.isFinite(requested) ? Math.max(0, Math.floor(requested)) : 0;
+};
+
+const findNodeById = (root: GameNode, id: string): GameNode | null => {
+  if (root.id === id) return root;
+  const stack: GameNode[] = [...root.children];
+  while (stack.length > 0) {
+    const n = stack.pop()!;
+    if (n.id === id) return n;
+    for (let i = 0; i < n.children.length; i++) stack.push(n.children[i]!);
+  }
+  return null;
+};
+
+const MARKER_PROPERTIES = ['TR', 'SQ', 'CR', 'MA'] as const;
+type MarkerProperty = (typeof MARKER_PROPERTIES)[number];
+// Two-point segment markup: SGF AR (arrows) and LN (lines). Stored as
+// 'startCoord:endCoord' and deliberately kept out of the point-list expansion.
+const SEGMENT_PROPERTIES = ['AR', 'LN'] as const;
+export type SegmentProperty = (typeof SEGMENT_PROPERTIES)[number];
+const SETUP_PROPERTIES = ['AB', 'AW', 'AE'] as const;
+
+const editToolToMarkerProperty = (tool: EditTool): MarkerProperty | null => {
+  switch (tool) {
+    case 'marker-triangle':
+      return 'TR';
+    case 'marker-square':
+      return 'SQ';
+    case 'marker-circle':
+      return 'CR';
+    case 'marker-cross':
+      return 'MA';
+    default:
+      return null;
+  }
+};
+
+const cloneBoard = (board: BoardState): BoardState => board.map((row) => [...row]);
+
+const ensureNodeProperties = (node: GameNode): Record<string, string[]> => {
+  node.properties = node.properties ?? {};
+  return node.properties;
+};
+
+const cloneNodeProperties = (props: Record<string, string[]> | undefined): Record<string, string[]> => {
+  const out: Record<string, string[]> = {};
+  if (!props) return out;
+  for (const [key, values] of Object.entries(props)) out[key] = [...values];
+  return out;
+};
+
+const copyBranchSnapshot = (node: GameNode): BranchClipboardNode => ({
+  move: node.move ? { ...node.move } : null,
+  properties: cloneNodeProperties(node.properties),
+  endState: node.endState ?? null,
+  timeUsedSeconds: node.timeUsedSeconds ?? 0,
+  note: node.note ?? '',
+  aiThoughts: node.aiThoughts ?? '',
+  children: node.children.map(copyBranchSnapshot),
+});
+
+const countClipboardNodes = (node: BranchClipboardNode): number =>
+  1 + node.children.reduce((total, child) => total + countClipboardNodes(child), 0);
+
+const removeValue = (props: Record<string, string[]>, key: string, shouldRemove: (value: string) => boolean): void => {
+  const values = props[key];
+  if (!values) return;
+  const next = values.filter((value) => !shouldRemove(value));
+  if (next.length > 0) props[key] = next;
+  else delete props[key];
+};
+
+const removeSetupCoord = (props: Record<string, string[]>, coord: string): void => {
+  for (const key of SETUP_PROPERTIES) removeValue(props, key, (value) => value === coord);
+};
+
+const removeSetupProperties = (props: Record<string, string[]>): number => {
+  let removed = 0;
+  for (const key of SETUP_PROPERTIES) {
+    removed += props[key]?.length ?? 0;
+    delete props[key];
+  }
+  return removed;
+};
+
+const removeMarkupCoord = (props: Record<string, string[]>, coord: string): void => {
+  for (const key of MARKER_PROPERTIES) removeValue(props, key, (value) => value === coord);
+  removeValue(props, 'LB', (value) => value.split(':', 1)[0] === coord);
+};
+
+const hasMarkupCoord = (props: Record<string, string[]>, coord: string): boolean =>
+  MARKER_PROPERTIES.some((key) => props[key]?.includes(coord)) ||
+  (props.LB ?? []).some((value) => value.split(':', 1)[0] === coord);
+
+const hasSetupCoord = (props: Record<string, string[]>, coord: string): boolean =>
+  SETUP_PROPERTIES.some((key) => props[key]?.includes(coord));
+
+const addUniqueValue = (props: Record<string, string[]>, key: string, value: string): void => {
+  const values = props[key] ?? [];
+  if (!values.includes(value)) props[key] = [...values, value];
+};
+
+const nextAlternateSetupStone = (props: Record<string, string[]>, currentStone: Player | null): Player | null => {
+  if (currentStone === 'black') return 'white';
+  if (currentStone === 'white') return null;
+  const blackCount = props.AB?.length ?? 0;
+  const whiteCount = props.AW?.length ?? 0;
+  return blackCount <= whiteCount ? 'black' : 'white';
+};
+
+const nextAlphaLabel = (props: Record<string, string[]>): string => {
+  let max = -1;
+  for (const value of props.LB ?? []) {
+    const label = value.slice(value.indexOf(':') + 1).trim().toUpperCase();
+    if (/^[A-Z]+$/.test(label)) {
+      let n = 0;
+      for (const ch of label) n = n * 26 + (ch.charCodeAt(0) - 64);
+      max = Math.max(max, n - 1);
+    }
+  }
+  let n = max + 1;
+  let label = '';
+  do {
+    label = String.fromCharCode(65 + (n % 26)) + label;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return label;
+};
+
+const nextNumberLabel = (props: Record<string, string[]>): string => {
+  let max = 0;
+  for (const value of props.LB ?? []) {
+    const label = value.slice(value.indexOf(':') + 1).trim();
+    if (/^\d+$/.test(label)) max = Math.max(max, Number.parseInt(label, 10));
+  }
+  return String(max + 1);
+};
+
+const applySetupPropsToBoard = (
+  board: BoardState,
+  props: Record<string, string[]> | undefined,
+  boardSize = board.length
+): BoardState => {
+  if (!props?.AB?.length && !props?.AW?.length && !props?.AE?.length) return board;
+  const next = cloneBoard(board);
+  const place = (player: Player, coords: string[] | undefined) => {
+    for (const coord of coords ?? []) {
+      for (const { x, y } of expandSgfPointList(coord, boardSize)) {
+        next[y]![x] = player;
+      }
+    }
+  };
+  place('black', props.AB);
+  place('white', props.AW);
+  for (const coord of props.AE ?? []) {
+    for (const { x, y } of expandSgfPointList(coord, boardSize)) {
+      next[y]![x] = null;
+    }
+  }
+  return next;
+};
+
+const applySetupPropsToNode = (node: GameNode, props: Record<string, string[]> | undefined, boardSize?: number): void => {
+  const nextBoard = applySetupPropsToBoard(node.gameState.board, props, boardSize ?? node.gameState.board.length);
+  if (nextBoard !== node.gameState.board) {
+    node.gameState = { ...node.gameState, board: nextBoard };
+  }
+};
+
+const playerFromSgfPlayerToMove = (props: Record<string, string[]> | undefined): Player | null => {
+  const value = props?.PL?.[0]?.toUpperCase();
+  if (value === 'B') return 'black';
+  if (value === 'W') return 'white';
+  return null;
+};
+
+const applySgfPlayerToMoveToNode = (node: GameNode, props: Record<string, string[]> | undefined): void => {
+  const player = playerFromSgfPlayerToMove(props);
+  if (player) node.gameState = { ...node.gameState, currentPlayer: player };
+};
+
+const countNodes = (node: GameNode): number => {
+  let count = 0;
+  const stack = [node];
+  while (stack.length > 0) {
+    const n = stack.pop()!;
+    count++;
+    for (const child of n.children) stack.push(child);
+  }
+  return count;
+};
+
+const clearAnalysisInSubtree = (node: GameNode): void => {
+  const stack = [node];
+  while (stack.length > 0) {
+    const n = stack.pop()!;
+    n.analysis = null;
+    n.analysisVisitsRequested = 0;
+    for (const child of n.children) stack.push(child);
+  }
+};
+
+const countAnalyzedNodes = (node: GameNode): number => {
+  let count = 0;
+  const stack = [node];
+  while (stack.length > 0) {
+    const n = stack.pop()!;
+    if (n.analysis) count++;
+    for (const child of n.children) stack.push(child);
+  }
+  return count;
+};
+
+const getAnalysisCacheSize = (rootNode: GameNode): number =>
+  Math.max(countAnalyzedNodes(rootNode), analysisQueue.getCacheSize());
+
+type EditHistoryEntry = {
+  rootNode: GameNode;
+  currentNodeId: string;
+  activeBranchChildIds: ActiveBranchMap;
+};
+
+const EDIT_HISTORY_LIMIT = 50;
+let editUndoStack: EditHistoryEntry[] = [];
+let editRedoStack: EditHistoryEntry[] = [];
+
+const cloneMove = (move: Move | null): Move | null => (move ? { ...move } : null);
+
+const cloneGameState = (gameState: GameState): GameState => ({
+  board: cloneBoard(gameState.board),
+  currentPlayer: gameState.currentPlayer,
+  moveHistory: gameState.moveHistory.map((move) => ({ ...move })),
+  capturedBlack: gameState.capturedBlack,
+  capturedWhite: gameState.capturedWhite,
+  komi: gameState.komi,
+});
+
+const cloneGameNodeTree = (node: GameNode, parent: GameNode | null = null): GameNode => {
+  const copy = createNode(parent, cloneMove(node.move), cloneGameState(node.gameState), node.id);
+  copy.endState = node.endState;
+  copy.timeUsedSeconds = node.timeUsedSeconds;
+  copy.analysis = node.analysis;
+  copy.analysisVisitsRequested = node.analysisVisitsRequested;
+  copy.autoUndo = node.autoUndo;
+  copy.undoThreshold = node.undoThreshold;
+  copy.aiThoughts = node.aiThoughts;
+  copy.note = node.note;
+  copy.properties = cloneNodeProperties(node.properties);
+  copy.children = node.children.map((child) => cloneGameNodeTree(child, copy));
+  return copy;
+};
+
+const editHistoryCounts = () => ({
+  editUndoCount: editUndoStack.length,
+  editRedoCount: editRedoStack.length,
+});
+
+const clearEditHistory = () => {
+  editUndoStack = [];
+  editRedoStack = [];
+  return editHistoryCounts();
+};
+
+const captureEditHistory = (state: GameStore): EditHistoryEntry => ({
+  rootNode: cloneGameNodeTree(state.rootNode),
+  currentNodeId: state.currentNode.id,
+  activeBranchChildIds: { ...state.activeBranchChildIds },
+});
+
+const pushEditHistory = (state: GameStore) => {
+  editUndoStack.push(captureEditHistory(state));
+  if (editUndoStack.length > EDIT_HISTORY_LIMIT) editUndoStack.shift();
+  editRedoStack = [];
+  return editHistoryCounts();
+};
+
+const restoreEditHistory = (entry: EditHistoryEntry, state: GameStore) => {
+  const currentNode = findNodeById(entry.rootNode, entry.currentNodeId) ?? entry.rootNode;
+  return {
+    rootNode: entry.rootNode,
+    currentNode,
+    activeBranchChildIds: { ...entry.activeBranchChildIds },
+    board: currentNode.gameState.board,
+    currentPlayer: currentNode.gameState.currentPlayer,
+    moveHistory: currentNode.gameState.moveHistory,
+    capturedBlack: currentNode.gameState.capturedBlack,
+    capturedWhite: currentNode.gameState.capturedWhite,
+    komi: currentNode.gameState.komi,
+    analysisData: currentNode.analysis || null,
+    analysisCacheSize: getAnalysisCacheSize(entry.rootNode),
+    treeVersion: state.treeVersion + 1,
+  };
+};
+
+const applyKomiToSubtree = (node: GameNode, komi: number): void => {
+  const stack = [node];
+  while (stack.length > 0) {
+    const n = stack.pop()!;
+    n.gameState = { ...n.gameState, komi };
+    for (const child of n.children) stack.push(child);
+  }
+};
+
+const formatKomiProperty = (komi: number): string =>
+  Number.isInteger(komi) ? String(komi) : String(Number(komi.toFixed(2)));
+
+const parseHandicapProperty = (props: Record<string, string[]> | undefined, boardSize: BoardSize): number => {
+  const raw = props?.HA?.[0];
+  const parsed = raw ? Number.parseInt(raw, 10) : 0;
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, Math.min(parsed, getMaxHandicap(boardSize)));
+};
+
+const applyRootHandicap = (board: BoardState, boardSize: BoardSize, oldHandicap: number, nextHandicap: number): BoardState => {
+  const next = cloneBoard(board);
+  for (const [x, y] of getHandicapPoints(boardSize, oldHandicap)) {
+    if (next[y]?.[x] === 'black') next[y]![x] = null;
+  }
+  for (const [x, y] of getHandicapPoints(boardSize, nextHandicap)) {
+    next[y]![x] = 'black';
+  }
+  return next;
+};
+
+const rootSetupPropertiesFromBoard = (
+  board: BoardState,
+  boardSize: BoardSize,
+  handicap: number
+): { AB?: string[]; AW?: string[] } => {
+  const ab: string[] = [];
+  const aw: string[] = [];
+  const seenBlack = new Set<string>();
+  const addBlack = (x: number, y: number) => {
+    if (board[y]?.[x] !== 'black') return;
+    const coord = coordinateToSgf(x, y);
+    if (!seenBlack.has(coord)) {
+      seenBlack.add(coord);
+      ab.push(coord);
+    }
+  };
+
+  for (const [x, y] of getHandicapPoints(boardSize, handicap)) addBlack(x, y);
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      const stone = board[y]?.[x] ?? null;
+      if (stone === 'black') addBlack(x, y);
+      else if (stone === 'white') aw.push(coordinateToSgf(x, y));
+    }
+  }
+
+  return {
+    ...(ab.length > 0 ? { AB: ab } : {}),
+    ...(aw.length > 0 ? { AW: aw } : {}),
+  };
+};
+
+const syncRootSetupPropertiesFromBoard = (
+  props: Record<string, string[]>,
+  board: BoardState,
+  boardSize: BoardSize,
+  handicap: number
+): void => {
+  const setup = rootSetupPropertiesFromBoard(board, boardSize, handicap);
+  delete props.AB;
+  delete props.AW;
+  delete props.AE;
+  if (setup.AB) props.AB = setup.AB;
+  if (setup.AW) props.AW = setup.AW;
+};
+
+const rootSetupPropertiesMatchBoard = (
+  props: Record<string, string[]> | undefined,
+  board: BoardState,
+  boardSize: BoardSize,
+  handicap: number
+): boolean => {
+  const setup = rootSetupPropertiesFromBoard(board, boardSize, handicap);
+  return JSON.stringify({
+    AB: props?.AB ?? [],
+    AW: props?.AW ?? [],
+    AE: props?.AE ?? [],
+  }) === JSON.stringify({
+    AB: setup.AB ?? [],
+    AW: setup.AW ?? [],
+    AE: [],
+  });
+};
+
+const replayChildMove = (parent: GameNode, child: GameNode): GameState | null => {
+  const move = child.move;
+  const parentState = parent.gameState;
+  if (!move) {
+    const nextState = cloneGameState(parentState);
+    return {
+      ...nextState,
+      board: applySetupPropsToBoard(nextState.board, child.properties),
+      currentPlayer: playerFromSgfPlayerToMove(child.properties) ?? parentState.currentPlayer,
+    };
+  }
+  const nextPlayer: Player = move.player === 'black' ? 'white' : 'black';
+
+  if (move.x < 0 || move.y < 0) {
+    const passMove: Move = { x: -1, y: -1, player: move.player };
+    return {
+      board: cloneBoard(parentState.board),
+      currentPlayer: playerFromSgfPlayerToMove(child.properties) ?? nextPlayer,
+      moveHistory: [...parentState.moveHistory, passMove],
+      capturedBlack: parentState.capturedBlack,
+      capturedWhite: parentState.capturedWhite,
+      komi: parentState.komi,
+    };
+  }
+
+  if (parentState.board[move.y]?.[move.x] !== null) return null;
+
+  const tentativeBoard = cloneBoard(parentState.board);
+  tentativeBoard[move.y]![move.x] = move.player;
+  const captured = applyCapturesInPlace(tentativeBoard, move.x, move.y, move.player);
+  if (captured.length === 0) {
+    const { liberties } = getLiberties(tentativeBoard, move.x, move.y);
+    if (liberties === 0) return null;
+  }
+
+  if (parent.parent && boardsEqual(tentativeBoard, parent.parent.gameState.board)) return null;
+
+  const newCapturedBlack = parentState.capturedBlack + (move.player === 'white' ? captured.length : 0);
+  const newCapturedWhite = parentState.capturedWhite + (move.player === 'black' ? captured.length : 0);
+  return {
+    board: applySetupPropsToBoard(tentativeBoard, child.properties),
+    currentPlayer: playerFromSgfPlayerToMove(child.properties) ?? nextPlayer,
+    moveHistory: [...parentState.moveHistory, { x: move.x, y: move.y, player: move.player }],
+    capturedBlack: newCapturedBlack,
+    capturedWhite: newCapturedWhite,
+    komi: parentState.komi,
+  };
+};
+
+const pasteBranchSnapshot = (parent: GameNode, source: BranchClipboardNode): GameNode | null => {
+  const node = createNode(parent, cloneMove(source.move), cloneGameState(parent.gameState));
+  node.properties = cloneNodeProperties(source.properties);
+  node.endState = source.endState;
+  node.timeUsedSeconds = source.timeUsedSeconds;
+  node.note = source.note;
+  node.aiThoughts = source.aiThoughts;
+
+  const rebuiltState = replayChildMove(parent, node);
+  if (!rebuiltState) return null;
+  node.gameState = rebuiltState;
+
+  for (const child of source.children) {
+    const pastedChild = pasteBranchSnapshot(node, child);
+    if (pastedChild) node.children.push(pastedChild);
+  }
+  return node;
+};
+
+const rebuildDescendants = (node: GameNode): number => {
+  let pruned = 0;
+  const kept: GameNode[] = [];
+  for (const child of node.children) {
+    const rebuiltState = replayChildMove(node, child);
+    if (!rebuiltState) {
+      pruned += countNodes(child);
+      continue;
+    }
+    child.gameState = rebuiltState;
+    child.analysis = null;
+    child.analysisVisitsRequested = 0;
+    pruned += rebuildDescendants(child);
+    kept.push(child);
+  }
+  node.children = kept;
+  return pruned;
+};
+
+// Initial state helpers
+const initialBoard = createEmptyBoard(DEFAULT_BOARD_SIZE);
+const initialGameState: GameState = {
+    board: initialBoard,
+    currentPlayer: 'black',
+    moveHistory: [],
+    capturedBlack: 0,
+    capturedWhite: 0,
+    komi: 6.5
+};
+const initialRoot = createNode(null, null, initialGameState, createRootNodeId());
+initialRoot.properties = { RU: [rulesToSgfRu('japanese')] };
+
+const defaultSettings: GameSettings = {
+  appLocale: 'en',
+  soundEnabled: true,
+  showCoordinates: true,
+  showMoveNumbers: false,
+  showBoardControls: true,
+  showAnalysisBar: true,
+  noteFontScale: 1,
+  fuzzyStonePlacement: true,
+  showNextMovePreview: true,
+  boardTheme: 'hikaru',
+  // 'system' resolves to noir/light per the device's color-scheme preference.
+  uiTheme: 'system',
+  uiDensity: 'comfortable',
+  gamepadNavigation: true,
+  hapticFeedback: true,
+  defaultBoardSize: DEFAULT_BOARD_SIZE,
+  defaultHandicap: 0,
+  timerSound: true,
+  timerMainTimeMinutes: 0,
+  timerByoLengthSeconds: 30,
+  timerByoPeriods: 5,
+  timerMinimalUseSeconds: 0,
+  showLastNMistakes: 3,
+  mistakeThreshold: 3.0,
+  loadSgfRewind: true,
+  loadSgfFastAnalysis: false,
+  animPvTimeSeconds: 0.5,
+  gameRules: 'japanese',
+  trainerLowVisits: 25,
+  trainerTheme: 'theme:normal',
+  trainerEvalThresholds: [12, 6, 3, 1.5, 0.5, 0],
+  trainerShowDots: [true, true, true, true, true, true],
+  trainerSaveFeedback: [true, true, true, true, false, false],
+  trainerEvalShowAi: true,
+  trainerTopMovesShow: 'top_move_delta_score',
+  trainerTopMovesShowSecondary: 'top_move_visits',
+  trainerExtraPrecision: false,
+  trainerSaveAnalysis: true,
+  trainerSaveMarks: false,
+  trainerLockAi: false,
+  analysisShowChildren: true,
+  analysisShowEval: true,
+  analysisShowHints: true,
+  analysisShowPolicy: false,
+  analysisPolicyMetric: 'policy',
+  analysisShowOwnership: true,
+  katagoModelUrl: publicUrl(KATAGO_SMALL_MODEL_PATH),
+  katagoBackend: 'webgpu',
+  katagoVisits: DEFAULT_KATAGO_VISITS,
+  katagoFastVisits: 25,
+  katagoMaxTimeMs: 8000,
+  katagoBatchSize: 16,
+  katagoMaxChildren: DEFAULT_BOARD_SIZE * DEFAULT_BOARD_SIZE,
+  katagoTopK: 10,
+  katagoReuseTree: true,
+  katagoOwnershipMode: 'root',
+  katagoWideRootNoise: 0.04,
+  katagoAnalysisPvLen: 15,
+  katagoNnRandomize: true,
+  katagoConservativePass: true,
+  teachNumUndoPrompts: [1, 1, 1, 0.5, 0, 0],
+
+  aiStrategy: 'rank',
+  aiRankKyu: 4.0,
+  aiScoreLossStrength: 0.2,
+  aiPolicyOpeningMoves: 22,
+  aiWeightedPickOverride: 1.0,
+  aiWeightedWeakenFac: 1.25,
+  aiWeightedLowerBound: 0.001,
+
+  aiPickPickOverride: 0.95,
+  aiPickPickN: 5,
+  aiPickPickFrac: 0.35,
+
+  aiLocalPickOverride: 0.95,
+  aiLocalStddev: 1.5,
+  aiLocalPickN: 15,
+  aiLocalPickFrac: 0.0,
+  aiLocalEndgame: 0.5,
+
+  aiTenukiPickOverride: 0.85,
+  aiTenukiStddev: 7.5,
+  aiTenukiPickN: 5,
+  aiTenukiPickFrac: 0.4,
+  aiTenukiEndgame: 0.45,
+
+  aiInfluencePickOverride: 0.95,
+  aiInfluencePickN: 5,
+  aiInfluencePickFrac: 0.3,
+  aiInfluenceThreshold: 3.5,
+  aiInfluenceLineWeight: 10,
+  aiInfluenceEndgame: 0.4,
+
+  aiTerritoryPickOverride: 0.95,
+  aiTerritoryPickN: 5,
+  aiTerritoryPickFrac: 0.3,
+  aiTerritoryThreshold: 3.5,
+  aiTerritoryLineWeight: 2,
+  aiTerritoryEndgame: 0.4,
+
+  aiJigoTargetScore: 0.5,
+
+  aiOwnershipMaxPointsLost: 1.75,
+  aiOwnershipSettledWeight: 1.0,
+  aiOwnershipOpponentFac: 0.5,
+  aiOwnershipMinVisits: 3,
+  aiOwnershipAttachPenalty: 1.0,
+  aiOwnershipTenukiPenalty: 0.5,
+};
+
+const initialSettings: GameSettings = {
+  ...defaultSettings,
+  appLocale: getPreferredAppLocaleId(),
+  ...(loadStoredSettings() ?? {}),
+};
+
+let continuousToken = 0;
+let selfplayToken = 0;
+let gameAnalysisToken = 0;
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const ANALYSIS_QUEUE_PRIORITY = {
+  interactive: 100,
+  aiMove: 70,
+  selfplay: 55,
+  fullGame: 20,
+  fastGame: 15,
+  quickGame: 10,
+} as const;
+// KaTrain-style report cadence (seconds -> ms).
+const REPORT_DURING_SEARCH_EVERY_MS = 1000;
+const CONTINUOUS_REPORT_DURING_SEARCH_MS = 250;
+// Throttle UI updates during progress reports to reduce main-thread churn.
+const PROGRESS_APPLY_MIN_MS = 500;
+
+const isAnalysisCanceled = (err: unknown): boolean =>
+  isKataGoCanceledError(err) || isAnalysisQueueCanceledError(err) || isAnalysisQueueStaleError(err);
+
+const gameAnalysisTypeLabel = (type: NonNullable<GameStore['gameAnalysisType']>): string => {
+  if (type === 'quick') return 'Quick game analysis';
+  if (type === 'fast') return 'Fast game review';
+  return 'Full game analysis';
+};
+
+const errorMessage = (err: unknown): string => {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.trim() || 'Unknown analysis error';
+};
+
+const gameAnalysisFailureUpdate = (
+  type: NonNullable<GameStore['gameAnalysisType']>,
+  failed: number,
+  total: number,
+  lastError: string | null
+): Partial<Pick<GameStore, 'engineStatus' | 'engineError' | 'notification'>> => {
+  if (failed <= 0) return {};
+  const label = gameAnalysisTypeLabel(type);
+  const totalLabel = `${total} position${total === 1 ? '' : 's'}`;
+  const summary =
+    failed >= total
+      ? `${label} failed for all ${totalLabel}`
+      : `${label} skipped ${failed} of ${totalLabel}`;
+  const detail = lastError ?? 'Unknown analysis error';
+  const message = `${summary}: ${detail}`;
+  return {
+    engineStatus: 'error',
+    engineError: detail,
+    notification: {
+      message,
+      type: 'error',
+      copyText: message,
+    },
+  };
+};
+
+const analysisCacheKey = (...parts: unknown[]): string => JSON.stringify(parts);
+
+export const useGameStore = create<GameStore>((set, get) => ({
+  // Flat properties (mirrored from currentNode.gameState for easy access)
+  board: initialGameState.board,
+  currentPlayer: initialGameState.currentPlayer,
+  moveHistory: initialGameState.moveHistory,
+  capturedBlack: initialGameState.capturedBlack,
+  capturedWhite: initialGameState.capturedWhite,
+  komi: initialGameState.komi,
+
+  // Tree State
+  rootNode: initialRoot,
+  currentNode: initialRoot,
+  treeVersion: 0,
+  activeBranchChildIds: {},
+  pinnedVariations: [],
+
+  boardRotation: 0,
+  regionOfInterest: null,
+  isSelectingRegionOfInterest: false,
+  isInsertMode: false,
+  insertAfterNodeId: null,
+  insertAnchorNodeId: null,
+  isEditMode: false,
+  editTool: 'setup-black',
+  copiedBranch: null,
+  editUndoCount: 0,
+  editRedoCount: 0,
+  isSelfplayToEnd: false,
+  isGameAnalysisRunning: false,
+  gameAnalysisType: null,
+  gameAnalysisDone: 0,
+  gameAnalysisTotal: 0,
+  isAiPlaying: false,
+  aiColor: null,
+  isAnalysisMode: false,
+  isContinuousAnalysis: false,
+  isTeachMode: false,
+  notification: null,
+  analysisData: null,
+  analysisCacheSize: getAnalysisCacheSize(initialRoot),
+  settings: initialSettings,
+  engineStatus: 'idle',
+  engineError: null,
+  engineBackend: null,
+  engineModelName: null,
+
+  timerPaused: true,
+  timerMainTimeUsedSeconds: 0,
+  timerPeriodsUsed: { black: 0, white: 0 },
+
+  toggleAi: (color) => {
+    const s = get();
+    const nextOn = !(s.isAiPlaying && s.aiColor === color);
+    if (!nextOn) analysisQueue.cancelGroup('ai-move');
+    set({ isAiPlaying: nextOn, aiColor: nextOn ? color : null });
+    const after = get();
+    if (after.isAiPlaying && after.aiColor === after.currentPlayer) {
+      setTimeout(() => after.makeAiMove(), 0);
+    }
+  },
+
+  toggleAnalysisMode: () => set((state) => {
+      const newMode = !state.isAnalysisMode;
+      if (newMode) {
+          setTimeout(() => void get().runAnalysis(), 0);
+      } else {
+          analysisQueue.cancelGroup('interactive');
+      }
+      return {
+        isAnalysisMode: newMode,
+        isContinuousAnalysis: newMode ? state.isContinuousAnalysis : false,
+        analysisData: state.currentNode.analysis || null,
+        engineStatus: newMode ? state.engineStatus : 'idle',
+        engineError: newMode ? state.engineError : null,
+        settings: newMode && !state.settings.analysisShowHints
+          ? { ...state.settings, analysisShowHints: true }
+          : state.settings,
+      };
+  }),
+
+  toggleContinuousAnalysis: (quiet = false) => {
+      const next = !get().isContinuousAnalysis;
+      set((state) => ({ isContinuousAnalysis: next, isAnalysisMode: next ? true : state.isAnalysisMode }));
+      if (next) {
+          get().updateSettings({
+            analysisShowChildren: false,
+            analysisShowEval: false,
+            analysisShowHints: true,
+            analysisShowPolicy: false,
+            analysisShowOwnership: false,
+          });
+      }
+      if (!quiet) {
+          const notification = { message: next ? 'Continuous analysis on' : 'Continuous analysis off', type: 'info' as const };
+          set({ notification });
+          setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 1200);
+      }
+      if (!next) {
+          continuousToken++;
+          return;
+      }
+
+      const token = ++continuousToken;
+      void (async () => {
+          while (true) {
+              const state = get();
+              if (token !== continuousToken) return;
+              if (!state.isContinuousAnalysis) return;
+              if (!state.isAnalysisMode) return;
+
+              const target = Math.max(16, state.settings.katagoVisits);
+              const rawFast = state.settings.katagoFastVisits;
+              const fast = Number.isFinite(rawFast) ? rawFast : 25;
+              const initialVisits = Math.max(16, Math.min(target, Math.floor(fast)));
+              const node = state.currentNode;
+              const normalizedVisits = nodeAnalysisVisitCount(node);
+
+              let nextVisits: number;
+              if (normalizedVisits < 1) {
+                  nextVisits = initialVisits;
+              } else if (normalizedVisits < target) {
+                  const bumped = Math.max(normalizedVisits + 1, normalizedVisits * 2);
+                  nextVisits = Math.min(target, Math.max(initialVisits, bumped));
+              } else {
+                  await sleep(500);
+                  continue;
+              }
+
+              await get().runAnalysis({
+                force: true,
+                visits: nextVisits,
+                reuseTree: true,
+                ownershipRefreshIntervalMs: state.settings.katagoOwnershipMode === 'tree' ? 500 : undefined,
+              });
+              await sleep(50);
+          }
+      })();
+  },
+
+  stopAnalysis: () => {
+      continuousToken++;
+      analysisQueue.cancelGroup('interactive');
+      set({ isContinuousAnalysis: false, engineStatus: 'idle', engineError: null });
+  },
+
+  clearAnalysisCache: () => {
+      const removed = getAnalysisCacheSize(get().rootNode);
+      const notification = {
+        message: removed > 0 ? `Cleared ${removed} cached ${removed === 1 ? 'analysis' : 'analyses'}.` : 'No cached analysis to clear.',
+        type: 'info' as const,
+      };
+      continuousToken++;
+      selfplayToken++;
+      gameAnalysisToken++;
+      analysisQueue.cancelWhere(() => true, 'Cleared analysis cache');
+      analysisQueue.clearCache();
+      set((state) => {
+        clearAnalysisInSubtree(state.rootNode);
+        return {
+          analysisData: null,
+          analysisCacheSize: 0,
+          isContinuousAnalysis: false,
+          isSelfplayToEnd: false,
+          isGameAnalysisRunning: false,
+          gameAnalysisType: null,
+          engineStatus: 'idle',
+          engineError: null,
+          treeVersion: state.treeVersion + 1,
+          notification,
+        };
+      });
+      setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 1800);
+  },
+
+  toggleTeachMode: () => set((state) => {
+      const newMode = !state.isTeachMode;
+      if (newMode) {
+           // Teach mode implies analysis
+           setTimeout(() => void get().runAnalysis(), 0);
+      }
+      return {
+          isTeachMode: newMode,
+          // If turning on Teach Mode, ensure Analysis Mode is also on (usually)
+          isAnalysisMode: newMode ? true : state.isAnalysisMode
+      };
+  }),
+
+  clearNotification: () => set({ notification: null }),
+
+  toggleTimerPaused: () => set((state) => ({ timerPaused: !state.timerPaused })),
+
+  startSelectRegionOfInterest: () =>
+    set(() => ({
+      isSelectingRegionOfInterest: true,
+    })),
+
+  cancelSelectRegionOfInterest: () =>
+    set(() => ({
+      isSelectingRegionOfInterest: false,
+    })),
+
+  setRegionOfInterest: (roi) => {
+    const normalized = normalizeRegionOfInterest(roi, getBoardSizeFromBoard(get().board));
+    set((state) => ({
+      regionOfInterest: normalized,
+      isSelectingRegionOfInterest: false,
+      treeVersion: state.treeVersion + 1,
+    }));
+    if (get().isAnalysisMode) setTimeout(() => void get().runAnalysis({ force: true }), 0);
+  },
+
+  resetCurrentAnalysis: () => {
+    const s = get();
+    s.currentNode.analysis = null;
+    s.currentNode.analysisVisitsRequested = 0;
+    set((state) => ({ analysisData: null, treeVersion: state.treeVersion + 1 }));
+    if (get().isAnalysisMode) setTimeout(() => void get().runAnalysis({ force: true }), 0);
+  },
+
+  analyzeExtra: (mode) => {
+    const s = get();
+    if (mode === 'stop') {
+      s.stopAnalysis();
+      s.stopSelfplayToEnd();
+      s.stopGameAnalysis();
+      return;
+    }
+
+    if (!s.isAnalysisMode) set({ isAnalysisMode: true });
+
+    const longTimeMs = Math.min(ENGINE_MAX_TIME_MS, 60_000);
+
+    const toast = (message: string) => {
+      const notification = { message, type: 'info' as const };
+      set({ notification });
+      setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 1600);
+    };
+
+    if (mode === 'extra') {
+      const base = Math.max(16, Math.min(s.settings.katagoVisits, ENGINE_MAX_VISITS));
+      const prev = Math.max(0, Math.min(s.currentNode.analysisVisitsRequested ?? base, ENGINE_MAX_VISITS));
+      const visits = Math.max(16, Math.min(prev + base, ENGINE_MAX_VISITS));
+      toast(`Extra analysis: ${visits} visits`);
+      void s.runAnalysis({ force: true, visits, maxTimeMs: longTimeMs });
+      return;
+    }
+
+    if (mode === 'equalize') {
+      const analysis = s.currentNode.analysis;
+      if (!analysis || analysis.moves.length === 0) {
+        toast('Equalize: wait for analysis first.');
+        return;
+      }
+      const maxMoveVisits = analysis.moves.reduce((acc, cur) => Math.max(acc, cur.visits), 1);
+      const target = Math.max(maxMoveVisits * analysis.moves.length, s.currentNode.analysisVisitsRequested ?? s.settings.katagoVisits);
+      const visits = Math.max(16, Math.min(target, ENGINE_MAX_VISITS));
+      toast(`Equalize: ${visits} visits`);
+      void s.runAnalysis({ force: true, visits, maxTimeMs: longTimeMs });
+      return;
+    }
+
+    if (mode === 'sweep') {
+      const visits = Math.max(16, Math.min(s.settings.katagoFastVisits, ENGINE_MAX_VISITS));
+      const boardSize = getBoardSizeFromBoard(s.board);
+      const maxChildren = boardSize * boardSize;
+      toast(`Sweep: ${visits} visits, maxChildren ${maxChildren}`);
+      void s.runAnalysis({
+        force: true,
+        visits,
+        maxChildren,
+        topK: Math.max(s.settings.katagoTopK, 20),
+        reuseTree: false,
+        maxTimeMs: longTimeMs,
+      });
+      return;
+    }
+
+    if (mode === 'alternative') {
+      const visits = Math.max(16, Math.min(s.settings.katagoFastVisits, ENGINE_MAX_VISITS));
+      const wideRootNoise = Math.max(s.settings.katagoWideRootNoise, 0.12);
+      toast(`Alternative: ${visits} visits, noise ${wideRootNoise.toFixed(2)}`);
+      void s.runAnalysis({
+        force: true,
+        visits,
+        wideRootNoise,
+        reuseTree: false,
+        maxTimeMs: longTimeMs,
+      });
+    }
+  },
+
+  toggleInsertMode: () => {
+    const s = get();
+    if (!s.isInsertMode) {
+      if (s.currentNode.children.length === 0) {
+        const notification = { message: 'Insert mode: no continuation to insert into.', type: 'error' as const };
+        set({ notification });
+        setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 2000);
+        return;
+      }
+      const insertAfter = getActiveChild(s.currentNode, s.activeBranchChildIds);
+      if (!insertAfter) {
+        const notification = { message: 'Insert mode: no continuation to insert into.', type: 'error' as const };
+        set({ notification });
+        setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 2000);
+        return;
+      }
+      set((state) => ({
+        isInsertMode: true,
+        insertAfterNodeId: insertAfter.id,
+        insertAnchorNodeId: state.currentNode.id,
+        treeVersion: state.treeVersion + 1,
+      }));
+      return;
+    }
+
+    const insertAfterId = s.insertAfterNodeId;
+    const anchorId = s.insertAnchorNodeId;
+    if (!insertAfterId || !anchorId) {
+      set({ isInsertMode: false, insertAfterNodeId: null, insertAnchorNodeId: null });
+      return;
+    }
+
+    const insertAfter = findNodeById(s.rootNode, insertAfterId);
+    const anchor = findNodeById(s.rootNode, anchorId);
+    if (!insertAfter || !anchor || insertAfter.parent?.id !== anchor.id) {
+      set({ isInsertMode: false, insertAfterNodeId: null, insertAnchorNodeId: null, treeVersion: s.treeVersion + 1 });
+      return;
+    }
+
+    if (s.currentNode.id === anchor.id) {
+      set((state) => ({
+        isInsertMode: false,
+        insertAfterNodeId: null,
+        insertAnchorNodeId: null,
+        treeVersion: state.treeVersion + 1,
+      }));
+      return;
+    }
+
+    // Copy continuation from insertAfter down its mainline onto the inserted branch.
+    const insertedMoves = new Set<string>();
+    {
+      const above = new Set<string>();
+      let n: GameNode | null = insertAfter;
+      while (n) {
+        above.add(n.id);
+        n = n.parent;
+      }
+      let cur: GameNode | null = s.currentNode;
+      while (cur && !above.has(cur.id)) {
+        if (cur.move) insertedMoves.add(moveKey(cur.move));
+        cur = cur.parent;
+      }
+    }
+
+    let numCopied = 0;
+    let from: GameNode | null = insertAfter;
+    let to: GameNode = s.currentNode;
+
+    const tryCreateChild = (parent: GameNode, move: Move): GameNode | null => {
+      const st = parent.gameState;
+      if (st.currentPlayer !== move.player) return null;
+
+      if (isPassMove(move)) {
+        const nextPlayer: Player = st.currentPlayer === 'black' ? 'white' : 'black';
+        const nextState: GameState = {
+          board: st.board,
+          currentPlayer: nextPlayer,
+          moveHistory: [...st.moveHistory, move],
+          capturedBlack: st.capturedBlack,
+          capturedWhite: st.capturedWhite,
+          komi: st.komi,
+        };
+        const child = createNode(parent, move, nextState);
+        parent.children.push(child);
+        return child;
+      }
+
+	      if (st.board[move.y]?.[move.x] !== null) return null;
+	      const tentativeBoard = st.board.map((row) => [...row]);
+	      tentativeBoard[move.y]![move.x] = st.currentPlayer;
+	      const captured = applyCapturesInPlace(tentativeBoard, move.x, move.y, st.currentPlayer);
+	      const newBoard = tentativeBoard;
+	      if (captured.length === 0) {
+	        const { liberties } = getLiberties(newBoard, move.x, move.y);
+	        if (liberties === 0) return null;
+	      }
+      if (parent.parent && boardsEqual(newBoard, parent.parent.gameState.board)) return null;
+
+      const newCapturedBlack = st.capturedBlack + (st.currentPlayer === 'white' ? captured.length : 0);
+      const newCapturedWhite = st.capturedWhite + (st.currentPlayer === 'black' ? captured.length : 0);
+      const nextPlayer: Player = st.currentPlayer === 'black' ? 'white' : 'black';
+      const nextState: GameState = {
+        board: newBoard,
+        currentPlayer: nextPlayer,
+        moveHistory: [...st.moveHistory, move],
+        capturedBlack: newCapturedBlack,
+        capturedWhite: newCapturedWhite,
+        komi: st.komi,
+      };
+
+      const child = createNode(parent, move, nextState);
+      parent.children.push(child);
+      return child;
+    };
+
+    while (from) {
+      const move = from.move;
+      if (!move) break;
+      if (!insertedMoves.has(moveKey(move))) {
+        const child = tryCreateChild(to, move);
+        if (!child) break;
+        to = child;
+        numCopied++;
+      }
+      from = getActiveChild(from, s.activeBranchChildIds);
+    }
+
+    const notification = numCopied > 0 ? { message: `Insert mode ended: copied ${numCopied} moves.`, type: 'info' as const } : null;
+    set((state) => ({
+      isInsertMode: false,
+      insertAfterNodeId: null,
+      insertAnchorNodeId: null,
+      treeVersion: state.treeVersion + 1,
+      notification: notification ?? state.notification,
+    }));
+    if (notification) {
+      setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 1800);
+    }
+  },
+
+  toggleEditMode: () =>
+    set((state) => ({
+      isEditMode: !state.isEditMode,
+      isSelectingRegionOfInterest: false,
+      notification: !state.isEditMode
+        ? { message: 'Edit mode: setup stones, labels, and markers are active.', type: 'info' }
+        : { message: 'Edit mode off.', type: 'info' },
+    })),
+
+  setEditTool: (tool) =>
+    set(() => ({
+      editTool: tool,
+      isEditMode: true,
+      isSelectingRegionOfInterest: false,
+    })),
+
+  clearCurrentNodeAnnotations: () =>
+    set((state) => {
+      const props = ensureNodeProperties(state.currentNode);
+      const clearKeys = [...MARKER_PROPERTIES, ...SEGMENT_PROPERTIES, 'LB'];
+      const changed = clearKeys.some((key) => !!props[key]?.length);
+      if (!changed) return {};
+      const history = pushEditHistory(state);
+      for (const key of clearKeys) delete props[key];
+      return {
+        ...history,
+        treeVersion: state.treeVersion + 1,
+        notification: { message: 'Cleared markers, labels and drawings on this node.', type: 'info' },
+      };
+    }),
+
+  addSegmentMarkup: (prop, sx, sy, ex, ey) =>
+    set((state) => {
+      const boardSize = state.board.length;
+      const inRange = (x: number, y: number) => x >= 0 && y >= 0 && x < boardSize && y < boardSize;
+      if (!inRange(sx, sy) || !inRange(ex, ey) || (sx === ex && sy === ey)) return {};
+      const props = ensureNodeProperties(state.currentNode);
+      const value = `${coordinateToSgf(sx, sy)}:${coordinateToSgf(ex, ey)}`;
+      if (props[prop]?.includes(value)) return {};
+      const history = pushEditHistory(state);
+      addUniqueValue(props, prop, value);
+      return {
+        ...history,
+        treeVersion: state.treeVersion + 1,
+      };
+    }),
+
+  applyEditTool: (x, y, options = {}) =>
+    set((state) => {
+      const boardSize = state.board.length;
+      if (x < 0 || y < 0 || x >= boardSize || y >= boardSize) return {};
+
+      const node = state.currentNode;
+      const props = ensureNodeProperties(node);
+      const coord = coordinateToSgf(x, y);
+      const tool = state.editTool;
+      const markerProp = editToolToMarkerProperty(tool);
+
+      if (markerProp) {
+        const hasSameMarker = props[markerProp]?.includes(coord) ?? false;
+        if (hasSameMarker) {
+          if (options.paintOnly) return {};
+          const history = pushEditHistory(state);
+          removeValue(props, markerProp, (value) => value === coord);
+          return {
+            ...history,
+            treeVersion: state.treeVersion + 1,
+            notification: { message: `Removed ${markerProp} marker.`, type: 'info' },
+          };
+        }
+
+        const history = pushEditHistory(state);
+        removeMarkupCoord(props, coord);
+        addUniqueValue(props, markerProp, coord);
+        return {
+          ...history,
+          treeVersion: state.treeVersion + 1,
+          notification: { message: `Added ${markerProp} marker.`, type: 'info' },
+        };
+      }
+
+      if (tool === 'label-alpha' || tool === 'label-number') {
+        const history = pushEditHistory(state);
+        removeMarkupCoord(props, coord);
+        const label = tool === 'label-alpha' ? nextAlphaLabel(props) : nextNumberLabel(props);
+        addUniqueValue(props, 'LB', `${coord}:${label}`);
+        return {
+          ...history,
+          treeVersion: state.treeVersion + 1,
+          notification: { message: `Added label ${label}.`, type: 'info' },
+        };
+      }
+
+      if (tool === 'marker-erase') {
+        if (!hasMarkupCoord(props, coord)) return {};
+        const history = pushEditHistory(state);
+        removeMarkupCoord(props, coord);
+        return {
+          ...history,
+          treeVersion: state.treeVersion + 1,
+          notification: { message: 'Removed marker or label.', type: 'info' },
+        };
+      }
+
+      if (tool !== 'setup-black' && tool !== 'setup-white' && tool !== 'setup-alternate' && tool !== 'setup-erase') return {};
+
+      const nextBoard = cloneBoard(node.gameState.board);
+      const currentStone = nextBoard[y]?.[x] ?? null;
+      const nextStone: Player | null =
+        tool === 'setup-black'
+          ? 'black'
+          : tool === 'setup-white'
+            ? 'white'
+            : tool === 'setup-alternate'
+              ? nextAlternateSetupStone(props, currentStone)
+              : null;
+      if (currentStone === nextStone) return {};
+      const history = pushEditHistory(state);
+      nextBoard[y]![x] = nextStone;
+
+      removeSetupCoord(props, coord);
+      if (nextStone === 'black') addUniqueValue(props, 'AB', coord);
+      else if (nextStone === 'white') addUniqueValue(props, 'AW', coord);
+      else addUniqueValue(props, 'AE', coord);
+
+      node.gameState = { ...node.gameState, board: nextBoard };
+      node.analysis = null;
+      node.analysisVisitsRequested = 0;
+      clearAnalysisInSubtree(node);
+      const pruned = rebuildDescendants(node);
+
+      const setupWord =
+        nextStone === 'black' ? 'black setup stone' : nextStone === 'white' ? 'white setup stone' : 'setup stone';
+      const summary = pruned > 0 ? ` ${pruned} descendant ${pruned === 1 ? 'node was' : 'nodes were'} pruned.` : '';
+      return {
+        ...history,
+        currentNode: node,
+        board: node.gameState.board,
+        currentPlayer: node.gameState.currentPlayer,
+        moveHistory: node.gameState.moveHistory,
+        capturedBlack: node.gameState.capturedBlack,
+        capturedWhite: node.gameState.capturedWhite,
+        analysisData: null,
+        treeVersion: state.treeVersion + 1,
+        notification: { message: `Edited ${setupWord}.${summary}`, type: pruned > 0 ? 'success' : 'info' },
+      };
+    }),
+
+  toggleBoardPointMarkup: (x, y) =>
+    set((state) => {
+      const boardSize = state.board.length;
+      if (x < 0 || y < 0 || x >= boardSize || y >= boardSize) return {};
+
+      const node = state.currentNode;
+      const props = ensureNodeProperties(node);
+      const coord = coordinateToSgf(x, y);
+
+      if (state.isEditMode) {
+        if (hasMarkupCoord(props, coord)) {
+          const history = pushEditHistory(state);
+          removeMarkupCoord(props, coord);
+          return {
+            ...history,
+            treeVersion: state.treeVersion + 1,
+            notification: { message: 'Removed marker or label.', type: 'info' },
+          };
+        }
+
+        const nextBoard = cloneBoard(node.gameState.board);
+        const currentStone = nextBoard[y]?.[x] ?? null;
+        if (!currentStone && !hasSetupCoord(props, coord)) return {};
+        const history = pushEditHistory(state);
+        nextBoard[y]![x] = null;
+        removeSetupCoord(props, coord);
+        addUniqueValue(props, 'AE', coord);
+
+        node.gameState = { ...node.gameState, board: nextBoard };
+        node.analysis = null;
+        node.analysisVisitsRequested = 0;
+        clearAnalysisInSubtree(node);
+        const pruned = rebuildDescendants(node);
+        const summary = pruned > 0 ? ` ${pruned} descendant ${pruned === 1 ? 'node was' : 'nodes were'} pruned.` : '';
+        return {
+          ...history,
+          currentNode: node,
+          board: node.gameState.board,
+          currentPlayer: node.gameState.currentPlayer,
+          moveHistory: node.gameState.moveHistory,
+          capturedBlack: node.gameState.capturedBlack,
+          capturedWhite: node.gameState.capturedWhite,
+          analysisData: null,
+          treeVersion: state.treeVersion + 1,
+          notification: { message: `Removed setup stone.${summary}`, type: pruned > 0 ? 'success' : 'info' },
+        };
+      }
+
+      const hasCross = props.MA?.includes(coord) ?? false;
+      if (hasCross) {
+        const history = pushEditHistory(state);
+        removeValue(props, 'MA', (value) => value === coord);
+        return {
+          ...history,
+          treeVersion: state.treeVersion + 1,
+          notification: { message: 'Removed cross marker.', type: 'info' },
+        };
+      }
+
+      const history = pushEditHistory(state);
+      removeMarkupCoord(props, coord);
+      addUniqueValue(props, 'MA', coord);
+      return {
+        ...history,
+        treeVersion: state.treeVersion + 1,
+        notification: { message: 'Added cross marker.', type: 'info' },
+      };
+    }),
+
+  clearCurrentNodeSetupStones: () => set((state) => {
+      const node = state.currentNode;
+      const props = ensureNodeProperties(node);
+      const setupCount = SETUP_PROPERTIES.reduce((total, key) => total + (props[key]?.length ?? 0), 0);
+      if (setupCount === 0) return {};
+      const history = pushEditHistory(state);
+      const removed = removeSetupProperties(props);
+
+      if (node.parent) {
+        const rebuilt = replayChildMove(node.parent, node);
+        if (rebuilt) node.gameState = rebuilt;
+      } else {
+        const boardSize = getBoardSizeFromBoard(node.gameState.board);
+        const board = createEmptyBoard(boardSize);
+        const handicap = Number.parseInt(props.HA?.[0] ?? '0', 10);
+        const safeHandicap = Number.isFinite(handicap) ? Math.max(0, Math.min(handicap, getMaxHandicap(boardSize))) : 0;
+        if (safeHandicap > 0) applyHandicapStones(board, boardSize, safeHandicap);
+        node.gameState = {
+          ...node.gameState,
+          board,
+        };
+      }
+
+      node.analysis = null;
+      node.analysisVisitsRequested = 0;
+      clearAnalysisInSubtree(node);
+      const pruned = rebuildDescendants(node);
+      const summary = pruned > 0 ? ` ${pruned} descendant ${pruned === 1 ? 'node was' : 'nodes were'} pruned.` : '';
+      return {
+        ...history,
+        currentNode: node,
+        board: node.gameState.board,
+        currentPlayer: node.gameState.currentPlayer,
+        moveHistory: node.gameState.moveHistory,
+        capturedBlack: node.gameState.capturedBlack,
+        capturedWhite: node.gameState.capturedWhite,
+        analysisData: null,
+        treeVersion: state.treeVersion + 1,
+        notification: { message: `Cleared ${removed} setup stone${removed === 1 ? '' : 's'}.${summary}`, type: pruned > 0 ? 'success' : 'info' },
+      };
+    }),
+
+  applySetupStones: (stones) => {
+    let changed = 0;
+    set((state) => {
+      const boardSize = state.board.length;
+      const node = state.currentNode;
+      const props = ensureNodeProperties(node);
+      const nextBoard = cloneBoard(node.gameState.board);
+      const hasChange = stones.some(
+        (stone) =>
+          stone.x >= 0 &&
+          stone.y >= 0 &&
+          stone.x < boardSize &&
+          stone.y < boardSize &&
+          (nextBoard[stone.y]?.[stone.x] ?? null) !== stone.player
+      );
+      if (!hasChange) return {};
+      const history = pushEditHistory(state);
+
+      for (const stone of stones) {
+        if (stone.x < 0 || stone.y < 0 || stone.x >= boardSize || stone.y >= boardSize) continue;
+        if ((nextBoard[stone.y]?.[stone.x] ?? null) === stone.player) continue;
+        const coord = coordinateToSgf(stone.x, stone.y);
+        nextBoard[stone.y]![stone.x] = stone.player;
+        removeSetupCoord(props, coord);
+        if (stone.player === 'black') addUniqueValue(props, 'AB', coord);
+        else if (stone.player === 'white') addUniqueValue(props, 'AW', coord);
+        else addUniqueValue(props, 'AE', coord);
+        changed++;
+      }
+
+      if (changed === 0) return {};
+
+      node.gameState = { ...node.gameState, board: nextBoard };
+      node.analysis = null;
+      node.analysisVisitsRequested = 0;
+      clearAnalysisInSubtree(node);
+      rebuildDescendants(node);
+
+      return {
+        ...history,
+        currentNode: node,
+        board: node.gameState.board,
+        currentPlayer: node.gameState.currentPlayer,
+        moveHistory: node.gameState.moveHistory,
+        capturedBlack: node.gameState.capturedBlack,
+        capturedWhite: node.gameState.capturedWhite,
+        analysisData: null,
+        treeVersion: state.treeVersion + 1,
+      };
+    });
+    return changed;
+  },
+
+  selfplayToEnd: () => {
+    const token = ++selfplayToken;
+    analysisQueue.cancelGroup('selfplay');
+    set({ isSelfplayToEnd: true });
+
+    void (async () => {
+      let safety = 0;
+      while (true) {
+        const s = get();
+        if (token !== selfplayToken) return;
+        if (!s.isSelfplayToEnd) return;
+
+        const mh = s.moveHistory;
+        const last = mh[mh.length - 1];
+        const prev = mh[mh.length - 2];
+        if (isPassMove(last) && isPassMove(prev)) {
+          set({ isSelfplayToEnd: false });
+          return;
+        }
+        if (safety++ > 2000) {
+          const notification = { message: 'Selfplay stopped (move limit).', type: 'error' as const };
+          set({ isSelfplayToEnd: false, notification });
+          setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 2000);
+          return;
+        }
+
+        try {
+          const node = s.currentNode;
+          const parentBoard = node.parent?.gameState.board;
+          const grandparentBoard = node.parent?.parent?.gameState.board;
+          const modelUrl = resolveModelUrlForFetch(s.settings.katagoModelUrl);
+          const rules = s.settings.gameRules;
+          const visits = Math.max(16, Math.min(s.settings.katagoFastVisits, ENGINE_MAX_VISITS));
+          const maxTimeMs = Math.max(250, Math.min(s.settings.katagoMaxTimeMs, ENGINE_MAX_TIME_MS));
+          const analysis = await analysisQueue.enqueue<KataGoAnalysisPayload>({
+            id: `selfplay:${token}:${node.id}:${safety}`,
+            label: 'Selfplay move',
+            group: 'selfplay',
+            priority: ANALYSIS_QUEUE_PRIORITY.selfplay,
+            cacheKey: analysisCacheKey(
+              'selfplay',
+              node.id,
+              nodeAnalysisPositionKey(node, rules),
+              modelUrl,
+              s.settings.katagoBackend,
+              rules,
+              visits,
+              maxTimeMs,
+              s.settings.katagoBatchSize,
+              s.settings.katagoMaxChildren,
+              s.settings.katagoConservativePass
+            ),
+            run: () => getKataGoEngineClient().analyze({
+            positionId: node.id,
+            parentPositionId: node.parent?.id,
+            positionKey: nodeAnalysisPositionKey(node, rules),
+            parentPositionKey: parentAnalysisPositionKey(node, rules),
+            modelUrl,
+            backend: s.settings.katagoBackend,
+            board: s.board,
+            previousBoard: parentBoard,
+            previousPreviousBoard: grandparentBoard,
+            currentPlayer: s.currentPlayer,
+            moveHistory: s.moveHistory,
+            komi: s.komi,
+            rules,
+            topK: Math.max(1, Math.min(s.settings.katagoTopK, 10)),
+            analysisPvLen: Math.max(0, Math.min(s.settings.katagoAnalysisPvLen, 30)),
+            includeMovesOwnership: false,
+            wideRootNoise: 0.0,
+            nnRandomize: false,
+            conservativePass: s.settings.katagoConservativePass,
+            visits,
+            maxTimeMs,
+            batchSize: s.settings.katagoBatchSize,
+            maxChildren: s.settings.katagoMaxChildren,
+            reuseTree: false,
+            ownershipMode: 'none',
+            analysisGroup: 'background',
+            }),
+          });
+
+          const best = analysis.moves[0] ?? null;
+          if (!best || best.x < 0 || best.y < 0) s.passTurn();
+          else s.playMove(best.x, best.y);
+        } catch (err) {
+          if (isAnalysisCanceled(err)) {
+            await sleep(25);
+            continue;
+          }
+          // Fall back to heuristics if engine fails.
+          makeHeuristicMove(get());
+        }
+
+        await sleep(50);
+      }
+    })();
+  },
+
+  stopSelfplayToEnd: () => {
+    selfplayToken++;
+    analysisQueue.cancelGroup('selfplay');
+    set({ isSelfplayToEnd: false });
+  },
+
+  startQuickGameAnalysis: () => {
+    const token = ++gameAnalysisToken;
+    analysisQueue.cancelGroup('game-analysis');
+    const state = get();
+
+    const nodes = getCurrentLineNodes(state.rootNode, state.activeBranchChildIds);
+
+    const total = nodes.length;
+    if (total <= 1) {
+      set({ isGameAnalysisRunning: false, gameAnalysisType: null, gameAnalysisDone: 0, gameAnalysisTotal: total });
+      return;
+    }
+
+    set({ isGameAnalysisRunning: true, gameAnalysisType: 'quick', gameAnalysisDone: 0, gameAnalysisTotal: total });
+
+    void (async () => {
+      let done = 0;
+      let failed = 0;
+      let lastFailure: string | null = null;
+      let lastUiUpdate = getAnimationNow();
+      let metaSynced = false;
+
+      const evalBatchSize = Math.max(1, Math.min(get().settings.katagoBatchSize, 8));
+
+      for (let start = 0; start < nodes.length; start += evalBatchSize) {
+        if (token !== gameAnalysisToken) return;
+        if (!get().isGameAnalysisRunning) return;
+        if (get().gameAnalysisType !== 'quick') return;
+
+        const chunk = nodes.slice(start, start + evalBatchSize);
+        const toEval = chunk.filter((n) => !n.analysis);
+        if (toEval.length > 0) {
+          try {
+            const s = get();
+            const modelUrl = resolveModelUrlForFetch(s.settings.katagoModelUrl);
+            const rules = s.settings.gameRules;
+            const conservativePass = s.settings.katagoConservativePass;
+            const evals = await analysisQueue.enqueue({
+              id: `quick-game:${token}:${start}`,
+              label: 'Quick game analysis',
+              group: 'game-analysis',
+              priority: ANALYSIS_QUEUE_PRIORITY.quickGame,
+              cacheKey: analysisCacheKey(
+                'quick-game',
+                modelUrl,
+                s.settings.katagoBackend,
+                rules,
+                conservativePass,
+                toEval.map((n) => nodeAnalysisPositionKey(n, rules))
+              ),
+              run: () => getKataGoEngineClient().evaluateBatch({
+              modelUrl,
+              backend: s.settings.katagoBackend,
+              positions: toEval.map((n) => ({
+                board: n.gameState.board,
+                previousBoard: n.parent?.gameState.board,
+                previousPreviousBoard: n.parent?.parent?.gameState.board,
+                currentPlayer: n.gameState.currentPlayer,
+                moveHistory: n.gameState.moveHistory,
+                komi: n.gameState.komi,
+              })),
+              rules,
+              conservativePass,
+              }),
+            });
+            if (token !== gameAnalysisToken) return;
+            if (!get().isGameAnalysisRunning) return;
+            if (get().gameAnalysisType !== 'quick') return;
+            if (!metaSynced) {
+              const engineInfo = getKataGoEngineClient().getEngineInfo();
+              set({ engineBackend: engineInfo.backend, engineModelName: engineInfo.modelName });
+              metaSynced = true;
+            }
+
+            for (let i = 0; i < toEval.length; i++) {
+              const node = toEval[i]!;
+              const evaled = evals[i]!;
+              const boardSize = getBoardSizeFromBoard(node.gameState.board);
+              node.analysis = {
+                rootWinRate: evaled.rootWinRate,
+                rootScoreLead: evaled.rootScoreLead,
+                rootScoreSelfplay: evaled.rootScoreSelfplay,
+                rootScoreStdev: evaled.rootScoreStdev,
+                moves: [],
+                territory: createEmptyTerritory(boardSize),
+                policy: undefined,
+                ownershipStdev: undefined,
+                ownershipMode: 'none',
+              };
+              node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, 1);
+            }
+          } catch (err) {
+            if (isAnalysisCanceled(err)) return;
+            failed += toEval.length;
+            lastFailure = errorMessage(err);
+          }
+        }
+        if (token !== gameAnalysisToken) return;
+        if (!get().isGameAnalysisRunning) return;
+        if (get().gameAnalysisType !== 'quick') return;
+
+        done += chunk.length;
+
+        const now = getAnimationNow();
+        if (now - lastUiUpdate > 120 || done === total) {
+          set((s) => ({
+            gameAnalysisDone: done,
+            gameAnalysisTotal: total,
+            analysisCacheSize: getAnalysisCacheSize(s.rootNode),
+            treeVersion: s.treeVersion + 1,
+          }));
+          lastUiUpdate = now;
+        }
+
+        await sleep(0);
+      }
+
+      if (token !== gameAnalysisToken) return;
+      set((s) => ({
+        isGameAnalysisRunning: false,
+        gameAnalysisType: null,
+        gameAnalysisDone: done,
+        gameAnalysisTotal: total,
+        analysisCacheSize: getAnalysisCacheSize(s.rootNode),
+        treeVersion: s.treeVersion + 1,
+        ...gameAnalysisFailureUpdate('quick', failed, total, lastFailure),
+      }));
+    })();
+  },
+
+  startFastGameAnalysis: (opts) => {
+    const token = ++gameAnalysisToken;
+    analysisQueue.cancelGroup('game-analysis');
+    const state = get();
+    const moveRangeRaw = opts?.moveRange ?? null;
+    const moveRange: [number, number] | null = moveRangeRaw
+      ? [Math.min(moveRangeRaw[0]!, moveRangeRaw[1]!), Math.max(moveRangeRaw[0]!, moveRangeRaw[1]!)]
+      : null;
+
+    const nodes = getCurrentLineNodes(state.rootNode, state.activeBranchChildIds).filter((node) => {
+      if (!moveRange) return true;
+      return nodeIsInMoveRange(node, moveRange) || nodeIsParentOfMoveInRange(node, moveRange);
+    });
+
+    const total = nodes.length;
+    if (total <= 1) {
+      set({ isGameAnalysisRunning: false, gameAnalysisType: null, gameAnalysisDone: 0, gameAnalysisTotal: total });
+      return;
+    }
+
+    set({ isGameAnalysisRunning: true, gameAnalysisType: 'fast', gameAnalysisDone: 0, gameAnalysisTotal: total });
+
+    void (async () => {
+      const boardSize = getBoardSizeFromBoard(state.board);
+      const fastVisits = Math.max(16, Math.min(get().settings.katagoFastVisits, ENGINE_MAX_VISITS));
+      const maxTimeMs = Math.max(50, Math.min(600, Math.floor(get().settings.katagoMaxTimeMs * 0.15)));
+      const batchSize = Math.max(1, Math.min(get().settings.katagoBatchSize, 64));
+      const maxChildren = Math.max(4, Math.min(get().settings.katagoMaxChildren, boardSize * boardSize));
+      const topK = Math.max(1, Math.min(get().settings.katagoTopK, 10));
+      const analysisPvLen = Math.max(0, Math.min(get().settings.katagoAnalysisPvLen, 15));
+
+      let done = 0;
+      let failed = 0;
+      let lastFailure: string | null = null;
+      let lastUiUpdate = getAnimationNow();
+      let metaSynced = false;
+
+      for (const node of nodes) {
+        if (token !== gameAnalysisToken) return;
+        if (!get().isGameAnalysisRunning) return;
+        if (get().gameAnalysisType !== 'fast') return;
+
+        const already = node.analysis && nodeAnalysisVisitCount(node) >= fastVisits;
+        if (!already) {
+          try {
+            const s = get();
+            const parentBoard = node.parent?.gameState.board;
+            const grandparentBoard = node.parent?.parent?.gameState.board;
+            const modelUrl = resolveModelUrlForFetch(s.settings.katagoModelUrl);
+            const rules = s.settings.gameRules;
+            const analysis = await analysisQueue.enqueue<KataGoAnalysisPayload>({
+              id: `fast-game:${token}:${node.id}`,
+              label: 'Fast game analysis',
+              group: 'game-analysis',
+              priority: ANALYSIS_QUEUE_PRIORITY.fastGame,
+              cacheKey: analysisCacheKey(
+                'fast-game',
+                node.id,
+                nodeAnalysisPositionKey(node, rules),
+                modelUrl,
+                s.settings.katagoBackend,
+                rules,
+                fastVisits,
+                maxTimeMs,
+                batchSize,
+                maxChildren,
+                topK,
+                analysisPvLen,
+                s.settings.katagoWideRootNoise,
+                s.settings.katagoNnRandomize,
+                s.settings.katagoConservativePass
+              ),
+              run: () => getKataGoEngineClient().analyze({
+              positionId: node.id,
+              parentPositionId: node.parent?.id,
+              positionKey: nodeAnalysisPositionKey(node, rules),
+              parentPositionKey: parentAnalysisPositionKey(node, rules),
+              modelUrl,
+              backend: s.settings.katagoBackend,
+              board: node.gameState.board,
+              previousBoard: parentBoard,
+              previousPreviousBoard: grandparentBoard,
+              currentPlayer: node.gameState.currentPlayer,
+              moveHistory: node.gameState.moveHistory,
+              komi: node.gameState.komi,
+              rules,
+              topK,
+              analysisPvLen,
+              includeMovesOwnership: false,
+              wideRootNoise: s.settings.katagoWideRootNoise,
+              nnRandomize: s.settings.katagoNnRandomize,
+              conservativePass: s.settings.katagoConservativePass,
+              visits: fastVisits,
+              maxTimeMs,
+              batchSize,
+              maxChildren,
+              reuseTree: false,
+              ownershipMode: 'none',
+              analysisGroup: 'background',
+              }),
+            });
+            if (token !== gameAnalysisToken) return;
+            if (!get().isGameAnalysisRunning) return;
+            if (get().gameAnalysisType !== 'fast') return;
+            if (!metaSynced) {
+              const engineInfo = getKataGoEngineClient().getEngineInfo();
+              set({ engineBackend: engineInfo.backend, engineModelName: engineInfo.modelName });
+              metaSynced = true;
+            }
+
+            node.analysis = {
+              rootWinRate: analysis.rootWinRate,
+              rootScoreLead: analysis.rootScoreLead,
+              rootScoreSelfplay: analysis.rootScoreSelfplay,
+              rootScoreStdev: analysis.rootScoreStdev,
+              moves: analysis.moves,
+              territory: createEmptyTerritory(getBoardSizeFromBoard(node.gameState.board)),
+              policy: undefined,
+              ownershipStdev: undefined,
+              ownershipMode: 'none',
+            };
+            node.analysisVisitsRequested = fastVisits;
+          } catch (err) {
+            if (isAnalysisCanceled(err)) return;
+            failed++;
+            lastFailure = errorMessage(err);
+          }
+        }
+        if (token !== gameAnalysisToken) return;
+        if (!get().isGameAnalysisRunning) return;
+        if (get().gameAnalysisType !== 'fast') return;
+
+        done++;
+
+        const now = getAnimationNow();
+        if (now - lastUiUpdate > 120 || done === total) {
+          set((s) => ({
+            gameAnalysisDone: done,
+            gameAnalysisTotal: total,
+            analysisCacheSize: getAnalysisCacheSize(s.rootNode),
+            treeVersion: s.treeVersion + 1,
+          }));
+          lastUiUpdate = now;
+        }
+
+        await sleep(0);
+      }
+
+      if (token !== gameAnalysisToken) return;
+      set((s) => ({
+        isGameAnalysisRunning: false,
+        gameAnalysisType: null,
+        gameAnalysisDone: done,
+        gameAnalysisTotal: total,
+        analysisCacheSize: getAnalysisCacheSize(s.rootNode),
+        treeVersion: s.treeVersion + 1,
+        ...gameAnalysisFailureUpdate('fast', failed, total, lastFailure),
+      }));
+    })();
+  },
+
+  startFullGameAnalysis: (opts) => {
+    const token = ++gameAnalysisToken;
+    analysisQueue.cancelGroup('game-analysis');
+    const state = get();
+
+    const visits = Math.max(16, Math.min(Math.floor(opts.visits || 0), ENGINE_MAX_VISITS));
+    const moveRangeRaw = opts.moveRange ?? null;
+    const moveRange: [number, number] | null = moveRangeRaw
+      ? [Math.min(moveRangeRaw[0]!, moveRangeRaw[1]!), Math.max(moveRangeRaw[0]!, moveRangeRaw[1]!)]
+      : null;
+    const mistakesOnly = opts.mistakesOnly === true;
+
+    const thresholds = state.settings.trainerEvalThresholds?.length ? state.settings.trainerEvalThresholds : [12, 6, 3, 1.5, 0.5, 0];
+    const mistakesThreshold =
+      thresholds.length >= 4 ? thresholds[thresholds.length - 4]! : 3;
+    const nodes = selectFullGameAnalysisNodes({
+      rootNode: state.rootNode,
+      moveRange,
+      mistakesOnly,
+      mistakesThreshold,
+    });
+    const total = nodes.length;
+    if (total <= 1) {
+      set({ isGameAnalysisRunning: false, gameAnalysisType: null, gameAnalysisDone: 0, gameAnalysisTotal: total });
+      return;
+    }
+
+    set({ isGameAnalysisRunning: true, gameAnalysisType: 'full', gameAnalysisDone: 0, gameAnalysisTotal: total });
+
+    void (async () => {
+      let done = 0;
+      let failed = 0;
+      let lastFailure: string | null = null;
+      let lastUiUpdate = getAnimationNow();
+      let metaSynced = false;
+
+      for (const node of nodes) {
+        if (token !== gameAnalysisToken) return;
+        if (!get().isGameAnalysisRunning) return;
+        if (get().gameAnalysisType !== 'full') return;
+
+        const already = node.analysis && node.analysis.moves.length > 0 && nodeAnalysisVisitCount(node) >= visits;
+        if (!already) {
+          try {
+            const s = get();
+            const parentBoard = node.parent?.gameState.board;
+            const grandparentBoard = node.parent?.parent?.gameState.board;
+            const maxTimeMs = ENGINE_MAX_TIME_MS;
+            const batchSize = Math.max(1, Math.min(s.settings.katagoBatchSize, 64));
+            const boardSize = getBoardSizeFromBoard(node.gameState.board);
+            const maxChildren = Math.max(4, Math.min(s.settings.katagoMaxChildren, boardSize * boardSize));
+            const topK = Math.max(5, Math.min(s.settings.katagoTopK, 50));
+            const analysisPvLen = Math.max(0, Math.min(s.settings.katagoAnalysisPvLen, 60));
+            const modelUrl = resolveModelUrlForFetch(s.settings.katagoModelUrl);
+            const rules = s.settings.gameRules;
+
+            const analysis = await analysisQueue.enqueue<KataGoAnalysisPayload>({
+              id: `full-game:${token}:${node.id}`,
+              label: 'Full game analysis',
+              group: 'game-analysis',
+              priority: ANALYSIS_QUEUE_PRIORITY.fullGame,
+              cacheKey: analysisCacheKey(
+                'full-game',
+                node.id,
+                nodeAnalysisPositionKey(node, rules),
+                modelUrl,
+                s.settings.katagoBackend,
+                rules,
+                visits,
+                maxTimeMs,
+                batchSize,
+                maxChildren,
+                topK,
+                analysisPvLen,
+                s.settings.katagoOwnershipMode,
+                s.settings.katagoWideRootNoise,
+                s.settings.katagoNnRandomize,
+                s.settings.katagoConservativePass
+              ),
+              run: () => getKataGoEngineClient().analyze({
+              positionId: node.id,
+              parentPositionId: node.parent?.id,
+              positionKey: nodeAnalysisPositionKey(node, rules),
+              parentPositionKey: parentAnalysisPositionKey(node, rules),
+              modelUrl,
+              backend: s.settings.katagoBackend,
+              board: node.gameState.board,
+              previousBoard: parentBoard,
+              previousPreviousBoard: grandparentBoard,
+              currentPlayer: node.gameState.currentPlayer,
+              moveHistory: node.gameState.moveHistory,
+              komi: node.gameState.komi,
+              rules,
+              topK,
+              analysisPvLen,
+              includeMovesOwnership: s.settings.katagoOwnershipMode === 'tree',
+              wideRootNoise: s.settings.katagoWideRootNoise,
+              nnRandomize: s.settings.katagoNnRandomize,
+              conservativePass: s.settings.katagoConservativePass,
+              visits,
+              maxTimeMs,
+              batchSize,
+              maxChildren,
+              reuseTree: false,
+              ownershipMode: s.settings.katagoOwnershipMode,
+              analysisGroup: 'background',
+              }),
+            });
+            if (token !== gameAnalysisToken) return;
+            if (!get().isGameAnalysisRunning) return;
+            if (get().gameAnalysisType !== 'full') return;
+
+            if (!metaSynced) {
+              const engineInfo = getKataGoEngineClient().getEngineInfo();
+              set({ engineBackend: engineInfo.backend, engineModelName: engineInfo.modelName });
+              metaSynced = true;
+            }
+
+            node.analysis = {
+              rootWinRate: analysis.rootWinRate,
+              rootScoreLead: analysis.rootScoreLead,
+              rootScoreSelfplay: analysis.rootScoreSelfplay,
+              rootScoreStdev: analysis.rootScoreStdev,
+              rootVisits: analysis.rootVisits,
+              moves: analysis.moves,
+              territory: ownershipToTerritoryGrid(analysis.ownership, boardSize),
+              policy: analysis.policy,
+              ownershipStdev: analysis.ownershipStdev,
+              ownershipMode: s.settings.katagoOwnershipMode,
+            };
+            node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, visits);
+          } catch (err) {
+            if (isAnalysisCanceled(err)) return;
+            failed++;
+            lastFailure = errorMessage(err);
+          }
+        }
+        if (token !== gameAnalysisToken) return;
+        if (!get().isGameAnalysisRunning) return;
+        if (get().gameAnalysisType !== 'full') return;
+
+        done++;
+
+        const now = getAnimationNow();
+        if (now - lastUiUpdate > 120 || done === total) {
+          set((s) => ({
+            gameAnalysisDone: done,
+            gameAnalysisTotal: total,
+            analysisCacheSize: getAnalysisCacheSize(s.rootNode),
+            treeVersion: s.treeVersion + 1,
+          }));
+          lastUiUpdate = now;
+        }
+
+        await sleep(0);
+      }
+
+      if (token !== gameAnalysisToken) return;
+      set((s) => ({
+        isGameAnalysisRunning: false,
+        gameAnalysisType: null,
+        gameAnalysisDone: done,
+        gameAnalysisTotal: total,
+        analysisCacheSize: getAnalysisCacheSize(s.rootNode),
+        treeVersion: s.treeVersion + 1,
+        ...gameAnalysisFailureUpdate('full', failed, total, lastFailure),
+      }));
+    })();
+  },
+
+  stopGameAnalysis: () => {
+    gameAnalysisToken++;
+    analysisQueue.cancelGroup('game-analysis');
+    set({ isGameAnalysisRunning: false, gameAnalysisType: null });
+  },
+
+  runAnalysis: async (opts) => {
+      const state = get();
+      if (!state.isAnalysisMode) return;
+
+      // Check if current node already has analysis
+      const desiredVisits = Math.max(16, Math.min(opts?.visits ?? state.settings.katagoVisits, ENGINE_MAX_VISITS));
+      if (!opts?.force && state.currentNode.analysis) {
+        const existing = state.currentNode.analysis;
+        const existingOwnershipMode = existing.ownershipMode ?? 'root';
+        const requiredOwnershipMode = state.settings.katagoOwnershipMode;
+        const ownershipOk =
+          requiredOwnershipMode === 'tree'
+            ? existingOwnershipMode === 'tree'
+            : requiredOwnershipMode === 'root'
+              ? existingOwnershipMode === 'root' || existingOwnershipMode === 'tree'
+              : true;
+        const needsPolicy = state.settings.analysisShowPolicy;
+        const policyOk = !needsPolicy || !!existing.policy;
+        if (nodeAnalysisVisitCount(state.currentNode) >= desiredVisits && ownershipOk && policyOk) {
+          set({ analysisData: existing });
+          return;
+        }
+      }
+
+		      const node = state.currentNode;
+		      const parentBoard = node.parent?.gameState.board;
+		      const grandparentBoard = node.parent?.parent?.gameState.board;
+		      const modelUrl = resolveModelUrlForFetch(state.settings.katagoModelUrl);
+          const rules = state.settings.gameRules;
+          const analysisPvLen = opts?.analysisPvLen ?? state.settings.katagoAnalysisPvLen;
+          const wideRootNoise = opts?.wideRootNoise ?? state.settings.katagoWideRootNoise;
+          const nnRandomize = opts?.nnRandomize ?? state.settings.katagoNnRandomize;
+          const conservativePass = opts?.conservativePass ?? state.settings.katagoConservativePass;
+          const visits = Math.max(16, Math.min(opts?.visits ?? state.settings.katagoVisits, ENGINE_MAX_VISITS));
+          const maxTimeMs = Math.max(25, Math.min(opts?.maxTimeMs ?? state.settings.katagoMaxTimeMs, ENGINE_MAX_TIME_MS));
+          const batchSize = Math.max(1, Math.min(opts?.batchSize ?? state.settings.katagoBatchSize, 64));
+          const boardSize = getBoardSizeFromBoard(state.board);
+          const maxChildren = Math.max(4, Math.min(opts?.maxChildren ?? state.settings.katagoMaxChildren, boardSize * boardSize));
+          const topK = Math.max(1, Math.min(opts?.topK ?? state.settings.katagoTopK, 50));
+          const reuseTree = opts?.reuseTree ?? state.settings.katagoReuseTree;
+          const ownershipRefreshIntervalMs = opts?.ownershipRefreshIntervalMs;
+          const reportEveryMsRaw = opts?.reportEveryMs;
+          const reportEveryMs =
+            typeof reportEveryMsRaw === 'number' && Number.isFinite(reportEveryMsRaw)
+              ? Math.max(0, reportEveryMsRaw)
+              : (state.isContinuousAnalysis ? CONTINUOUS_REPORT_DURING_SEARCH_MS : REPORT_DURING_SEARCH_EVERY_MS);
+          const reportDuringSearchEveryMs = reportEveryMs > 0 ? reportEveryMs : undefined;
+          const progressApplyMinMs = reportEveryMs > 0 ? Math.max(reportEveryMs, PROGRESS_APPLY_MIN_MS) : 0;
+          let lastProgressVisits = -1;
+          let lastProgressApplyAt = 0;
+          let lastTreeUpdateAt = 0;
+          let lastTerritoryUpdateAt = 0;
+          const treeUpdateEveryMs = reportEveryMs > 0 ? reportEveryMs : 0;
+
+          const buildAnalysisResult = (
+            analysis: KataGoAnalysisPayload,
+            opts: { includeTerritory: boolean; fallbackTerritory: number[][] }
+          ): AnalysisResult => {
+            let analysisWithTerritory: AnalysisResult = {
+              rootWinRate: analysis.rootWinRate,
+              rootScoreLead: analysis.rootScoreLead,
+              rootScoreSelfplay: analysis.rootScoreSelfplay,
+              rootScoreStdev: analysis.rootScoreStdev,
+              rootVisits: analysis.rootVisits,
+              moves: analysis.moves,
+              territory: opts.includeTerritory ? ownershipToTerritoryGrid(analysis.ownership, boardSize) : opts.fallbackTerritory,
+              policy: analysis.policy,
+              ownershipStdev: analysis.ownershipStdev,
+              ownershipMode: state.settings.katagoOwnershipMode,
+            };
+
+            const roi = get().regionOfInterest;
+            if (roi) {
+              analysisWithTerritory = {
+                ...analysisWithTerritory,
+                moves: analysisWithTerritory.moves.filter((m) => isMoveInRegion(m, roi)),
+                policy: analysisWithTerritory.policy
+                  ? (() => {
+                      const p = analysisWithTerritory.policy.slice();
+                      for (let y = 0; y < boardSize; y++) {
+                        for (let x = 0; x < boardSize; x++) {
+                          if (x >= roi.xMin && x <= roi.xMax && y >= roi.yMin && y <= roi.yMax) continue;
+                          p[y * boardSize + x] = -1;
+                        }
+                      }
+                      return p;
+                    })()
+                  : analysisWithTerritory.policy,
+              };
+            }
+
+            return analysisWithTerritory;
+          };
+
+          const applyAnalysis = (analysis: KataGoAnalysisPayload, isFinal: boolean, now = getAnimationNow()) => {
+            const showOwnership = get().settings.analysisShowOwnership;
+            const shouldUpdateTerritory =
+              isFinal || (showOwnership && progressApplyMinMs > 0 && now - lastTerritoryUpdateAt >= progressApplyMinMs);
+            if (shouldUpdateTerritory) lastTerritoryUpdateAt = now;
+            const fallbackTerritory = node.analysis?.territory ?? createEmptyTerritory(boardSize);
+            const analysisWithTerritory = buildAnalysisResult(analysis, {
+              includeTerritory: shouldUpdateTerritory,
+              fallbackTerritory,
+            });
+            node.analysis = analysisWithTerritory;
+            if (isFinal) node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, visits);
+
+            const latest = get();
+            const isCurrent = latest.currentNode.id === node.id;
+            const updateNow = getAnimationNow();
+            const shouldBumpTree =
+              isFinal || (isCurrent && treeUpdateEveryMs > 0 && updateNow - lastTreeUpdateAt >= treeUpdateEveryMs);
+            if (shouldBumpTree) lastTreeUpdateAt = updateNow;
+
+            if (!isCurrent && !isFinal && !shouldBumpTree) return;
+
+            const engineInfo = isFinal ? getKataGoEngineClient().getEngineInfo() : null;
+            set((s) => {
+              const next: Partial<GameStore> = {};
+              if (isCurrent) next.analysisData = analysisWithTerritory;
+              if (isFinal && engineInfo) {
+                next.engineStatus = 'ready';
+                next.engineError = null;
+                next.engineBackend = engineInfo.backend;
+                next.engineModelName = engineInfo.modelName;
+              }
+              if (shouldBumpTree) next.treeVersion = s.treeVersion + 1;
+              if (isFinal) next.analysisCacheSize = getAnalysisCacheSize(s.rootNode);
+              return next;
+            });
+          };
+
+          const onProgress = reportDuringSearchEveryMs
+            ? (analysis: KataGoAnalysisPayload) => {
+                const visits = typeof analysis.rootVisits === 'number' ? analysis.rootVisits : 0;
+                if (visits <= lastProgressVisits) return;
+                const now = getAnimationNow();
+                if (progressApplyMinMs > 0 && now - lastProgressApplyAt < progressApplyMinMs) return;
+                lastProgressVisits = visits;
+                lastProgressApplyAt = now;
+                applyAnalysis(analysis, false, now);
+              }
+            : undefined;
+
+      const interactiveCacheKey = analysisCacheKey(
+        'interactive',
+        node.id,
+        nodeAnalysisPositionKey(node, rules),
+        modelUrl,
+        state.settings.katagoBackend,
+        rules,
+        JSON.stringify(state.regionOfInterest ?? null),
+        topK,
+        analysisPvLen,
+        state.settings.katagoOwnershipMode,
+        wideRootNoise,
+        nnRandomize,
+        conservativePass,
+        visits,
+        maxTimeMs,
+        batchSize,
+        maxChildren,
+        reuseTree,
+        ownershipRefreshIntervalMs
+      );
+      set({ engineStatus: 'loading', engineError: null });
+
+	      return analysisQueue
+	        .enqueue<KataGoAnalysisPayload>({
+          id: `interactive:${node.id}`,
+          label: 'Live analysis',
+          group: 'interactive',
+          priority: ANALYSIS_QUEUE_PRIORITY.interactive,
+          staleKey: 'interactive-analysis',
+          cacheKey: interactiveCacheKey,
+          bypassCache: opts?.force === true,
+          preempt: true,
+          run: (ctx) => getKataGoEngineClient().analyze({
+	          positionId: node.id,
+	          parentPositionId: node.parent?.id,
+            positionKey: nodeAnalysisPositionKey(node, rules),
+            parentPositionKey: parentAnalysisPositionKey(node, rules),
+	          modelUrl,
+            backend: state.settings.katagoBackend,
+	          board: state.board,
+	          previousBoard: parentBoard,
+	          previousPreviousBoard: grandparentBoard,
+	          currentPlayer: state.currentPlayer,
+	          moveHistory: state.moveHistory,
+	          komi: state.komi,
+            rules,
+            regionOfInterest: state.regionOfInterest,
+	          topK,
+            includeMovesOwnership: state.settings.katagoOwnershipMode === 'tree',
+            analysisPvLen,
+            wideRootNoise,
+            nnRandomize,
+            conservativePass,
+          visits,
+          maxTimeMs,
+          batchSize,
+          maxChildren,
+          reportDuringSearchEveryMs,
+          ownershipRefreshIntervalMs,
+          reuseTree,
+          ownershipMode: state.settings.katagoOwnershipMode,
+          analysisGroup: 'interactive',
+          onProgress: onProgress
+            ? (analysis) => {
+                if (ctx.signal.aborted || ctx.isStale()) return;
+                onProgress(analysis);
+              }
+            : undefined,
+          }),
+        })
+        .then((analysis) => {
+          applyAnalysis(analysis, true);
+
+          const maybeApplyTeachUndo = () => {
+            const latestState = get();
+            if (!latestState.isTeachMode) return;
+
+            const current = latestState.currentNode;
+            const move = current.move;
+            const parent = current.parent;
+            if (!move || !parent) return;
+            if (current.autoUndo !== null && current.autoUndo !== undefined) return;
+            if (latestState.isAiPlaying && latestState.aiColor === move.player) return;
+
+            const parentScore = parent.analysis?.rootScoreLead;
+            const childScore = current.analysis?.rootScoreLead;
+            if (typeof parentScore !== 'number' || typeof childScore !== 'number') return;
+
+            const pointsLost = (move.player === 'black' ? 1 : -1) * (parentScore - childScore);
+            const thresholds = latestState.settings.trainerEvalThresholds?.length
+              ? latestState.settings.trainerEvalThresholds
+              : ([12, 6, 3, 1.5, 0.5, 0] as const);
+
+            let i = 0;
+            while (i < thresholds.length - 1 && pointsLost < thresholds[i]!) i++;
+            const undoPrompts = latestState.settings.teachNumUndoPrompts ?? [];
+            const idx = Math.max(0, Math.min(i, undoPrompts.length - 1));
+            const numUndos = undoPrompts[idx] ?? 0;
+
+            let undo = false;
+            if (numUndos === 0) {
+              undo = false;
+            } else if (numUndos < 1) {
+              const r = typeof current.undoThreshold === 'number' ? current.undoThreshold : Math.random();
+              current.undoThreshold = r;
+              undo = r < numUndos && parent.children.length === 1;
+            } else {
+              undo = parent.children.length <= numUndos;
+            }
+
+            current.autoUndo = undo;
+            set((s) => ({ treeVersion: s.treeVersion + 1 }));
+
+            if (!undo) return;
+
+            const moveLabel =
+              move.x < 0 || move.y < 0
+                ? 'Pass'
+                : `${String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}${boardSize - move.y}`;
+
+            const notification = {
+              message: `Teaching undo: ${moveLabel} (${pointsLost.toFixed(1)} points lost)`,
+              type: 'info' as const,
+            };
+            set({ notification });
+            setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 3000);
+            latestState.navigateBack();
+          };
+
+          maybeApplyTeachUndo();
+        })
+        .catch((err: unknown) => {
+          if (isAnalysisCanceled(err)) return;
+          const msg = err instanceof Error ? err.message : String(err);
+          const notification = { message: `Analysis error: ${msg}`, type: 'error' as const };
+          set({
+            engineStatus: 'error',
+            engineError: msg,
+            notification,
+          });
+          setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 3000);
+        });
+  },
+
+  updateSettings: (newSettings) =>
+    set((state) => {
+      const nextSettings: GameSettings = { ...state.settings, ...newSettings };
+      saveStoredSettings(nextSettings);
+      const engineKeys: Array<keyof GameSettings> = [
+        'katagoModelUrl',
+        'katagoBackend',
+        'katagoVisits',
+        'katagoMaxTimeMs',
+        'katagoBatchSize',
+        'katagoMaxChildren',
+        'katagoTopK',
+        'katagoOwnershipMode',
+        'katagoWideRootNoise',
+        'katagoAnalysisPvLen',
+        'katagoNnRandomize',
+        'katagoConservativePass',
+        'gameRules',
+      ];
+
+      const engineChanged = engineKeys.some((k) => newSettings[k] !== undefined && newSettings[k] !== state.settings[k]);
+      if (!engineChanged) return { settings: nextSettings };
+
+      continuousToken++;
+      selfplayToken++;
+      gameAnalysisToken++;
+      analysisQueue.cancelWhere(() => true, 'Analysis settings changed');
+      analysisQueue.clearCache();
+
+      const clearAnalysis = (node: GameNode) => {
+        node.analysis = null;
+        node.analysisVisitsRequested = 0;
+        for (const child of node.children) clearAnalysis(child);
+      };
+      clearAnalysis(state.rootNode);
+
+      const rulesChanged = newSettings.gameRules !== undefined && newSettings.gameRules !== state.settings.gameRules;
+      const history = rulesChanged ? pushEditHistory(state) : {};
+      if (rulesChanged) {
+        state.rootNode.properties = state.rootNode.properties ?? {};
+        state.rootNode.properties['RU'] = [rulesToSgfRu(nextSettings.gameRules)];
+      }
+
+      return {
+        settings: nextSettings,
+        analysisData: null,
+        engineStatus: 'idle',
+        engineError: null,
+        engineBackend: null,
+        engineModelName: null,
+        analysisCacheSize: 0,
+        isContinuousAnalysis: false,
+        isSelfplayToEnd: false,
+        isGameAnalysisRunning: false,
+        gameAnalysisType: null,
+        ...history,
+        treeVersion: rulesChanged ? state.treeVersion + 1 : state.treeVersion,
+      };
+    }),
+
+  setKomi: (komi) => {
+    if (!Number.isFinite(komi)) return;
+    const nextKomi = Number(komi.toFixed(2));
+    const nextKomiText = formatKomiProperty(nextKomi);
+    const current = get();
+    const currentKomiText = current.rootNode.properties?.KM?.[0] ?? '';
+    const sameKomi = Math.abs(current.komi - nextKomi) < 0.0001;
+    if (sameKomi) {
+      if (currentKomiText === nextKomiText) return;
+      set((state) => {
+        const history = pushEditHistory(state);
+        state.rootNode.properties = state.rootNode.properties ?? {};
+        state.rootNode.properties.KM = [nextKomiText];
+        return { ...history, treeVersion: state.treeVersion + 1 };
+      });
+      return;
+    }
+
+    continuousToken++;
+    selfplayToken++;
+    gameAnalysisToken++;
+    analysisQueue.cancelWhere(() => true, 'Komi changed');
+    analysisQueue.clearCache();
+
+    set((state) => {
+      const history = pushEditHistory(state);
+      state.rootNode.properties = state.rootNode.properties ?? {};
+      state.rootNode.properties.KM = [nextKomiText];
+      applyKomiToSubtree(state.rootNode, nextKomi);
+      clearAnalysisInSubtree(state.rootNode);
+
+      return {
+        komi: nextKomi,
+        board: state.currentNode.gameState.board,
+        currentPlayer: state.currentNode.gameState.currentPlayer,
+        moveHistory: state.currentNode.gameState.moveHistory,
+        capturedBlack: state.currentNode.gameState.capturedBlack,
+        capturedWhite: state.currentNode.gameState.capturedWhite,
+        analysisData: null,
+        analysisCacheSize: 0,
+        isContinuousAnalysis: false,
+        isSelfplayToEnd: false,
+        isGameAnalysisRunning: false,
+        gameAnalysisType: null,
+        engineStatus: 'idle',
+        engineError: null,
+        ...history,
+        treeVersion: state.treeVersion + 1,
+      };
+    });
+  },
+
+  setHandicap: (handicap) => {
+    if (!Number.isFinite(handicap)) return;
+    const current = get();
+    const boardSize = getBoardSizeFromBoard(current.rootNode.gameState.board);
+    const nextHandicap = Math.max(0, Math.min(Math.floor(handicap), getMaxHandicap(boardSize)));
+    const currentHandicap = parseHandicapProperty(current.rootNode.properties, boardSize);
+    const currentHandicapText = current.rootNode.properties?.HA?.[0] ?? '';
+    const nextHandicapText = nextHandicap > 0 ? String(nextHandicap) : '';
+    if (currentHandicap === nextHandicap) {
+      const hasHandicapPlayer = current.rootNode.properties?.PL?.[0] === 'W';
+      const setupMatchesBoard = rootSetupPropertiesMatchBoard(
+        current.rootNode.properties,
+        current.rootNode.gameState.board,
+        boardSize,
+        nextHandicap
+      );
+      if (
+        currentHandicapText === nextHandicapText &&
+        (nextHandicap > 0 ? hasHandicapPlayer : !hasHandicapPlayer) &&
+        setupMatchesBoard
+      ) {
+        return;
+      }
+      set((state) => {
+        const history = pushEditHistory(state);
+        state.rootNode.properties = state.rootNode.properties ?? {};
+        if (nextHandicap > 0) {
+          state.rootNode.properties.HA = [nextHandicapText];
+          state.rootNode.properties.PL = ['W'];
+        } else {
+          delete state.rootNode.properties.HA;
+          if (state.rootNode.properties.PL?.[0] === 'W') delete state.rootNode.properties.PL;
+        }
+        const rootBoardSize = getBoardSizeFromBoard(state.rootNode.gameState.board);
+        syncRootSetupPropertiesFromBoard(
+          state.rootNode.properties,
+          state.rootNode.gameState.board,
+          rootBoardSize,
+          nextHandicap
+        );
+        return { ...history, rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
+      });
+      return;
+    }
+
+    continuousToken++;
+    selfplayToken++;
+    gameAnalysisToken++;
+    analysisQueue.cancelWhere(() => true, 'Handicap changed');
+    analysisQueue.clearCache();
+
+    set((state) => {
+      const history = pushEditHistory(state);
+      const root = state.rootNode;
+      const rootBoardSize = getBoardSizeFromBoard(root.gameState.board);
+      const oldHandicap = parseHandicapProperty(root.properties, rootBoardSize);
+      const nextBoard = applyRootHandicap(root.gameState.board, rootBoardSize, oldHandicap, nextHandicap);
+      const nextPlayer: Player = nextHandicap > 0 ? 'white' : 'black';
+      root.properties = root.properties ?? {};
+      if (nextHandicap > 0) {
+        root.properties.HA = [String(nextHandicap)];
+        root.properties.PL = ['W'];
+      } else {
+        delete root.properties.HA;
+        if (root.properties.PL?.[0] === 'W') delete root.properties.PL;
+      }
+      root.gameState = {
+        ...root.gameState,
+        board: nextBoard,
+        currentPlayer: nextPlayer,
+        moveHistory: [],
+        capturedBlack: 0,
+        capturedWhite: 0,
+      };
+      syncRootSetupPropertiesFromBoard(root.properties, nextBoard, rootBoardSize, nextHandicap);
+      clearAnalysisInSubtree(root);
+      rebuildDescendants(root);
+      const currentNode = findNodeById(root, state.currentNode.id) ?? root;
+
+      return {
+        currentNode,
+        board: currentNode.gameState.board,
+        currentPlayer: currentNode.gameState.currentPlayer,
+        moveHistory: currentNode.gameState.moveHistory,
+        capturedBlack: currentNode.gameState.capturedBlack,
+        capturedWhite: currentNode.gameState.capturedWhite,
+        analysisData: null,
+        analysisCacheSize: 0,
+        isContinuousAnalysis: false,
+        isSelfplayToEnd: false,
+        isGameAnalysisRunning: false,
+        gameAnalysisType: null,
+        engineStatus: 'idle',
+        engineError: null,
+        ...history,
+        treeVersion: state.treeVersion + 1,
+      };
+    });
+  },
+
+  setRootProperty: (key, value) => {
+    const normalizedKey = key.toUpperCase();
+    if (normalizedKey === 'KM') {
+      const parsed = Number(value.trim());
+      if (Number.isFinite(parsed)) get().setKomi(parsed);
+      return;
+    }
+    if (normalizedKey === 'RU') {
+      const parsed = parseSgfRu(value.trim());
+      if (parsed) {
+        const current = get();
+        const canonical = rulesToSgfRu(parsed);
+        if (parsed === current.settings.gameRules) {
+          set((state) => {
+            const currentRulesText = state.rootNode.properties?.RU?.[0] ?? '';
+            if (currentRulesText === canonical) return {};
+            const history = pushEditHistory(state);
+            state.rootNode.properties = state.rootNode.properties ?? {};
+            state.rootNode.properties.RU = [canonical];
+            return { ...history, rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
+          });
+        } else {
+          current.updateSettings({ gameRules: parsed });
+        }
+        return;
+      }
+    }
+    if (normalizedKey === 'HA') {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        get().setHandicap(0);
+        return;
+      }
+      const parsed = Number.parseInt(trimmed, 10);
+      if (Number.isFinite(parsed)) get().setHandicap(parsed);
+      return;
+    }
+
+    set((state) => {
+      const trimmed = value.trim();
+      const currentValue = state.rootNode.properties?.[key]?.[0] ?? '';
+      if (currentValue === trimmed) return {};
+      const history = pushEditHistory(state);
+      state.rootNode.properties = state.rootNode.properties ?? {};
+      if (!trimmed) {
+        delete state.rootNode.properties[key];
+      } else {
+        state.rootNode.properties[key] = [trimmed];
+      }
+      return { ...history, rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
+    });
+  },
+
+  setCurrentNodeNote: (note) =>
+    set((state) => {
+      state.currentNode.note = note;
+      return { treeVersion: state.treeVersion + 1 };
+    }),
+
+  playMove: (x: number, y: number, isLoad = false) => {
+    const state = get();
+
+    // Check if we are loading or playing normally.
+    // First, check if move exists in children (Navigation)
+    const existingChild = state.currentNode.children.find(child =>
+        child.move && child.move.x === x && child.move.y === y && child.move.player === state.currentPlayer
+    );
+
+    if (existingChild && !isLoad) {
+       // Navigate to existing child
+       get().jumpToNode(existingChild);
+       return;
+    }
+
+    // New Move Logic
+    // Validate against the same simple-ko/no-suicide rules used by the engine presets exposed in the UI.
+    if (!isValidMove(state.board, x, y, state.currentPlayer, state.currentNode.parent?.gameState.board)) return;
+
+	    const tentativeBoard = state.board.map((row) => [...row]);
+	    tentativeBoard[y][x] = state.currentPlayer;
+
+	    const captured = applyCapturesInPlace(tentativeBoard, x, y, state.currentPlayer);
+	    const newBoard = tentativeBoard;
+
+	    // Suicide check
+	    if (captured.length === 0) {
+	      const { liberties } = getLiberties(newBoard, x, y);
+      if (liberties === 0) return;
+    }
+
+    // Ko check
+    // Simple Ko: Check just the state from 2 moves ago?
+    // Let's traverse up one step (parent).
+    if (state.currentNode.parent && boardsEqual(newBoard, state.currentNode.parent.gameState.board)) {
+        // Found Ko, illegal move
+        return;
+    }
+
+    if (!isLoad) {
+      if (state.settings.soundEnabled) {
+          playStoneSound();
+          if (captured.length > 0) {
+              setTimeout(() => playCaptureSound(captured.length), 100);
+          }
+      }
+    }
+
+    const newCapturedBlack = state.capturedBlack + (state.currentPlayer === 'white' ? captured.length : 0);
+    const newCapturedWhite = state.capturedWhite + (state.currentPlayer === 'black' ? captured.length : 0);
+    const nextPlayer: Player = state.currentPlayer === 'black' ? 'white' : 'black';
+
+    const move: Move = { x, y, player: state.currentPlayer };
+
+    const newGameState: GameState = {
+        board: newBoard,
+        currentPlayer: nextPlayer,
+        moveHistory: [...state.moveHistory, move],
+        capturedBlack: newCapturedBlack,
+        capturedWhite: newCapturedWhite,
+        komi: state.komi,
+    };
+
+    const newNode = createNode(state.currentNode, move, newGameState);
+    state.currentNode.children.push(newNode);
+
+    set({
+      currentNode: newNode,
+      board: newGameState.board,
+      currentPlayer: newGameState.currentPlayer,
+      moveHistory: newGameState.moveHistory,
+      capturedBlack: newGameState.capturedBlack,
+      capturedWhite: newGameState.capturedWhite,
+      analysisData: null, // Clear old analysis
+      activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, newNode),
+      treeVersion: state.treeVersion + 1,
+    });
+
+    if (!isLoad) {
+      const newState = get();
+      if (newState.isAiPlaying && newState.currentPlayer === newState.aiColor) {
+        setTimeout(() => get().makeAiMove(), 500);
+      }
+	      if (newState.isAnalysisMode && !newState.isSelfplayToEnd) {
+	          setTimeout(() => void get().runAnalysis(), 500);
+	      }
+	    }
+	  },
+
+	  makeAiMove: (opts) => {
+	      const force = opts?.force ?? false;
+	      const state = get();
+	      // `force` lets the on-demand "AI move" buttons play one engine move for
+	      // the side to move even outside an AI game or on the human's turn.
+	      if (!force) {
+	        if (!state.isAiPlaying || !state.aiColor) return;
+	        if (state.currentPlayer !== state.aiColor) return;
+	      }
+
+	      const node = state.currentNode;
+	      const nodeId = node.id;
+	      const playerAtStart = state.currentPlayer;
+
+	      const parentBoard = node.parent?.gameState.board;
+	      const grandparentBoard = node.parent?.parent?.gameState.board;
+	      const modelUrl = resolveModelUrlForFetch(state.settings.katagoModelUrl);
+        const rules = state.settings.gameRules;
+        const analysisPvLen = state.settings.katagoAnalysisPvLen;
+        const wideRootNoise = 0;
+        const nnRandomize = false;
+        const conservativePass = state.settings.katagoConservativePass;
+        const aiNeedsMovesOwnership = state.settings.aiStrategy === 'simple' || state.settings.aiStrategy === 'settle';
+        const aiOwnershipMode = aiNeedsMovesOwnership ? 'tree' : state.settings.katagoOwnershipMode;
+        const topK =
+          state.settings.aiStrategy === 'default'
+            ? state.settings.katagoTopK
+            : Math.max(state.settings.katagoTopK, 30);
+        const visits = Math.max(16, Math.min(state.settings.katagoVisits, ENGINE_MAX_VISITS));
+        const maxTimeMs = Math.max(25, Math.min(state.settings.katagoMaxTimeMs, ENGINE_MAX_TIME_MS));
+        const batchSize = state.settings.katagoBatchSize;
+        const maxChildren = state.settings.katagoMaxChildren;
+        const positionKey = nodeAnalysisPositionKey(node, rules);
+        const parentPositionKeyValue = parentAnalysisPositionKey(node, rules);
+
+      void analysisQueue
+        .enqueue<KataGoAnalysisPayload>({
+          id: `ai-move:${nodeId}`,
+          label: 'AI move',
+          group: 'ai-move',
+          priority: ANALYSIS_QUEUE_PRIORITY.aiMove,
+          staleKey: `ai-move:${playerAtStart}`,
+          cacheKey: analysisCacheKey(
+            'ai-move',
+            nodeId,
+            positionKey,
+            modelUrl,
+            state.settings.katagoBackend,
+            rules,
+            topK,
+            aiNeedsMovesOwnership,
+            analysisPvLen,
+            conservativePass,
+            visits,
+            maxTimeMs,
+            batchSize,
+            maxChildren,
+            state.settings.katagoReuseTree,
+            aiOwnershipMode,
+            state.settings.aiStrategy
+          ),
+          preempt: true,
+          run: () => getKataGoEngineClient().analyze({
+	          positionId: nodeId,
+	          parentPositionId: node.parent?.id,
+            positionKey,
+            parentPositionKey: parentPositionKeyValue,
+	          modelUrl,
+            backend: state.settings.katagoBackend,
+	          board: state.board,
+	          previousBoard: parentBoard,
+	          previousPreviousBoard: grandparentBoard,
+	          currentPlayer: state.currentPlayer,
+	          moveHistory: state.moveHistory,
+	          komi: state.komi,
+            rules,
+	          topK,
+            includeMovesOwnership: aiNeedsMovesOwnership,
+            analysisPvLen,
+            wideRootNoise,
+            nnRandomize,
+            conservativePass,
+          visits,
+          maxTimeMs,
+          batchSize,
+          maxChildren,
+          reuseTree: state.settings.katagoReuseTree,
+          ownershipMode: aiOwnershipMode,
+          analysisGroup: 'background',
+          }),
+        })
+        .then((analysis) => {
+          const engineInfo = getKataGoEngineClient().getEngineInfo();
+          set({ engineBackend: engineInfo.backend, engineModelName: engineInfo.modelName });
+
+          const latest = get();
+          if (latest.currentNode.id !== nodeId) return;
+          if (latest.currentPlayer !== playerAtStart) return;
+          if (!force && (!latest.isAiPlaying || latest.aiColor !== playerAtStart)) return;
+          const settings = latest.settings;
+          const boardSize = getBoardSizeFromBoard(latest.board);
+
+          const analysisWithTerritory: AnalysisResult = {
+            rootWinRate: analysis.rootWinRate,
+            rootScoreLead: analysis.rootScoreLead,
+            rootScoreSelfplay: analysis.rootScoreSelfplay,
+            rootScoreStdev: analysis.rootScoreStdev,
+            rootVisits: analysis.rootVisits,
+            moves: analysis.moves,
+            territory: ownershipToTerritoryGrid(analysis.ownership, boardSize),
+            policy: analysis.policy,
+            ownershipStdev: analysis.ownershipStdev,
+            ownershipMode: aiOwnershipMode,
+          };
+
+          // Cache analysis on the node we analyzed.
+          node.analysis = analysisWithTerritory;
+
+          type PolicyMove = { prob: number; x: number; y: number; isPass: boolean };
+          const policyRanking = (policy: FloatArray): PolicyMove[] => {
+            const out: PolicyMove[] = [];
+            for (let y = 0; y < boardSize; y++) {
+              for (let x = 0; x < boardSize; x++) {
+                const p = policy[y * boardSize + x] ?? -1;
+                if (p > 0) out.push({ prob: p, x, y, isPass: false });
+              }
+            }
+            const pass = policy[boardSize * boardSize] ?? -1;
+            if (pass > 0) out.push({ prob: pass, x: -1, y: -1, isPass: true });
+            out.sort((a, b) => b.prob - a.prob);
+            return out;
+          };
+
+          const pickOneWeighted = <T,>(items: Array<{ weight: number; value: T }>): T | null => {
+            let total = 0;
+            for (const it of items) {
+              if (it.weight > 0 && Number.isFinite(it.weight)) total += it.weight;
+            }
+            if (!(total > 0)) return null;
+            let r = Math.random() * total;
+            for (const it of items) {
+              const w = it.weight;
+              if (!(w > 0) || !Number.isFinite(w)) continue;
+              if (r < w) return it.value;
+              r -= w;
+            }
+            return items.length > 0 ? items[items.length - 1]!.value : null;
+          };
+
+          const weightedSampleWithoutReplacement = <T,>(
+            items: T[],
+            n: number,
+            weightFn: (item: T) => number
+          ): T[] => {
+            const scored = items.map((item) => {
+              const w = Math.max(1e-18, weightFn(item));
+              const u = Math.random();
+              const key = Math.log(Math.max(1e-18, u)) / w;
+              return { key, item };
+            });
+            scored.sort((a, b) => b.key - a.key);
+            return scored.slice(0, Math.min(Math.max(0, n), scored.length)).map((s) => s.item);
+          };
+
+          const chooseByStrategy = (): { x: number; y: number; thoughts: string } | null => {
+            const strategy = settings.aiStrategy;
+            const candidates = analysisWithTerritory.moves ?? [];
+
+            const best =
+              candidates.find((m) => m.order === 0) ?? candidates[0] ?? null;
+            const bestLabel =
+              !best
+                ? 'pass'
+                : best.x < 0 || best.y < 0
+                  ? 'pass'
+                  : `${String.fromCharCode(65 + (best.x >= 8 ? best.x + 1 : best.x))}${boardSize - best.y}`;
+
+            if (strategy === 'default') {
+              if (!best) return null;
+              return {
+                x: best.x,
+                y: best.y,
+                thoughts: `Default strategy chose top move ${bestLabel}.`,
+              };
+            }
+
+            if (strategy === 'scoreloss') {
+              if (candidates.length === 0) return null;
+              const c = Math.max(0, settings.aiScoreLossStrength);
+              const weighted = candidates.map((m) => ({
+                weight: Math.exp(Math.min(200, -c * Math.max(0, m.pointsLost))),
+                value: m,
+              }));
+              const picked = pickOneWeighted(weighted);
+              if (!picked) return null;
+              const label =
+                picked.x < 0 || picked.y < 0
+                  ? 'pass'
+                  : `${String.fromCharCode(65 + (picked.x >= 8 ? picked.x + 1 : picked.x))}${boardSize - picked.y}`;
+              return {
+                x: picked.x,
+                y: picked.y,
+                thoughts: `ScoreLoss picked ${label} (pointsLost ${picked.pointsLost.toFixed(1)}, strength ${c}).`,
+              };
+            }
+
+            if (strategy === 'jigo') {
+              if (candidates.length === 0) return null;
+              const target = settings.aiJigoTargetScore;
+              const sign = playerAtStart === 'black' ? 1 : -1;
+
+              let bestCand = candidates[0]!;
+              let bestDiff = Math.abs(sign * bestCand.scoreLead - target);
+              for (const m of candidates) {
+                const diff = Math.abs(sign * m.scoreLead - target);
+                if (diff < bestDiff) {
+                  bestDiff = diff;
+                  bestCand = m;
+                }
+              }
+              const label =
+                bestCand.x < 0 || bestCand.y < 0
+                  ? 'pass'
+                  : `${String.fromCharCode(65 + (bestCand.x >= 8 ? bestCand.x + 1 : bestCand.x))}${boardSize - bestCand.y}`;
+              return {
+                x: bestCand.x,
+                y: bestCand.y,
+                thoughts: `Jigo picked ${label} (target ${target}, diff ${bestDiff.toFixed(1)}).`,
+              };
+            }
+
+            if (strategy === 'simple' || strategy === 'settle') {
+              const modeName = strategy === 'simple' ? 'ai:simple' : 'ai:settle';
+
+              if (candidates.length === 0) return null;
+              const topCand = candidates[0]!;
+              if (topCand.x < 0 || topCand.y < 0) {
+                return { x: topCand.x, y: topCand.y, thoughts: `${modeName}: top move is pass.` };
+              }
+
+              const nextPlayer = playerAtStart;
+              const lastMovePlayer = latest.currentNode.move?.player ?? null;
+
+              const xyToGtp = (x: number, y: number): string => {
+                if (x < 0 || y < 0) return 'pass';
+                const col = x >= 8 ? x + 1 : x;
+                const letter = String.fromCharCode(65 + col);
+                return `${letter}${boardSize - y}`;
+              };
+
+              const inBounds = (x: number, y: number) => x >= 0 && x < boardSize && y >= 0 && y < boardSize;
+
+              const isAttachment = (x: number, y: number): boolean => {
+                if (x < 0 || y < 0) return false;
+                // KaTrain: self.cn.player is last mover; if none, no attachment penalty.
+                if (!lastMovePlayer) return false;
+
+                const opp = lastMovePlayer;
+                let attachOpp = 0;
+                const dirs: Array<[number, number]> = [
+                  [1, 0],
+                  [-1, 0],
+                  [0, 1],
+                  [0, -1],
+                ];
+                for (const [dx, dy] of dirs) {
+                  const nx = x + dx;
+                  const ny = y + dy;
+                  if (!inBounds(nx, ny)) continue;
+                  if (latest.board[ny]?.[nx] === opp) attachOpp++;
+                }
+
+                let nearbyOwn = 0;
+                // NOTE: Mirrors KaTrain upstream exactly (including its odd ranges).
+                const dxs = [-2, 0, 1, 2];
+                const dys = [-3, 0, 1, 2];
+                for (const dx of dxs) {
+                  for (const dy of dys) {
+                    if (Math.abs(dx) + Math.abs(dy) > 2) continue;
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (!inBounds(nx, ny)) continue;
+                    if (latest.board[ny]?.[nx] === nextPlayer) nearbyOwn++;
+                  }
+                }
+
+                return attachOpp >= 1 && nearbyOwn === 0;
+              };
+
+              const isTenuki = (x: number, y: number): boolean => {
+                if (x < 0 || y < 0) return false;
+                const a = latest.currentNode;
+                const b = latest.currentNode.parent;
+                if (!a || !a.move || a.move.x < 0 || a.move.y < 0) return false;
+                if (!b || !b.move || b.move.x < 0 || b.move.y < 0) return false;
+
+              const cheb = (m: Move) => Math.max(Math.abs(m.x - x), Math.abs(m.y - y));
+              return cheb(a.move) >= 5 && cheb(b.move) >= 5;
+            };
+
+              const settledness = (ownership: FloatArray, player: Player): number => {
+                if (strategy === 'simple') {
+                  const sign = player === 'black' ? 1 : -1;
+                  let sum = 0;
+                  for (const o of ownership) {
+                    if (sign * o > 0) sum += Math.abs(o);
+                  }
+                  return sum;
+                }
+
+                // settle: sum |ownership| for existing stones of the player
+                let sum = 0;
+                for (let yy = 0; yy < boardSize; yy++) {
+                  for (let xx = 0; xx < boardSize; xx++) {
+                    if (latest.board[yy]?.[xx] !== player) continue;
+                    const v = ownership[yy * boardSize + xx] ?? 0;
+                    sum += Math.abs(v);
+                  }
+                }
+                return sum;
+              };
+
+              const maxPointsLost = settings.aiOwnershipMaxPointsLost;
+              const settledWeight = settings.aiOwnershipSettledWeight;
+              const opponentFac = settings.aiOwnershipOpponentFac;
+              const minVisits = settings.aiOwnershipMinVisits;
+              const attachPenalty = settings.aiOwnershipAttachPenalty;
+              const tenukiPenalty = settings.aiOwnershipTenukiPenalty;
+
+              type Scored = {
+                move: CandidateMove;
+                ownSettled: number;
+                oppSettled: number;
+                attach: boolean;
+                tenuki: boolean;
+                score: number;
+              };
+              const scored: Scored[] = [];
+
+              for (const m of candidates) {
+                if (m.pointsLost >= maxPointsLost) continue;
+                if (!m.ownership || m.ownership.length < boardSize * boardSize) continue;
+                if (!(m.order <= 1 || m.visits >= minVisits)) continue;
+                const isPass = m.x < 0 || m.y < 0;
+                if (isPass && m.pointsLost > 0.75) continue;
+
+                const ownSettled = settledness(m.ownership, nextPlayer);
+                const oppSettled =
+                  strategy === 'settle'
+                    ? lastMovePlayer
+                      ? settledness(m.ownership, lastMovePlayer)
+                      : 0
+                    : settledness(m.ownership, nextPlayer === 'black' ? 'white' : 'black');
+                const attach = isAttachment(m.x, m.y);
+                const tenuki = isTenuki(m.x, m.y);
+                const score =
+                  m.pointsLost +
+                  attachPenalty * (attach ? 1 : 0) +
+                  tenukiPenalty * (tenuki ? 1 : 0) -
+                  settledWeight * (ownSettled + opponentFac * oppSettled);
+
+                scored.push({ move: m, ownSettled, oppSettled, attach, tenuki, score });
+              }
+
+              scored.sort((a, b) => a.score - b.score);
+              const best = scored[0]?.move ?? candidates[0]!;
+              if (scored.length === 0) {
+                return { x: best.x, y: best.y, thoughts: `${modeName}: no moves with ownership; playing top move.` };
+              }
+
+              const top5 = scored.slice(0, 5).map((s) => {
+                const mv = s.move;
+                const label = xyToGtp(mv.x, mv.y);
+                return `${label} (${mv.pointsLost.toFixed(1)} pt lost, ${mv.visits} visits, ${s.ownSettled.toFixed(1)} settledness, ${s.oppSettled.toFixed(1)} opponent settledness${s.attach ? ', attachment' : ''}${s.tenuki ? ', tenuki' : ''})`;
+              });
+
+              return {
+                x: scored[0]!.move.x,
+                y: scored[0]!.move.y,
+                thoughts: `${modeName} strategy. Top 5 Candidates ${top5.join(', ')} `,
+              };
+            }
+
+            const policy = analysisWithTerritory.policy;
+            const policyMoves = policy ? policyRanking(policy) : [];
+            if (policyMoves.length === 0) {
+              if (!best) return null;
+              return {
+                x: best.x,
+                y: best.y,
+                thoughts: `No policy available; fell back to top move ${bestLabel}.`,
+              };
+            }
+
+            const top5Pass = policyMoves.slice(0, 5).some((m) => m.isPass);
+
+            const shouldPlayTopMove = (override: number, overridetwo = 1.0): { move: PolicyMove; thoughts: string } | null => {
+              const top = policyMoves[0]!;
+              if (top5Pass) return { move: top, thoughts: 'Playing top policy move because pass is in top 5.' };
+              if (top.prob > override) return { move: top, thoughts: `Top policy move prob > ${override}.` };
+              const second = policyMoves[1];
+              if (second && top.prob + second.prob > overridetwo) {
+                return { move: top, thoughts: `Top 2 policy moves prob sum > ${overridetwo}.` };
+              }
+              return null;
+            };
+
+            const passProb = policy?.[boardSize * boardSize] ?? -1;
+            const legalPolicyMoves = policyMoves.filter((m) => !m.isPass && m.prob > 0);
+
+            type WeightedCoord = { score: number; weight: number; x: number; y: number };
+
+            const pickFromWeightedCoords = (
+              weightedCoords: WeightedCoord[],
+              nMoves: number,
+              strategyName: string
+            ): { x: number; y: number; thoughts: string } => {
+              const picked = weightedSampleWithoutReplacement(weightedCoords, nMoves, (c) => c.weight);
+
+              if (picked.length === 0) {
+                const top = policyMoves[0]!;
+                return { x: top.x, y: top.y, thoughts: `${strategyName}: no moves selected; playing top policy move.` };
+              }
+
+              picked.sort((a, b) => (b.score - a.score) || (b.weight - a.weight));
+              const topPicked = picked[0]!;
+
+              if (passProb > 0 && topPicked.score < passProb) {
+                const top = policyMoves[0]!;
+                return {
+                  x: top.x,
+                  y: top.y,
+                  thoughts: `${strategyName}: pass prob ${(passProb * 100).toFixed(2)}% > picked ${(topPicked.score * 100).toFixed(2)}%; playing top policy move.`,
+                };
+              }
+
+              return {
+                x: topPicked.x,
+                y: topPicked.y,
+                thoughts: `${strategyName}: picked from ${Math.min(nMoves, weightedCoords.length)} sampled moves.`,
+              };
+            };
+
+            const getPickNMoves = (pickFrac: number, pickN: number, legalCount: number): number =>
+              Math.max(1, Math.floor(Math.max(0, pickFrac) * legalCount + Math.max(0, pickN)));
+
+            const fallbackWeightedPolicy = (reason: string): { x: number; y: number; thoughts: string } => {
+              const weakenFac = 1.0;
+              const lowerBound = 0.02;
+              const override = 0.9;
+
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: `${reason}: ${forced.thoughts}` };
+
+              const weighted = policyMoves
+                .filter((m) => !m.isPass && m.prob > lowerBound)
+                .map((m) => ({ weight: Math.pow(m.prob, 1 / weakenFac), value: m }));
+              const picked = pickOneWeighted(weighted) ?? policyMoves[0]!;
+              return {
+                x: picked.x,
+                y: picked.y,
+                thoughts: `${reason}: fallback weighted policy (lower_bound ${lowerBound}, weaken_fac ${weakenFac}).`,
+              };
+            };
+
+            if (strategy === 'pick') {
+              const override = Math.max(0, settings.aiPickPickOverride);
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+
+              const nMoves = getPickNMoves(settings.aiPickPickFrac, settings.aiPickPickN, legalPolicyMoves.length);
+              const weightedCoords: WeightedCoord[] = legalPolicyMoves.map((m) => ({
+                score: m.prob,
+                weight: 1,
+                x: m.x,
+                y: m.y,
+              }));
+              return pickFromWeightedCoords(weightedCoords, nMoves, 'Pick');
+            }
+
+            if (strategy === 'local' || strategy === 'tenuki') {
+              const lastMove = latest.currentNode.move;
+              if (!lastMove || lastMove.x < 0 || lastMove.y < 0) {
+                return fallbackWeightedPolicy(strategy === 'local' ? 'Local: no previous move' : 'Tenuki: no previous move');
+              }
+
+              const override = Math.max(0, strategy === 'local' ? settings.aiLocalPickOverride : settings.aiTenukiPickOverride);
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+
+              const boardSquares = boardSize * boardSize;
+              const depth = latest.moveHistory.length;
+              const endgame = Math.max(0, strategy === 'local' ? settings.aiLocalEndgame : settings.aiTenukiEndgame);
+              const pickFrac = strategy === 'local' ? settings.aiLocalPickFrac : settings.aiTenukiPickFrac;
+              const pickN = strategy === 'local' ? settings.aiLocalPickN : settings.aiTenukiPickN;
+
+              if (depth > endgame * boardSquares) {
+                const baseN = getPickNMoves(pickFrac, pickN, legalPolicyMoves.length);
+                const nMoves = Math.floor(Math.max(baseN, Math.floor(legalPolicyMoves.length / 2)));
+                const endCoords: WeightedCoord[] = legalPolicyMoves.map((m) => ({
+                  score: m.prob,
+                  weight: 1,
+                  x: m.x,
+                  y: m.y,
+                }));
+                return pickFromWeightedCoords(endCoords, nMoves, strategy === 'local' ? 'Local endgame' : 'Tenuki endgame');
+              }
+
+              const stddev = Math.max(0, strategy === 'local' ? settings.aiLocalStddev : settings.aiTenukiStddev);
+              const var_ = stddev * stddev;
+              if (!(var_ > 0)) {
+                return fallbackWeightedPolicy(strategy === 'local' ? 'Local: stddev <= 0' : 'Tenuki: stddev <= 0');
+              }
+
+              const weightedCoords: WeightedCoord[] = legalPolicyMoves.map((m) => {
+                const dx = m.x - lastMove.x;
+                const dy = m.y - lastMove.y;
+                const gaussian = Math.exp(-0.5 * (dx * dx + dy * dy) / var_);
+                const w = strategy === 'tenuki' ? 1 - gaussian : gaussian;
+                return {
+                  score: m.prob,
+                  weight: Number.isFinite(w) ? Math.max(0, w) : 0,
+                  x: m.x,
+                  y: m.y,
+                };
+              });
+
+              const nMoves = getPickNMoves(pickFrac, pickN, legalPolicyMoves.length);
+              return pickFromWeightedCoords(weightedCoords, nMoves, strategy === 'local' ? 'Local' : 'Tenuki');
+            }
+
+            if (strategy === 'influence' || strategy === 'territory') {
+              const override = Math.max(0, strategy === 'influence' ? settings.aiInfluencePickOverride : settings.aiTerritoryPickOverride);
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+
+              const boardSquares = boardSize * boardSize;
+              const depth = latest.moveHistory.length;
+              const endgame = Math.max(0, strategy === 'influence' ? settings.aiInfluenceEndgame : settings.aiTerritoryEndgame);
+              const pickFrac = strategy === 'influence' ? settings.aiInfluencePickFrac : settings.aiTerritoryPickFrac;
+              const pickN = strategy === 'influence' ? settings.aiInfluencePickN : settings.aiTerritoryPickN;
+
+              if (depth > endgame * boardSquares) {
+                const baseN = getPickNMoves(pickFrac, pickN, legalPolicyMoves.length);
+                const nMoves = Math.floor(Math.max(baseN, Math.floor(legalPolicyMoves.length / 2)));
+                const endCoords: WeightedCoord[] = legalPolicyMoves.map((m) => ({
+                  score: m.prob,
+                  weight: 1,
+                  x: m.x,
+                  y: m.y,
+                }));
+                return pickFromWeightedCoords(endCoords, nMoves, strategy === 'influence' ? 'Influence endgame' : 'Territory endgame');
+              }
+
+              const threshold = Math.max(0, strategy === 'influence' ? settings.aiInfluenceThreshold : settings.aiTerritoryThreshold);
+              const lineWeightRaw = strategy === 'influence' ? settings.aiInfluenceLineWeight : settings.aiTerritoryLineWeight;
+              const lineWeight = Math.max(1, lineWeightRaw);
+              const thrLine = threshold - 1;
+
+              const weightedCoords: WeightedCoord[] = legalPolicyMoves.map((m) => {
+                const distX = Math.min(boardSize - 1 - m.x, m.x);
+                const distY = Math.min(boardSize - 1 - m.y, m.y);
+
+                let exponent = 0;
+                if (strategy === 'influence') {
+                  exponent = Math.max(0, thrLine - distX) + Math.max(0, thrLine - distY);
+                } else {
+                  const distMin = Math.min(distX, distY);
+                  exponent = Math.max(0, distMin - thrLine);
+                }
+
+                const w = Math.pow(1 / lineWeight, exponent);
+                return {
+                  score: m.prob,
+                  weight: Number.isFinite(w) ? Math.max(0, w) : 0,
+                  x: m.x,
+                  y: m.y,
+                };
+              });
+
+              const nMoves = getPickNMoves(pickFrac, pickN, legalPolicyMoves.length);
+              return pickFromWeightedCoords(weightedCoords, nMoves, strategy === 'influence' ? 'Influence' : 'Territory');
+            }
+
+            if (strategy === 'rank') {
+              const kyuRank = settings.aiRankKyu;
+              const boardSquares = boardSize * boardSize;
+              const legalPolicyMoves = policyMoves.filter((m) => !m.isPass && m.prob > 0);
+              const normLegMoves = legalPolicyMoves.length / boardSquares;
+
+              const origCalibAveModRank =
+                0.063015 + (0.7624 * boardSquares) / Math.pow(10, -0.05737 * kyuRank + 1.9482);
+
+              const exponentTerm =
+                3.002 * normLegMoves * normLegMoves - normLegMoves - 0.034889 * kyuRank - 0.5097;
+
+              const modifiedCalibAveModRank =
+                (0.3931 +
+                  0.6559 * normLegMoves * Math.exp(-1 * exponentTerm * exponentTerm) -
+                  0.01093 * kyuRank) *
+                origCalibAveModRank;
+
+              const denominator = 1.31165 * (modifiedCalibAveModRank + 1) - 0.082653;
+              const nMoves = Math.max(1, Math.round((boardSquares * normLegMoves) / denominator));
+
+              const ratio = (boardSquares - legalPolicyMoves.length) / boardSquares;
+              const override = 0.8 * (1 - 0.5 * ratio);
+              const overridetwo = 0.85 + Math.max(0, 0.02 * (kyuRank - 8));
+
+              const forced = shouldPlayTopMove(override, overridetwo);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+
+              const sampled = weightedSampleWithoutReplacement(legalPolicyMoves, nMoves, () => 1);
+              sampled.sort((a, b) => b.prob - a.prob);
+              const picked = sampled[0] ?? null;
+
+              if (!picked) {
+                const top = policyMoves[0]!;
+                return { x: top.x, y: top.y, thoughts: 'Rank: no legal policy moves; playing top policy move.' };
+              }
+
+              if (passProb > picked.prob) {
+                const top = policyMoves[0]!;
+                return {
+                  x: top.x,
+                  y: top.y,
+                  thoughts: `Rank: pass prob ${(passProb * 100).toFixed(1)}% > picked ${(picked.prob * 100).toFixed(1)}%; playing top policy move.`,
+                };
+              }
+
+              return {
+                x: picked.x,
+                y: picked.y,
+                thoughts: `Rank picked from ${Math.min(nMoves, legalPolicyMoves.length)} sampled moves (kyu ${kyuRank}).`,
+              };
+            }
+
+            if (strategy === 'policy') {
+              const openingMoves = Math.max(0, settings.aiPolicyOpeningMoves);
+              const depth = latest.moveHistory.length;
+              if (depth <= openingMoves) {
+                const weakenFac = 1.0;
+                const lowerBound = 0.02;
+                const override = 0.9;
+                const forced = shouldPlayTopMove(override);
+                if (forced) {
+                  return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+                }
+                const weighted = policyMoves
+                  .filter((m) => !m.isPass && m.prob > lowerBound)
+                  .map((m) => ({ weight: Math.pow(m.prob, 1 / weakenFac), value: m }));
+                const picked = pickOneWeighted(weighted) ?? policyMoves[0]!;
+                return {
+                  x: picked.x,
+                  y: picked.y,
+                  thoughts: `Policy opening: picked weighted policy move (depth ${depth} ≤ ${openingMoves}).`,
+                };
+              }
+              const top = policyMoves[0]!;
+              return {
+                x: top.x,
+                y: top.y,
+                thoughts: top5Pass ? 'Playing top policy move because pass is in top 5.' : 'Playing top policy move.',
+              };
+            }
+
+            if (strategy === 'weighted') {
+              const weakenFac = Math.max(0.01, settings.aiWeightedWeakenFac);
+              const lowerBound = Math.max(0, settings.aiWeightedLowerBound);
+              const override = Math.max(0, settings.aiWeightedPickOverride);
+
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+
+              const weighted = policyMoves
+                .filter((m) => !m.isPass && m.prob > lowerBound)
+                .map((m) => ({ weight: Math.pow(m.prob, 1 / weakenFac), value: m }));
+              const picked = pickOneWeighted(weighted);
+              const move = picked ?? policyMoves[0]!;
+              return {
+                x: move.x,
+                y: move.y,
+                thoughts:
+                  picked
+                    ? `Weighted picked random policy move (lower_bound ${lowerBound}, weaken_fac ${weakenFac}).`
+                    : 'Weighted fallback to top policy move.',
+              };
+            }
+
+            if (!best) return null;
+            return { x: best.x, y: best.y, thoughts: `Fallback to top move ${bestLabel}.` };
+          };
+
+          const chosen = chooseByStrategy();
+          if (!chosen) {
+            makeHeuristicMove(get());
+            return;
+          }
+          if (chosen.x === -1 || chosen.y === -1) get().passTurn();
+          else get().playMove(chosen.x, chosen.y);
+
+          const after = get();
+          after.currentNode.aiThoughts = chosen.thoughts;
+          set((s) => ({ treeVersion: s.treeVersion + 1 }));
+        })
+        .catch((err) => {
+          if (isAnalysisCanceled(err)) {
+            const latest = get();
+            if (latest.currentNode.id !== nodeId) return;
+            if (latest.currentPlayer !== playerAtStart) return;
+            if (!force && (!latest.isAiPlaying || latest.aiColor !== playerAtStart)) return;
+            setTimeout(() => latest.makeAiMove(force ? { force: true } : undefined), 100);
+            return;
+          }
+          makeHeuristicMove(get());
+        });
+  },
+
+  undoMove: () => get().navigateBack(),
+
+  navigateBack: () => set((state) => {
+    if (state.isInsertMode && state.currentNode.parent && state.insertAfterNodeId) {
+      const insertAfter = findNodeById(state.rootNode, state.insertAfterNodeId);
+      if (insertAfter) {
+        const above = new Set<string>();
+        let n: GameNode | null = insertAfter;
+        while (n) {
+          above.add(n.id);
+          n = n.parent;
+        }
+	        if (!above.has(state.currentNode.id)) {
+	          const node = state.currentNode;
+	          const parent = node.parent!;
+	          const idx = parent.children.findIndex((c) => c.id === node.id);
+	          if (idx >= 0) parent.children.splice(idx, 1);
+	          return {
+	            currentNode: parent,
+            board: parent.gameState.board,
+            currentPlayer: parent.gameState.currentPlayer,
+            moveHistory: parent.gameState.moveHistory,
+            capturedBlack: parent.gameState.capturedBlack,
+            capturedWhite: parent.gameState.capturedWhite,
+            analysisData: parent.analysis || null,
+            treeVersion: state.treeVersion + 1,
+          };
+        }
+      }
+    }
+    if (!state.currentNode.parent) return {};
+    const prevNode = state.currentNode.parent;
+    return {
+        currentNode: prevNode,
+        board: prevNode.gameState.board,
+        currentPlayer: prevNode.gameState.currentPlayer,
+        moveHistory: prevNode.gameState.moveHistory,
+        capturedBlack: prevNode.gameState.capturedBlack,
+        capturedWhite: prevNode.gameState.capturedWhite,
+        analysisData: prevNode.analysis || null,
+        // Preserve settings
+        isAiPlaying: state.isAiPlaying,
+        aiColor: state.aiColor
+    };
+  }),
+
+  navigateForward: () => set((state) => {
+      const nextNode = getActiveChild(state.currentNode, state.activeBranchChildIds);
+      if (!nextNode) return {};
+      return {
+          currentNode: nextNode,
+          board: nextNode.gameState.board,
+          currentPlayer: nextNode.gameState.currentPlayer,
+          moveHistory: nextNode.gameState.moveHistory,
+          capturedBlack: nextNode.gameState.capturedBlack,
+          capturedWhite: nextNode.gameState.capturedWhite,
+          analysisData: nextNode.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, nextNode),
+      };
+  }),
+
+  navigateStart: () => set((state) => {
+      let node = state.currentNode;
+      while (node.parent) {
+          node = node.parent;
+      }
+      return {
+          currentNode: node,
+          board: node.gameState.board,
+          currentPlayer: node.gameState.currentPlayer,
+          moveHistory: node.gameState.moveHistory,
+          capturedBlack: node.gameState.capturedBlack,
+          capturedWhite: node.gameState.capturedWhite,
+          analysisData: node.analysis || null,
+      };
+  }),
+
+  navigateEnd: () => set((state) => {
+      let node = state.currentNode;
+      let activeBranchChildIds = state.activeBranchChildIds;
+      while (node.children.length > 0) {
+          const child = getActiveChild(node, activeBranchChildIds);
+          if (!child) break;
+          activeBranchChildIds = rememberActiveBranchPath(activeBranchChildIds, child);
+          node = child;
+      }
+      return {
+          currentNode: node,
+          board: node.gameState.board,
+          currentPlayer: node.gameState.currentPlayer,
+          moveHistory: node.gameState.moveHistory,
+          capturedBlack: node.gameState.capturedBlack,
+          capturedWhite: node.gameState.capturedWhite,
+          analysisData: node.analysis || null,
+          activeBranchChildIds,
+      };
+  }),
+
+  switchBranch: (direction) => set((state) => {
+      const next = findSiblingBranchTarget(state.currentNode, direction);
+      if (!next) return {};
+
+      return {
+          currentNode: next,
+          board: next.gameState.board,
+          currentPlayer: next.gameState.currentPlayer,
+          moveHistory: next.gameState.moveHistory,
+          capturedBlack: next.gameState.capturedBlack,
+          capturedWhite: next.gameState.capturedWhite,
+          analysisData: next.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, next),
+      };
+  }),
+
+  switchToBranchIndex: (index) => set((state) => {
+      const next = findBranchTargetByIndex(state.currentNode, index);
+      if (!next) return { notification: { message: 'Branch number unavailable.', type: 'info' } };
+
+      return {
+          currentNode: next,
+          board: next.gameState.board,
+          currentPlayer: next.gameState.currentPlayer,
+          moveHistory: next.gameState.moveHistory,
+          capturedBlack: next.gameState.capturedBlack,
+          capturedWhite: next.gameState.capturedWhite,
+          analysisData: next.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, next),
+      };
+  }),
+
+  navigateToMove: (moveNumber) => set((state) => {
+      const target = findCurrentLineMoveTarget(state.currentNode, moveNumber, state.activeBranchChildIds);
+      if (!target || target.id === state.currentNode.id) return {};
+
+      return {
+          currentNode: target,
+          board: target.gameState.board,
+          currentPlayer: target.gameState.currentPlayer,
+          moveHistory: target.gameState.moveHistory,
+          capturedBlack: target.gameState.capturedBlack,
+          capturedWhite: target.gameState.capturedWhite,
+          analysisData: target.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, target),
+      };
+  }),
+
+  undoToBranchPoint: () => set((state) => {
+      let node = state.currentNode;
+      while (node.parent) {
+          node = node.parent;
+          if (node.children.length > 1) break;
+      }
+      if (node.id === state.currentNode.id) return {};
+      return {
+          currentNode: node,
+          board: node.gameState.board,
+          currentPlayer: node.gameState.currentPlayer,
+          moveHistory: node.gameState.moveHistory,
+          capturedBlack: node.gameState.capturedBlack,
+          capturedWhite: node.gameState.capturedWhite,
+          analysisData: node.analysis || null,
+      };
+  }),
+
+  undoToMainBranch: () => set((state) => {
+      let node = state.currentNode;
+      let lastBranchingNode = node;
+      while (node.parent) {
+          const prev = node;
+          node = node.parent;
+          if (node.children.length > 1 && node.children[0] !== prev) {
+              lastBranchingNode = node;
+          }
+      }
+      if (lastBranchingNode.id === state.currentNode.id) return {};
+      return {
+          currentNode: lastBranchingNode,
+          board: lastBranchingNode.gameState.board,
+          currentPlayer: lastBranchingNode.gameState.currentPlayer,
+          moveHistory: lastBranchingNode.gameState.moveHistory,
+          capturedBlack: lastBranchingNode.gameState.capturedBlack,
+          capturedWhite: lastBranchingNode.gameState.capturedWhite,
+          analysisData: lastBranchingNode.analysis || null,
+      };
+  }),
+
+  makeCurrentNodeMainBranch: () => set((state) => {
+      const selected = state.currentNode;
+      let hasChange = false;
+      let cursor: GameNode | null = selected;
+      while (cursor && cursor.parent) {
+          const parent: GameNode = cursor.parent;
+          const cursorId = cursor.id;
+          const idx = parent.children.findIndex((c: GameNode) => c.id === cursorId);
+          if (idx > 0) {
+              hasChange = true;
+              break;
+          }
+          cursor = parent;
+      }
+      if (!hasChange) return { notification: { message: 'Current line is already the main branch.', type: 'info' } };
+      const history = pushEditHistory(state);
+      let node: GameNode | null = selected;
+      while (node && node.parent) {
+          const parent: GameNode = node.parent;
+          const nodeId = node.id;
+          const idx = parent.children.findIndex((c: GameNode) => c.id === nodeId);
+          if (idx > 0) {
+              parent.children.splice(idx, 1);
+              parent.children.unshift(node);
+          }
+          node = parent;
+      }
+      return { ...history, treeVersion: state.treeVersion + 1 };
+  }),
+
+  shiftCurrentVariation: (direction) => set((state) => {
+      const node = state.currentNode;
+      const parent = node.parent;
+      if (!parent) return { notification: { message: 'Select a variation to reorder.', type: 'info' } };
+
+      const idx = parent.children.findIndex((child) => child.id === node.id);
+      const targetIdx = direction === 'left' ? idx - 1 : idx + 1;
+      if (idx < 0 || targetIdx < 0 || targetIdx >= parent.children.length) {
+          return { notification: { message: 'Variation is already at that edge.', type: 'info' } };
+      }
+
+      const history = pushEditHistory(state);
+      const swap = parent.children[targetIdx]!;
+      parent.children[targetIdx] = node;
+      parent.children[idx] = swap;
+
+      return {
+          ...history,
+          treeVersion: state.treeVersion + 1,
+          notification: {
+              message: direction === 'left' ? 'Moved variation earlier.' : 'Moved variation later.',
+              type: 'success',
+          },
+      };
+  }),
+
+  findMistake: (direction) => set((state) => {
+      const threshold = state.settings.mistakeThreshold; // KaTrain default: eval_thresholds[-4] == 3.0
+      const isMistake = (node: GameNode): boolean => {
+          const move = node.move;
+          const parentAnalysis = node.parent?.analysis;
+          if (!move || !parentAnalysis || move.x < 0 || move.y < 0) return false;
+          const candidate = parentAnalysis.moves.find((m) => m.x === move.x && m.y === move.y);
+          const pointsLost = candidate ? candidate.pointsLost : 5.0;
+          return pointsLost >= threshold;
+      };
+
+      let node: GameNode | null = state.currentNode;
+      if (direction === 'redo') {
+          while (node && node.children.length > 0) {
+              const next = getActiveChild(node, state.activeBranchChildIds);
+              if (!next) break;
+              if (isMistake(next)) break; // stop one move before the mistake
+              node = next;
+          }
+      } else {
+          while (node && node.parent) {
+              if (isMistake(node)) {
+                  node = node.parent;
+                  break;
+              }
+              node = node.parent;
+          }
+      }
+
+      if (!node || node.id === state.currentNode.id) return {};
+      return {
+          currentNode: node,
+          board: node.gameState.board,
+          currentPlayer: node.gameState.currentPlayer,
+          moveHistory: node.gameState.moveHistory,
+          capturedBlack: node.gameState.capturedBlack,
+          capturedWhite: node.gameState.capturedWhite,
+          analysisData: node.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, node),
+      };
+  }),
+
+  deleteCurrentNode: () => set((state) => {
+      const node = state.currentNode;
+      if (!node.parent) return {};
+
+      const history = pushEditHistory(state);
+      const parent = node.parent;
+      const idx = parent.children.findIndex((c) => c.id === node.id);
+      if (idx >= 0) parent.children.splice(idx, 1);
+
+      return {
+          ...history,
+          currentNode: parent,
+          board: parent.gameState.board,
+          currentPlayer: parent.gameState.currentPlayer,
+          moveHistory: parent.gameState.moveHistory,
+          capturedBlack: parent.gameState.capturedBlack,
+          capturedWhite: parent.gameState.capturedWhite,
+          analysisData: parent.analysis || null,
+          treeVersion: state.treeVersion + 1,
+      };
+  }),
+
+  pruneCurrentBranch: () => set((state) => {
+      let removedNodes = 0;
+      let node: GameNode | null = state.currentNode;
+      while (node && node.parent) {
+          const parent: GameNode = node.parent;
+          const keptNode = node;
+          const siblings = parent.children.filter((child) => child.id !== keptNode.id);
+          removedNodes += siblings.reduce((total, child) => total + countNodes(child), 0);
+          node = parent;
+      }
+
+      if (removedNodes === 0) {
+          return { notification: { message: 'No other branches on the current line.', type: 'info' } };
+      }
+
+      const history = pushEditHistory(state);
+      node = state.currentNode;
+      while (node && node.parent) {
+          const parent: GameNode = node.parent;
+          const keptNode = node;
+          if (parent.children.length > 1) parent.children = [keptNode];
+          node = parent;
+      }
+
+      return {
+          ...history,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, state.currentNode),
+          notification: {
+              message: `Kept current line and deleted ${removedNodes} other branch node${removedNodes === 1 ? '' : 's'}.`,
+              type: 'success',
+          },
+          treeVersion: state.treeVersion + 1,
+      };
+  }),
+
+  undoEdit: () => {
+      if (editUndoStack.length === 0) {
+          set({ notification: { message: 'No edit to undo.', type: 'info' } });
+          return;
+      }
+      analysisQueue.cancelWhere(() => true, 'Undo edit');
+      set((state) => {
+          const current = captureEditHistory(state);
+          const previous = editUndoStack.pop();
+          if (!previous) return editHistoryCounts();
+          editRedoStack.push(current);
+          if (editRedoStack.length > EDIT_HISTORY_LIMIT) editRedoStack.shift();
+          return {
+              ...restoreEditHistory(previous, state),
+              ...editHistoryCounts(),
+              notification: { message: 'Undid edit.', type: 'success' },
+          };
+      });
+  },
+
+  redoEdit: () => {
+      if (editRedoStack.length === 0) {
+          set({ notification: { message: 'No edit to redo.', type: 'info' } });
+          return;
+      }
+      analysisQueue.cancelWhere(() => true, 'Redo edit');
+      set((state) => {
+          const current = captureEditHistory(state);
+          const next = editRedoStack.pop();
+          if (!next) return editHistoryCounts();
+          editUndoStack.push(current);
+          if (editUndoStack.length > EDIT_HISTORY_LIMIT) editUndoStack.shift();
+          return {
+              ...restoreEditHistory(next, state),
+              ...editHistoryCounts(),
+              notification: { message: 'Redid edit.', type: 'success' },
+          };
+      });
+  },
+
+  copyCurrentBranch: () => set((state) => {
+      if (!state.currentNode.parent || !state.currentNode.move) {
+          return { notification: { message: 'Select a move branch to copy.', type: 'info' } };
+      }
+      const copiedBranch = copyBranchSnapshot(state.currentNode);
+      const nodes = countClipboardNodes(copiedBranch);
+      return {
+          copiedBranch,
+          notification: {
+              message: `Copied branch (${nodes} node${nodes === 1 ? '' : 's'}).`,
+              type: 'success',
+          },
+      };
+  }),
+
+  pasteCopiedBranch: () => set((state) => {
+      const source = state.copiedBranch;
+      if (!source) {
+          return { notification: { message: 'No copied branch to paste.', type: 'info' } };
+      }
+      const pasted = pasteBranchSnapshot(state.currentNode, source);
+      if (!pasted) {
+          return { notification: { message: 'Cannot paste branch at this position.', type: 'error' } };
+      }
+      const history = pushEditHistory(state);
+      state.currentNode.children.push(pasted);
+      const nodes = countClipboardNodes(source);
+      return {
+          ...history,
+          currentNode: pasted,
+          board: pasted.gameState.board,
+          currentPlayer: pasted.gameState.currentPlayer,
+          moveHistory: pasted.gameState.moveHistory,
+          capturedBlack: pasted.gameState.capturedBlack,
+          capturedWhite: pasted.gameState.capturedWhite,
+          analysisData: pasted.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, pasted),
+          treeVersion: state.treeVersion + 1,
+          notification: {
+              message: `Pasted branch (${nodes} node${nodes === 1 ? '' : 's'}).`,
+              type: 'success',
+          },
+      };
+  }),
+
+  jumpToNode: (node: GameNode) => set((state) => {
+      // Just set current node and sync state
+      return {
+          currentNode: node,
+          board: node.gameState.board,
+          currentPlayer: node.gameState.currentPlayer,
+          moveHistory: node.gameState.moveHistory,
+          capturedBlack: node.gameState.capturedBlack,
+          capturedWhite: node.gameState.capturedWhite,
+          analysisData: node.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, node),
+      };
+  }),
+
+  pinCurrentVariation: () => set((state) => {
+    const node = state.currentNode;
+    if (!node.parent) {
+      return { notification: { message: 'Play or navigate to a move before pinning a line.', type: 'info' } };
+    }
+    const path = getNodePath(node);
+    const moveNumber = getCurrentLineMoveNumber(node);
+    const coord = node.move && node.move.x >= 0 && node.move.y >= 0
+      ? `${String.fromCharCode(65 + (node.move.x >= 8 ? node.move.x + 1 : node.move.x))}${node.gameState.board.length - node.move.y}`
+      : node.move ? 'pass' : 'setup';
+    const side = node.move ? (node.move.player === 'black' ? 'B' : 'W') : '';
+    const label = `Move ${moveNumber}${side ? ` ${side} ${coord}` : ''}`;
+    const pin: PinnedVariation = {
+      id: `pin_${moveNumber}_${path.join('-')}`,
+      label,
+      path,
+      moveNumber,
+      createdAt: state.treeVersion,
+    };
+    if (state.pinnedVariations.some((p) => p.id === pin.id)) {
+      return { notification: { message: 'This line is already pinned.', type: 'info' } };
+    }
+    return {
+      pinnedVariations: [...state.pinnedVariations, pin],
+      notification: { message: `Pinned ${label}.`, type: 'success' },
+    };
+  }),
+
+  recallVariation: (id: string) => {
+    const state = get();
+    const pin = state.pinnedVariations.find((p) => p.id === id);
+    if (!pin) return;
+    const node = resolveNodePath(state.rootNode, pin.path);
+    if (!node) {
+      set({ notification: { message: 'That pinned line no longer exists in this game.', type: 'error' } });
+      return;
+    }
+    get().jumpToNode(node);
+  },
+
+  unpinVariation: (id: string) => set((state) => ({
+    pinnedVariations: state.pinnedVariations.filter((p) => p.id !== id),
+  })),
+
+  clearPinnedVariations: () => set({ pinnedVariations: [] }),
+
+  navigateNextMistake: () => {
+      get().findMistake('redo');
+  },
+
+  navigatePrevMistake: () => {
+      get().findMistake('undo');
+  },
+
+  startNewGame: ({ komi, rules, boardSize, handicap }) => {
+    const state = get();
+    get().stopSelfplayToEnd();
+    get().stopGameAnalysis();
+    analysisQueue.cancelWhere(() => true, 'Started new game');
+    analysisQueue.clearCache();
+    if (state.settings.soundEnabled) {
+      playNewGameSound();
+    }
+    const normalizedBoardSize = normalizeBoardSize(boardSize, state.settings.defaultBoardSize ?? DEFAULT_BOARD_SIZE);
+    const maxHandicap = getMaxHandicap(normalizedBoardSize);
+    const safeHandicap = Math.max(0, Math.min(Math.floor(handicap), maxHandicap));
+    const nextSettings: GameSettings = {
+      ...state.settings,
+      gameRules: rules,
+      defaultBoardSize: normalizedBoardSize,
+      defaultHandicap: safeHandicap,
+    };
+    saveStoredSettings(nextSettings);
+
+    const board = createEmptyBoard(normalizedBoardSize);
+    if (safeHandicap > 0) {
+      applyHandicapStones(board, normalizedBoardSize, safeHandicap);
+    }
+
+    const rootState: GameState = {
+      board,
+      currentPlayer: safeHandicap > 0 ? 'white' : 'black',
+      moveHistory: [],
+      capturedBlack: 0,
+      capturedWhite: 0,
+      komi,
+    };
+    const newRoot = createNode(null, null, rootState, createRootNodeId());
+    newRoot.properties = { RU: [rulesToSgfRu(rules)], SZ: [String(normalizedBoardSize)], DT: [formatSgfDate()] };
+    if (safeHandicap > 0) {
+      newRoot.properties.HA = [String(safeHandicap)];
+      newRoot.properties.PL = ['W'];
+    }
+    syncRootSetupPropertiesFromBoard(newRoot.properties, board, normalizedBoardSize, safeHandicap);
+
+    set({
+      settings: nextSettings,
+      board: rootState.board,
+      currentPlayer: rootState.currentPlayer,
+      moveHistory: rootState.moveHistory,
+      capturedBlack: rootState.capturedBlack,
+      capturedWhite: rootState.capturedWhite,
+      komi: rootState.komi,
+      boardRotation: 0,
+      regionOfInterest: null,
+      isSelectingRegionOfInterest: false,
+      isInsertMode: false,
+      insertAfterNodeId: null,
+      insertAnchorNodeId: null,
+      isEditMode: false,
+      editTool: 'setup-black',
+      isSelfplayToEnd: false,
+      isAiPlaying: false,
+      aiColor: null,
+      analysisData: null,
+      analysisCacheSize: 0,
+      timerPaused: true,
+      timerMainTimeUsedSeconds: 0,
+      timerPeriodsUsed: { black: 0, white: 0 },
+      ...clearEditHistory(),
+
+      rootNode: newRoot,
+      currentNode: newRoot,
+      activeBranchChildIds: {},
+      pinnedVariations: [],
+      treeVersion: state.treeVersion + 1,
+    });
+  },
+
+  resetGame: () => {
+    const state = get();
+    get().stopSelfplayToEnd();
+    get().stopGameAnalysis();
+    analysisQueue.cancelWhere(() => true, 'Reset game');
+    analysisQueue.clearCache();
+    if (state.settings.soundEnabled) {
+        playNewGameSound();
+    }
+    const boardSize = getBoardSizeFromBoard(state.board);
+    const rootState: GameState = {
+      board: createEmptyBoard(boardSize),
+      currentPlayer: 'black',
+      moveHistory: [],
+      capturedBlack: 0,
+      capturedWhite: 0,
+      komi: 6.5,
+    };
+    const newRoot = createNode(null, null, rootState, createRootNodeId());
+    newRoot.properties = { RU: [rulesToSgfRu(state.settings.gameRules)], SZ: [String(boardSize)] };
+    set({
+      board: rootState.board,
+      currentPlayer: rootState.currentPlayer,
+      moveHistory: rootState.moveHistory,
+      capturedBlack: rootState.capturedBlack,
+      capturedWhite: rootState.capturedWhite,
+      komi: rootState.komi,
+      boardRotation: 0,
+      regionOfInterest: null,
+      isSelectingRegionOfInterest: false,
+      isInsertMode: false,
+      insertAfterNodeId: null,
+      insertAnchorNodeId: null,
+      isEditMode: false,
+      editTool: 'setup-black',
+      isSelfplayToEnd: false,
+      isAiPlaying: false,
+      aiColor: null,
+      analysisData: null,
+      analysisCacheSize: 0,
+      timerPaused: true,
+      timerMainTimeUsedSeconds: 0,
+      timerPeriodsUsed: { black: 0, white: 0 },
+      ...clearEditHistory(),
+
+      // Reset Tree
+      rootNode: newRoot,
+      currentNode: newRoot,
+      activeBranchChildIds: {},
+      pinnedVariations: [],
+      treeVersion: state.treeVersion + 1,
+    });
+  },
+
+  loadGame: (sgf: ParsedSgf) => {
+    // Reset first
+    get().resetGame();
+
+    const state = get();
+    let currentBoard = sgf.initialBoard
+      ? sgf.initialBoard
+      : createEmptyBoard(state.settings.defaultBoardSize ?? DEFAULT_BOARD_SIZE);
+    const boardSize = getBoardSizeFromBoard(currentBoard);
+
+    const sgfProps = sgf.tree?.props;
+    const hasExplicitRootSetup = !!(sgfProps?.['AB']?.length || sgfProps?.['AW']?.length || sgfProps?.['AE']?.length);
+    const plRaw = sgfProps?.['PL']?.[0]?.toUpperCase();
+    const pl: Player | null = plRaw === 'B' ? 'black' : plRaw === 'W' ? 'white' : null;
+    const firstMovePlayer = sgf.moves[0]?.player;
+    const ha = parseInt(sgfProps?.['HA']?.[0] ?? '0', 10);
+    const safeHandicap = Number.isFinite(ha) ? Math.max(0, Math.min(ha, getMaxHandicap(boardSize))) : 0;
+    if (safeHandicap > 0 && !hasExplicitRootSetup) {
+      currentBoard = cloneBoard(currentBoard);
+      applyHandicapStones(currentBoard, boardSize, safeHandicap);
+    }
+    const rootPlayer: Player = pl ?? firstMovePlayer ?? (safeHandicap > 0 ? 'white' : 'black');
+    const rules = parseSgfRu(sgfProps?.['RU']?.[0]) ?? state.settings.gameRules;
+
+    const rootState: GameState = {
+      board: currentBoard,
+      currentPlayer: rootPlayer,
+      moveHistory: [],
+      capturedBlack: 0,
+      capturedWhite: 0,
+      komi: sgf.komi ?? 6.5,
+    };
+
+    const newRoot = createNode(null, null, rootState, createRootNodeId());
+    newRoot.properties = { RU: [rulesToSgfRu(rules)], SZ: [String(boardSize)] };
+    if (safeHandicap > 0) {
+      newRoot.properties.HA = [String(safeHandicap)];
+      newRoot.properties.PL = ['W'];
+      if (!hasExplicitRootSetup) syncRootSetupPropertiesFromBoard(newRoot.properties, rootState.board, boardSize, safeHandicap);
+    }
+
+    const applyKtAnalysis = (node: GameNode, kt: string[]) => {
+      const decoded = decodeKaTrainKt({ kt });
+      if (!decoded) return;
+      const analysis = kaTrainAnalysisToAnalysisResult({
+        analysis: decoded,
+        currentPlayer: node.gameState.currentPlayer,
+        boardSize,
+      });
+      if (!analysis) return;
+      node.analysis = analysis;
+      const rootInfo = decoded.root as { visits?: unknown } | null;
+      const visitsRaw = rootInfo?.visits;
+      const visits = typeof visitsRaw === 'number' && Number.isFinite(visitsRaw) ? Math.max(0, Math.floor(visitsRaw)) : 0;
+      if (visits > 0) node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, Math.min(visits, ENGINE_MAX_VISITS));
+    };
+
+    const applyKaAnalysis = (node: GameNode, ka: string[]) => {
+      const analysis = decodeKayaKa({
+        ka,
+        currentPlayer: node.gameState.currentPlayer,
+        boardSize,
+      });
+      if (!analysis) return;
+      node.analysis = analysis;
+      const visits = typeof analysis.rootVisits === 'number' && Number.isFinite(analysis.rootVisits)
+        ? Math.max(0, Math.floor(analysis.rootVisits))
+        : 0;
+      if (visits > 0) node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, Math.min(visits, ENGINE_MAX_VISITS));
+    };
+
+    const cloneProps = (props: Record<string, string[]> | undefined): Record<string, string[]> => {
+      const out: Record<string, string[]> = {};
+      if (!props) return out;
+      for (const [k, v] of Object.entries(props)) out[k] = [...v];
+      return out;
+    };
+
+    const sgfCoordToXy = (coord: string): { x: number; y: number } => {
+      if (!coord || coord.length < 2) return { x: -1, y: -1 };
+      if (coord === 'tt') return { x: -1, y: -1 };
+      const aCode = 'a'.charCodeAt(0);
+      const x = coord.charCodeAt(0) - aCode;
+      const y = coord.charCodeAt(1) - aCode;
+      if (x < 0 || y < 0 || x >= boardSize || y >= boardSize) return { x: -1, y: -1 };
+      return { x, y };
+    };
+
+    const extractMove = (props: Record<string, string[]>): Move | null => {
+      const b = props['B']?.[0];
+      if (typeof b === 'string') {
+        const { x, y } = sgfCoordToXy(b);
+        return { x, y, player: 'black' };
+      }
+      const w = props['W']?.[0];
+      if (typeof w === 'string') {
+        const { x, y } = sgfCoordToXy(w);
+        return { x, y, player: 'white' };
+      }
+      return null;
+    };
+
+    const applyMoveToNode = (parent: GameNode, move: Move): GameNode | null => {
+      const parentState = parent.gameState;
+      const nextPlayer: Player = move.player === 'black' ? 'white' : 'black';
+
+      if (move.x < 0 || move.y < 0) {
+        const passMove: Move = { x: -1, y: -1, player: move.player };
+        const newGameState: GameState = {
+          board: parentState.board,
+          currentPlayer: nextPlayer,
+          moveHistory: [...parentState.moveHistory, passMove],
+          capturedBlack: parentState.capturedBlack,
+          capturedWhite: parentState.capturedWhite,
+          komi: parentState.komi,
+        };
+        return createNode(parent, passMove, newGameState);
+      }
+
+      if (parentState.board[move.y]?.[move.x] !== null) return null;
+
+	      const tentativeBoard = parentState.board.map((row) => [...row]);
+	      tentativeBoard[move.y]![move.x] = move.player;
+	      const captured = applyCapturesInPlace(tentativeBoard, move.x, move.y, move.player);
+	      const newBoard = tentativeBoard;
+
+      if (captured.length === 0) {
+        const { liberties } = getLiberties(newBoard, move.x, move.y);
+        if (liberties === 0) return null;
+      }
+
+      if (parent.parent && boardsEqual(newBoard, parent.parent.gameState.board)) {
+        return null;
+      }
+
+      const newCapturedBlack = parentState.capturedBlack + (move.player === 'white' ? captured.length : 0);
+      const newCapturedWhite = parentState.capturedWhite + (move.player === 'black' ? captured.length : 0);
+
+      const newMove: Move = { x: move.x, y: move.y, player: move.player };
+      const newGameState: GameState = {
+        board: newBoard,
+        currentPlayer: nextPlayer,
+        moveHistory: [...parentState.moveHistory, newMove],
+        capturedBlack: newCapturedBlack,
+        capturedWhite: newCapturedWhite,
+        komi: parentState.komi,
+      };
+      return createNode(parent, newMove, newGameState);
+    };
+
+    if (sgf.tree) {
+      const rootPropsCopy = cloneProps(sgf.tree.props);
+      delete rootPropsCopy.B;
+      delete rootPropsCopy.W;
+      const rootNote = extractKaTrainUserNoteFromSgfComment(rootPropsCopy['C']);
+      if (rootNote) newRoot.note = rootNote;
+      delete rootPropsCopy['C'];
+      if (!rootPropsCopy['RU']?.length) rootPropsCopy['RU'] = [rulesToSgfRu(rules)];
+      if (!rootPropsCopy['SZ']?.length) rootPropsCopy['SZ'] = [String(boardSize)];
+      if (safeHandicap > 0) {
+        rootPropsCopy['HA'] = [String(safeHandicap)];
+        if (!rootPropsCopy['PL']?.length) rootPropsCopy['PL'] = ['W'];
+        if (!hasExplicitRootSetup) syncRootSetupPropertiesFromBoard(rootPropsCopy, rootState.board, boardSize, safeHandicap);
+      }
+      newRoot.properties = rootPropsCopy;
+      const rootMove = extractMove(sgf.tree.props);
+      if (!rootMove && sgf.tree.props['KT'] && !newRoot.analysis) {
+        applyKtAnalysis(newRoot, sgf.tree.props['KT']);
+      }
+      if (!rootMove && sgf.tree.props['KA'] && !newRoot.analysis) {
+        applyKaAnalysis(newRoot, sgf.tree.props['KA']);
+      }
+
+      const buildFromSgfNode = (parent: GameNode, node: NonNullable<ParsedSgf['tree']>) => {
+        const move = extractMove(node.props);
+        if (!move) {
+          const note = extractKaTrainUserNoteFromSgfComment(node.props['C']);
+          const propsNoComments = cloneProps(node.props);
+          delete propsNoComments['C'];
+          const hasAnalysis = !!(node.props['KT']?.length || node.props['KA']?.length);
+          const hasContent = Object.keys(propsNoComments).length > 0 || !!note || hasAnalysis;
+          if (!hasContent) {
+            for (const child of node.children) buildFromSgfNode(parent, child);
+            return;
+          }
+
+          const childNode = createNode(parent, null, cloneGameState(parent.gameState));
+          childNode.properties = propsNoComments;
+          if (note) childNode.note = note;
+          const rebuiltState = replayChildMove(parent, childNode);
+          childNode.gameState = rebuiltState ?? childNode.gameState;
+          if (node.props['KT'] && !childNode.analysis) {
+            applyKtAnalysis(childNode, node.props['KT']);
+          }
+          if (node.props['KA'] && !childNode.analysis) {
+            applyKaAnalysis(childNode, node.props['KA']);
+          }
+          parent.children.push(childNode);
+          for (const child of node.children) buildFromSgfNode(childNode, child);
+          return;
+        }
+
+        const childNode = applyMoveToNode(parent, move);
+        if (!childNode) return;
+        childNode.properties = cloneProps(node.props);
+        applySetupPropsToNode(childNode, childNode.properties, boardSize);
+        applySgfPlayerToMoveToNode(childNode, childNode.properties);
+        const nodeNote = extractKaTrainUserNoteFromSgfComment(childNode.properties['C']);
+        if (nodeNote) childNode.note = nodeNote;
+        delete childNode.properties['C'];
+        if (node.props['KT'] && !childNode.analysis) {
+          applyKtAnalysis(childNode, node.props['KT']);
+        }
+        if (node.props['KA'] && !childNode.analysis) {
+          applyKaAnalysis(childNode, node.props['KA']);
+        }
+        parent.children.push(childNode);
+
+        for (const child of node.children) buildFromSgfNode(childNode, child);
+      };
+
+      if (rootMove) {
+        const first = applyMoveToNode(newRoot, rootMove);
+        if (first) {
+          first.properties = cloneProps(sgf.tree.props);
+          applySetupPropsToNode(first, first.properties, boardSize);
+          applySgfPlayerToMoveToNode(first, first.properties);
+          const firstNote = extractKaTrainUserNoteFromSgfComment(first.properties['C']);
+          if (firstNote) first.note = firstNote;
+          delete first.properties['C'];
+          if (sgf.tree.props['KT'] && !first.analysis) {
+            applyKtAnalysis(first, sgf.tree.props['KT']);
+          }
+          if (sgf.tree.props['KA'] && !first.analysis) {
+            applyKaAnalysis(first, sgf.tree.props['KA']);
+          }
+          newRoot.children.push(first);
+          for (const child of sgf.tree.children) buildFromSgfNode(first, child);
+        }
+      } else {
+        for (const child of sgf.tree.children) buildFromSgfNode(newRoot, child);
+      }
+    } else {
+      // Legacy: just the main line (no SGF tree provided)
+      let cursor: GameNode = newRoot;
+      for (const mv of sgf.moves) {
+        const child = applyMoveToNode(cursor, { x: mv.x, y: mv.y, player: mv.player });
+        if (!child) break;
+        cursor.children.push(child);
+        cursor = child;
+      }
+    }
+
+    const rootPropsForNavigation = newRoot.properties ?? {};
+    const hasMarkersAtRoot = !!(
+      rootPropsForNavigation.MA?.length ||
+      rootPropsForNavigation.TR?.length ||
+      rootPropsForNavigation.CR?.length ||
+      rootPropsForNavigation.SQ?.length ||
+      rootPropsForNavigation.LB?.length
+    );
+    const isProblemCollection = newRoot.children.length > 3 && !newRoot.move && !hasMarkersAtRoot;
+    const rewind = get().settings.loadSgfRewind;
+    let current = newRoot;
+    if (isProblemCollection) {
+      current = newRoot.children[0]!;
+    } else if (!rewind) {
+      while (current.children.length > 0) current = current.children[0]!;
+    }
+
+    set((state) => ({
+      rootNode: newRoot,
+      currentNode: current,
+      activeBranchChildIds: rememberActiveBranchPath({}, current),
+      board: current.gameState.board,
+      currentPlayer: current.gameState.currentPlayer,
+      moveHistory: current.gameState.moveHistory,
+      capturedBlack: current.gameState.capturedBlack,
+      capturedWhite: current.gameState.capturedWhite,
+      komi: rootState.komi,
+      boardRotation: 0,
+      isEditMode: false,
+      editTool: state.editTool,
+      analysisData: current.analysis || null,
+      analysisCacheSize: getAnalysisCacheSize(newRoot),
+	      treeVersion: state.treeVersion + 1,
+	      settings: { ...state.settings, gameRules: rules, defaultBoardSize: boardSize, defaultHandicap: safeHandicap },
+		    }));
+
+		    // KaTrain-like: optionally start fast background analysis of the whole mainline so graphs populate fast.
+		    if (typeof window !== 'undefined' && typeof Worker !== 'undefined' && get().settings.loadSgfFastAnalysis) {
+		      setTimeout(() => get().startFastGameAnalysis(), 0);
+		    }
+		  },
+
+  passTurn: () => {
+      const state = get();
+      if (state.settings.soundEnabled) {
+        playPassSound();
+      }
+      const move: Move = { x: -1, y: -1, player: state.currentPlayer };
+
+      // Check for existing pass child
+      const existingChild = state.currentNode.children.find(child =>
+        child.move && child.move.x === -1 && child.move.y === -1 && child.move.player === state.currentPlayer
+      );
+
+      if (existingChild) {
+           get().jumpToNode(existingChild);
+           const after = get();
+           const ended = isPassMove(after.currentNode.move) && isPassMove(after.currentNode.parent?.move);
+           if (!ended && after.isAiPlaying && after.aiColor && after.currentPlayer === after.aiColor) {
+             setTimeout(() => after.makeAiMove(), 500);
+           }
+           if (after.isAnalysisMode && !after.isSelfplayToEnd) {
+             setTimeout(() => void after.runAnalysis(), 0);
+           }
+           return;
+      }
+
+      const nextPlayer = state.currentPlayer === 'black' ? 'white' : 'black';
+      const newGameState: GameState = {
+        board: state.board, // No change
+        currentPlayer: nextPlayer,
+        moveHistory: [...state.moveHistory, move],
+        capturedBlack: state.capturedBlack,
+        capturedWhite: state.capturedWhite,
+        komi: state.komi
+      };
+
+      const newNode = createNode(state.currentNode, move, newGameState);
+      state.currentNode.children.push(newNode);
+
+      set({
+          currentNode: newNode,
+          currentPlayer: newGameState.currentPlayer,
+          moveHistory: newGameState.moveHistory,
+          // board doesn't change
+          analysisData: null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, newNode),
+          treeVersion: state.treeVersion + 1,
+      });
+
+      const after = get();
+      const ended = isPassMove(after.currentNode.move) && isPassMove(after.currentNode.parent?.move);
+      if (!ended && after.isAiPlaying && after.aiColor && after.currentPlayer === after.aiColor) {
+        setTimeout(() => after.makeAiMove(), 500);
+      }
+      if (after.isAnalysisMode && !after.isSelfplayToEnd) setTimeout(() => void after.runAnalysis(), 0);
+  },
+
+  resign: (player) => {
+    const state = get();
+    const endState = getResignResult(player ?? state.currentPlayer);
+    state.currentNode.endState = endState;
+
+    if (!state.rootNode.properties) state.rootNode.properties = {};
+    state.rootNode.properties.RE = [endState];
+
+    get().stopSelfplayToEnd();
+
+    set((s) => ({
+      isAiPlaying: false,
+      aiColor: null,
+      treeVersion: s.treeVersion + 1,
+    }));
+  },
+
+  rotateBoard: () =>
+    set((state) => ({
+      boardRotation: (((state.boardRotation ?? 0) + 1) % 4) as 0 | 1 | 2 | 3,
+    })),
+}));
+
+let notificationAutoDismissTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+
+useGameStore.subscribe((state, previousState) => {
+  if (state.notification === previousState.notification) return;
+  if (notificationAutoDismissTimer) {
+    globalThis.clearTimeout(notificationAutoDismissTimer);
+    notificationAutoDismissTimer = null;
+  }
+  const notification = state.notification;
+  if (!notification) return;
+  notificationAutoDismissTimer = globalThis.setTimeout(() => {
+    useGameStore.setState((latestState) => (
+      latestState.notification === notification ? { notification: null } : {}
+    ));
+  }, NOTIFICATION_AUTO_DISMISS_MS[notification.type]);
+});
+
+analysisQueue.subscribeCacheSize((queueCacheSize) => {
+  useGameStore.setState((state) => ({
+    analysisCacheSize: Math.max(countAnalyzedNodes(state.rootNode), queueCacheSize),
+  }));
+});
+
+const makeHeuristicMove = (store: GameStore) => {
+    const { board, currentPlayer, currentNode } = store;
+    const parentBoard = currentNode.parent ? currentNode.parent.gameState.board : undefined;
+    const boardSize = getBoardSizeFromBoard(board);
+    const center = (boardSize - 1) / 2;
+    const line3 = 2;
+    const line4 = 3;
+    const line3Far = boardSize - 3;
+    const line4Far = boardSize - 4;
+
+    // 1. Get all legal moves
+    const legalMoves = getLegalMoves(board, currentPlayer, parentBoard);
+
+    if (legalMoves.length === 0) {
+        store.passTurn();
+        return;
+    }
+
+    // Heuristics
+    // Score each move
+    let bestMove = legalMoves[0];
+    let bestScore = -Infinity;
+
+    // Helper: simulate move
+	    const simulate = (x: number, y: number) => {
+	        const tentativeBoard = board.map(row => [...row]);
+	        tentativeBoard[y][x] = currentPlayer;
+	        const captured = applyCapturesInPlace(tentativeBoard, x, y, currentPlayer);
+	        return { captured, newBoard: tentativeBoard };
+	    };
+
+    for (const move of legalMoves) {
+        let score = Math.random() * 5; // Base random score to break ties
+        const { x, y } = move;
+
+        // A. Don't fill own eyes
+        if (isEye(board, x, y, currentPlayer)) {
+            score -= 1000;
+        }
+
+        const { captured, newBoard } = simulate(x, y);
+
+        // B. Capture Groups (Atari)
+        if (captured.length > 0) {
+            score += 100 * captured.length;
+        }
+
+        // C. Avoid Self-Atari (unless capturing)
+        const { liberties } = getLiberties(newBoard, x, y);
+        if (liberties === 1) {
+            // Is it a snapback? Or just dumb?
+            // If we captured something, maybe okay. If not, bad.
+            if (captured.length === 0) {
+                score -= 50;
+            }
+        }
+
+        // D. Save own stones in Atari
+        // Check neighbors
+        const neighbors = [
+            {x: x+1, y}, {x: x-1, y}, {x, y: y+1}, {x, y: y-1}
+        ];
+        for (const n of neighbors) {
+            if (n.x >= 0 && n.x < boardSize && n.y >= 0 && n.y < boardSize) {
+                if (board[n.y][n.x] === currentPlayer) {
+                    const groupLiberties = getLiberties(board, n.x, n.y).liberties;
+                    if (groupLiberties === 1) {
+                        // Playing here saves it?
+                         const newLibs = getLiberties(newBoard, x, y).liberties;
+                         if (newLibs > 1) {
+                             score += 80; // Saving throw
+                         }
+                    }
+                }
+            }
+        }
+
+        // E. Opening Heuristics (Corners > Edges > Center)
+        if (store.moveHistory.length < 30) {
+             const distToCenter = Math.abs(x - center) + Math.abs(y - center); // Used indirectly
+             // Prefer lines 3 and 4
+             const onLine3or4 = (
+               x === line3 ||
+               x === line4 ||
+               x === line3Far ||
+               x === line4Far ||
+               y === line3 ||
+               y === line4 ||
+               y === line3Far ||
+               y === line4Far
+             );
+
+             if (onLine3or4) score += 5;
+
+             // Avoid 1-1, 2-2 early on
+             if (x <= 1 || x >= boardSize - 2 || y <= 1 || y >= boardSize - 2) score -= 5;
+
+             // Add small bias for center if not on line 3/4
+             if (!onLine3or4 && distToCenter < 6) score += 1;
+        }
+
+        // F. Proximity to last move (Local response)
+        const lastMove = store.moveHistory.length > 0 ? store.moveHistory[store.moveHistory.length - 1] : null;
+        if (lastMove && lastMove.x !== -1) {
+            const dist = Math.abs(lastMove.x - x) + Math.abs(lastMove.y - y);
+            if (dist <= 3) score += 5;
+        }
+
+        if (score > bestScore) {
+            bestScore = score;
+            bestMove = move;
+        }
+    }
+
+    if (bestScore < -500) {
+        // If best move is terrible (e.g. filling eye), pass.
+        store.passTurn();
+    } else {
+        store.playMove(bestMove.x, bestMove.y);
+    }
+};

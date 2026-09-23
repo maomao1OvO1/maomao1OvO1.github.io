@@ -1,0 +1,1064 @@
+/* ============================================================
+   Web KaTrain — Dashboard redesign (scoped under .wk-dashboard)
+   DealProof hairline discipline × KaTrain analysis vocabulary
+   Ported from the Claude Design handoff bundle. All selectors are
+   scoped under .wk-dashboard so they never touch the rest of the app.
+   ============================================================ */
+
+.wk-dashboard {
+  /* Brand / ink — aliased onto the global --ui-* theme tokens so the desktop
+     chrome follows the user's theme (noir/kaya/studio/light). The soft/faint
+     hierarchy is derived with color-mix toward the background, which works in
+     both light and dark themes. */
+  --ink: var(--ui-text);
+  --ink-strong: var(--ui-text);
+  --ink-soft: color-mix(in srgb, var(--ui-text) 90%, var(--ui-bg));
+  --muted: var(--ui-text-muted);
+  --faint: var(--ui-text-faint);
+  --canvas: var(--ui-bg);
+  --panel: var(--ui-panel);
+  --panel-soft: var(--ui-surface);
+  --panel-softer: color-mix(in srgb, var(--ui-panel) 55%, var(--ui-surface));
+
+  /* Hairlines */
+  --line: var(--ui-border);
+  --line-strong: var(--ui-border-strong);
+  --line-faint: color-mix(in srgb, var(--ui-border) 50%, var(--ui-panel));
+
+  /* The single accent — only the live/running engine indicator */
+  --live: var(--ui-accent);
+  --live-soft: var(--ui-accent-soft);
+
+  /* Semantic grades */
+  --green: var(--ui-success);  --green-bg: var(--ui-success-soft);
+  --amber: var(--ui-warning);  --amber-bg: var(--ui-warning-soft);
+  --red:   var(--ui-danger);   --red-bg:   var(--ui-danger-soft);
+
+  /* KaTrain move-quality eval scale (theme:normal) */
+  --eval-blunder:    rgb(114, 33, 107);
+  --eval-mistake:    rgb(204, 0, 0);
+  --eval-inaccuracy: rgb(230, 102, 26);
+  --eval-slight:     rgb(216, 216, 0);
+  --eval-good:       rgb(171, 230, 46);
+  --eval-best:       rgb(30, 150, 0);
+
+  /* Board */
+  --goban: #e9d4a6;
+  --goban-edge: #d8bd86;
+  --goban-line: #9a7e4f;
+  --goban-star: #6f5a35;
+  --stone-shadow: rgba(31, 28, 20, 0.32);
+
+  /* Type */
+  --sans: var(--ui-font);
+  --mono: var(--ui-font-mono);
+
+  /* Radii */
+  --r-xs: 5px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+
+  --shadow-pop: 0 8px 28px rgba(17, 24, 39, 0.14);
+  --shadow-card: 0 2px 10px rgba(17, 24, 39, 0.07);
+
+  --header-h: 50px;
+  --sidebar-w: 360px;
+  --library-w: 232px;
+
+  /* Embedded app components (MoveTree, graph, notes) inherit the global
+     --ui-* tokens directly, so they always match the active theme. */
+
+  /* App shell */
+  display: grid;
+  grid-template-rows: var(--header-h) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--canvas);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.wk-dashboard *, .wk-dashboard *::before, .wk-dashboard *::after { box-sizing: border-box; }
+.wk-dashboard button { font-family: inherit; cursor: pointer; }
+.wk-dashboard input, .wk-dashboard textarea { font-family: inherit; }
+
+.wk-dashboard .tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+.wk-dashboard .mono { font-family: var(--mono); }
+
+.wk-dashboard ::selection { background: var(--ui-accent-soft); }
+
+/* Eyebrow / section label */
+.wk-dashboard .eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ---------------- Header ---------------- */
+.wk-dashboard .header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ui-bar) 96%, transparent);
+  backdrop-filter: blur(8px);
+  z-index: 20;
+}
+.wk-dashboard .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-right: 4px;
+}
+.wk-dashboard .brand-mark {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  background: var(--ink);
+  display: grid; place-items: center;
+  position: relative;
+}
+.wk-dashboard .brand-mark::before {
+  content: '';
+  width: 11px; height: 11px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff 0%, #e6e6e6 45%, #c9c9c9 100%);
+}
+.wk-dashboard .brand-name {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.wk-dashboard .brand-name b { font-weight: 700; }
+.wk-dashboard .build-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 84px;
+  min-width: 0;
+  height: 22px;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--panel-soft);
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wk-dashboard .build-chip:hover { color: var(--ink); background: var(--panel); border-color: var(--line-strong); }
+
+.wk-dashboard .header-divider { width: 1px; height: 22px; background: var(--line); flex: none; }
+.wk-dashboard .header-spacer { flex: 1 1 auto; min-width: 8px; }
+.wk-dashboard .dashboard-language-switcher { flex: none; }
+.wk-dashboard .dashboard-language-switcher > button {
+  min-width: 66px;
+  background: var(--panel);
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+}
+.wk-dashboard .dashboard-language-switcher > button:hover {
+  background: var(--panel-soft);
+  color: var(--ink);
+}
+.wk-dashboard .dashboard-language-switcher [data-language-switcher-menu="true"] {
+  background: var(--canvas);
+  border-color: var(--line);
+  box-shadow: var(--shadow-pop);
+}
+.wk-dashboard .dashboard-language-switcher [data-language-option] {
+  color: var(--muted);
+}
+.wk-dashboard .dashboard-language-switcher [data-language-option]:hover {
+  background: var(--panel-soft);
+  color: var(--ink);
+}
+.wk-dashboard .dashboard-language-switcher [data-language-option][aria-selected="true"] {
+  background: var(--panel-soft);
+  color: var(--ink);
+}
+
+/* generic icon button */
+.wk-dashboard .iconbtn {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+  position: relative;
+}
+.wk-dashboard .iconbtn:hover { background: var(--panel-soft); color: var(--ink); }
+.wk-dashboard .iconbtn.active { background: var(--panel-soft); color: var(--ink); border-color: var(--line); }
+.wk-dashboard .iconbtn svg { width: 16px; height: 16px; }
+.wk-dashboard .iconbtn:focus-visible { outline: 2px solid color-mix(in srgb, var(--ui-accent) 55%, var(--ui-panel)); outline-offset: 2px; }
+
+.wk-dashboard .iconcluster { display: flex; align-items: center; gap: 2px; }
+
+/* text button */
+.wk-dashboard .tbtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.wk-dashboard .tbtn:hover { background: var(--panel-soft); border-color: var(--line-strong); }
+.wk-dashboard .tbtn svg { width: 14px; height: 14px; }
+.wk-dashboard .tbtn.primary { background: var(--ink); border-color: var(--ink); color: var(--canvas); }
+.wk-dashboard .tbtn.primary:hover { background: var(--ink-strong); }
+.wk-dashboard .tbtn:focus-visible { outline: 2px solid color-mix(in srgb, var(--ui-accent) 55%, var(--ui-panel)); outline-offset: 2px; }
+.wk-dashboard .tbtn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Analyze toggle */
+.wk-dashboard .analyze-toggle {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 32px; padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: 13px; font-weight: 600;
+  transition: all .12s ease;
+}
+.wk-dashboard .analyze-toggle .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+.wk-dashboard .analyze-toggle[aria-pressed="true"] {
+  background: var(--ink); border-color: var(--ink); color: var(--canvas);
+}
+.wk-dashboard .analyze-toggle[aria-pressed="true"] .dot { background: var(--live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 30%, transparent); }
+
+/* Engine status pill */
+.wk-dashboard .engine-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  font-size: 12.5px; font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  transition: background .12s ease, border-color .12s ease;
+}
+.wk-dashboard .engine-pill:hover { background: var(--panel-soft); }
+.wk-dashboard .engine-pill .dot {
+  width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: var(--green);
+}
+.wk-dashboard .engine-pill[data-state="loading"] .dot,
+.wk-dashboard .engine-pill[data-state="running"] .dot { background: var(--live); animation: wk-pulse 1.1s ease-in-out infinite; }
+.wk-dashboard .engine-pill[data-state="error"] .dot { background: var(--red); }
+.wk-dashboard .engine-pill .meta { color: var(--faint); font-weight: 500; font-family: var(--mono); font-size: 11.5px; }
+@keyframes wk-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+/* ---------------- Focus mode: board + minimal move ticker only ---------------- */
+.wk-dashboard[data-focus="on"] { --header-h: 0px; }
+.wk-dashboard[data-focus="on"] .header,
+.wk-dashboard[data-focus="on"] .commandbar,
+.wk-dashboard[data-focus="on"] .edge-toggle { display: none !important; }
+
+/* ---------------- Body grid: library | board | sidebar ---------------- */
+.wk-dashboard .body {
+  display: grid;
+  grid-template-columns: var(--library-w) minmax(0, 1fr) var(--sidebar-w);
+  min-height: 0;
+  position: relative;
+}
+
+/* ---------------- Library ---------------- */
+.wk-dashboard .library {
+  border-right: 1px solid var(--line);
+  background: var(--panel-soft);
+  display: flex; flex-direction: column;
+  min-width: 0; overflow: hidden;
+  grid-column: 1 / 2;
+}
+.wk-dashboard .library.full-library {
+  background: var(--panel);
+}
+.wk-dashboard .library.full-library > [data-layout-panel="library"] {
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  border-right: 0;
+}
+.wk-dashboard .library-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px 8px;
+}
+.wk-dashboard .library-search {
+  margin: 0 12px 8px;
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+}
+.wk-dashboard .library-search svg { width: 13px; height: 13px; color: var(--faint); flex: none; }
+.wk-dashboard .library-search input {
+  border: none; background: transparent; outline: none;
+  font-size: 12.5px; width: 100%; color: var(--ink);
+}
+.wk-dashboard .library-list { overflow-y: auto; padding: 2px 8px 12px; flex: 1; }
+.wk-dashboard .library-group { margin-top: 8px; }
+.wk-dashboard .library-group > .eyebrow { padding: 4px 4px 6px; display: block; }
+.wk-dashboard .lib-item {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; text-align: left;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-soft);
+  transition: background .12s ease, border-color .12s ease;
+}
+.wk-dashboard .lib-item:hover { background: var(--panel); border-color: var(--line); }
+.wk-dashboard .lib-item.active { background: var(--panel); border-color: var(--line-strong); box-shadow: var(--shadow-card); }
+.wk-dashboard .lib-item .li-main { min-width: 0; flex: 1; }
+.wk-dashboard .lib-item .li-name { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wk-dashboard .lib-item .li-sub { font-size: 10.5px; color: var(--faint); font-family: var(--mono); margin-top: 1px; }
+.wk-dashboard .grade-chip {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 2px 5px; border-radius: var(--r-xs); flex: none;
+  text-transform: uppercase;
+}
+.wk-dashboard .grade-chip.green { color: var(--green); background: var(--green-bg); }
+.wk-dashboard .grade-chip.amber { color: var(--amber); background: var(--amber-bg); }
+.wk-dashboard .grade-chip.red   { color: var(--red);   background: var(--red-bg); }
+.wk-dashboard .grade-chip.none  { color: var(--faint); background: var(--panel-soft); }
+
+/* ---------------- Board column ---------------- */
+.wk-dashboard .board-col {
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0;
+  background: var(--canvas);
+  grid-column: 2 / 3;
+  /* Size container so the nav bar can densify based on the column's actual
+     width — the sidebar and library squeeze it independently of the viewport. */
+  container: boardcol / inline-size;
+}
+
+/* Game-info strip */
+.wk-dashboard .gamestrip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+  flex-wrap: wrap;
+  min-height: 42px;
+}
+.wk-dashboard .gs-players { display: flex; align-items: center; gap: 14px; }
+.wk-dashboard .gs-player { display: flex; align-items: center; gap: 7px; }
+.wk-dashboard .gs-player .stone-mini { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.wk-dashboard .gs-player.to-move { position: relative; }
+.wk-dashboard .gs-player.to-move::after {
+  content: 'to move'; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink); background: var(--panel-soft); border: 1px solid var(--line);
+  padding: 1px 5px; border-radius: var(--r-pill); margin-left: 2px;
+}
+.wk-dashboard .gs-player .nm { font-weight: 600; white-space: nowrap; }
+.wk-dashboard .gs-player .rk { color: var(--faint); font-family: var(--mono); font-size: 11px; }
+.wk-dashboard .gs-player .cap { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.wk-dashboard .gs-sep { width: 1px; height: 18px; background: var(--line); }
+.wk-dashboard .gs-fact { color: var(--muted); font-family: var(--mono); font-size: 11.5px; white-space: nowrap; }
+.wk-dashboard .gs-fact b { color: var(--ink); font-weight: 600; }
+.wk-dashboard .gs-result {
+  font-weight: 700; color: var(--green); background: var(--green-bg);
+  border: 1px solid color-mix(in srgb, var(--green) 35%, var(--panel)); padding: 2px 8px; border-radius: var(--r-sm); font-size: 11.5px;
+}
+.wk-dashboard .gs-file {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--muted); font-size: 11.5px; max-width: 220px;
+}
+.wk-dashboard .gs-file .fn { color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-dashboard .gs-save {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+  padding: 2px 7px; border-radius: var(--r-pill);
+}
+.wk-dashboard .gs-save.saved { color: var(--green); background: var(--green-bg); }
+.wk-dashboard .gs-save.dirty { color: var(--amber); background: var(--amber-bg); }
+.wk-dashboard .gs-save svg { width: 11px; height: 11px; }
+
+/* The board column owns its own responsive budget: when the library or
+   sidebar squeeze it, toolbar labels collapse to icons (titles keep the
+   names) so the nav bar stays a single row instead of wrapping. */
+.wk-dashboard .board-col { container-type: inline-size; }
+@container (max-width: 1180px) {
+  .wk-dashboard .bc-label { display: none; }
+  .wk-dashboard .board-chip { padding: 0 8px; }
+}
+@container (max-width: 1080px) {
+  .wk-dashboard .playactions .tbtn-label { display: none; }
+}
+/* When the library and sidebar squeeze the column, the game strip sheds its
+   low-value facts (komi, rules) before it would wrap the save status onto a
+   second row; players, board size, file name and save state stay. */
+@container (max-width: 1000px) {
+  .wk-dashboard .gamestrip .gs-fact:not(.gs-fact-primary) { display: none; }
+  .wk-dashboard .gs-file { max-width: 140px; }
+}
+
+/* Board stage */
+.wk-dashboard .board-stage {
+  flex: 1 1 0; min-height: 0; min-width: 0;
+  display: grid; place-items: center;
+  padding: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.wk-dashboard .board-wrap {
+  position: relative; aspect-ratio: 1;
+  height: 100%; width: auto;
+  max-height: 100%; max-width: 100%;
+  min-height: 0; min-width: 0;
+}
+.wk-dashboard .goban-frame {
+  width: 100%; height: 100%;
+  min-height: 0; min-width: 0;
+  position: relative;
+}
+.wk-dashboard .manual-score-panel:not(.manual-score-docked) {
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+}
+
+/* First-run hero: floats over the lower board stage on a fresh empty game so
+   the board stays visible and playable underneath. */
+.wk-dashboard .hero-card {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 16;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  max-width: min(92%, 480px);
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-pop);
+  text-align: center;
+}
+.wk-dashboard .hero-card .hero-title { font-size: 13.5px; font-weight: 700; }
+.wk-dashboard .hero-card .hero-sub { font-size: 12px; color: var(--muted); }
+.wk-dashboard .hero-card .hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.wk-dashboard .hero-card .hero-tips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  width: 100%;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.wk-dashboard .hero-card .hero-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.wk-dashboard .hero-card .hero-tip kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--panel-2, color-mix(in srgb, var(--ink) 6%, transparent));
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 3px 6px;
+  box-shadow: 0 1px 0 var(--line-strong);
+}
+.wk-dashboard .hero-card .hero-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Board controls live outside the goban frame. */
+.wk-dashboard .board-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wk-dashboard .board-extra-tools {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Active scoring docks into the action strip as a slim horizontal bar so the
+   board below keeps its space (a vertical card here crushes the board stage).
+   Status/totals/help duplicate the result card and live behind Details, which
+   opens as a popover instead of growing the strip. */
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  width: auto;
+  max-width: 100%;
+  max-height: none;
+  overflow: visible;
+  padding: 6px 10px;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-header {
+  border-bottom: none;
+  min-height: 0;
+  padding: 0;
+  gap: 6px;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-count {
+  margin-left: 0;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-method {
+  width: auto;
+  margin: 0;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-result {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 15px;
+  text-align: left;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-status,
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-totals,
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-help {
+  display: none;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-details {
+  position: relative;
+  border-top: none;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-details-toggle {
+  width: auto;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  padding: 5px 9px;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-breakdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 230px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 8px;
+  background: var(--ui-panel);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 28%);
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-actions {
+  border-top: none;
+  padding: 0;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-actions button {
+  flex: 0 0 auto;
+  padding: 0 10px;
+}
+.wk-dashboard .board-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 10px;
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: var(--panel);
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+  transition: all .12s ease;
+}
+.wk-dashboard .board-chip:hover:not(:disabled) { color: var(--ink); }
+.wk-dashboard .board-chip.on { color: var(--ink); border-color: var(--ink); background: var(--panel); }
+.wk-dashboard .board-chip:disabled { opacity: .45; cursor: not-allowed; }
+.wk-dashboard .board-chip svg { width: 13px; height: 13px; }
+
+/* ---------------- Command bar (single home for live metrics) ------------- */
+.wk-dashboard .commandbar {
+  display: flex; align-items: stretch;
+  margin: 0 16px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.wk-dashboard .cb-metrics { display: flex; flex: 1; min-width: 0; }
+.wk-dashboard .cb-metric {
+  flex: 1; min-width: 0;
+  padding: 6px 14px;
+  border-left: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 1px;
+}
+.wk-dashboard .cb-metric:first-child { border-left: none; }
+.wk-dashboard .cb-metric .k { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+.wk-dashboard .cb-metric .v { font-family: var(--mono); font-size: 17px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Win rate and score are state, not judgement — keep them neutral so the
+   semantic eval colors stay reserved for move quality. */
+.wk-dashboard .cb-metric .v.win { color: var(--ink); }
+.wk-dashboard .cb-metric .v.score { color: var(--ink); }
+.wk-dashboard .cb-metric .v.best { color: var(--ink); }
+.wk-dashboard .cb-metric .sub { font-size: 10.5px; color: var(--faint); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wk-dashboard .cb-metric .sub.delta-good { color: var(--green); }
+.wk-dashboard .cb-metric .sub.delta-bad { color: var(--red); }
+.wk-dashboard .cb-quality-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+
+/* ---------------- Nav bar (single home for move navigation) ------------- */
+.wk-dashboard .navbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 16px 10px;
+  flex-wrap: wrap; row-gap: 6px;
+}
+.wk-dashboard .navbar .navgroup { display: flex; align-items: center; gap: 2px; }
+.wk-dashboard .navbtn {
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; border-radius: var(--r-sm);
+  background: transparent; color: var(--muted);
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.wk-dashboard .navbtn:hover { background: var(--panel-soft); color: var(--ink); }
+.wk-dashboard .navbtn svg { width: 15px; height: 15px; }
+/* Direction + dot pairs (previous/next mistake) need a wider hit area, and
+   the chevron keeps its own width/height attributes so it reads as a modifier
+   next to the quality dot. */
+.wk-dashboard .navbtn-pair { width: 44px; gap: 3px; }
+.wk-dashboard .navbtn-pair svg { width: auto; height: auto; }
+/* Mistake navigation is navigation, not danger: mark it with the move-quality
+   mistake color instead of alert red, which stays reserved for destructive
+   actions like Resign. */
+.wk-dashboard .mistake-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--eval-mistake); flex: none; }
+.wk-dashboard .navbtn.danger { color: var(--red); }
+.wk-dashboard .navbtn.danger:hover { background: var(--red-bg); }
+.wk-dashboard .navbtn:disabled { opacity: .35; cursor: not-allowed; }
+.wk-dashboard .navbtn:focus-visible { outline: 2px solid color-mix(in srgb, var(--ui-accent) 55%, var(--ui-panel)); outline-offset: 1px; }
+
+.wk-dashboard .pass-btn {
+  height: 34px; padding: 0 16px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-md);
+  background: var(--panel); color: var(--ink-soft); font-weight: 600; font-size: 13px;
+  transition: background .12s ease;
+}
+.wk-dashboard .pass-btn:hover { background: var(--panel-soft); }
+
+.wk-dashboard .move-counter {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 12px; height: 34px;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel-soft);
+  font-family: var(--mono); font-size: 12.5px; color: var(--muted);
+}
+.wk-dashboard .move-counter b { color: var(--ink); font-weight: 600; }
+.wk-dashboard .move-counter input {
+  width: 38px; border: none; background: transparent; outline: none;
+  font-family: var(--mono); font-size: 12.5px; color: var(--ink); text-align: right; font-weight: 600;
+}
+.wk-dashboard .move-counter input::-webkit-outer-spin-button,
+.wk-dashboard .move-counter input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.wk-dashboard .move-counter input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.wk-dashboard .nav-divider { width: 1px; height: 20px; background: var(--line); margin: 0 2px; }
+.wk-dashboard .navbar-spacer { flex: 1 1 0; min-width: 0; }
+
+.wk-dashboard .playactions { display: flex; align-items: center; gap: 6px; }
+
+/* Keep the nav bar on a single row as the board column narrows: first drop the
+   play-action labels (tooltips keep them discoverable), then tighten paddings.
+   Wrapping stays as the last-resort fallback. */
+@container boardcol (max-width: 919px) {
+  .wk-dashboard .navbar { gap: 4px; }
+  .wk-dashboard .playactions { gap: 4px; }
+  .wk-dashboard .playactions .tbtn { padding: 0 9px; }
+  .wk-dashboard .playactions .tbtn-label { display: none; }
+}
+@container boardcol (max-width: 699px) {
+  .wk-dashboard .navbtn { width: 30px; }
+  .wk-dashboard .pass-btn { padding: 0 12px; }
+  .wk-dashboard .move-counter { padding: 0 8px; gap: 4px; }
+  .wk-dashboard .nav-divider { margin: 0; }
+  .wk-dashboard .navbar { padding: 8px 12px 12px; }
+}
+/* Tightest squeeze (wide layout with library and sidebar both open): drop the
+   jump-10 buttons and the counter's "Move" word, keeping one row of controls. */
+@container boardcol (max-width: 619px) {
+  .wk-dashboard .navbtn-skip { display: none; }
+  .wk-dashboard .move-counter .mc-label { display: none; }
+  .wk-dashboard .pass-btn { padding: 0 10px; }
+}
+
+/* ---------------- Sidebar (analysis) ---------------- */
+.wk-dashboard .sidebar {
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  display: flex; flex-direction: column;
+  min-width: 0; overflow: hidden;
+  grid-column: 3 / 4;
+}
+
+.wk-dashboard .mode-tabs {
+  display: flex; border-bottom: 1px solid var(--line);
+  flex: none;
+}
+.wk-dashboard .mode-tab {
+  flex: 1; padding: 11px 10px;
+  background: transparent; border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 13px; font-weight: 600; color: var(--faint);
+  transition: color .12s ease;
+}
+.wk-dashboard .mode-tab:hover { color: var(--ink-soft); }
+.wk-dashboard .mode-tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+.wk-dashboard .sidebar-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+
+/* collapsible section */
+.wk-dashboard .section { border-bottom: 1px solid var(--line); }
+.wk-dashboard .section-head {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 10px 14px;
+  background: transparent; border: none;
+  transition: background .12s ease;
+}
+.wk-dashboard .section-head:hover { background: var(--panel-soft); }
+.wk-dashboard .section-head .chev { color: var(--faint); transition: transform .15s ease; display: inline-flex; }
+.wk-dashboard .section.open .section-head .chev { transform: rotate(90deg); }
+.wk-dashboard .section-head .stitle { flex: 1; text-align: left; }
+.wk-dashboard .section-head .seyebrow {
+  /* Sentence-case section titles: uppercase micro-labels are reserved for
+     stat captions, not navigation. */
+  font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
+}
+.wk-dashboard .section-head .saction { display: flex; align-items: center; gap: 4px; }
+.wk-dashboard .section-body { display: none; padding: 0 14px 14px; }
+.wk-dashboard .section.open .section-body { display: block; }
+.wk-dashboard .section-body.flush { padding: 0; }
+
+/* small toggle/icon button used in panels */
+.wk-dashboard .pbtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 9px;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel); color: var(--muted);
+  font-size: 11.5px; font-weight: 500; white-space: nowrap;
+  transition: all .12s ease;
+}
+.wk-dashboard .pbtn:hover { color: var(--ink); background: var(--panel-soft); }
+.wk-dashboard .pbtn.on { color: var(--ink); border-color: var(--ink); background: var(--panel); }
+.wk-dashboard .pbtn svg { width: 12px; height: 12px; }
+.wk-dashboard .pbtn.danger { color: var(--red); border-color: color-mix(in srgb, var(--red) 35%, var(--panel)); }
+.wk-dashboard .pbtn.danger:hover { background: var(--red-bg); }
+.wk-dashboard .pbtn:disabled { opacity: .4; cursor: not-allowed; }
+.wk-dashboard .pico {
+  width: 28px; height: 28px; padding: 0; justify-content: center;
+}
+
+.wk-dashboard .panel-toolbar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 9px 14px; background: var(--panel-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Game info card */
+.wk-dashboard .info-card {
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 12px; background: var(--panel-softer);
+}
+.wk-dashboard .info-title { font-size: 13px; font-weight: 600; }
+.wk-dashboard .info-sub { font-size: 11px; color: var(--faint); margin-top: 1px; }
+.wk-dashboard .info-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); margin-top: 8px; }
+.wk-dashboard .info-row .stone-mini { width: 13px; height: 13px; border-radius: 50%; flex: none; }
+.wk-dashboard .info-row .ir-k { font-size: 9.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
+.wk-dashboard .info-row .ir-v { font-size: 12.5px; }
+.wk-dashboard .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.wk-dashboard .info-grid dt { font-size: 9.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
+.wk-dashboard .info-grid dd { margin: 1px 0 0; font-size: 12.5px; font-family: var(--mono); }
+
+/* Stones (shared) */
+/* Both stones carry a border so the black stone stays visible on dark themes
+   and the white stone on light ones. */
+.wk-dashboard .stone-mini.b { background: radial-gradient(circle at 35% 30%, #5a5a5a 0%, #232323 40%, #050505 100%); border: 1px solid var(--line-strong); }
+.wk-dashboard .stone-mini.w { background: radial-gradient(circle at 32% 28%, #ffffff 0%, #f1f1f1 42%, #cfcfcf 100%); border: 1px solid rgba(17,24,39,.35); }
+
+/* Move tree (list view) */
+.wk-dashboard .tree-region { padding: 8px 10px; max-height: 240px; overflow: auto; }
+.wk-dashboard .tree-list { max-height: 240px; overflow: auto; }
+.wk-dashboard .tl-item {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; text-align: left;
+  padding: 6px 14px; background: transparent; border: none;
+  border-bottom: 1px solid var(--line-faint);
+  transition: background .12s ease;
+}
+.wk-dashboard .tl-item:hover { background: var(--panel-soft); }
+.wk-dashboard .tl-item.current { background: var(--panel-soft); box-shadow: inset 2px 0 0 var(--ink); }
+.wk-dashboard .tl-num { width: 26px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.wk-dashboard .tl-chip { font-family: var(--mono); font-size: 10px; padding: 1px 5px; border-radius: var(--r-xs); }
+.wk-dashboard .tl-chip.b { background: #1c1c1c; color: #f5f5f5; }
+.wk-dashboard .tl-chip.w { background: #f5f5f5; color: #1c1c1c; border: 1px solid var(--line-strong); }
+.wk-dashboard .tl-label { font-size: 12px; font-weight: 500; font-family: var(--mono); }
+.wk-dashboard .tl-dot { width: 8px; height: 8px; border-radius: 50%; margin-left: auto; flex: none; }
+.wk-dashboard .tl-note { margin-left: auto; font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--amber); letter-spacing: .04em; }
+
+/* Winrate graph */
+.wk-dashboard .graph-wrap { padding: 10px 14px 4px; }
+.wk-dashboard .graph-legend { display: flex; align-items: center; gap: 14px; padding: 4px 14px 0; font-size: 11px; color: var(--muted); }
+.wk-dashboard .graph-legend .lg { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; background: none; border: none; cursor: pointer; padding: 0; color: inherit; font-size: inherit; }
+.wk-dashboard .graph-legend .lg .sw { width: 10px; height: 3px; border-radius: 2px; }
+
+/* Overlay toggles row */
+.wk-dashboard .overlay-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px 4px; }
+
+/* Quality legend */
+.wk-dashboard .qlegend { padding: 10px 14px 0; }
+.wk-dashboard .qlegend .qgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin-top: 6px; }
+.wk-dashboard .qlegend .qi { display: flex; align-items: center; gap: 7px; font-size: 11.5px; }
+.wk-dashboard .qlegend .qi .qd { width: 9px; height: 9px; border-radius: 50%; flex: none; border: 1px solid rgba(0,0,0,.25); }
+.wk-dashboard .qlegend .qi .ql { color: var(--muted); }
+.wk-dashboard .qlegend .qi .qr { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink); }
+
+/* Notes */
+.wk-dashboard .notes-meta { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--line); font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+.wk-dashboard .notes-meta .pos { font-family: var(--mono); color: var(--ink-soft); }
+.wk-dashboard .shape-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+  font-size: 11px; font-weight: 600; color: var(--ink-soft); background: var(--panel-soft);
+}
+.wk-dashboard .notes-area {
+  width: 100%; min-height: 96px; resize: vertical;
+  border: none; border-bottom: 1px solid var(--line);
+  padding: 12px 14px; font-size: 13px; color: var(--ink); outline: none;
+  background: var(--panel); line-height: 1.5;
+}
+.wk-dashboard .notes-area::placeholder { color: var(--faint); }
+.wk-dashboard .coach-card {
+  margin: 12px 14px; padding: 11px 12px;
+  border: 1px solid var(--line); border-left: 3px solid var(--ink);
+  border-radius: var(--r-sm); background: var(--panel-softer);
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+}
+.wk-dashboard .coach-card b { color: var(--ink); font-weight: 600; }
+.wk-dashboard .coach-card .cc-title { font-size: 12.5px; color: var(--ink); font-weight: 600; margin-bottom: 3px; }
+
+/* timer (play mode) */
+.wk-dashboard .timer-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 12px; color: var(--muted);
+  padding: 0 8px; height: 28px; border: 1px solid var(--line); border-radius: var(--r-sm);
+}
+.wk-dashboard .timer-pill b { color: var(--ink); }
+
+/* ---------------- Popovers / menus ---------------- */
+.wk-dashboard .scrim { position: fixed; inset: 0; z-index: 60; }
+.wk-dashboard .popover {
+  position: fixed; z-index: 61;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  font-size: 13px;
+}
+.wk-dashboard .popover .pop-head { padding: 11px 14px 8px; border-bottom: 1px solid var(--line); }
+.wk-dashboard .popover .pop-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.wk-dashboard .popover .pop-title { font-size: 13.5px; font-weight: 600; margin-top: 2px; }
+.wk-dashboard .menu { min-width: 230px; padding: 5px; }
+.wk-dashboard .menu-section-label { padding: 8px 9px 4px; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+.wk-dashboard .menu-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 7px 9px; border: none; border-radius: var(--r-sm);
+  background: transparent; color: var(--ink-soft); font-size: 13px; text-align: left;
+  text-decoration: none;
+  transition: background .12s ease;
+}
+.wk-dashboard .menu-item:hover { background: var(--panel-soft); }
+.wk-dashboard .menu-item svg { width: 14px; height: 14px; color: var(--muted); flex: none; }
+.wk-dashboard .menu-item .mi-label { flex: 1; }
+.wk-dashboard .menu-item .mi-kbd { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.wk-dashboard .menu-item .mi-state { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.wk-dashboard .menu-item.on { color: var(--ink); }
+.wk-dashboard .menu-item.on .mi-state { color: var(--green); }
+.wk-dashboard .menu-divider { height: 1px; background: var(--line); margin: 5px 0; }
+.wk-dashboard .menu-build {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 7px 9px;
+  border-radius: var(--r-xs);
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-decoration: none;
+}
+.wk-dashboard .menu-build:hover { background: var(--panel-soft); color: var(--ink); }
+.wk-dashboard .menu-build svg { flex: none; width: 12px; height: 12px; color: currentColor; }
+.wk-dashboard .menu-build-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* engine detail popover content */
+.wk-dashboard .engine-detail { width: 300px; padding: 12px 14px; }
+.wk-dashboard .engine-detail .ed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.wk-dashboard .engine-detail .ed-grid dt { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
+.wk-dashboard .engine-detail .ed-grid dd { margin: 2px 0 0; font-size: 12.5px; font-weight: 600; }
+.wk-dashboard .engine-detail .ed-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.wk-dashboard .depth-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
+.wk-dashboard .depth-preset {
+  text-align: left; padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel); transition: all .12s ease;
+}
+.wk-dashboard .depth-preset:hover { background: var(--panel-soft); }
+.wk-dashboard .depth-preset.on { border-color: var(--ink); }
+.wk-dashboard .depth-preset .dp-v { font-family: var(--mono); font-weight: 600; font-size: 13px; }
+.wk-dashboard .depth-preset .dp-l { font-size: 9.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
+
+/* Progress (game analysis) */
+.wk-dashboard .progress-wrap { padding: 0 14px 12px; }
+.wk-dashboard .progress-track { height: 5px; border-radius: var(--r-pill); background: var(--panel-soft); overflow: hidden; }
+.wk-dashboard .progress-fill { height: 100%; background: var(--live); border-radius: var(--r-pill); transition: width .2s ease; }
+.wk-dashboard .progress-label { font-size: 10.5px; color: var(--faint); font-family: var(--mono); margin-top: 5px; }
+
+/* edge toggles to reopen panels */
+.wk-dashboard .edge-toggle {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 56px; z-index: 15;
+  border: 1px solid var(--line); background: var(--panel);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); box-shadow: var(--shadow-card);
+}
+.wk-dashboard .edge-toggle:hover { color: var(--ink); }
+.wk-dashboard .edge-toggle svg { width: 13px; height: 13px; }
+.wk-dashboard .edge-toggle.left { left: 0; border-left: none; border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.wk-dashboard .edge-toggle.right { right: 0; border-right: none; border-radius: var(--r-sm) 0 0 var(--r-sm); }
+.wk-dashboard .edge-toggle.top,
+.wk-dashboard .edge-toggle.bottom {
+  left: 50%; transform: translateX(-50%);
+  width: 56px; height: 18px;
+}
+.wk-dashboard .edge-toggle.top { top: 0; border-top: none; border-radius: 0 0 var(--r-sm) var(--r-sm); }
+.wk-dashboard .edge-toggle.bottom { top: auto; bottom: 0; border-bottom: none; border-radius: var(--r-sm) var(--r-sm) 0 0; }
+
+/* When the panel is open the same toggle folds it shut: keep it on the seam
+   between the board and the panel, reading as the active (open) handle. */
+.wk-dashboard .edge-toggle.open {
+  color: var(--ink);
+  background: var(--panel-soft);
+}
+
+.wk-dashboard .hidden { display: none !important; }
+
+/* scrollbars */
+.wk-dashboard *::-webkit-scrollbar { width: 9px; height: 9px; }
+.wk-dashboard *::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 5px; border: 2px solid var(--panel); }
+.wk-dashboard *::-webkit-scrollbar-thumb:hover { background: var(--faint); }
+
+/* Toast */
+.wk-dashboard .toast-region { position: fixed; top: 60px; right: 16px; z-index: 80; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.wk-dashboard .toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 9px;
+  min-width: 220px; max-width: 340px;
+  padding: 10px 12px;
+  background: var(--panel); border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--r-md); box-shadow: var(--shadow-pop);
+  font-size: 13px; font-weight: 500;
+  animation: wk-toastin .16s ease-out;
+}
+.wk-dashboard .toast.success { border-left-color: var(--green); }
+.wk-dashboard .toast.error { border-left-color: var(--red); }
+.wk-dashboard .toast svg { width: 16px; height: 16px; flex: none; }
+.wk-dashboard .toast.success svg { color: var(--green); }
+.wk-dashboard .toast.error svg { color: var(--red); }
+@keyframes wk-toastin { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+/* ---- Drawer mode (compact / narrow viewports) ---- */
+.wk-dashboard .drawer-scrim {
+  position: absolute; inset: 0 0 0 0;
+  background: rgba(17, 24, 39, 0.34);
+  z-index: 45;
+  animation: wk-scrimin .16s ease;
+}
+@keyframes wk-scrimin { from { opacity: 0; } to { opacity: 1; } }
+
+.wk-dashboard .library.drawer, .wk-dashboard .sidebar.drawer {
+  position: absolute; top: 0; bottom: 0;
+  z-index: 48;
+  box-shadow: var(--shadow-pop);
+  transition: transform .22s ease;
+}
+.wk-dashboard .library.drawer { left: 0; width: min(280px, 84vw); transform: translateX(-101%); }
+.wk-dashboard .library.drawer.open { transform: none; }
+.wk-dashboard .sidebar.drawer { right: 0; width: min(380px, 92vw); transform: translateX(101%); }
+.wk-dashboard .sidebar.drawer.open { transform: none; }
+
+/* close button shown only in drawer mode */
+.wk-dashboard .drawer-close { display: none; }
+.wk-dashboard .drawer .drawer-close { display: inline-flex; }
+
+/* header shedding on small screens */
+.wk-dashboard[data-layout="compact"] .header {
+  gap: 6px;
+  padding: 0 8px;
+}
+.wk-dashboard[data-layout="compact"] .dashboard-language-switcher,
+.wk-dashboard[data-layout="narrow"] .dashboard-language-switcher { display: none; }
+.wk-dashboard[data-layout="compact"] #wk-engine-pill-meta { display: none; }
+
+.wk-dashboard[data-layout="narrow"] #wk-util-actions,
+.wk-dashboard[data-layout="narrow"] .header-divider.shed,
+.wk-dashboard[data-layout="narrow"] #wk-engine-pill-meta { display: none; }
+.wk-dashboard[data-layout="narrow"] .brand-name { display: none; }
+.wk-dashboard[data-layout="narrow"] #wk-view-menu-btn { padding: 0; width: 32px; }
+.wk-dashboard[data-layout="narrow"] #wk-view-menu-btn .vlabel { display: none; }
+.wk-dashboard[data-layout="narrow"] .board-stage { padding: 10px; }
+.wk-dashboard[data-layout="narrow"] .gamestrip { padding: 7px 12px; gap: 8px; }
+.wk-dashboard[data-layout="narrow"] .commandbar { margin: 0 12px 8px; }
+.wk-dashboard[data-layout="narrow"] .navbar { padding: 8px 12px 12px; }
+.wk-dashboard[data-layout="narrow"] .cb-metric { padding: 8px 10px; }
+.wk-dashboard[data-layout="narrow"] .header { gap: 6px; padding: 0 8px; }
+
+@media (max-width: 560px) {
+  .wk-dashboard[data-layout="narrow"] #wk-engine-pill-label { display: none; }
+  .wk-dashboard[data-layout="narrow"] #wk-engine-pill { padding: 0 9px; }
+  .wk-dashboard[data-layout="narrow"] .cb-metric:nth-child(n+4) { display: none; }
+}
