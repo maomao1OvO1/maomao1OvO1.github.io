@@ -3,19 +3,29 @@
 
 <!-- ════════════════════════════════════════════════════════════════════
   文件：error.html —— 黑底红字「报错现场」特效页（纯原生 · 零依赖 · 单文件）
-  用途：毛毛要的氛围页 —— ① 黑色背景；② 中央红色大字（**常亮，不闪**）；
-        ③ 随机英文字母从**右上角斜飘向左下角**（字符雨，**字会闪**）；
-        ④ 返回入口只指向他的 GitHub 主页（README），不去别的地方。
+  用途：毛毛要的效果 —— 照《黑客帝国》那种**字符流雨**的标准来做，但：
+        ① 颜色换成**红色**（不是绿的）；② 整片雨是**斜着下的**（右上 → 左下）。
+        另外：中央红色大字**常亮不闪**，闪的是飘动的那片雨。
   说明：与 404.html（跟主站风格一致的中文兜底页）**刻意分开** ——
         本页不引 style.css / bg.css，独立黑底，就是要"报错"那股劲儿。
-  实现：Canvas 逐帧画字符 + 半透明黑覆盖造拖尾（矩阵雨的经典做法），
-        方向靠速度矢量控制（x 往左、y 往下 ⇒ 右上 → 左下）；
-        闪烁靠**每帧随机决定这个字这一帧是"暗下去"还是"爆亮"**。
+  ═══════════════════════════════════════════════════════════════════
+  字符流是怎么画的（Matrix 的正统做法 + 斜向改造）：
+    1. 把屏幕切成若干条**流**（column），每条有自己的起点、速度、尾巴长度；
+    2. 一条流 = 一串字符，**头在最前**（最亮，白偏红），越往尾巴越暗越透，
+       所以"拖尾"是靠**逐字递减的透明度**画出来的，不是靠残影糊出来的；
+    3. 每条流每帧往前走一步：**x 往左、y 往下** ⇒ 整体右上 → 左下（≈30°）；
+    4. 尾巴上第 k 个字符的位置 = 头部沿"反方向"退 k 个字距；
+    5. 字符会**随帧随机变脸**（像电影里字在滚动），不是一成不变。
+  每帧清屏一次（纯黑重画）：因为尾巴已经由透明度表达，不需要靠半透明覆盖
+  去糊残影 —— 这样画面最干净、最接近电影里的观感。
+  ═══════════════════════════════════════════════════════════════════
   注意：① 不引任何库、不发任何网络请求；
-        ② 字符数量有上限、字号按屏宽自适应，保手机帧率；
-        ③ 不给每个字设 shadowBlur（逐字模糊必掉帧），光感靠颜色 + 拖尾。
-  改动记录：2026-10-06 创建；同日按毛毛要求改 —— 字号加大、大字停闪、
-        改为飘动的字闪烁、去掉「小游戏」按钮、返回入口改指 GitHub 主页。
+        ② 太暗的尾巴字符直接跳过不画（省一半绘制量）+ 列数封顶 ⇒ 保手机帧率；
+        ③ 绝不给每个字设 shadowBlur（逐字模糊必掉帧），光感靠亮度分层；
+        ④ 字号：手机 19 / 平板 22 / 桌面 26（毛毛要求"字大点"）。
+  改动记录：2026-10-06 创建 → 同日 ①字加大 ②大字停闪改飘字闪 ③去掉
+        「小游戏」按钮、返回只指 GitHub 主页 → 再按毛毛要求**重写成
+        Matrix 式字符流**（红色 · 斜向）。
   创建：2026-10-06（小鲸）
 ════════════════════════════════════════════════════════════════════ -->
 
@@ -31,7 +41,6 @@
 /* ── 配色：全页只用红与黑，靠亮度层次做区分 ───────────────────── */
 :root{
     --red:      #ff2b2b;   /* 主红：大字 */
-    --red-soft: #ff6b6b;   /* 亮红：小字、按钮描边 */
     --red-deep: #8b0000;   /* 暗红：光晕 */
 }
 
@@ -53,7 +62,7 @@ body {
     cursor: crosshair;
 }
 
-/* ① 字符雨画布 —— 最底层，铺满全屏 */
+/* ① 字符流画布 —— 最底层，铺满全屏 */
 #rain { position: fixed; inset: 0; display: block; z-index: 1; }
 
 /* ② 中央文字层 —— pointer-events:none 让点击穿透到画布（点哪炸哪） */
@@ -65,7 +74,7 @@ body {
     pointer-events: none;
 }
 
-/* 大字：红色 + 三层红色光晕 —— **常亮不闪**（毛毛要求：闪的交给飘动的字） */
+/* 大字：红色 + 三层红色光晕 —— **常亮不闪**（闪的交给飘动的雨） */
 .big {
     font-size: clamp(27px, 7.6vw, 66px);
     font-weight: 900;
@@ -139,7 +148,7 @@ body {
 
 <body>
 
-<!-- 字符雨（JS 画） -->
+<!-- 字符流雨（JS 画） -->
 <canvas id="rain"></canvas>
 
 <!-- 偶尔的全屏红闪 -->
@@ -165,51 +174,78 @@ body {
 
 <script>
 /* ════════════════════════════════════════════════════════════════════
-   字符雨：随机英文字母 + 数字，从**右上角**斜飘向**左下角**，且**会闪**
-   ── 做法（经典矩阵雨 + 斜向改造 + 闪烁）：
-      每一帧先用「半透明黑」盖住整个画布（rgba(0,0,0,.13)），
-      旧字符就被压暗一点点 ⇒ 自然拖出尾巴；
-      然后给每个"雨滴"随机挑一个字画上去；
-      再让它 x 往左、y 往下走 ⇒ 整体方向就是右上 → 左下。
-   ── 闪烁怎么做的：
-      画每个字之前**掷一次骰子** ——
-        小概率 ⇒ 这一帧几乎画成黑的（字"灭"一下）；
-        更小概率 ⇒ 这一帧拉满亮度（字"爆"一下）；
-        其余  ⇒ 按它自己的基准亮度画。
-      合起来就是"整片雨在抖"的感觉，而不是整齐地一起亮灭。
-   注意：① 字大了 ⇒ 数量自动变少（按屏幕面积算），保持密度不吓人；
-        ② 每个字都设 shadowBlur 会卡 —— 光感靠颜色 + 拖尾。
+   红色字符流雨（Matrix 式 · 斜向）
+
+   ── 几何：整片雨往「左下」走 ≈30° ─────────────────────────────
+      流向单位向量 (SLX, SLY) = (0.5, 0.866) —— 水平退 0.5、竖直落 0.866，
+      正好是 30°。所以头部每帧就是：x -= speed*SLX，y += speed*SLY。
+      尾巴上第 k 个字符 = 头部**沿反方向**退 k 个字距：
+          cx = hx + k*FS*SLX ,  cy = hy - k*FS*SLY
+      （把"字距 FS"分解到两个轴上，字符就自然沿斜线排成一串，不会散。）
+
+   ── 亮度：Matrix 的招牌是「头白尾绿」────────────────────────
+      它是「头白尾绿」，我们换成**头白尾红**：
+        头部（k=0）  ⇒ 近白的暖白 (255,236,236)
+        往后每一字   ⇒ 透明度 1 - k/len 递减（尾巴越远越看不见）
+      透明度太低（≤0.07）的直接不画 —— 既省性能，观感也没差别。
+
+   ── 变化：字会"变脸"──────────────────────────────────────
+      每帧以 45% 的概率随机换掉这条流里的某个字符 ⇒ 像电影里字在滚动。
+
+   ── 性能：每帧清屏重画（纯黑），尾巴靠透明度表达、不靠残影 ─────
+      列数按屏宽算并封顶 46 条；字符少画；dpr 上限 2 —— 手机也能跑满。
    ════════════════════════════════════════════════════════════════════ */
 (function () {
     var cv  = document.getElementById('rain');
     var ctx = cv.getContext('2d');
 
-    // 字符池：大小写字母 + 数字 + 少量符号（随机取）
-    var CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789#$%&@*<>/';
+    // 字符池：大小写字母 + 数字 + 少量符号（Matrix 用的也是拉丁字母为主）
+    var CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789#$%&@*<>/+=';
 
-    var dpr = 1;          // 设备像素比（上限 2，省性能）
-    var W = 0, H = 0;     // 画布实际像素尺寸
-    var FS = 22;          // 当前字号（画布像素）
-    var drops = [];       // 全部雨滴
+    // 流向：左下 30°（单位向量）
+    var SLX = 0.5, SLY = 0.866;
 
-    // 字号：手机小一点、桌面大一点（2026-10-06 按毛毛要求整体加大了）
+    var dpr = 1;         // 设备像素比（上限 2，省性能）
+    var W = 0, H = 0;    // 画布实际像素尺寸
+    var FS = 22;         // 当前字号（画布像素）
+    var cols = [];       // 全部字符流
+
+    function rndChar() { return CHARS.charAt((Math.random() * CHARS.length) | 0); }
+
+    // 字号：手机小一点、桌面大一点（毛毛要求"字大点"，所以整体调大了）
     function pxFont() {
         var w = window.innerWidth;
         return w < 520 ? 19 : (w < 900 ? 22 : 26);
     }
 
-    // 造一滴雨：scatter=true 时撒在屏幕内（首屏立刻满），否则从右上角外飘进来
-    function makeDrop(scatter) {
-        var base = FS;
+    // 造一条流：长度随机 8~21 个字；起点默认在屏幕上方之外
+    function makeCol(initial) {
+        var len = 8 + ((Math.random() * 14) | 0);
+        var chars = [];
+        for (var i = 0; i < len; i++) chars.push(rndChar());
         return {
-            x:     scatter ? Math.random() * W * 1.5 : W + Math.random() * W * 0.4,
-            y:     scatter ? Math.random() * H - H * 0.25 : -base - Math.random() * H * 0.5,
-            speed: (1.0 + Math.random() * 2.0) * Math.min(dpr, 1.6),   // 速度：每帧 1.0~3.0 像素
-            alpha: 0.22 + Math.random() * 0.6                          // 基准亮度（深浅有层次）
+            hx:    -W * 0.15 + Math.random() * W * 1.5,   // 起点 x（铺满整屏，含右侧外沿）
+            hy:    initial ? (Math.random() * H * 1.4 - H * 0.3)   // 首屏：直接撒在屏幕内外
+                           : (-FS * len - Math.random() * H * 0.7), // 之后：从上方之外进场
+            speed: (0.9 + Math.random() * 2.6) * Math.min(dpr, 1.6),
+            len:   len,
+            chars: chars,
+            alpha: 0.40 + Math.random() * 0.60            // 基准亮度（做出前景/后景层次）
         };
     }
 
-    // 尺寸变化 / 首次进入：重排画布与雨滴
+    // 循环复用：把一条流送回右上方之外
+    function recycle(c) {
+        var n = makeCol(false);
+        c.hx = n.hx + W * 0.25;   // 稍微往右上挪，配合斜向入场
+        c.hy = n.hy;
+        c.speed = n.speed;
+        c.len = n.len;
+        c.chars = n.chars;
+        c.alpha = n.alpha;
+    }
+
+    // 尺寸变化 / 首次进入：重排画布与字符流
     function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, 2);
         W = cv.width  = Math.floor(window.innerWidth  * dpr);
@@ -221,48 +257,60 @@ body {
         ctx.font = 'bold ' + FS + 'px "Courier New", monospace';
         ctx.textBaseline = 'top';
 
-        // 数量 = 屏幕斜向能排多少字，但封顶 140 滴（字变大了，数量相应减少）
-        var count = Math.min(140, Math.ceil((W + H) / (FS * 1.35)));
-        drops = [];
-        for (var i = 0; i < count; i++) drops.push(makeDrop(true));
+        // 列数：按屏宽排，封顶 46 条（斜向要铺满，多补几条）
+        var n = Math.min(46, Math.ceil(W / (FS * 1.35)) + 8);
+        cols = [];
+        for (var i = 0; i < n; i++) {
+            var c = makeCol(true);
+            // x 上大致均匀分布（再抖一点，避免整齐得像栅栏）
+            c.hx = -W * 0.10 + (i / Math.max(1, n - 1)) * W * 1.35 + (Math.random() - 0.5) * FS;
+            cols.push(c);
+        }
 
         ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, W, H);   // 清一次底，避免残影
+        ctx.fillRect(0, 0, W, H);   // 清一次底
     }
 
     // 逐帧绘制
     function tick() {
-        // 拖尾：半透明黑覆盖（数值越小尾巴越长；0.13 比较"雨"）
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.13)';
+        // 纯黑清屏：尾巴由"逐字降透明度"表达，不需要半透明覆盖留残影
+        ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, W, H);
 
-        for (var i = 0; i < drops.length; i++) {
-            var d  = drops[i];
-            var ch = CHARS.charAt((Math.random() * CHARS.length) | 0);
+        for (var i = 0; i < cols.length; i++) {
+            var c = cols[i];
 
-            // ── 闪烁：每帧掷骰子决定这一个字的亮度 ──────────────
-            var roll  = Math.random();
-            var alpha = d.alpha;              // 默认：按基准亮度画
-            var g     = 18 + ((Math.random() * 46) | 0);   // 红里的绿蓝分量（越小越纯红）
-
-            if (roll < 0.16) {                // 16%：这一帧"灭"一下
-                alpha = d.alpha * 0.10;
-            } else if (roll > 0.93) {         // 7%：这一帧"爆"一下（更亮更纯）
-                alpha = 1;
-                g     = 60;
+            // 字会变脸：随机换掉这条流里的一个字符
+            if (Math.random() < 0.45) {
+                c.chars[(Math.random() * c.len) | 0] = rndChar();
             }
 
-            ctx.fillStyle = 'rgba(255,' + g + ',' + g + ',' + alpha + ')';
-            ctx.fillText(ch, d.x, d.y);
+            // 从头部往后画：头最亮、尾最暗
+            for (var k = 0; k < c.len; k++) {
+                var a = (1 - k / c.len) * c.alpha;
+                if (a <= 0.07) continue;                 // 太暗不画，省性能
 
-            d.x -= d.speed * 0.62;   // 往左
-            d.y += d.speed;          // 往下   ⇒ 合起来就是「右上 → 左下」
+                var cx = c.hx + k * FS * SLX;
+                var cy = c.hy - k * FS * SLY;
+                if (cy < -FS || cy > H + FS || cx < -FS || cx > W + FS) continue;
 
-            // 飘出左下角就回到右上角外，循环使用
-            if (d.y > H + FS * 2 || d.x < -FS * 2) {
-                var nd = makeDrop(false);
-                d.x = nd.x; d.y = nd.y; d.speed = nd.speed; d.alpha = nd.alpha;
+                if (k === 0) {
+                    // 头部：近白的暖白（Matrix 头部也是白的，只是那边配绿）
+                    ctx.fillStyle = 'rgba(255, 236, 236, ' + Math.min(1, a + 0.55).toFixed(3) + ')';
+                } else {
+                    // 身体：纯红，越靠尾越暗（绿蓝分量压低 ⇒ 红得正）
+                    var g = 18 + ((Math.random() * 34) | 0);
+                    ctx.fillStyle = 'rgba(255, ' + g + ', ' + g + ', ' + a.toFixed(3) + ')';
+                }
+                ctx.fillText(c.chars[k], cx, cy);
             }
+
+            // 前进：往左 + 往下 ⇒ 整片雨右上 → 左下
+            c.hx -= c.speed * SLX;
+            c.hy += c.speed * SLY;
+
+            // 整条流都离开屏幕（尾巴也出去了）→ 回收去右上角重来
+            if (c.hy - c.len * FS * SLY > H || c.hx + c.len * FS * SLX < -FS) recycle(c);
         }
         requestAnimationFrame(tick);
     }
@@ -273,9 +321,8 @@ body {
         for (var i = 0; i < 16; i++) {
             var ang = (Math.PI * 2 * i) / 16 + Math.random() * 0.4;
             var len = FS * (2 + Math.random() * 3);
-            ctx.fillStyle = 'rgba(255, ' + (40 + (Math.random() * 60 | 0)) + ', 40, ' + (0.5 + Math.random() * 0.5) + ')';
-            ctx.fillText(CHARS.charAt((Math.random() * CHARS.length) | 0),
-                         cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
+            ctx.fillStyle = 'rgba(255, ' + (40 + (Math.random() * 60 | 0)) + ', 40, ' + (0.55 + Math.random() * 0.45) + ')';
+            ctx.fillText(rndChar(), cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
         }
     }
     window.addEventListener('pointerdown', function (ev) {
