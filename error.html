@@ -223,13 +223,29 @@ body {
 
     // 造一条流：长度随机 8~21 个字；起点默认在屏幕上方之外
     function makeCol(initial) {
-        var len = 20 + ((Math.random() * 20) | 0);   // 尾巴 20~39 个字（拉长 ⇒ 纵向连成一片不漏空）
+        var len = 20 + ((Math.random() * 20) | 0);   // 尾巴 20~39 个字（拉长 ⇒ 纵向连成一片）
         var chars = [];
         for (var i = 0; i < len; i++) chars.push(rndChar());
+
+        // 起始 y：首屏直接撒开；之后从屏幕上方之外进场
+        var y0 = initial ? (Math.random() * H * 1.4 - H * 0.35)
+                         : (-FS * len - Math.random() * H * 0.6);
+
+        // ══ 起点 x 必须「反推」，不能随便撒 ═══════════════════════════
+        // 这是「越往下越稀」的真凶（2026-10-06 修）：
+        //   整片雨往左下走，一条流从屏幕上方飘到中部时，水平方向已经漂了
+        //     drift = 走过的垂直距离 × (SLX / SLY)
+        //   以手机为例，一条流从顶飘到底会横向漂掉两个屏宽 —— 起点要是还按
+        //   屏宽随机撒，那它飘到下半屏时早跑出屏幕左边了 ⇒ 右下角永远空的，
+        //   看着就是「越到后面越少」。跟亮度、间距都没关系。
+        // 解法：先定「这条流走到屏幕中部时应该落在哪」（均匀铺满 0~W），
+        //       再把起点按 drift 往右推 —— 这样每个高度上都有字。
+        var drift   = (H * 0.5 - y0) * (SLX / SLY);
+        var targetX = Math.random() * W;
+
         return {
-            hx:    -W * 0.15 + Math.random() * W * 1.5,   // 起点 x（铺满整屏，含右侧外沿）
-            hy:    initial ? (Math.random() * H * 1.4 - H * 0.3)   // 首屏：直接撒在屏幕内外
-                           : (-FS * len - Math.random() * H * 0.7), // 之后：从上方之外进场
+            hx:    targetX + drift,
+            hy:    y0,
             speed: (1.6 + Math.random() * 3.2) * Math.min(dpr, 1.6),   // 流速：比第一版快约 1.7 倍
             len:   len,
             chars: chars,
@@ -240,7 +256,7 @@ body {
     // 循环复用：把一条流送回右上方之外
     function recycle(c) {
         var n = makeCol(false);
-        c.hx = n.hx + W * 0.25;   // 稍微往右上挪，配合斜向入场
+        c.hx = n.hx;   // makeCol 已经把起点算好了（含斜向补偿），别再额外偏移
         c.hy = n.hy;
         c.speed = n.speed;
         c.len = n.len;
@@ -265,10 +281,9 @@ body {
         var n = Math.min(window.innerWidth < 520 ? 90 : 150, Math.ceil(W / (FS * 0.5)) + 16);
         cols = [];
         for (var i = 0; i < n; i++) {
-            var c = makeCol(true);
-            // x 上大致均匀分布（再抖一点，避免整齐得像栅栏）
-            c.hx = -W * 0.10 + (i / Math.max(1, n - 1)) * W * 1.35 + (Math.random() - 0.5) * FS;
-            cols.push(c);
+            // 直接交给 makeCol 反推起点（见那里的注释），这里不要再覆盖 hx ——
+            // 一覆盖就等于把"补偿斜向漂移"给抹了，右下角立刻变空。
+            cols.push(makeCol(true));
         }
 
         ctx.fillStyle = '#000';
