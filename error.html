@@ -3,15 +3,19 @@
 
 <!-- ════════════════════════════════════════════════════════════════════
   文件：error.html —— 黑底红字「报错现场」特效页（纯原生 · 零依赖 · 单文件）
-  用途：毛毛要的氛围页 —— ① 黑色背景；② 中央红色大字反复闪烁；
-        ③ 随机英文字母从**右上角斜飘向左下角**（字符雨）。
+  用途：毛毛要的氛围页 —— ① 黑色背景；② 中央红色大字（**常亮，不闪**）；
+        ③ 随机英文字母从**右上角斜飘向左下角**（字符雨，**字会闪**）；
+        ④ 返回入口只指向他的 GitHub 主页（README），不去别的地方。
   说明：与 404.html（跟主站风格一致的中文兜底页）**刻意分开** ——
         本页不引 style.css / bg.css，独立黑底，就是要"报错"那股劲儿。
   实现：Canvas 逐帧画字符 + 半透明黑覆盖造拖尾（矩阵雨的经典做法），
-        方向靠速度矢量控制（x 往左、y 往下 ⇒ 右上 → 左下）。
+        方向靠速度矢量控制（x 往左、y 往下 ⇒ 右上 → 左下）；
+        闪烁靠**每帧随机决定这个字这一帧是"暗下去"还是"爆亮"**。
   注意：① 不引任何库、不发任何网络请求；
         ② 字符数量有上限、字号按屏宽自适应，保手机帧率；
-        ③ 页面有出口（底部「回首页 / 小游戏」两个按钮），别让人迷路。
+        ③ 不给每个字设 shadowBlur（逐字模糊必掉帧），光感靠颜色 + 拖尾。
+  改动记录：2026-10-06 创建；同日按毛毛要求改 —— 字号加大、大字停闪、
+        改为飘动的字闪烁、去掉「小游戏」按钮、返回入口改指 GitHub 主页。
   创建：2026-10-06（小鲸）
 ════════════════════════════════════════════════════════════════════ -->
 
@@ -61,7 +65,7 @@ body {
     pointer-events: none;
 }
 
-/* 大字：红色 + 三层红色光晕，反复闪烁（跳闪，像霓虹灯故障） */
+/* 大字：红色 + 三层红色光晕 —— **常亮不闪**（毛毛要求：闪的交给飘动的字） */
 .big {
     font-size: clamp(27px, 7.6vw, 66px);
     font-weight: 900;
@@ -71,19 +75,12 @@ body {
     text-shadow: 0 0 10px #ff0000b3,
                  0 0 32px var(--red-deep),
                  0 0 66px #ff000066;
-    animation: flicker 1.35s infinite steps(1, end);
 }
 .big .line2 {
     display: block;
     margin-top: .16em;
     font-size: .84em;
     color: #ff5a5a;
-}
-
-/* 跳闪：大部分时间亮着，偶尔瞬间暗一下（steps 让它不渐变、更毛躁） */
-@keyframes flicker {
-    0%, 17%, 23%, 26%, 52%, 58%, 100% { opacity: 1;   filter: none; }
-    19%, 25%, 55%                     { opacity: .12; filter: blur(1.2px); }
 }
 
 /* ③ 上下两条 HUD 小字（终端味） */
@@ -114,14 +111,14 @@ body {
     95.5%         { opacity: 0; }
 }
 
-/* ⑤ 出口按钮：低调但不隐藏（pointer-events 要单独打开） */
+/* ⑤ 唯一出口：只指向毛毛的 GitHub 主页（README），不去别的地方 */
 .exit {
-    position: fixed; left: 0; right: 0; bottom: 62px; z-index: 5;
-    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    position: fixed; left: 0; right: 0; bottom: 54px; z-index: 5;
+    display: flex; justify-content: center;
 }
 .exit a {
     pointer-events: auto;
-    padding: 9px 19px;
+    padding: 9px 20px;
     border: 1px solid #ff2b2b80;
     border-radius: 10px;
     background: #ff000014;
@@ -151,7 +148,7 @@ body {
 <!-- 上下 HUD -->
 <div class="hud top">ERROR&nbsp;404&nbsp;·&nbsp;PAGE_NOT_FOUND</div>
 
-<!-- 中央大字：先亮出来，然后一直闪 -->
+<!-- 中央大字：常亮，不闪 -->
 <div class="stage">
     <div class="big">
         这里不是首页哟
@@ -161,22 +158,27 @@ body {
 
 <div class="hud bot">SYSTEM&nbsp;ALERT&nbsp;·&nbsp;RED&nbsp;ALERT&nbsp;·&nbsp;SYSTEM&nbsp;ALERT</div>
 
-<!-- 出口 -->
+<!-- 出口：只回毛毛的 GitHub 主页 -->
 <div class="exit">
-    <a href="/index.html">← 回首页</a>
-    <a href="/games.html">🎮 小游戏</a>
+    <a href="https://github.com/maomao1OvO1">← 回首页</a>
 </div>
 
 <script>
 /* ════════════════════════════════════════════════════════════════════
-   字符雨：随机英文字母 + 数字，从**右上角**斜飘向**左下角**
-   ── 做法（经典矩阵雨 + 斜向改造）：
+   字符雨：随机英文字母 + 数字，从**右上角**斜飘向**左下角**，且**会闪**
+   ── 做法（经典矩阵雨 + 斜向改造 + 闪烁）：
       每一帧先用「半透明黑」盖住整个画布（rgba(0,0,0,.13)），
       旧字符就被压暗一点点 ⇒ 自然拖出尾巴；
       然后给每个"雨滴"随机挑一个字画上去；
       再让它 x 往左、y 往下走 ⇒ 整体方向就是右上 → 左下。
-   注意：① 字太多手机掉帧 —— 已按屏幕面积算数量并封顶；
-        ② 每个字都设 shadowBlur 会卡 —— 改为只靠颜色 + 拖尾出光感。
+   ── 闪烁怎么做的：
+      画每个字之前**掷一次骰子** ——
+        小概率 ⇒ 这一帧几乎画成黑的（字"灭"一下）；
+        更小概率 ⇒ 这一帧拉满亮度（字"爆"一下）；
+        其余  ⇒ 按它自己的基准亮度画。
+      合起来就是"整片雨在抖"的感觉，而不是整齐地一起亮灭。
+   注意：① 字大了 ⇒ 数量自动变少（按屏幕面积算），保持密度不吓人；
+        ② 每个字都设 shadowBlur 会卡 —— 光感靠颜色 + 拖尾。
    ════════════════════════════════════════════════════════════════════ */
 (function () {
     var cv  = document.getElementById('rain');
@@ -187,13 +189,13 @@ body {
 
     var dpr = 1;          // 设备像素比（上限 2，省性能）
     var W = 0, H = 0;     // 画布实际像素尺寸
-    var FS = 16;          // 当前字号（画布像素）
+    var FS = 22;          // 当前字号（画布像素）
     var drops = [];       // 全部雨滴
 
-    // 字号：手机小一点、桌面大一点
+    // 字号：手机小一点、桌面大一点（2026-10-06 按毛毛要求整体加大了）
     function pxFont() {
         var w = window.innerWidth;
-        return w < 520 ? 13 : (w < 900 ? 15 : 17);
+        return w < 520 ? 19 : (w < 900 ? 22 : 26);
     }
 
     // 造一滴雨：scatter=true 时撒在屏幕内（首屏立刻满），否则从右上角外飘进来
@@ -202,8 +204,8 @@ body {
         return {
             x:     scatter ? Math.random() * W * 1.5 : W + Math.random() * W * 0.4,
             y:     scatter ? Math.random() * H - H * 0.25 : -base - Math.random() * H * 0.5,
-            speed: (0.9 + Math.random() * 1.9) * dpr,   // 速度：每帧 0.9~2.8 像素
-            alpha: 0.22 + Math.random() * 0.6            // 亮度随机，深浅有层次
+            speed: (1.0 + Math.random() * 2.0) * Math.min(dpr, 1.6),   // 速度：每帧 1.0~3.0 像素
+            alpha: 0.22 + Math.random() * 0.6                          // 基准亮度（深浅有层次）
         };
     }
 
@@ -219,8 +221,8 @@ body {
         ctx.font = 'bold ' + FS + 'px "Courier New", monospace';
         ctx.textBaseline = 'top';
 
-        // 数量 = 屏幕斜向能排多少字，但封顶 180 滴（手机保帧率）
-        var count = Math.min(180, Math.ceil((W + H) / (FS * 1.25)));
+        // 数量 = 屏幕斜向能排多少字，但封顶 140 滴（字变大了，数量相应减少）
+        var count = Math.min(140, Math.ceil((W + H) / (FS * 1.35)));
         drops = [];
         for (var i = 0; i < count; i++) drops.push(makeDrop(true));
 
@@ -238,9 +240,19 @@ body {
             var d  = drops[i];
             var ch = CHARS.charAt((Math.random() * CHARS.length) | 0);
 
-            // 红：红通道拉满，绿蓝压很低 ⇒ 深浅不一的红字
-            var g = 18 + ((Math.random() * 46) | 0);
-            ctx.fillStyle = 'rgba(255,' + g + ',' + g + ',' + d.alpha + ')';
+            // ── 闪烁：每帧掷骰子决定这一个字的亮度 ──────────────
+            var roll  = Math.random();
+            var alpha = d.alpha;              // 默认：按基准亮度画
+            var g     = 18 + ((Math.random() * 46) | 0);   // 红里的绿蓝分量（越小越纯红）
+
+            if (roll < 0.16) {                // 16%：这一帧"灭"一下
+                alpha = d.alpha * 0.10;
+            } else if (roll > 0.93) {         // 7%：这一帧"爆"一下（更亮更纯）
+                alpha = 1;
+                g     = 60;
+            }
+
+            ctx.fillStyle = 'rgba(255,' + g + ',' + g + ',' + alpha + ')';
             ctx.fillText(ch, d.x, d.y);
 
             d.x -= d.speed * 0.62;   // 往左
