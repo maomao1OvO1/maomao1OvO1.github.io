@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- ════════════════════════════════════════════════════════════════════
+  文件：render.html —— 「JS 渲染」演示页（纯原生 · 零依赖 · 单文件）
+  目的：毛毛想看「JS 渲染的网页长什么样」。本页特意做成最直观的样子 ——
+        **HTML 里只有一个空的 <div id="app"></div>**，
+        页面上其余每一个元素（标题 / 卡片 / 标签 / 页脚）都是 JS 现场创建、
+        插进去的；内容来自一段数组（数据驱动），不是手写在 HTML 里的。
+  动效：① 卡片依次入场（错开时间）；② 鼠标/手指移到卡片上会 3D 倾斜并浮起；
+        ③ 点卡片展开详情；④ 顶部标题是 JS 写的打字机；⑤ 背景光斑缓慢流动。
+  注意：① 不引任何库、不发任何网络请求；② 手机上用触摸位置驱动倾斜；
+        ③ 倾斜用 CSS transform，不写 requestAnimationFrame 死循环 —— 省电。
+  创建：2026-10-06（小鲸）
+════════════════════════════════════════════════════════════════════ -->
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1523">
+<title>JS 渲染演示 · 毛毛的小站</title>
+
+<style>
+/* ── 配色：他喜欢的紫 + 薄荷绿，深紫底 ───────────────────────── */
+:root{
+    --bg:      #1A1523;   /* 深紫底 */
+    --purple:  #9F7AEA;
+    --pink:    #FF6EC7;
+    --green:   #68D391;
+    --cyan:    #4FD1C5;
+    --yellow:  #FFD93D;
+    --ink:     #F3EEFF;   /* 正文：浅紫白 */
+    --muted:   #B9A9E0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "PingFang SC", "Microsoft YaHei", -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* 背景：两团缓慢流动的彩色光斑（纯 CSS，不占性能） */
+body::before, body::after {
+    content: ""; position: fixed; z-index: 0; border-radius: 50%;
+    filter: blur(90px); opacity: .38; pointer-events: none;
+}
+body::before {
+    width: 60vw; height: 60vw; left: -18vw; top: -12vw;
+    background: radial-gradient(circle, var(--purple), transparent 70%);
+    animation: drift1 22s ease-in-out infinite alternate;
+}
+body::after {
+    width: 55vw; height: 55vw; right: -16vw; bottom: -14vw;
+    background: radial-gradient(circle, var(--green), transparent 70%);
+    animation: drift2 26s ease-in-out infinite alternate;
+}
+@keyframes drift1 { to { transform: translate(14vw, 10vh) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-12vw, -8vh) scale(1.2); } }
+
+#app { position: relative; z-index: 1; padding: 30px 18px 60px; max-width: 1080px; margin: 0 auto; }
+
+/* ── 顶部 ─────────────────────────────────────────────────────── */
+.hd { text-align: center; padding: 26px 0 8px; }
+.badge {
+    display: inline-block; padding: 5px 14px; border-radius: 999px;
+    font-size: 12.5px; letter-spacing: .08em;
+    border: 1px solid rgba(159,122,234,.55); color: var(--purple);
+    background: rgba(159,122,234,.10);
+}
+.title {
+    margin: 16px 0 10px; font-size: clamp(24px, 6.4vw, 42px); font-weight: 800;
+    background: linear-gradient(96deg, var(--pink), var(--purple) 45%, var(--cyan) 75%, var(--green));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.typer { min-height: 1.6em; font-size: clamp(13px, 3.6vw, 16px); color: var(--muted); }
+.typer .cur { display: inline-block; width: 8px; background: var(--green); animation: blink .9s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.note {
+    margin: 22px auto 0; max-width: 620px; padding: 12px 16px; text-align: left;
+    border-left: 3px solid var(--green); border-radius: 0 10px 10px 0;
+    background: rgba(104,211,145,.08); color: var(--muted); font-size: 13.5px; line-height: 1.75;
+}
+.note b { color: var(--green); }
+
+/* ── 卡片网格 ─────────────────────────────────────────────────── */
+.grid {
+    display: grid; gap: 16px; margin-top: 30px;
+    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+}
+.card {
+    position: relative; padding: 18px 18px 16px; border-radius: 16px;
+    background: rgba(76,29,149,.42);                 /* 紫罗兰玻璃感 */
+    border: 1px solid rgba(255,110,199,.35);
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    transform-style: preserve-3d;
+    transition: transform .18s ease, box-shadow .25s ease, border-color .25s ease;
+    cursor: pointer;
+    /* 入场：初始下沉 + 透明，JS 加 .in 类后弹上来（并由 JS 设不同延迟） */
+    opacity: 0; transform: translateY(22px) scale(.97);
+}
+.card.in { opacity: 1; transform: translateY(0) scale(1); }
+.card:hover, .card:focus-visible {
+    border-color: var(--pink);
+    box-shadow: 0 18px 46px rgba(255,110,199,.28), 0 0 0 1px rgba(255,110,199,.25) inset;
+    outline: none;
+}
+.card .ico { font-size: 30px; line-height: 1; }
+.card h3 { margin: 10px 0 6px; font-size: 17px; color: var(--ink); }
+.card p  { font-size: 13.5px; line-height: 1.7; color: var(--muted); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.tags span {
+    font-size: 11.5px; padding: 3px 9px; border-radius: 999px;
+    background: rgba(159,122,234,.18); color: #D6C7FF; border: 1px solid rgba(159,122,234,.35);
+}
+.card .more {
+    margin-top: 12px; max-height: 0; overflow: hidden;
+    font-size: 13px; color: var(--green); transition: max-height .28s ease, margin .28s ease;
+}
+.card.open .more { max-height: 90px; }
+.card .go {
+    position: absolute; right: 14px; top: 14px; font-size: 13px;
+    color: var(--yellow); opacity: .55; transition: opacity .2s, transform .2s;
+}
+.card:hover .go { opacity: 1; transform: translate(2px, -2px); }
+
+/* ── 页脚 ─────────────────────────────────────────────────────── */
+.ft { margin-top: 42px; text-align: center; color: var(--muted); font-size: 13px; line-height: 2; }
+.ft .k { display: inline-block; margin: 0 8px; padding: 3px 10px; border-radius: 8px;
+         background: rgba(159,122,234,.14); color: #D6C7FF; }
+.ft a { color: var(--cyan); text-decoration: none; }
+.ft a:hover { text-decoration: underline; }
+</style>
+</head>
+
+<body>
+
+<!-- ⚠️ 整个页面就这一个容器 —— 里面的东西全是 JS 造出来的 -->
+<div id="app"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   这一段就是"渲染"：JS 负责把下面的数据变成页面上看得见的元素。
+   做法是最朴素的 DOM API（document.createElement / textContent / append），
+   刻意不引框架 —— 这样打开源码就能看懂每一步在干嘛。
+   ════════════════════════════════════════════════════════════════════ */
+(function () {
+    "use strict";
+
+    // ── ① 数据：页面的内容源（改这里就能改页面，HTML 一个字都不用动）──
+    var SITE = "https://maomao1ovo1.github.io";
+    var PROJECTS = [
+        { ico: "🏠", name: "毛毛的个人主页",
+          desc: "自己写、自己托管的小站 —— 游戏 / 音乐 / 相册都在这儿。",
+          tags: ["HTML", "CSS", "JS"], more: "主站，所有入口都从这里进。", url: SITE + "/" },
+        { ico: "🗼", name: "共鸣之塔",
+          desc: "一个人写的像素塔防：元素共鸣、8 座塔、无尽模式。",
+          tags: ["Canvas", "游戏", "带 APK"], more: "点右上角 ↗ 直接开玩（手机也能玩）。", url: SITE + "/games/td/source/game.html" },
+        { ico: "🎮", name: "小游戏大厅",
+          desc: "2048 · 贪吃蛇 · 打字 · 猜数字 · 五子棋 · 象棋 · 捕鱼 · 围棋。",
+          tags: ["8 款", "排行榜"], more: "全部接入了云端排行榜，随便刷。", url: SITE + "/games.html" },
+        { ico: "🎵", name: "NFC 一贴就听",
+          desc: "手机贴一下 NFC 挂件，直接开唱的小播放器。",
+          tags: ["NFC", "HLS"], more: "音频走 Cloudflare 代理 + 切片，扒不走。", url: SITE + "/nfc-tap-9f3a/" },
+        { ico: "🪐", name: "太阳系 3D",
+          desc: "能怼近看星球的小模型（摸鱼用）。",
+          tags: ["3D", "跟拍"], more: "放大最高 48 倍，右下角有退出跟拍按钮。", url: SITE + "/solar-system/" },
+        { ico: "📱", name: "硬件测试大厅",
+          desc: "免授权指纹检测 + 一键授权的手机体检。",
+          tags: ["硬件", "17 项"], more: "按顺序逐个授权，避免一次点崩。", url: SITE + "/hardware-lab/" }
+    ];
+
+    // ── ② 极简建元素帮手：h("div", {class:"x"}, "文字") ──────────────
+    function h(tag, attrs, children) {
+        var el = document.createElement(tag);
+        if (attrs) for (var k in attrs) {
+            if (k === "class") el.className = attrs[k];
+            else if (k === "text") el.textContent = attrs[k];
+            else if (k === "html") el.innerHTML = attrs[k];
+            else el.setAttribute(k, attrs[k]);
+        }
+        (children || []).forEach(function (c) { if (c) el.appendChild(c); });
+        return el;
+    }
+    function text(t) { return document.createTextNode(t); }
+
+    // ── ③ 组装页面 ────────────────────────────────────────────────
+    var app = document.getElementById("app");
+
+    var hd = h("header", { class: "hd" }, [
+        h("div", { class: "badge", text: "全部由 JavaScript 现场生成" }),
+        h("h1", { class: "title", text: "毛毛的小站 · 作品一览" }),
+        h("div", { class: "typer" }, [])   // 打字机稍后填
+    ]);
+    app.appendChild(hd);
+
+    var typer = hd.querySelector(".typer");
+    var cur = h("span", { class: "cur", text: "\u00a0" });
+    typer.appendChild(cur);
+
+    app.appendChild(h("div", { class: "note", html:
+        "这一页的 <b>HTML 里只有一个空的 &lt;div&gt;</b> —— " +
+        "标题、卡片、标签、页脚，全都是 JS 拿到一段数组后<b>现场创建</b>并插进页面的。" +
+        "改数据就改页面，HTML 一个字都不用动。" }));
+
+    var grid = h("div", { class: "grid" });
+    app.appendChild(grid);
+
+    PROJECTS.forEach(function (p, i) {
+        var card = h("article", { class: "card", tabindex: "0" }, [
+            h("span", { class: "go", text: "↗" }),
+            h("div", { class: "ico", text: p.ico }),
+            h("h3", { text: p.name }),
+            h("p", { text: p.desc }),
+            h("div", { class: "tags" }, p.tags.map(function (t) {
+                return h("span", { text: t });
+            })),
+            h("div", { class: "more", text: p.more })
+        ]);
+
+        // 入场：逐个错开（第 i 张晚 i*70 毫秒）
+        setTimeout(function () { card.classList.add("in"); }, 90 + i * 70);
+
+        // 悬停/触摸：跟着指针位置做 3D 倾斜（正面朝指针"抬起来"）
+        function tilt(ev) {
+            var r = card.getBoundingClientRect();
+            var px = (ev.clientX - r.left) / r.width  - 0.5;   // -0.5 ~ 0.5
+            var py = (ev.clientY - r.top)  / r.height - 0.5;
+            card.style.transform =
+                "perspective(620px) rotateY(" + (px * 13).toFixed(2) + "deg)" +
+                " rotateX(" + (-py * 13).toFixed(2) + "deg) translateY(-5px) scale(1.015)";
+        }
+        function untilt() { card.style.transform = ""; }
+        card.addEventListener("pointermove", tilt);
+        card.addEventListener("pointerleave", untilt);
+
+        // 点击：展开详情；再点收起（同时把 ↗ 变成可点链接）
+        card.addEventListener("click", function (ev) {
+            var onGo = ev.target.classList.contains("go");
+            if (onGo) { window.open(p.url, "_blank", "noopener"); return; }
+            card.classList.toggle("open");
+            card.querySelector(".more").textContent = card.classList.contains("open")
+                ? p.more + "　↗ 点右上角去玩" : p.more;
+        });
+        card.addEventListener("keydown", function (ev) {
+            if (ev.key === "Enter") card.click();
+        });
+
+        grid.appendChild(card);
+    });
+
+    // 页脚（也是 JS 生成的）：项目数 / 语言 / 一行入口
+    var ft = h("footer", { class: "ft" }, [
+        h("div", { html:
+            "共 <span class='k'>" + PROJECTS.length + " 个项目</span>" +
+            "<span class='k'>" + PROJECTS.reduce(function (n, p) { return n + p.tags.length; }, 0) + " 个标签</span>" +
+            "<span class='k'>0 个外部依赖</span>" }),
+        h("div", { html: "想回主站？<a href='" + SITE + "'>点这里</a> ｜ 这一页的源码：右键「查看网页源代码」" })
+    ]);
+    app.appendChild(ft);
+
+    // ── ④ 打字机：JS 一个字一个字敲（也是渲染的一种）──────────────
+    var LINES = [
+        "整页内容 = 一段数组 + 几十行 JS",
+        "没有框架、没有 CDN、没有任何外部请求",
+        "鼠标移到卡片上会倾斜，点一下会展开",
+        "改数据就改页面 —— HTML 一个字都不用动"
+    ];
+    var li = 0, ci = 0, del = false;
+    function type() {
+        var s = LINES[li];
+        ci += del ? -1 : 1;
+        typer.textContent = s.slice(0, ci);
+        typer.appendChild(cur);                       // 光标永远在最后
+        var wait = del ? 26 : 62;
+        if (!del && ci === s.length) { del = true; wait = 1500; }        // 打完停一下
+        else if (del && ci === 0) { del = false; li = (li + 1) % LINES.length; wait = 320; }
+        setTimeout(type, wait);
+    }
+    type();
+})();
+</script>
+
+</body>
+</html>
