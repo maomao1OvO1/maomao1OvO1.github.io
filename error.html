@@ -209,6 +209,7 @@ body {
     var W = 0, H = 0;    // 画布实际像素尺寸
     var FS = 22;         // 当前字号（画布像素）
     var cols = [];       // 全部字符流
+    var lastT = 0, slowN = 0;   // 帧率自适应：上次时间戳 / 连续偏慢计数
 
     function rndChar() { return CHARS.charAt((Math.random() * CHARS.length) | 0); }
 
@@ -220,7 +221,7 @@ body {
 
     // 造一条流：长度随机 8~21 个字；起点默认在屏幕上方之外
     function makeCol(initial) {
-        var len = 7 + ((Math.random() * 11) | 0);   // 尾巴 7~17 个字（短一点、密一点）
+        var len = 16 + ((Math.random() * 18) | 0);   // 尾巴 16~34 个字（拉长 ⇒ 纵向连成一片不漏空）
         var chars = [];
         for (var i = 0; i < len; i++) chars.push(rndChar());
         return {
@@ -258,8 +259,8 @@ body {
         ctx.textBaseline = 'top';
 
         // 列数：按屏宽排，封顶 46 条（斜向要铺满，多补几条）
-        // 列数：间距压到 0.7 个字宽（原来 1.35 ⇒ 密度约翻倍），上限按屏分档封顶
-        var n = Math.min(window.innerWidth < 520 ? 64 : 90, Math.ceil(W / (FS * 0.7)) + 14);
+        // 列数：间距压到 0.5 个字宽（横向近乎铺满），上限按屏分档封顶
+        var n = Math.min(window.innerWidth < 520 ? 110 : 170, Math.ceil(W / (FS * 0.5)) + 16);
         cols = [];
         for (var i = 0; i < n; i++) {
             var c = makeCol(true);
@@ -273,7 +274,19 @@ body {
     }
 
     // 逐帧绘制
-    function tick() {
+    function tick(now) {
+        // 帧率自适应：单帧超过 ~38ms（低于 26fps）且连续偏慢 ⇒ 自动砍掉约 1/8 的列
+        // （只减不增，避免忽密忽疏；这样「满屏」和「不卡」能同时保住）
+        if (now) {
+            if (lastT && now - lastT > 38) {
+                if (++slowN > 36 && cols.length > 20) {
+                    cols.length = Math.floor(cols.length * 0.875);
+                    slowN = 0;
+                }
+            } else { slowN = 0; }
+            lastT = now;
+        }
+
         // 纯黑清屏：尾巴由"逐字降透明度"表达，不需要半透明覆盖留残影
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, W, H);
@@ -288,8 +301,16 @@ body {
 
             // 从头部往后画：头最亮、尾最暗
             for (var k = 0; k < c.len; k++) {
-                var a = (1 - k / c.len) * c.alpha;
-                if (a <= 0.07) break;   // 尾巴越往后越暗，到这里后面全是暗的 ⇒ 直接收工
+                var base = (1 - k / c.len) * c.alpha;   // 基准亮度：只跟「离头部多远」有关
+                if (base <= 0.07) break;   // 尾巴越往后越暗，到这里后面全是暗的 ⇒ 直接收工
+
+                // ── 闪烁：每帧给这个字掷骰子，决定它这一帧亮还是灭 ──
+                //    （注意：上面 break 判的是 base，不能拿闪过的 a 去判，
+                //      否则会把后面还亮着的字一起掐掉 —— 这个坑记一下）
+                var a = base;
+                var roll = Math.random();
+                if (roll < 0.18)      a = base * 0.10;                // 18%：这一帧「灭」一下
+                else if (roll > 0.94) a = Math.min(1, base + 0.5);    // 6%：这一帧「爆」一下
 
                 var cx = c.hx + k * FS * SLX;
                 var cy = c.hy - k * FS * SLY;
