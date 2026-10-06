@@ -240,12 +240,28 @@ body {
         //   看着就是「越到后面越少」。跟亮度、间距都没关系。
         // 解法：先定「这条流走到屏幕中部时应该落在哪」（均匀铺满 0~W），
         //       再把起点按 drift 往右推 —— 这样每个高度上都有字。
-        var drift   = (H * 0.5 - y0) * (SLX / SLY);
+        // ── 斜度：两种混着来（这是"填满右下角"的关键）──────────────
+        // 全用同一个斜度的话，几何上必然「上偏右、下偏左」（雨往左下走，
+        // 到了下半屏整体已经左移一个多屏宽），右下角永远空着 —— 看着就是
+        // 「越到后面越少」。所以混进一部分近乎竖直的流：它们从上到下都盖住
+        // 同一个 x，负责把四角铺满；其余保持明显的斜，负责"风"的感觉。
+        var slope = Math.random() < 0.34
+                  ? (0.06 + Math.random() * 0.16)    // ≈ 3°~12°：近竖直，负责"铺满"
+                  : (0.40 + Math.random() * 0.30);   // ≈ 22°~35°：明显的斜，负责"风感"
+
+        // 方向单位向量（slope = 水平分量 / 竖直分量，所以要归一化）
+        var inv = 1 / Math.sqrt(1 + slope * slope);
+        var sx  = slope * inv, sy = inv;
+
+        // 起点 x 反推：先定「这条流走到屏幕中部时落在哪」（均匀铺满屏宽），
+        // 再按它自己的 slope 把起点右移漂移量。
+        var drift   = (H * 0.5 - y0) * slope;
         var targetX = Math.random() * W;
 
         return {
             hx:    targetX + drift,
             hy:    y0,
+            sx:    sx, sy: sy,
             speed: (1.6 + Math.random() * 3.2) * Math.min(dpr, 1.6),   // 流速：比第一版快约 1.7 倍
             len:   len,
             chars: chars,
@@ -332,8 +348,8 @@ body {
                 if (roll < 0.18)      a = base * 0.10;                // 18%：这一帧「灭」一下
                 else if (roll > 0.94) a = Math.min(1, base + 0.5);    // 6%：这一帧「爆」一下
 
-                var cx = c.hx + k * FS * SLX;
-                var cy = c.hy - k * FS * SLY;
+                var cx = c.hx + k * FS * c.sx;   // 沿这条流自己的方向退 k 个字距
+                var cy = c.hy - k * FS * c.sy;
                 if (cy < -FS || cy > H + FS || cx < -FS || cx > W + FS) continue;
 
                 if (k === 0) {
@@ -348,11 +364,11 @@ body {
             }
 
             // 前进：往左 + 往下 ⇒ 整片雨右上 → 左下
-            c.hx -= c.speed * SLX;
-            c.hy += c.speed * SLY;
+            c.hx -= c.speed * c.sx;
+            c.hy += c.speed * c.sy;
 
             // 整条流都离开屏幕（尾巴也出去了）→ 回收去右上角重来
-            if (c.hy - c.len * FS * SLY > H || c.hx + c.len * FS * SLX < -FS) recycle(c);
+            if (c.hy - c.len * FS * c.sy > H || c.hx + c.len * FS * c.sx < -FS) recycle(c);
         }
         requestAnimationFrame(tick);
     }
