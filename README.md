@@ -126,9 +126,23 @@
 │   ├── admin.html        # 站长管理页（分数 / 呼吸灯名单 / 📨 访客留言）
 │   ├── allplayers.html   # 玩家汇总（按人查看全部游戏成绩）
 │   ├── users.html        # 用户管理（注册 / 登录时间，仅站长）
-│   └── td/               # 🗼 原创塔防《共鸣之塔》（可玩 + 源码 + APK）
+│   ├── contact-manager.html  # 访客留言管理
+│   ├── go/ · stockfish/  # 棋类引擎资源（围棋 / 国际象棋 AI）
+│   ├── orbit.html · tts.html · tts 相关页
+│   └── td/               # 🗼 原创塔防《共鸣之塔》（可玩 + 源码 source/ + 文档 docs/ + 版本 version.json）
 ├── hardware-lab/         # 硬件测试大厅
 ├── music/ · photo.html   # 音乐 / 相册角落
+├── games.html            # 游戏大厅入口（小游戏 + 塔防 + 排行榜）
+├── music.html · video.html   # 音乐 / 视频 页面
+├── solar-system/         # 太阳系 3D 交互（textures/ 贴图）
+├── tts-web/              # 网页版语音合成（models/ + 读音表）
+├── camera-test/          # 摄像头 / 传感器测试用例（硬件测试的一部分）
+├── app/                  # App 版本信息（version.json）
+├── photoz/               # 相册图片存放
+├── js/ · typescript/     # 前端脚本 · TS 工具
+├── images/ · icon.png · maomao.jpg
+├── gate.js · player.js · weather.js · responsive.css · bg.css
+├── 404.html · sitemap.xml · 9b60b8be…txt（搜索引擎验证）
 └── tokens-server.js      # 本地预览服务器
 ```
 
@@ -169,6 +183,7 @@ python3 -m http.server 3000 --bind 127.0.0.1   # → http://127.0.0.1:3000
 
 ## 🔄 最近更新
 
+- **2026-09-15**　《共鸣之塔》更新至 **v9.19 / 109**：画布补 `touch-action:none`（手机拖动不再被当成滚动）+ 清理死字段；外观回到像素风原版，玩法与数值零改动
 - **2026-09-14**　仓库新增「🐋 关于这只鲸鱼」一节：小鲸形象（头像 + 全身照，`images/ai-avatar.jpg` / `images/ai-fullbody.jpg`，共 246KB）
 - **2026-09-14**　**全站体检 + 统一修复**：文档过期版本号全部对齐 **v9.16 / 106**（`modding.md` / `manual.md` / 源码 README）· 补上「📜 MIT 许可证全文」入口 · 修掉 6 处死链（`%BASE_URL%` 资源、失效入口）· 清理无入口的旧源码目录（省 14MB）· 四个仓库补齐 MIT LICENSE
 - **2026-09-14**　README 视觉升级（波浪横幅 / 打字机动画 / 快速入口 / 仓库卡片）；仓库描述与标签补齐
