@@ -184,8 +184,8 @@ body {
       （把"字距 FS"分解到两个轴上，字符就自然沿斜线排成一串，不会散。）
 
    ── 亮度：Matrix 的招牌是「头白尾绿」────────────────────────
-      它是「头白尾绿」，我们换成**头白尾红**：
-        头部（k=0）  ⇒ 近白的暖白 (255,236,236)
+      它是「头白尾绿」，我们换成**头亮红尾暗红**（毛毛要求全红、不要白脑袋）：
+        头部（k=0）  ⇒ 最亮的红 (255,74,74)
         往后每一字   ⇒ 透明度 1 - k/len 递减（尾巴越远越看不见）
       透明度太低（≤0.07）的直接不画 —— 既省性能，观感也没差别。
 
@@ -220,7 +220,7 @@ body {
 
     // 造一条流：长度随机 8~21 个字；起点默认在屏幕上方之外
     function makeCol(initial) {
-        var len = 8 + ((Math.random() * 14) | 0);
+        var len = 7 + ((Math.random() * 11) | 0);   // 尾巴 7~17 个字（短一点、密一点）
         var chars = [];
         for (var i = 0; i < len; i++) chars.push(rndChar());
         return {
@@ -258,7 +258,8 @@ body {
         ctx.textBaseline = 'top';
 
         // 列数：按屏宽排，封顶 46 条（斜向要铺满，多补几条）
-        var n = Math.min(46, Math.ceil(W / (FS * 1.35)) + 8);
+        // 列数：间距压到 0.7 个字宽（原来 1.35 ⇒ 密度约翻倍），上限按屏分档封顶
+        var n = Math.min(window.innerWidth < 520 ? 64 : 90, Math.ceil(W / (FS * 0.7)) + 14);
         cols = [];
         for (var i = 0; i < n; i++) {
             var c = makeCol(true);
@@ -288,15 +289,15 @@ body {
             // 从头部往后画：头最亮、尾最暗
             for (var k = 0; k < c.len; k++) {
                 var a = (1 - k / c.len) * c.alpha;
-                if (a <= 0.07) continue;                 // 太暗不画，省性能
+                if (a <= 0.07) break;   // 尾巴越往后越暗，到这里后面全是暗的 ⇒ 直接收工
 
                 var cx = c.hx + k * FS * SLX;
                 var cy = c.hy - k * FS * SLY;
                 if (cy < -FS || cy > H + FS || cx < -FS || cx > W + FS) continue;
 
                 if (k === 0) {
-                    // 头部：近白的暖白（Matrix 头部也是白的，只是那边配绿）
-                    ctx.fillStyle = 'rgba(255, 236, 236, ' + Math.min(1, a + 0.55).toFixed(3) + ')';
+                    // 头部：最亮的红（毛毛要求**全红**，不要白脑袋）
+                    ctx.fillStyle = 'rgba(255, 74, 74, ' + Math.min(1, a + 0.50).toFixed(3) + ')';
                 } else {
                     // 身体：纯红，越靠尾越暗（绿蓝分量压低 ⇒ 红得正）
                     var g = 18 + ((Math.random() * 34) | 0);
