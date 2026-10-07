@@ -694,6 +694,9 @@ value="1"
 
 
 <script src="/js/home/07-td-update-button.js?v=1"></script>
+<!-- 登录门「我是真人」验证（Cloudflare Turnstile）：未通过前锁住三个登录按钮；
+     自带 fail-open —— site key 缺失 / 官方脚本 4 秒未加载 / 验证出错都会自动解锁，不会挡住真人 -->
+<script src="/js/home/08-turnstile-gate.js?v=1" defer></script>
 </body>
 
 </html>
