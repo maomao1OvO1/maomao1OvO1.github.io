@@ -168,19 +168,16 @@
   }
 
   /* ────────── ⑤ 入口 ────────── */
-  function boot() {
-    if (!SITE_KEY || SITE_KEY.indexOf('PLACEHOLDER') >= 0) {
-      log('site key 还是占位符 → 本功能隐身，登录照旧');
-      return;
-    }
-    var step2 = document.getElementById('gateStep2');
-    if (!step2) {
-      log('没找到 gateStep2（登录门结构变了？）→ 跳过');
-      return;
-    }
+  /* 元素真的"看得见"吗？（隐藏容器里渲染 Turnstile 会得到 0 尺寸的框） */
+  function isVisible(el) {
+    return !!(el && (el.offsetParent !== null || el.getClientRects().length > 0));
+  }
+
+  /* 真正开工：第 2 步显示出来之后才渲染 + 锁按钮 */
+  function begin(step2) {
     injectStyle();
     ensureBox(step2);
-    setLocked(true); // 先锁上，验证通过再开
+    setLocked(true); // ⭐ 到这一步才锁：保证"看得见框"时按钮才是灰的
 
     var done = false;
     var timer = setTimeout(function () {
@@ -194,7 +191,48 @@
       done = true;
       clearTimeout(timer);
       render();
+      // 兜底第二层：渲染完 3 秒后框若仍无尺寸，说明没画出来 → 解锁，绝不挡人
+      setTimeout(function () {
+        var host = document.getElementById('mm-turnstile-widget');
+        if (!isVisible(host) || host.getBoundingClientRect().height < 20) {
+          log('框没画出来（拦截器 / 网络）→ 解锁（fail-open）');
+          setLocked(false);
+        }
+      }, 3000);
     });
+  }
+
+  function boot() {
+    if (!SITE_KEY || SITE_KEY.indexOf('PLACEHOLDER') >= 0) {
+      log('site key 还是占位符 → 本功能隐身，登录照旧');
+      return;
+    }
+    var step2 = document.getElementById('gateStep2');
+    if (!step2) {
+      log('没找到 gateStep2（登录门结构变了？）→ 跳过');
+      return;
+    }
+
+    var started = false;
+    function tryStart() {
+      if (started || !isVisible(step2)) return;
+      started = true;
+      log('第 2 步已显示 → 开始渲染验证框');
+      begin(step2);
+    }
+
+    // 盯住登录门的显隐变化：gateStep2 默认 display:none，点了「🔐 登录」才显示
+    try {
+      var mo = new MutationObserver(tryStart);
+      mo.observe(step2, { attributes: true, attributeFilter: ['style', 'class'] });
+      var gate = document.getElementById('loginGate');
+      if (gate) mo.observe(gate, { attributes: true, attributeFilter: ['style', 'class'] });
+      log('已挂上监听，等第 2 步出现');
+    } catch (e) {
+      log('MutationObserver 不可用，退回直启', e && e.message);
+    }
+
+    tryStart(); // 万一第 2 步一开始就是显示的
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
