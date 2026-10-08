@@ -1,0 +1,64 @@
+# 毛毛首尔机 · 最终版（2026-10-08 17:2x · 只有三个"确认能用"的节点）
+# ① 首尔-SS-8443 —— 主力，服务器日志 260+ 次转发，稳
+# ② 首尔-VLESS-TLS-39622 —— 备用，TLS 伪装（看起来像正常 HTTPS），兼容性好
+# ③ CF-保底 —— 上面都不行时用它上网（慢但封不死）
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - 1.1.1.1
+    - 8.8.8.8
+
+proxies:
+  - name: 首尔-SS-8443（主力）
+    type: ss
+    server: 158.247.225.85
+    port: 8443
+    cipher: 2022-blake3-aes-128-gcm
+    password: evr4c+KpBUiFM7irzTyJnQ==
+    udp: true
+  - name: 首尔-VLESS-TLS-39622（备用）
+    type: vless
+    server: 158.247.225.85
+    port: 39622
+    uuid: f79369c8-a49b-43c9-a3cf-e6c96f993871
+    network: tcp
+    tls: true
+    udp: true
+    servername: www.bing.com
+    skip-cert-verify: true
+    client-fingerprint: chrome
+  - name: CF-保底（慢但封不死）
+    type: vless
+    server: e.maomaowang.top
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+
+proxy-groups:
+  - name: 代理
+    type: select
+    proxies:
+      - 首尔-SS-8443（主力）
+      - 首尔-VLESS-TLS-39622（备用）
+      - CF-保底（慢但封不死）
+      - DIRECT
+
+rules:
+  - DOMAIN-SUFFIX,cn,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,代理
