@@ -1,0 +1,90 @@
+# 毛毛 CF 机场（2026-10-08 15:3x 验证版，可直接导入 Clash Meta）
+#
+# 🔑 关键修正：UUID 必须用「当前生效值」
+#    ✅ a1762351-1a96-4773-8f0a-02115fc88375   ← 本文件使用（从 Cloudflare API 的 Worker 绑定里读出的真值）
+#    ❌ 36649746-…（旧值，早已失效 —— 之前那条导入不进去的链接就败在这）
+# ✅ 实测：WebSocket 握手 101 通；带本 UUID 的路径 HTTP 200
+# ⚠️ 注意：Cloudflare 通道在国内**时好时坏**（实测 3 次：2 通 1 超时，握手 0.6~8.8 秒）
+#    —— 它是**保底线路**：慢、偶尔断，但封不死。断了就重开一次开关，通常能续上。
+# 💡 三个节点挑一个能用的即可：「CF-域名」优先试（实测走 IPv6，通的概率最高）
+#
+# 用法：Clash Meta → 配置 → ➕ → 从本地文件导入 → 选本文件 → 点它「使用」→ 回首页开开关
+
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+ipv6: true
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - 8.8.8.8
+    - 1.1.1.1
+
+proxies:
+  # ① 域名版 —— 优先试这个（实测命中 CF 的 IPv6 节点，通的概率最高）
+  - name: "CF-域名（优先）"
+    type: vless
+    server: e.maomaowang.top
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: "/a1762351-1a96-4773-8f0a-02115fc88375"
+      headers:
+        Host: e.maomaowang.top
+
+  # ② 指定 IPv4（15:3x 实测不通，但 CF 的 IP 会时好时坏，留着当备选）
+  - name: "CF-IPv4-A"
+    type: vless
+    server: 172.67.212.55
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: "/a1762351-1a96-4773-8f0a-02115fc88375"
+      headers:
+        Host: e.maomaowang.top
+
+  - name: "CF-IPv4-B"
+    type: vless
+    server: 104.21.53.109
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: "/a1762351-1a96-4773-8f0a-02115fc88375"
+      headers:
+        Host: e.maomaowang.top
+
+proxy-groups:
+  - name: 代理
+    type: select
+    proxies:
+      - CF-域名（优先）
+      - CF-IPv4-A
+      - CF-IPv4-B
+      - DIRECT
+
+rules:
+  - DOMAIN-SUFFIX,cn,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,代理
