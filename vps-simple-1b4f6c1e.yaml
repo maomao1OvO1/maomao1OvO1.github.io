@@ -1,0 +1,51 @@
+# 毛毛可用配置（2026-10-08 17:1x · 防呆版：只有两个节点）
+# ① 首尔-SS-8443：快，服务器日志证明过能用（先试它）
+# ② CF-保底：慢但封不死（第一个不行时切它）
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - 1.1.1.1
+    - 8.8.8.8
+
+proxies:
+  - name: 首尔-SS-8443（先试这个）
+    type: ss
+    server: 158.247.225.85
+    port: 8443
+    cipher: 2022-blake3-aes-128-gcm
+    password: evr4c+KpBUiFM7irzTyJnQ==
+    udp: true
+  - name: CF-保底（慢但封不死）
+    type: vless
+    server: e.maomaowang.top
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+
+proxy-groups:
+  - name: 代理
+    type: select
+    proxies:
+      - 首尔-SS-8443（先试这个）
+      - CF-保底（慢但封不死）
+      - DIRECT
+
+rules:
+  - DOMAIN-SUFFIX,cn,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,代理
