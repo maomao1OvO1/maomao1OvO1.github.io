@@ -1,0 +1,1007 @@
+# 毛毛 CF 机场 · 多节点版 v2（2026-10-08 修复重名：节点名改成「完整 IP + 端口」）
+# 主线路 6 个＝域名 × CF 六个 HTTPS 端口；备用 54 个＝候选 CF IP × 端口
+# 用法：导入后到「代理」页选『自动选择』，它会自动挑最快的；死节点忽略即可
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
+  fallback:
+    - 1.1.1.1
+    - 8.8.8.8
+
+proxies:
+  - name: 主线路-域名-443（推荐）
+    type: vless
+    server: e.maomaowang.top
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 主线路-域名-2053
+    type: vless
+    server: e.maomaowang.top
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 主线路-域名-2083
+    type: vless
+    server: e.maomaowang.top
+    port: 2083
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 主线路-域名-2087
+    type: vless
+    server: e.maomaowang.top
+    port: 2087
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 主线路-域名-2096
+    type: vless
+    server: e.maomaowang.top
+    port: 2096
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 主线路-域名-8443
+    type: vless
+    server: e.maomaowang.top
+    port: 8443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.21.53.109-443
+    type: vless
+    server: 104.21.53.109
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.21.53.109-2053
+    type: vless
+    server: 104.21.53.109
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.67.228.162-443
+    type: vless
+    server: 172.67.228.162
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.67.228.162-2053
+    type: vless
+    server: 172.67.228.162
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.19.36.48-443
+    type: vless
+    server: 104.19.36.48
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.19.36.48-2053
+    type: vless
+    server: 104.19.36.48
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.18.185.175-443
+    type: vless
+    server: 104.18.185.175
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.18.185.175-2053
+    type: vless
+    server: 104.18.185.175
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.64.67.34-443
+    type: vless
+    server: 172.64.67.34
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.64.67.34-2053
+    type: vless
+    server: 172.64.67.34
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.27.93.254-443
+    type: vless
+    server: 104.27.93.254
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.27.93.254-2053
+    type: vless
+    server: 104.27.93.254
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.67.212.55-443
+    type: vless
+    server: 172.67.212.55
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.67.212.55-2053
+    type: vless
+    server: 172.67.212.55
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.16.132.229-443
+    type: vless
+    server: 104.16.132.229
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.16.132.229-2053
+    type: vless
+    server: 104.16.132.229
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.17.2.81-443
+    type: vless
+    server: 104.17.2.81
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.17.2.81-2053
+    type: vless
+    server: 104.17.2.81
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.17.3.81-443
+    type: vless
+    server: 104.17.3.81
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.17.3.81-2053
+    type: vless
+    server: 104.17.3.81
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.21.64.1-443
+    type: vless
+    server: 104.21.64.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.21.64.1-2053
+    type: vless
+    server: 104.21.64.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.22.0.1-443
+    type: vless
+    server: 104.22.0.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.22.0.1-2053
+    type: vless
+    server: 104.22.0.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.23.128.1-443
+    type: vless
+    server: 104.23.128.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.23.128.1-2053
+    type: vless
+    server: 104.23.128.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.24.0.1-443
+    type: vless
+    server: 104.24.0.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.24.0.1-2053
+    type: vless
+    server: 104.24.0.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.25.0.1-443
+    type: vless
+    server: 104.25.0.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.25.0.1-2053
+    type: vless
+    server: 104.25.0.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.26.0.1-443
+    type: vless
+    server: 104.26.0.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.26.0.1-2053
+    type: vless
+    server: 104.26.0.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.27.128.1-443
+    type: vless
+    server: 104.27.128.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.27.128.1-2053
+    type: vless
+    server: 104.27.128.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.28.0.1-443
+    type: vless
+    server: 104.28.0.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-104.28.0.1-2053
+    type: vless
+    server: 104.28.0.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.64.80.1-443
+    type: vless
+    server: 172.64.80.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.64.80.1-2053
+    type: vless
+    server: 172.64.80.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.64.155.1-443
+    type: vless
+    server: 172.64.155.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.64.155.1-2053
+    type: vless
+    server: 172.64.155.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.66.0.96-443
+    type: vless
+    server: 172.66.0.96
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.66.0.96-2053
+    type: vless
+    server: 172.66.0.96
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.67.0.1-443
+    type: vless
+    server: 172.67.0.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-172.67.0.1-2053
+    type: vless
+    server: 172.67.0.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-188.114.96.1-443
+    type: vless
+    server: 188.114.96.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-188.114.96.1-2053
+    type: vless
+    server: 188.114.96.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-190.93.240.1-443
+    type: vless
+    server: 190.93.240.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-190.93.240.1-2053
+    type: vless
+    server: 190.93.240.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-198.41.128.1-443
+    type: vless
+    server: 198.41.128.1
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-198.41.128.1-2053
+    type: vless
+    server: 198.41.128.1
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-162.159.140.229-443
+    type: vless
+    server: 162.159.140.229
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-162.159.140.229-2053
+    type: vless
+    server: 162.159.140.229
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-162.159.135.229-443
+    type: vless
+    server: 162.159.135.229
+    port: 443
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+  - name: 备用-162.159.135.229-2053
+    type: vless
+    server: 162.159.135.229
+    port: 2053
+    uuid: a1762351-1a96-4773-8f0a-02115fc88375
+    network: ws
+    tls: true
+    udp: true
+    servername: e.maomaowang.top
+    client-fingerprint: chrome
+    ws-opts:
+      path: /a1762351-1a96-4773-8f0a-02115fc88375
+      headers:
+        Host: e.maomaowang.top
+
+proxy-groups:
+  - name: 代理
+    type: select
+    proxies:
+      - 自动选择
+      - 手动-主线路
+      - 手动-备用线路
+      - DIRECT
+
+  - name: 自动选择
+    type: url-test
+    url: http://cp.cloudflare.com/generate_204
+    interval: 600
+    tolerance: 200
+    proxies:
+      - 主线路-域名-443（推荐）
+      - 主线路-域名-2053
+      - 主线路-域名-2083
+      - 主线路-域名-2087
+      - 主线路-域名-2096
+      - 主线路-域名-8443
+      - 备用-104.21.53.109-443
+      - 备用-104.21.53.109-2053
+      - 备用-172.67.228.162-443
+      - 备用-172.67.228.162-2053
+      - 备用-104.19.36.48-443
+      - 备用-104.19.36.48-2053
+      - 备用-104.18.185.175-443
+      - 备用-104.18.185.175-2053
+      - 备用-172.64.67.34-443
+      - 备用-172.64.67.34-2053
+      - 备用-104.27.93.254-443
+      - 备用-104.27.93.254-2053
+      - 备用-172.67.212.55-443
+      - 备用-172.67.212.55-2053
+      - 备用-104.16.132.229-443
+      - 备用-104.16.132.229-2053
+      - 备用-104.17.2.81-443
+      - 备用-104.17.2.81-2053
+      - 备用-104.17.3.81-443
+      - 备用-104.17.3.81-2053
+      - 备用-104.21.64.1-443
+      - 备用-104.21.64.1-2053
+      - 备用-104.22.0.1-443
+      - 备用-104.22.0.1-2053
+      - 备用-104.23.128.1-443
+      - 备用-104.23.128.1-2053
+      - 备用-104.24.0.1-443
+      - 备用-104.24.0.1-2053
+      - 备用-104.25.0.1-443
+      - 备用-104.25.0.1-2053
+      - 备用-104.26.0.1-443
+      - 备用-104.26.0.1-2053
+      - 备用-104.27.128.1-443
+      - 备用-104.27.128.1-2053
+      - 备用-104.28.0.1-443
+      - 备用-104.28.0.1-2053
+      - 备用-172.64.80.1-443
+      - 备用-172.64.80.1-2053
+      - 备用-172.64.155.1-443
+      - 备用-172.64.155.1-2053
+      - 备用-172.66.0.96-443
+      - 备用-172.66.0.96-2053
+      - 备用-172.67.0.1-443
+      - 备用-172.67.0.1-2053
+      - 备用-188.114.96.1-443
+      - 备用-188.114.96.1-2053
+      - 备用-190.93.240.1-443
+      - 备用-190.93.240.1-2053
+      - 备用-198.41.128.1-443
+      - 备用-198.41.128.1-2053
+      - 备用-162.159.140.229-443
+      - 备用-162.159.140.229-2053
+      - 备用-162.159.135.229-443
+      - 备用-162.159.135.229-2053
+
+  - name: 手动-主线路
+    type: select
+    proxies:
+      - 主线路-域名-443（推荐）
+      - 主线路-域名-2053
+      - 主线路-域名-2083
+      - 主线路-域名-2087
+      - 主线路-域名-2096
+      - 主线路-域名-8443
+
+  - name: 手动-备用线路
+    type: select
+    proxies:
+      - 备用-104.21.53.109-443
+      - 备用-104.21.53.109-2053
+      - 备用-172.67.228.162-443
+      - 备用-172.67.228.162-2053
+      - 备用-104.19.36.48-443
+      - 备用-104.19.36.48-2053
+      - 备用-104.18.185.175-443
+      - 备用-104.18.185.175-2053
+      - 备用-172.64.67.34-443
+      - 备用-172.64.67.34-2053
+      - 备用-104.27.93.254-443
+      - 备用-104.27.93.254-2053
+      - 备用-172.67.212.55-443
+      - 备用-172.67.212.55-2053
+      - 备用-104.16.132.229-443
+      - 备用-104.16.132.229-2053
+      - 备用-104.17.2.81-443
+      - 备用-104.17.2.81-2053
+      - 备用-104.17.3.81-443
+      - 备用-104.17.3.81-2053
+      - 备用-104.21.64.1-443
+      - 备用-104.21.64.1-2053
+      - 备用-104.22.0.1-443
+      - 备用-104.22.0.1-2053
+      - 备用-104.23.128.1-443
+      - 备用-104.23.128.1-2053
+      - 备用-104.24.0.1-443
+      - 备用-104.24.0.1-2053
+      - 备用-104.25.0.1-443
+      - 备用-104.25.0.1-2053
+      - 备用-104.26.0.1-443
+      - 备用-104.26.0.1-2053
+      - 备用-104.27.128.1-443
+      - 备用-104.27.128.1-2053
+      - 备用-104.28.0.1-443
+      - 备用-104.28.0.1-2053
+      - 备用-172.64.80.1-443
+      - 备用-172.64.80.1-2053
+      - 备用-172.64.155.1-443
+      - 备用-172.64.155.1-2053
+      - 备用-172.66.0.96-443
+      - 备用-172.66.0.96-2053
+      - 备用-172.67.0.1-443
+      - 备用-172.67.0.1-2053
+      - 备用-188.114.96.1-443
+      - 备用-188.114.96.1-2053
+      - 备用-190.93.240.1-443
+      - 备用-190.93.240.1-2053
+      - 备用-198.41.128.1-443
+      - 备用-198.41.128.1-2053
+      - 备用-162.159.140.229-443
+      - 备用-162.159.140.229-2053
+      - 备用-162.159.135.229-443
+      - 备用-162.159.135.229-2053
+
+rules:
+  - DOMAIN-SUFFIX,cn,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,代理
