@@ -1,0 +1,48 @@
+# 毛毛可用节点（2026-10-08 17:0x · 只放已验证的）
+# ① 首尔-Hysteria2：新装，走 UDP/QUIC，抗绕路丢包，预期更快（第一次用如果不行就换第二个）
+# ② 首尔-SS-8443：服务器日志证明 139/139 全部成功转发，稳但握手慢
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - 1.1.1.1
+    - 8.8.8.8
+
+proxies:
+  - name: 首尔-Hysteria2（推荐·更快）
+    type: hysteria2
+    server: 158.247.225.85
+    port: 39620
+    password: 64nXVTvgFyHu0LPS
+    sni: www.bing.com
+    skip-cert-verify: true
+    alpn:
+      - h3
+    up: "50 Mbps"
+    down: "200 Mbps" 
+  - name: 首尔-SS-8443（稳）
+    type: ss
+    server: 158.247.225.85
+    port: 8443
+    cipher: 2022-blake3-aes-128-gcm
+    password: evr4c+KpBUiFM7irzTyJnQ==
+    udp: true
+
+proxy-groups:
+  - name: 代理
+    type: select
+    proxies:
+      - 首尔-Hysteria2（推荐·更快）
+      - 首尔-SS-8443（稳）
+      - DIRECT
+
+rules:
+  - DOMAIN-SUFFIX,cn,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,代理
