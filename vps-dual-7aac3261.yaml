@@ -1,0 +1,73 @@
+# 毛毛 VPS 双机直连（2026-10-08 · 东京 + 首尔，实测两台 IP 国内均可直连）
+# 用法：导入后到「代理」页点一下节点名切换，哪个快用哪个
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - 1.1.1.1
+    - 8.8.8.8
+
+proxies:
+  - name: 东京-SS-8443（直连）
+    type: ss
+    server: 45.32.40.32
+    port: 8443
+    cipher: 2022-blake3-aes-128-gcm
+    password: evr4c+KpBUiFM7irzTyJnQ==
+    udp: true
+  - name: 东京-Reality-443
+    type: vless
+    server: 45.32.40.32
+    port: 443
+    uuid: ea8e8ed1-ed3d-418e-9f45-cbfc7ae9e142
+    network: tcp
+    tls: true
+    udp: true
+    flow: xtls-rprx-vision
+    servername: www.microsoft.com
+    reality-opts:
+      public-key: YSl8KUe1ze6hK7Hhvd2Oq75H-y9Np6Yx08xveD4kLQc
+      short-id: d0dec4f65f100210
+    client-fingerprint: chrome
+  - name: 首尔-SS-8443（直连）
+    type: ss
+    server: 158.247.225.85
+    port: 8443
+    cipher: 2022-blake3-aes-128-gcm
+    password: evr4c+KpBUiFM7irzTyJnQ==
+    udp: true
+  - name: 首尔-Reality-443
+    type: vless
+    server: 158.247.225.85
+    port: 443
+    uuid: ea8e8ed1-ed3d-418e-9f45-cbfc7ae9e142
+    network: tcp
+    tls: true
+    udp: true
+    flow: xtls-rprx-vision
+    servername: www.microsoft.com
+    reality-opts:
+      public-key: YSl8KUe1ze6hK7Hhvd2Oq75H-y9Np6Yx08xveD4kLQc
+      short-id: d0dec4f65f100210
+    client-fingerprint: chrome
+
+proxy-groups:
+  - name: 代理
+    type: select
+    proxies:
+      - 东京-SS-8443（直连）
+      - 首尔-SS-8443（直连）
+      - 东京-Reality-443
+      - 首尔-Reality-443
+      - DIRECT
+
+rules:
+  - DOMAIN-SUFFIX,cn,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,代理
