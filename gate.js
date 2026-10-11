@@ -1,13 +1,16 @@
 /* ============================================================================
- * 文件：gate.js —— 站点门禁合集（2026-09-14 合并 · 2026-10-11 随 anti-bot v5 重新合并）
- * 内容 = device-check.js(v18，设备适配门禁) + anti-bot.js(v5，自动化访问检测 · 严模式)
+ * 文件：gate.js —— 站点门禁合集（2026-09-14 合并 · 2026-10-11 随 anti-bot v5.1 重新合并）
+ * 内容 = device-check.js(v18，设备适配门禁) + anti-bot.js(v5.1，自动化访问检测 · 严模式)
  * 为什么合并：原本每页发两个独立请求，慢网下各要 2~6 秒；合并后只发一个，省一个网络往返。
  * 顺序与原页面完全一致（先设备门禁，后反爬），两个脚本各自是独立 IIFE，互不依赖。
  *
- * v5 变更（2026-10-11 按毛毛要求「能拦机器人爬虫，错杀也不放过」）：
+ * v5.1 收紧（2026-10-11 下午）：评分门槛 3 → 2；新增「自称 Chrome 却无 window.chrome」信号；
+ *   行为窗口 3 秒 → 1.5 秒，且计时起点从「脚本执行」后移到「页面加载完成且可见之后」
+ *   （起点太早会误杀所有人 —— 那时页面还没渲染出来）。
+ * v5（2026-10-11 上午，按毛毛要求「能拦机器人爬虫，错杀也不放过」）：
  *   三层防御 = 硬特征层（webdriver / UA 暗号 / 框架注入变量 / 原生函数被篡改 / 蜜罐 / 合成事件）
- *            + 评分层（门槛 5 → 3，新增 userAgentData、WebGL 软渲染、deviceMemory 等特征）
- *            + 行为层（页面可见后 3 秒内零真实交互 → 拦）。
+ *            + 评分层（门槛下调，新增 userAgentData、WebGL 软渲染、deviceMemory 等特征）
+ *            + 行为层（加载完成后零真实交互 → 拦）。
  *
  * ⚠️ 本文件是**生成物**，不要直接改这里 —— 改源文件 anti-bot.js / device-check.js 后重新合并：
  *     cat 本头部 device-check.js anti-bot.js > gate.js
@@ -74,8 +77,14 @@
     /* 适配设备：什么都不做，正常继续渲染页面 */
 })();
 /*
- * 文件：anti-bot.js —— 反爬虫守卫 v5（严模式 · 宁可错杀，不放过）
+ * 文件：anti-bot.js —— 反爬虫守卫 v5.1（严模式 · 宁可错杀，不放过）
  * 功能：在页面渲染前检测「自动化工具 / 爬虫 / 无头浏览器 / 采集脚本」，命中即跳到独立验证页。
+ *
+ * ⭐ v5.1 收紧（2026-10-11 下午，毛毛「你都搞一下吧」之后）：
+ *   · 评分门槛 3 → **2**；新增「自称 Chrome 却没有 window.chrome」硬信号（假 UA 常见）。
+ *   · 行为层观察窗口 3 秒 → **1.5 秒**，并把计时起点从「脚本执行」移到「**页面加载完成且可见之后**」
+ *     —— 起点太早会把所有人误杀（那时页面还没渲染，真人来不及动手），后移之后才敢把窗口压短。
+ *   · 新增加载兜底：外部资源挂住导致 load 迟迟不来时，最迟 2.5 秒照常开始计时。
  *
  * ⭐ v5 与 v4 的根本差别（2026-10-11 按毛毛要求改）：
  *   v4 = 「宁放过、勿误杀」—— 单一评分制，门槛 5 分，真人交互即放行，行为零干预。
@@ -121,9 +130,10 @@
     var PREVIEW = /(^|[?&])ab=preview($|&)/.test(location.search || "");
 
     /* ══════════════════ 0.6 配置区（想调强弱就改这里，改完同步到 gate.js） ══════════════════ */
-    var SCORE_THRESHOLD = 3;         // 评分门槛：≥ 此分即拦（v4 是 5，v5 降到 3）
+    var SCORE_THRESHOLD = 2;         // 评分门槛：≥ 此分即拦（v4 是 5 → v5 初版 3 → v5.1 收紧到 2）
     var BEHAVIOR_ENFORCE = true;     // 行为层总开关：true = 无真实交互就拦（最狠的一条）
-    var BEHAVIOR_WINDOW_MS = 3000;   // 行为观察窗口：页面可见后多少毫秒内必须有真实交互
+    var BEHAVIOR_WINDOW_MS = 1500;   // 行为观察窗口：**页面加载完成且可见之后**，多少毫秒内必须有真实交互
+    var BEHAVIOR_FALLBACK_MS = 2500; // 兜底：加载事件迟迟不来（外部资源挂住）时，最迟多久开始计时
     var SCORE_WAIT_MS = 800;         // 评分达标后的观察延时（与 v4 一致，避免瞬间跳走）
     var AI_CRAWLER_ALLOW = false;    // 是否放行 AI 训练爬虫（GPTBot/ClaudeBot 等）：false = 不放过
     var HONEYPOT_INJECT = true;      // 是否注入隐藏蜜罐链接（真人看不见，遍历链接的爬虫会踩）
@@ -236,6 +246,9 @@
     // e) UA 自称 Chrome，却没有 userAgentData（Chrome 90+ 必有 ⇒ 伪装 UA 的强信号）
     if (/chrome|chromium|crios/i.test(ua) && !navigator.userAgentData) 加分(3, "noUAData");
 
+    // e2) UA 自称 Chrome/Edge，却没有 window.chrome 对象（Chromium 系一定有 ⇒ 假 UA / 阉割环境）
+    if (/chrome|chromium|crios|edg\//i.test(ua) && !window.chrome) 加分(3, "noWindowChrome");
+
     // f) UA 自称 Chrome，却没有 deviceMemory（Chrome 有，且无法被 UA 伪装出来）
     if (/chrome|chromium|crios/i.test(ua) && typeof navigator.deviceMemory === "undefined") 加分(1, "noDeviceMemory");
 
@@ -323,11 +336,12 @@
         }, SCORE_WAIT_MS);
     }
 
-    // 7.2 行为层：页面「可见」累计观察 BEHAVIOR_WINDOW_MS，其间一次真实交互都没有 → 拦
-    //     为什么按「可见」计时：新标签页在后台加载、用户还没切过去，不该算他「不动手」（那是误杀大头）
-    //     为什么隐藏时停表：后台标签一直跑定时器会白耗电（手机端尤其明显）
+    // 7.2 行为层：**页面加载完成并且可见之后**，观察 BEHAVIOR_WINDOW_MS 内有没有真实交互 → 没有就拦
+    //     为什么把起点放在「加载完成」而不是「脚本执行」：脚本在 <head> 里就跑，那时页面还没渲染出来，
+    //     真人根本来不及动手 —— 起点太早会把所有人都误杀（v5 初版实测到的坑）。
+    //     为什么隐藏时停表：后台标签页一直跑定时器会白耗电（手机端尤其明显）。
     if (BEHAVIOR_ENFORCE) {
-        var 已用毫秒 = 0, 步进 = 250, 计时器 = null;
+        var 已用毫秒 = 0, 步进 = 250, 计时器 = null, 加载完成 = false;
         function 到点判定() {
             try {
                 已用毫秒 += 步进;
@@ -335,13 +349,26 @@
                 if (已用毫秒 >= BEHAVIOR_WINDOW_MS) { 停表(); blockPage("no-interaction"); }
             } catch (e) { /* 静默 */ }
         }
-        function 启动计时() { if (!计时器) 计时器 = setInterval(到点判定, 步进); }
+        function 启动计时() {
+            try {
+                if (计时器) return;
+                if (!加载完成 || document.visibilityState === "hidden") return; // 两个条件都满足才开始计时
+                计时器 = setInterval(到点判定, 步进);
+            } catch (e) {}
+        }
         function 停表() { if (计时器) { clearInterval(计时器); 计时器 = null; } }
+        function 标记加载完成() { 加载完成 = true; 启动计时(); }
         try {
-            if (document.visibilityState === "hidden") 停表(); else 启动计时();
+            if (document.readyState === "complete") 加载完成 = true;
+            else {
+                window.addEventListener("load", 标记加载完成, { once: true });
+                // 兜底：外部资源挂住导致 load 迟迟不来（本站外部请求不少）⇒ 最迟 BEHAVIOR_FALLBACK_MS 后照常计时
+                setTimeout(标记加载完成, BEHAVIOR_FALLBACK_MS);
+            }
             document.addEventListener("visibilitychange", function () {
                 try { if (document.visibilityState === "hidden") 停表(); else 启动计时(); } catch (e) {}
             }, { passive: true });
+            启动计时();
         } catch (e) {}
     }
 })();
