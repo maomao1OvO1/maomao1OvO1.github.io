@@ -38,4 +38,4 @@ Disallow: /games/go/katago-test/
 Disallow: /games/stockfish/
 
 # 站点地图（帮助搜索引擎完整收录公开页面）
-Sitemap: https://maomao1ovo1.github.io/sitemap.xml
+Sitemap: https://maomaowang.top/sitemap.xml
