@@ -13,7 +13,7 @@
     6. 作品入口（摄影 / 视频 / 音乐）、小游戏大厅入口、硬件测试大厅入口
     7. 账号系统（Firebase Auth：谷歌 / GitHub / 邮箱登录，含账号菜单）
   引用的资源：
-    - manifest.json、icon.png、style.css?v=40   —— 页面配置与全局样式
+    - manifest.json、icon.png、style.css?v=41   —— 页面配置与全局样式
     - weather.js   —— 天气数据逻辑（IP 定位 / 城市搜索）
     - tokens.js?v=3 —— 第三方 AI 余额查询
     - player.js?v=3  —— 音乐播放器逻辑
@@ -28,7 +28,7 @@
 <script src="/js/home/01-early-loading-fallback.js?v=1"></script>
 <script src="/js/home/02-lowercase-host-redirect.js?v=1"></script>
 
-<script defer src="/gate.js?v=3"></script>
+<script defer src="/gate.js?v=4"></script>
 
 <!-- head 区：存放页面元信息（编码、图标、标题、样式），不直接显示在页面上 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,7 +51,7 @@
 <title>毛毛的个人主页</title>
 
 <!-- 全局样式表；v=32 是版本号，改样式时递增即可强制浏览器重新下载（避免缓存旧版） -->
-<link rel="stylesheet" href="style.css?v=40">
+<link rel="stylesheet" href="style.css?v=41">
 
 <!-- 性能：提前建立关键外部连接（Firebase SDK / 数据接口），省掉 DNS+TLS 往返 -->
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -60,7 +60,7 @@
 <link rel="dns-prefetch" href="https://api.open-meteo.com">
 <link rel="dns-prefetch" href="https://api.ip.sb">
 <link rel="stylesheet" href="bg.css?v=8">  <!-- 全站视觉统一层：光场背景 + 卡片玻璃质感，见仓库根 bg.css -->
-<link rel="stylesheet" href="/responsive.css?v=1">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
+<link rel="stylesheet" href="/responsive.css?v=2">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
 </head>
 
 <!-- body 带有 loading 类：页面隐藏加载动画，等资源就绪后再显示主体内容 -->
@@ -696,7 +696,7 @@ value="1"
 <script src="/js/home/07-td-update-button.js?v=1"></script>
 <!-- 登录门「我是真人」验证（Cloudflare Turnstile）：未通过前锁住三个登录按钮；
      自带 fail-open —— site key 缺失 / 官方脚本 4 秒未加载 / 验证出错都会自动解锁，不会挡住真人 -->
-<script src="/js/home/08-turnstile-gate.js?v=3" defer></script>
+<script src="/js/home/08-turnstile-gate.js?v=4" defer></script>
 </body>
 
 </html>

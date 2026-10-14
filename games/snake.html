@@ -23,7 +23,7 @@
 
 <head>
 <meta charset="UTF-8">
-<script defer src="/gate.js?v=3"></script>
+<script defer src="/gate.js?v=4"></script>
 
 <link rel="icon" type="image/png" href="../icon.png">
 <link rel="apple-touch-icon" href="../icon.png">
@@ -71,12 +71,30 @@ body {
 
 /* ===== 游戏区域 ===== */
 
-/* 游戏画布：320px 见方，用 CSS Grid 切成 20×20 的格子（每列 1fr 均分 20 份） */
+/* 游戏画布：桌面 320px 见方，用 CSS Grid 切成 20×20 的格子（每列 1fr 均分 20 份）
+   ------------------------------------------------------------------
+   【2026-10-14 手机端适配】溢出原因：原来写死 width:320px + height:320px，
+   又加 padding:5px（content-box 下额外加）→ 画布真实占位 330px 宽；
+   叠上 body 默认的左右各 8px 边距后，可用宽不足 330px 的屏幕
+   （320px 小屏只剩 304px）必然出现横向滚动条。
+   改法：
+     ① width:min(320px, calc(100vw - 24px))：桌面上限仍是 320px（外观不变），
+        窄屏取 calc(100vw - 24px)，左右各留 12px 呼吸位；
+     ② height 改成 auto + aspect-ratio:1/1：让高度跟着宽度走，画布永远是正方形。
+        这一步不能省 —— 只改宽不改高，窄屏下画布会被压成扁的，20×20 的格子
+        就不再是正方形，蛇和食物都会被拉变形；
+     ③ 顺手补上 grid-template-rows:repeat(20,1fr)：原来 20 行靠「隐式 auto 行
+        ＋ align-content 默认 stretch」被容器高度平分，现在高度改成 auto 了，
+        把行显式写死成 20 等份更稳（渲染结果与原来一致）。
+   注：格子 .cell 用 width/height:100% 填满单元格，无需跟着改。
+   ------------------------------------------------------------------ */
 #game {
 
-    width: 320px;
+    width: min(320px, calc(100vw - 24px));
 
-    height: 320px;
+    height: auto;
+
+    aspect-ratio: 1 / 1;
 
     margin: 20px auto;
 
@@ -85,6 +103,8 @@ body {
     display: grid;
 
     grid-template-columns: repeat(20, 1fr);
+
+    grid-template-rows: repeat(20, 1fr);
 
     border-radius: 20px;
 
@@ -223,7 +243,7 @@ body.dark-mode{
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
 <link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
-<link rel="stylesheet" href="/responsive.css?v=1">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
+<link rel="stylesheet" href="/responsive.css?v=2">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
 </head>
 
 <body>

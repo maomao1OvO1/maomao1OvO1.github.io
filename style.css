@@ -48,7 +48,13 @@ body {
 
     flex-direction: column;   /* 子元素沿纵向排列 */
 
-    min-height:100vh;         /* 至少撑满一屏视口高度 */
+    /* 至少撑满一屏视口高度。
+       2026-10-15：补一行 100dvh —— 手机上地址栏收起/展开时 100vh 是按「工具栏隐藏」
+       那一刻算的，实际可视高度会小一截，页面底部就被顶出屏幕（移动 Chrome/Safari 通病）。
+       dvh（dynamic viewport height）会跟着工具栏实时变。老浏览器不认识 dvh 会自动忽略
+       这一行、继续用上面的 100vh，所以**两行都要留、顺序不能换**。 */
+    min-height:100vh;
+    min-height:100dvh;
 height:auto;
 }
 
@@ -102,7 +108,7 @@ h1 {
 
     color: #7c5cbf;   /* 主题紫标题 */
 
-|}
+}
 
 
 
@@ -3340,7 +3346,16 @@ body.dark-mode .mail-item small{color:#8f7ac2;}
     align-items: center;
     gap: 10px;
     width: 100%;
-    max-width: 330px;
+    /* 2026-10-15 修：这张卡片原来在 320px 窄屏上会把整页顶宽 16px
+       （实测：文档宽 336 / 视口 320，最宽元素就是它）。
+       根因是 content-box 下「width:100% + padding:9px 12px」—— 100% 算的是内容宽度，
+       左右内边距还要再加 24px，于是卡片比父容器宽出 24px；父容器再有内边距，就溢出视口了。
+       修法两步（缺一不可）：
+         ① 加 box-sizing: border-box —— 让 width:100% 把内边距算进去，卡片不会再顶出父容器；
+         ② max-width 330px → 354px —— 补回被算进去的左右内边距（12 + 12），
+            这样桌面端卡片的**总占宽和改动前完全一致**（内容区依然是 330px），视觉零变化。 */
+    box-sizing: border-box;
+    max-width: 354px;
     margin: 10px auto 4px;
     padding: 9px 12px;
     border-radius: 16px;

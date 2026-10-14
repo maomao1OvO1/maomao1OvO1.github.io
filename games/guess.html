@@ -17,7 +17,7 @@
 
 <head>
 <meta charset="UTF-8">
-<script defer src="/gate.js?v=3"></script>
+<script defer src="/gate.js?v=4"></script>
 
 <link rel="icon" type="image/png" href="../icon.png">
 <link rel="apple-touch-icon" href="../icon.png">
@@ -38,12 +38,25 @@ body {
 
 }
 
-/* 游戏主体卡片：居中、固定宽度、圆角 + 浅灰背景，把整个游戏装在卡片里 */
+/* 游戏主体卡片：居中、宽度有上限但能随屏幕收缩、圆角 + 浅灰背景，把整个游戏装在卡片里
+   ------------------------------------------------------------------
+   【2026-10-14 手机端适配】原来写死 width:300px，而 padding:30px 用的是默认的
+   content-box（内边距额外再加）—— 卡片真实占位 = 300 + 30 × 2 = 360px，
+   再叠上 body 默认的左右各 8px 边距，屏幕可用宽不足 360px 时整页就会横向滚动。
+   改法（两条必须一起上，少一条都还会溢出）：
+     ① box-sizing:border-box：让 width 把内边距算进去。原来「写 300、实占 360」，
+        量出来的和写着的对不上，是这类溢出最容易被忽略的根源；
+     ② width:min(360px, calc(100vw - 48px))：360px 恰好等于桌面端原来的真实占位
+        宽度（300 内容 + 左右各 30 内边距），所以桌面端视觉完全不变；
+        窄屏时取 calc(100vw - 48px)，左右各留 24px 呼吸位，宽到哪都塞得下。
+   ------------------------------------------------------------------ */
 .game-box { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+
+    box-sizing: border-box;
 
     margin: 80px auto;
 
-    width: 300px;
+    width: min(360px, calc(100vw - 48px));
 
     padding: 30px;
 
@@ -151,7 +164,7 @@ body.dark-mode{
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
 <link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
-<link rel="stylesheet" href="/responsive.css?v=1">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
+<link rel="stylesheet" href="/responsive.css?v=2">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
 </head>
 
 <body>

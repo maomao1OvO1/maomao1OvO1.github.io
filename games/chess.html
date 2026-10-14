@@ -34,7 +34,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<script defer src="/gate.js?v=3"></script>
+<script defer src="/gate.js?v=4"></script>
 <link rel="icon" type="image/png" href="../icon.png">
 <link rel="apple-touch-icon" href="../icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,10 +50,14 @@ body{text-align:center;font-family:Arial;}
 body{text-align:center;font-family:Arial;}
 .back-home{position:fixed;top:20px;right:20px;background:#e5dcff;color:#6543a5;padding:10px 15px;border-radius:20px;text-decoration:none;font-size:16px;}
 /* ===== 棋盘网格 ===== */
-/* 外层棋盘：固定 400×400，用 CSS Grid 排成 8×8 的国际象棋格 */
-#board{width:400px;height:400px;margin:0 auto;display:grid;grid-template-columns:repeat(8,1fr);border-radius:15px;overflow:hidden;position:relative;}
+/* 外层棋盘：尺寸由棋格变量 --cell 推导（桌面 8 × 50 = 400×400，与原设计一致），
+   --cell 定义在下面的 .chess-wrapper 上，窄屏由文件末尾的 @media 调小。
+   用 CSS Grid 排成 8×8 的国际象棋格 */
+#board{width:calc(var(--cell) * 8);height:calc(var(--cell) * 8);margin:0 auto;display:grid;grid-template-columns:repeat(8,1fr);border-radius:15px;overflow:hidden;position:relative;}
 /* 单个格子的公共样式：尺寸、居中、鼠标手势，position:relative 便于叠加提示层 */
-.cell{width:50px;height:50px;display:flex;justify-content:center;align-items:center;font-size:36px;cursor:pointer;box-sizing:border-box;position:relative;}
+/* 格子宽高改用 --cell（桌面 50px，与原设计一致）；字号按格宽等比给
+   （50 × 0.72 = 36px，桌面字号分毫不变），窄屏格子变小时棋子同步变小，不会顶出格子 */
+.cell{width:var(--cell);height:var(--cell);display:flex;justify-content:center;align-items:center;font-size:calc(var(--cell) * 0.72);cursor:pointer;box-sizing:border-box;position:relative;}
 /* 浅/深两色棋盘格，按 (x+y) 奇偶交替着色 */
 .light{background:#f0d9b5;}
 .dark{background:#b58863;}
@@ -76,20 +80,60 @@ body.dark-mode .cell{color:#000;}
 #stats{margin:15px auto;padding:10px;font-size:18px;background:rgba(255,255,255,0.1);border-radius:10px;display:inline-block;}
 .dark-mode #stats{background:rgba(255,255,255,0.05);}
 /* ===== 行列坐标标签（棋盘外围的 a~h 列号 / 1~8 行号） ===== */
-.letters{margin-left:40px;width:400px;height:30px;display:grid;grid-template-columns:repeat(8,50px);}
+/* 列号栏：宽 8 格、每格 --cell；左边缩进 40px 让出左侧行号栏的位置
+   （与 .chess-wrapper 里 +40px 的算法一一对应，改一处必须改另一处） */
+.letters{margin-left:40px;width:calc(var(--cell) * 8);height:30px;display:grid;grid-template-columns:repeat(8,var(--cell));}
 .letters span{display:flex;justify-content:center;align-items:center;}
-.numbers{width:40px;height:400px;display:grid;grid-template-rows:repeat(8,50px);}
+.numbers{width:40px;height:calc(var(--cell) * 8);display:grid;grid-template-rows:repeat(8,var(--cell));}
 .numbers span{display:flex;justify-content:center;align-items:center;}
 .board-row{display:flex;align-items:flex-start;}
-.chess-wrapper{width:440px;max-width:100%;margin:30px auto;}
+/* ===== 棋盘组尺寸（2026-10-14 手机端适配的核心） =====
+   --cell：单个棋格的边长。桌面 50px（与原设计一致，外观不变）；
+           窄屏由文件末尾的 @media 调小，棋盘组跟着等比缩，永不溢出。
+   --k   ：走子动画层的缩放比 = 当前格宽 ÷ 原始格宽 50。
+           为什么非要它：draw() 里的动画坐标是按 50px 格宽写死的
+           （let startLeft = fromX * 50，见本文件 JS），格子一旦变小，
+           飞行中的棋子就会偏到隔壁格 —— 给 #animation-layer 加同比缩放后，
+           动画棋子才正好落在该落的格子里。
+           写法用的是「数字 ÷ 数字」，所有浏览器都支持，不依赖新语法。
+   ⚠️ 改 --cell 必须同步改 --k，两者是一对，只改一个动画就会飞偏。
+   宽度 = 8 格 + 40px（左侧 1~8 行号栏），桌面即 440px，与原来一致。
+   这里去掉了原来的 max-width:100%：它对「内部还有定宽子元素」的容器本来就
+   盖不住（这套棋盘就是典型），现在宽度由 --cell 从里到外统一控制，不再需要它。 */
+.chess-wrapper{--cell:50px;--k:calc(50 / 50);width:calc(var(--cell) * 8 + 40px);margin:30px auto;}
 /* ===== 走子动画层 ===== */
 /* 动画层覆盖整个棋盘，pointer-events:none 与 z-index:10 使其不拦截点击 */
-#animation-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;}
-/* 正在平移的棋子：用 left/top 的 transition 平滑移动（200ms） */
+/* 走子动画层：JS 里的坐标按 50px 格宽写死，所以这里用 --k 把整层等比缩到当前格宽
+   （--k = 格宽 ÷ 50）；transform-origin 用左上角，缩放后才与棋盘左上角对齐 */
+#animation-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;transform:scale(var(--k));transform-origin:top left;}
+/* 正在平移的棋子：用 left/top 的 transition 平滑移动（200ms）
+   ⚠️ 这里的 50px / 36px 是「原始格宽下的尺寸」，故意不改成 var(--cell)：
+   它整层处在被 --k 缩放的 #animation-layer 里，写原始值缩放后刚好等于
+   实际格宽（50 × k）与实际字号（36 × k），与静态格子的观感完全一致。 */
 .anim-piece{position:absolute;width:50px;height:50px;display:flex;justify-content:center;align-items:center;font-size:36px;transition:left 0.2s ease, top 0.2s ease;pointer-events:none;}
 /* 移动中棋子的颜色区分：白子带黑描边可见，黑子无描边 */
 .anim-piece.white-piece{color:white;text-shadow:0 0 2px black;}
 .anim-piece.black-piece{color:black;text-shadow:none;}
+
+/* ===== 窄屏适配：把棋格调小，整组棋盘跟着缩（2026-10-14 新增） =====
+   判据：棋盘组总宽 = 8 × 格宽 + 40px（左侧行号栏），再加上 body 默认的左右各 8px
+        边距，必须 ≤ 视口宽，否则就会出现横向滚动条。
+   ① ≤470px（390 / 375 / 360 等常见手机竖屏都落在这一档）：
+      格宽 39px → 8 × 39 + 40 = 352px，加边距 368px；
+      390px 的屏还剩 22px 余量，稳。
+   ② ≤370px（小屏 / 分屏）：
+      格宽 31px → 8 × 31 + 40 = 288px，加边距 304px；
+      连 320px 的屏也塞得下。
+   ⚠️ 再次提醒：--cell 与 --k 必须成对改（--k = 新格宽 ÷ 50），
+      否则走子动画的棋子会飞偏。 */
+@media (max-width: 470px){
+  /* 39 / 50 = 0.78 */
+  .chess-wrapper{--cell:39px;--k:calc(39 / 50);}
+}
+@media (max-width: 370px){
+  /* 31 / 50 = 0.62 */
+  .chess-wrapper{--cell:31px;--k:calc(31 / 50);}
+}
 </style>
 
 <!-- 性能：提前建立关键外部连接（省掉 DNS+TLS 往返） -->
@@ -97,7 +141,7 @@ body.dark-mode .cell{color:#000;}
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
 <link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
-<link rel="stylesheet" href="/responsive.css?v=1">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
+<link rel="stylesheet" href="/responsive.css?v=2">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
 </head>
 <body>
 <!-- 进入页面先读 localStorage 的 theme：若是暗色主题就立刻给 body 加上 dark-mode 类，

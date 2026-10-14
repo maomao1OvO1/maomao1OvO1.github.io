@@ -31,7 +31,7 @@
 
 <head>
 <meta charset="UTF-8">
-<script defer src="/gate.js?v=3"></script>
+<script defer src="/gate.js?v=4"></script>
 
 <link rel="icon" type="image/png" href="../icon.png">
 <link rel="apple-touch-icon" href="../icon.png">
@@ -86,6 +86,21 @@ body {
 }
 
 /* ===== 棋盘容器 ===== */
+/* ------------------------------------------------------------------
+   【2026-10-14 手机端适配】溢出原因：棋盘写死 360px，外层 #board-wrapper 又是
+   inline-block + padding:15px（内边距额外加）→ 整组真实占位 360 + 30 = 390px，
+   正好等于 390px 手机的视口宽度，一点余量都没有；再叠上 body 默认的左右各 8px
+   边距，390px 的屏就已经在横向滚，360px 的屏更是溢出 30px 以上。
+   改法（只动 #board 自己的尺寸，外层 wrapper 一行不改）：
+     ① #board 宽度换成 min(360px, calc(100vw - 60px))：桌面上限仍是 360px，
+        外观与原来一模一样；窄屏取 calc(100vw - 60px)，这 60px 的来历是
+        wrapper 左右 padding 30 + body 左右边距 16 + 14px 安全余量；
+     ② 高度换成 auto + aspect-ratio:1/1：宽度缩了高度跟着缩，棋盘永远是正方形。
+   为什么棋盘缩小不用改网格线：线是 repeating-linear-gradient 画的，并且写了
+   background-size:100% 100% —— 背景图会被拉伸到棋盘实际大小，
+   24px（= 360 ÷ 15）的线距跟着等比缩放，棋子与线依旧对齐。
+   棋子本身是 grid 单元格的子元素，靠 1fr 轨道定位，也是自适应的。
+   ------------------------------------------------------------------ */
 
 #board-wrapper { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
 
@@ -105,9 +120,13 @@ body {
 
 #board {
 
-    width: 360px;
+    /* 桌面 360px（15 格 × 24px 线距）；窄屏用 min() 跟着视口收，
+       再配 aspect-ratio 保持正方形，15×15 的格子自动等比缩小 */
+    width: min(360px, calc(100vw - 60px));
 
-    height: 360px;
+    height: auto;
+
+    aspect-ratio: 1 / 1;
 
     display: grid;
 
@@ -279,7 +298,7 @@ body.dark-mode{
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
 <link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
-<link rel="stylesheet" href="/responsive.css?v=1">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
+<link rel="stylesheet" href="/responsive.css?v=2">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
 </head>
 
 <body>

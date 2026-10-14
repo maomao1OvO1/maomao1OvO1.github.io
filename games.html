@@ -15,7 +15,7 @@
 
 <head>
 <meta charset="UTF-8">
-<script defer src="/gate.js?v=3"></script>
+<script defer src="/gate.js?v=4"></script>
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,10 +26,36 @@
 <!-- 本页内联样式：只影响这个小游戏大厅，不污染其他页面 -->
 <style>
 
-/* 全局基础样式：文字居中、默认字体 Arial */
+/* 全局基础样式：文字居中、默认字体 Arial；整页同时作为卡片网格容器 */
 body {
     text-align: center;
     font-family: Arial;
+
+    /* ── 卡片网格（2026-10-14 新增） ────────────────────────────────
+       改之前：9 张 .game-card 是块级元素 + margin:20px auto 单列堆叠，
+               在 1920px 的桌面上被拉成一条条细长条，左右大片空白。
+       改之后：body 直接当网格容器，卡片按可用宽度自动排 1 / 2 / 3 列 ——
+               手机（< 720px）1 列（观感与原来一致）、
+               中屏（720 ~ 1100px）2 列、宽屏（≥ 1100px）3 列，
+               整块最宽 1000px 并居中。
+       ⚠️ 把 body 当网格会不会误伤别的元素？逐个核对过：
+           · <script>：display:none，不生成盒子，不算网格项；
+           · .back-home：position:fixed，脱离文档流，不参与网格；
+           · <h1>：正文标题要独占一整行 —— 下面单独给它 grid-column:1/-1；
+           剩下的就只有 9 张 .game-card，正是要排网格的对象。
+       minmax(min(260px, 100%), 1fr)：轨道最小 260px，但不会小于容器宽
+       —— 这样哪怕屏幕比 260px 还窄（分屏、小折叠屏），也不会顶出横向滚动条。 */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 16px;   /* 窄屏左右各留 16px，卡片不贴边（原来靠 body 默认的 8px 边距） */
+}
+
+/* 页面标题独占一整行，不参与卡片分列 */
+h1 {
+    grid-column: 1 / -1;
 }
 
 /* 游戏卡片里的标题：去掉默认上边距、固定下方 12px 间距、字号 20px */
@@ -50,11 +76,19 @@ body {
     margin-top: 2px;
 }
 
-/* 游戏卡片容器：居中、内边距、宽度自适应(最小280px)、圆角、浅灰背景、柔和阴影 */
+/* 游戏卡片容器：内边距、圆角、浅灰背景、柔和阴影、文字居中
+   （2026-10-14：宽度与间距改由上面的 body 网格统一管，卡片只管自己的外观）
+   改动点：
+     ① width:min(280px, 84vw) → 100% + box-sizing:border-box
+        —— 卡片现在由网格轨道决定宽度，填满轨道才不会左右露缝；
+           border-box 保证 padding:26px 18px 算在轨道宽度内，不会把卡片撑出网格；
+     ② margin:20px auto → 0 —— 卡片间距改由网格 gap:20px 统一给，
+        留着 margin 就会变成「20 + 20 = 40px」的双倍间距。 */
 .game-card {
-    margin: 20px auto;
+    margin: 0;
     padding: 26px 18px;
-    width: min(280px, 84vw);
+    width: 100%;
+    box-sizing: border-box;
     border-radius: 20px;
     background: #f2f2f2;
     box-shadow: 0 4px 14px #0002;
@@ -126,7 +160,7 @@ body.dark-mode{
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
 <link rel="stylesheet" href="bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
-<link rel="stylesheet" href="/responsive.css?v=1">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
+<link rel="stylesheet" href="/responsive.css?v=2">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
 </head>
 
 <body>

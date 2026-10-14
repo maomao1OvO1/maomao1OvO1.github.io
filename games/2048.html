@@ -28,7 +28,7 @@
 
 <head>
 <meta charset="UTF-8">
-<script defer src="/gate.js?v=3"></script>
+<script defer src="/gate.js?v=4"></script>
 
 <link rel="icon" type="image/png" href="../icon.png">
 <link rel="apple-touch-icon" href="../icon.png">
@@ -78,10 +78,25 @@ body {
 }
 
 /* ===== 棋盘容器 ===== */
-/* CSS Grid 排成 4 列；深色底 + 圆角；touch-action:none 屏蔽浏览器默认触摸手势 */
+/* CSS Grid 排成 4 列；深色底 + 圆角；touch-action:none 屏蔽浏览器默认触摸手势
+   ------------------------------------------------------------------
+   【2026-10-14 手机端适配】溢出原因：原来写 width:320px，padding:10px 在默认的
+   content-box 下是额外加的 → 棋盘真实占位 340px；再叠上 body 默认的左右各 8px
+   边距，可用宽不足 340px 的屏幕（比如 320px 小屏只剩 304px）必然横向滚动。
+   改法（两条必须配套，少一条都还会溢出）：
+     ① box-sizing:border-box：让 width 把内边距算进去 —— 写 340px 正好等价于
+        原来的「320 内容 + 左右各 10 内边距」，连 4 个格子的实际尺寸都分毫不变
+        （内容宽仍是 320px，每格 = (320 - 3 × 10) ÷ 4 = 72.5px）；
+     ② width:min(340px, calc(100vw - 40px))：桌面上限仍是 340px（外观不变），
+        窄屏取 calc(100vw - 40px)，左右各留 20px 呼吸位，怎么窄都塞得下。
+   注：格子 .cell 用的是 width:100% + aspect-ratio:1/1，本身就是自适应的，
+       棋盘变窄时格子会自动等比缩小，不需要跟着改。
+   ------------------------------------------------------------------ */
 #game {
 
-    width: 320px;
+    box-sizing: border-box;
+
+    width: min(340px, calc(100vw - 40px));
 
     margin: 20px auto;
 
@@ -193,7 +208,7 @@ body.dark-mode{
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
 <link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
-<link rel="stylesheet" href="/responsive.css?v=1">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
+<link rel="stylesheet" href="/responsive.css?v=2">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
 </head>
 
 <body>

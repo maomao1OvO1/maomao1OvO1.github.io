@@ -17,7 +17,7 @@
 
 <head>
 <meta charset="UTF-8">
-<script defer src="/gate.js?v=3"></script>
+<script defer src="/gate.js?v=4"></script>
 
 <link rel="icon" type="image/png" href="../icon.png">
 <link rel="apple-touch-icon" href="../icon.png">
@@ -63,12 +63,25 @@ body {
 
 }
 
-/* 游戏主体卡片：居中、固定宽度、圆角 + 浅灰背景 */
+/* 游戏主体卡片：居中、宽度有上限但能随屏幕收缩、圆角 + 浅灰背景
+   ------------------------------------------------------------------
+   【2026-10-14 手机端适配】原来写死 width:300px，padding:30px 在默认的
+   content-box 下是额外加的 —— 卡片真实占位 = 300 + 30 × 2 = 360px，
+   叠上 body 默认左右各 8px 边距后，可用宽不足 360px 的屏幕就会出现横向滚动条。
+   改法：
+     ① box-sizing:border-box：宽度把内边距一并算进去，占位变得可预测
+        （原来「写 300、实占 360」，是这类溢出最容易被忽略的根源）；
+     ② width:min(360px, calc(100vw - 48px))：360px 正是桌面端原来的真实占位宽度，
+        桌面端视觉不变；窄屏取 calc(100vw - 48px)，左右各留 24px 呼吸位。
+   注：卡片里的 textarea 用的是 width:90%，本来就跟着卡片走，无需改动。
+   ------------------------------------------------------------------ */
 .game-box { backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+
+    box-sizing: border-box;
 
     margin: 80px auto;
 
-    width: 300px;
+    width: min(360px, calc(100vw - 48px));
 
     padding: 30px;
 
@@ -151,7 +164,7 @@ body.dark-mode{
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://ipwho.is">
 <link rel="stylesheet" href="../bg.css?v=8">  <!-- 全站背景美化「柔光」：与主站同款，见仓库根 bg.css -->
-<link rel="stylesheet" href="/responsive.css?v=1">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
+<link rel="stylesheet" href="/responsive.css?v=2">  <!-- 全站响应式适配补丁：手机/平板/桌面三档，见仓库根 responsive.css -->
 </head>
 
 <body>
