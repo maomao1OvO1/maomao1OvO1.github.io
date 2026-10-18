@@ -18,17 +18,17 @@
 // 说明：数组顺序 = 播放列表顺序；songs[i] 是音频地址，covers[i] 是封面图，
 //       songNames[i] 是显示在播放器上的歌名。三者必须同下标对齐，否则错位。
 let songs = [
-    "music/所有③分熟的地球煎蛋.mp3",
-    "music/dw.mp3",
-    "music/Halzion.mp3",
-    "music/暧昧游戏.mp3"
+    "/music/所有③分熟的地球煎蛋.mp3",
+    "/music/dw.mp3",
+    "/music/Halzion.mp3",
+    "/music/暧昧游戏.mp3"
 ];
 
 let covers = [
-    "images/xiongzi.jpg",
-    "images/kg_1785435965413.webp",
-    "images/halzion.jpg",
-    "images/FLXE-001.jpg"
+    "/images/xiongzi.jpg",
+    "/images/kg_1785435965413.webp",
+    "/images/halzion.jpg",
+    "/images/FLXE-001.jpg"
 ];
 
 let songNames = [

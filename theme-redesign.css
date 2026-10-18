@@ -1,0 +1,759 @@
+/* ════════════════════════════════════════════════════════════════════
+   文件：theme-redesign.css —— 首页视觉层（第三版 · 2026-10-18）
+   --------------------------------------------------------------------
+   v2 失败的地方：配色用暖棕，深色模式下整页发闷；而且旧 style.css 里
+   几十条 `body.dark-mode` 规则写死了紫色，我只压了一部分，深浅两边打架。
+   v3 换做法：
+
+     1. **所有颜色只走变量**，深色模式只换变量，不再一条条覆盖；
+     2. 旧样式的深色规则用 !important 一次性压平（约 25 条，集中在一处）；
+     3. **首屏不再做大色块**，改成编辑式排版：大字 + 留白 + 一条细线。
+        深浅两边都成立，不会再出现「一块糊掉的渐变」；
+     4. 间距全部按 4 的倍数（4 / 8 / 12 / 16 / 24 / 32 / 48 / 64 / 96），
+        字号阶梯 12 / 13 / 14 / 16 / 20 / 24 / 32 / clamp；
+     5. 对比度按 WCAG：正文 ≥ 4.5:1，大字 ≥ 3:1；
+     6. 装饰：无阴影（深色下阴影只会脏）、无渐变、无毛玻璃。
+
+   设计参考（都读过原文）：
+     · Glenn.me 设计拆解：纯白底、单一字体、无阴影、留白即设计
+       https://github.com/educlopez/design-bites/blob/main/design-mds/glenn.me/DESIGN.md
+     · Material 深色主题：不要纯黑底，表面靠逐级提亮分层
+       https://m2.material.io/design/color/dark-theme.html
+     · 4 点网格（Material 8px 网格的细化版，所有间距为 4 的倍数）
+       https://www.uisdc.com/4-point-grid-system
+     · WCAG 2.2 对比度：普通文本 4.5:1，大字号 3:1
+       https://www.w3.org/TR/WCAG22/
+
+   改之前必读：不碰任何 id 与 JS 行为；删掉 index.html 里这行 link 就回退旧版。
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. 设计 token ───────────────────────────────────────────────── */
+:root {
+    /* 中性阶：从最亮到最暗，全站只从这九档里取 */
+    --c-0:   #FFFFFF;
+    --c-1:   #FAFAF8;
+    --c-2:   #F4F4F1;
+    --c-3:   #E9E9E4;
+    --c-5:   #B9B9B1;
+    --c-7:   #71717A;
+    --c-8:   #3A3A40;
+    --c-9:   #17171A;
+
+    --canvas:   var(--c-1);
+    --surface:  var(--c-0);
+    --surface-2:var(--c-2);
+    --line:     var(--c-3);
+    --ink:      var(--c-9);
+    --ink-2:    var(--c-8);
+    --muted:    var(--c-7);
+
+    /* 强调色只用一个：琥珀。不碰紫、不碰蓝，和 AI 站彻底分开 */
+    --accent:      #B45309;
+    --accent-ink:  #FFFFFF;
+    --accent-soft: #FDF3E3;
+
+    --radius-s: 8px;
+    --radius-m: 14px;
+    --radius-l: 22px;
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Noto Sans SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
+
+    color-scheme: light;
+}
+
+body.dark-mode {
+    /* 深色：不要纯黑。底 #0C0C0D，表面逐级提亮 3 档 */
+    --canvas:   #0C0C0D;
+    --surface:  #161618;
+    --surface-2:#1E1E21;
+    --line:     #2C2C31;
+    --ink:      #F0F0F2;
+    --ink-2:    #C9C9D1;
+    --muted:    #8E8E98;
+    --accent:      #E8B04B;
+    --accent-ink:  #201705;
+    --accent-soft: #2A2216;
+    color-scheme: dark;
+}
+
+/* ── 2. 基底 ─────────────────────────────────────────────────────── */
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.65;
+    display: block;
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    accent-color: var(--accent);
+}
+
+/* bg.css 那层光场在 v3 里不用了：设计靠字和留白，不靠背景光 */
+body::before { display: none !important; }
+
+::selection { background: var(--accent-soft); color: var(--ink); }
+
+/* ── 3. 骨架 ─────────────────────────────────────────────────────── */
+.mm-page {
+    width: 100%;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    box-sizing: border-box;
+}
+
+/* 顶部：品牌 + 一行小字，仅此而已 */
+.mm-nav {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 32px 0 20px;
+    border-bottom: 1px solid var(--line);
+}
+.mm-brand {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    color: var(--ink);
+    text-decoration: none;
+}
+.mm-brand .mm-dot { color: var(--accent); margin: 0 3px; }
+.mm-nav-note {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+/* ── 4. 首屏：排版撑场，不用背景色 ─────────────────────────────────
+   大标题 + 等宽小字 + 一句说明。没有色块、没有图片、没有渐变。 */
+.mm-hero {
+    padding: 88px 0 72px;
+    border-bottom: 1px solid var(--line);
+}
+.mm-hero__text { max-width: 720px; }
+.mm-kicker {
+    margin: 0 0 28px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+.mm-hero h1 {
+    margin: 0;
+    font-size: clamp(38px, 7.2vw, 68px);
+    line-height: 1.04;
+    font-weight: 600;
+    letter-spacing: -.035em;
+    color: var(--ink);
+}
+.mm-sub {
+    margin: 28px 0 0;
+    font-size: clamp(15px, 1.9vw, 17px);
+    line-height: 1.7;
+    color: var(--muted);
+    max-width: 46ch;
+}
+.mm-hero__meta {
+    margin-top: 48px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: .06em;
+    color: var(--muted);
+}
+.mm-hero__meta span { color: var(--ink); font-weight: 600; }
+
+/* ── 5. 三个入口：编号条目 ───────────────────────────────────────── */
+.mm-entries {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--line);
+}
+.mm-entry {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    padding: 32px 24px 32px 0;
+    border-right: 1px solid var(--line);
+    text-decoration: none;
+    color: var(--ink);
+    transition: color .15s ease;
+}
+.mm-entry + .mm-entry { padding-left: 24px; }
+.mm-entry:last-child { border-right: 0; padding-right: 0; }
+.mm-entry:hover { color: var(--accent); }
+.mm-entry__num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .06em;
+    color: var(--accent);
+    padding-top: 5px;
+}
+.mm-entry__body h2 {
+    margin: 0 0 6px;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: inherit;
+}
+.mm-entry__body p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--muted);
+}
+.mm-entry__more {
+    display: none;   /* 编号已经是视觉锚点，箭头去掉，少一个装饰 */
+}
+
+/* ── 6. 分区与面板 ───────────────────────────────────────────────── */
+.mm-section { margin-top: 96px; }
+.mm-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 24px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+.mm-section-title::before {
+    content: "";
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex: 0 0 auto;
+}
+
+.mm-grid { display: grid; gap: 16px; }
+.mm-grid--2 { grid-template-columns: 1fr 1fr; }
+
+.mm-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    padding: 28px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+}
+.mm-panel--flat { background: transparent; }
+.mm-panel--card { display: flex; align-items: center; justify-content: center; }
+
+.mm-lead { margin: 0 0 24px; font-size: 15px; color: var(--muted); max-width: 52ch; }
+.mm-h3 {
+    margin: 0 0 16px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    color: var(--ink);
+}
+.mm-h4 {
+    margin: 24px 0 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+.mm-h3:first-child, .mm-h4:first-child { margin-top: 0; }
+
+/* ── 7. 名片 / 头像 ──────────────────────────────────────────────── */
+.mm-page .card,
+.card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: transparent !important;
+    color: var(--ink);
+    width: auto !important;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none !important;
+    text-align: center;
+}
+#avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    padding: 2px;
+    background: var(--surface);
+}
+#time {
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: .04em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+.mm-divider { border: 0; height: 1px; background: var(--line); margin: 20px 0; }
+.mm-page .card p { color: var(--muted); font-size: 12.5px; }
+
+/* ── 8. 按钮：三种，只有一种带颜色 ────────────────────────────────
+   旧版每个按钮都是主色，一屏十几个色块，谁都不突出。
+   现在默认全是「次按钮」，主按钮只留给「下载 / 保存 / 查余额 / 进大厅」。 */
+.mm-page button,
+.mm-panel button,
+.works button,
+.hardware-test-button,
+.nickname-box button,
+.gate-main,
+.gate-back,
+.lg-btn {
+    font-family: inherit;
+    font-size: 13.5px;
+    line-height: 1.2;
+    padding: 10px 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--ink-2);
+    cursor: pointer;
+    box-shadow: none;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.mm-page button:hover,
+.mm-panel button:hover,
+.works button:hover,
+.gate-main:hover,
+.lg-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* 主按钮：只这几个 */
+.mygame-card .gm-btn,
+.nickname-box button,
+#tokens-check,
+#change-city,
+.hardware-test-button,
+#use-ip-weather {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+}
+.mygame-card .gm-btn:hover,
+.nickname-box button:hover,
+#tokens-check:hover,
+#change-city:hover,
+.hardware-test-button:hover,
+#use-ip-weather:hover {
+    background: var(--accent);
+    color: var(--accent-ink);
+    filter: brightness(1.06);
+}
+
+.mm-page #tokens-refresh,
+.mm-page #tokens-clear,
+.mm-page #tdUpdateBtn {
+    background: var(--surface-2);
+    color: var(--muted);
+    border-color: var(--line);
+}
+
+/* 作品区按钮组：横向排，窄屏自动换行 */
+.works {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.works br { display: none; }
+
+/* ── 9. 输入框 ───────────────────────────────────────────────────── */
+.mm-page input,
+.mm-page select,
+.mm-page textarea,
+.lg-input {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    background: var(--surface);
+    color: var(--ink);
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.mm-page input::placeholder,
+.lg-input::placeholder { color: var(--muted); }
+.mm-page input:focus,
+.mm-page select:focus,
+.mm-page textarea:focus,
+.lg-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ── 10. 列表 / 胶囊 ─────────────────────────────────────────────── */
+.mm-page ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+}
+.mm-page ul li {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--ink-2);
+    font-size: 12.5px;
+    line-height: 1.6;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+/* ── 11. 硬件测试 / 塔防卡 / 昵称 / 联系方式 ─────────────────────── */
+.hardware-test-box {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0;
+    margin: 0;
+}
+.hardware-test-button { width: 100%; }
+
+.mygame-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--surface-2) !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: none !important;
+    border-radius: var(--radius-s);
+}
+.mygame-card .gm-name { color: var(--ink); }
+.mygame-card .gm-meta { color: var(--muted); }
+.gm-docs { margin-top: 16px; line-height: 2; }
+.gm-docs-t { color: var(--muted); font-size: 12px; }
+.gm-docs a { color: var(--accent); font-size: 12px; text-decoration: none; }
+.gm-docs a:hover { text-decoration: underline; }
+
+.nickname-box {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+}
+
+/* 留言弹窗 */
+.mail-card, .mail-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: var(--radius-m) !important;
+}
+
+/* ── 12. 天气 / AI 余额：页面内的普通卡片 ────────────────────────── */
+#weather-box,
+#tokens-box {
+    position: static !important;
+    inset: auto !important;
+    z-index: auto !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    text-align: left !important;
+    border-radius: 0 !important;
+    color: var(--ink);
+}
+#weather-title, #tokens-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+}
+#weather-location, #weather-info, #tokens-sub {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--muted);
+}
+#city-input { width: min(100%, 190px); margin-top: 14px; }
+#change-city, #use-ip-weather { margin-top: 10px; }
+#tokens-provider, #tokens-key { width: 100%; margin-top: 10px; }
+#tokens-check, #tokens-refresh, #tokens-clear { margin-top: 10px; }
+#tokens-result { margin-top: 14px; font-size: 13px; color: var(--ink-2); }
+
+/* ── 13. 状态 / 记录 ─────────────────────────────────────────────── */
+#status {
+    display: inline-block;
+    margin: 0;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--ink-2);
+    font-size: 12.5px;
+}
+#last-time, #runtime { font-size: 12.5px; color: var(--muted); }
+
+/* ── 14. 页脚 ───────────────────────────────────────────────────── */
+.mm-footer {
+    margin-top: 96px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12.5px;
+}
+.mm-footer p { margin: 0 0 6px; }
+.mm-footer__sub { font-size: 11.5px; opacity: .85; }
+
+/* ── 15. 音乐播放器：右下角卡片 ──────────────────────────────────── */
+body > .music-player {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    left: auto;
+    width: 268px;
+    padding: 16px;
+    box-sizing: border-box;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    box-shadow: none;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: var(--ink);
+    text-align: center;
+    z-index: 9998;
+}
+body > .music-player img {
+    width: 72px;
+    height: 72px;
+    border-radius: var(--radius-s);
+    object-fit: cover;
+    margin-bottom: 10px;
+}
+body > .music-player button {
+    background: var(--surface-2);
+    color: var(--ink-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 13px;
+    margin: 3px 2px;
+    box-shadow: none;
+}
+body > .music-player button:hover { border-color: var(--accent); color: var(--accent); }
+#songName {
+    margin: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#progressBar { width: 90%; }
+.volume-box {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    transform: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 6px 0 2px;
+}
+#volumeBar {
+    writing-mode: horizontal-tb !important;
+    direction: ltr !important;
+    width: 88px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
+/* 歌单弹窗 */
+#playlist-mask { background: rgba(0, 0, 0, .55); }
+#playlist-window {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: var(--radius-m) !important;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .28) !important;
+}
+
+/* ── 16. 加载层 / 登录门 / 账号菜单（旧样式里写死紫色的部分） ──────── */
+#loader {
+    background: var(--canvas) !important;
+    color: var(--ink) !important;
+}
+#loader h2 { color: var(--ink) !important; }
+#loader p { color: var(--muted) !important; }
+#loader .progress { background: var(--surface-2); }
+#loader .progress-bar { background: var(--accent) !important; }
+
+#loginGate {
+    background: var(--canvas) !important;
+}
+.gate-card {
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: var(--radius-m) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+.gate-card h2, .gate-card h3 { color: var(--ink) !important; }
+.gate-card p { color: var(--muted) !important; }
+.gate-main {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 13px;
+    border-radius: var(--radius-s);
+    background: var(--surface-2);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    box-shadow: none !important;
+}
+.gate-main.guest { background: transparent; color: var(--muted); }
+.gate-back { background: none; border: 0; color: var(--muted); }
+
+#accountBtn {
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: none !important;
+}
+#accountMenu {
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: var(--radius-m) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, .18) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+.acc-title { color: var(--accent); }
+.acc-small { color: var(--ink-2); }
+
+/* ── 17. 深色兜底：旧 style.css 里写死颜色的规则，一次性压平 ────────
+   这些是 style.css 3047 行之后那一大片 `body.dark-mode ...`，数量多且分散，
+   逐条对特异性风险更大，所以这里用 !important 收口。 */
+body.dark-mode .mm-panel,
+body.dark-mode .mm-entry,
+body.dark-mode .mm-page button,
+body.dark-mode .works button,
+body.dark-mode .hardware-test-button,
+body.dark-mode .nickname-box button,
+body.dark-mode .mygame-card,
+body.dark-mode .mail-card,
+body.dark-mode .mail-panel {
+    border-color: var(--line) !important;
+}
+body.dark-mode .mm-panel { background: var(--surface) !important; color: var(--ink) !important; }
+body.dark-mode .mm-page button,
+body.dark-mode .works button,
+body.dark-mode .hardware-test-button { background: var(--surface-2) !important; color: var(--ink-2) !important; }
+/* 主按钮在深色下仍然要带颜色，否则一屏全是灰按钮 */
+body.dark-mode .mygame-card .gm-btn,
+body.dark-mode .nickname-box button,
+body.dark-mode #tokens-check,
+body.dark-mode #change-city,
+body.dark-mode #use-ip-weather,
+body.dark-mode .hardware-test-button {
+    background: var(--accent) !important;
+    color: var(--accent-ink) !important;
+    border-color: var(--accent) !important;
+}
+body.dark-mode .mygame-card { background: var(--surface-2) !important; }
+body.dark-mode .mygame-card .gm-name { color: var(--ink) !important; }
+body.dark-mode .mygame-card .gm-meta { color: var(--muted) !important; }
+body.dark-mode .mygame-card .gm-btn { background: var(--accent) !important; color: var(--accent-ink) !important; }
+body.dark-mode .gm-docs a { color: var(--accent) !important; }
+body.dark-mode .gm-docs-t { color: var(--muted) !important; }
+body.dark-mode .mm-page ul li { background: var(--surface-2) !important; color: var(--ink-2) !important; }
+body.dark-mode .mm-page input,
+body.dark-mode .mm-page select,
+body.dark-mode .mm-page textarea,
+body.dark-mode .lg-input {
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border-color: var(--line) !important;
+}
+body.dark-mode #tokens-result,
+body.dark-mode #last-time,
+body.dark-mode #runtime { color: var(--muted) !important; }
+body.dark-mode #status { background: var(--surface-2) !important; color: var(--ink-2) !important; }
+body.dark-mode > .music-player { background: var(--surface) !important; color: var(--ink) !important; }
+body.dark-mode .mm-page .card { background: transparent !important; color: var(--ink) !important; }
+body.dark-mode .mm-page .card p { color: var(--muted) !important; }
+body.dark-mode .mail-card h3,
+body.dark-mode .mail-panel { color: var(--ink) !important; }
+body.dark-mode .gate-main { background: var(--surface-2) !important; color: var(--ink) !important; border-color: var(--line) !important; }
+body.dark-mode .gate-main.guest { background: transparent !important; color: var(--muted) !important; }
+body.dark-mode .gate-card { background: var(--surface) !important; }
+
+/* ── 18. 响应式：≤820 px 单列 ────────────────────────────────────── */
+@media (max-width: 820px) {
+    .mm-page { padding: 0 18px 72px; }
+    .mm-hero { padding: 56px 0 48px; }
+    .mm-entries { grid-template-columns: 1fr; }
+    .mm-entry {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        padding: 24px 0;
+    }
+    .mm-entry + .mm-entry { padding-left: 0; }
+    .mm-entry:last-child { border-bottom: 0; padding-right: 0; }
+    .mm-grid--2 { grid-template-columns: 1fr; }
+    .mm-section { margin-top: 64px; }
+    .mm-panel { padding: 20px; }
+    body > .music-player {
+        position: static;
+        width: 100%;
+        margin: 32px 0 0;
+        transform: none;
+    }
+}
+
+/* ── 19. 无障碍 ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}
+
+/* ── 20. 打印 ───────────────────────────────────────────────────── */
+@media print {
+    body::before, .mm-nav, body > .music-player, #loginGate { display: none !important; }
+}
