@@ -6,3 +6,7 @@ typescript
 tts_server.log
 tts-web/assets/
 !tts-web/sherpa-onnx-wasm-main-tts.wasm
+
+# ---- 🔐 代理配置（含节点地址/UUID/密码，绝不入库）----
+# 这些是 Clash 订阅导出的 yaml，本机自用；仓库是公开的 GitHub Pages，不能放
+*.yaml
