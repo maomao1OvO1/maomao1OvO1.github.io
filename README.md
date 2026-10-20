@@ -6,7 +6,7 @@
 
 🧰 **工具站**：[ToolPocket · 工具袋](https://tools.maomaowang.top/) —— 35 个在浏览器里跑完的在线小工具，文件不上传、不用注册，中 / 英 / 日三语。
 
-🚀 **快速入口**　[🗼 玩《共鸣之塔》](https://maomao1ovo1.github.io/games/td/source/game.html) ｜ [🎮 游戏大厅](https://maomao1ovo1.github.io/games.html) ｜ [🏆 排行榜](https://maomao1ovo1.github.io/games/ranking.html) ｜ [📱 硬件测试](https://maomao1ovo1.github.io/hardware-lab/) ｜ [🎵 音乐](https://maomao1ovo1.github.io/music.html) ｜ [📷 相册](https://maomao1ovo1.github.io/photo.html)
+🚀 **快速入口**　[🗼 玩《共鸣之塔》](https://maomao1ovo1.github.io/games/td/source/game.html) ｜ [🎮 游戏大厅](https://maomao1ovo1.github.io/games.html) ｜ [🏆 排行榜](https://maomao1ovo1.github.io/games/ranking.html) ｜ [📱 硬件测试](https://maomao1ovo1.github.io/hardware-lab/) ｜ [🎵 音乐](https://maomao1ovo1.github.io/music.html) ｜ [📷 相册](https://maomao1ovo1.github.io/photo.html) ｜ [🧪 JS 渲染演示](https://maomao1ovo1.github.io/render.html)
 
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
@@ -72,6 +72,8 @@
 
 **🌙 深色模式**　黑色系设计（`#121212` / `#1e1e1e` / `#333`），主色紫 `#7C5CBF`。
 
+**🧪 JS 渲染演示页**　单文件、零依赖、零请求：HTML 里只留一个空的 `<div id="app"></div>`，标题 / 卡片 / 标签 / 页脚全部由 JS 现场创建（数据驱动 + 打字机 + 卡片 3D 倾斜）。
+
 ---
 
 ## 🗼 原创塔防《共鸣之塔》
@@ -110,6 +112,7 @@
 
 ```
 ├── index.html            # 主页 / 登录门 / 账号菜单
+├── render.html           # 🧪 JS 渲染演示页（HTML 只留空 div，其余全由 JS 建）
 ├── style.css             # 全局样式 + 主题 + 动画
 ├── main.js               # 首页逻辑 / 用户信息展示
 ├── login.js              # Firebase 登录系统（含更改密码）
@@ -185,6 +188,8 @@ python3 -m http.server 3000 --bind 127.0.0.1   # → http://127.0.0.1:3000
 
 ## 🔄 最近更新
 
+- **2026-10-19**　新增 **JS 渲染演示页**（`render.html`，单文件零依赖）与首页 hero 图（`images/hero-playground.jpg` + 压缩版 `-sm.jpg`）
+- **2026-10-18**　作品区补「在线工具站」入口（→ `tools.maomaowang.top`）；`.gitignore` 补 `*.yaml`，Clash 订阅导出文件永不入库
 - **2026-09-15**　《共鸣之塔》更新至 **v9.19 / 109**：画布补 `touch-action:none`（手机拖动不再被当成滚动）+ 清理死字段；外观回到像素风原版，玩法与数值零改动
 - **2026-09-14**　仓库新增「🐋 关于这只鲸鱼」一节：小鲸形象（头像 + 全身照，`images/ai-avatar.jpg` / `images/ai-fullbody.jpg`，共 246KB）
 - **2026-09-14**　**全站体检 + 统一修复**：文档过期版本号全部对齐 **v9.16 / 106**（`modding.md` / `manual.md` / 源码 README）· 补上「📜 MIT 许可证全文」入口 · 修掉 6 处死链（`%BASE_URL%` 资源、失效入口）· 清理无入口的旧源码目录（省 14MB）· 四个仓库补齐 MIT LICENSE
