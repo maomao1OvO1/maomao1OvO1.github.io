@@ -9,6 +9,8 @@ Disallow: /games/users.html
 Disallow: /games/allplayers.html
 Disallow: /games/go/katago-test/
 Disallow: /games/stockfish/
+Disallow: /music/
+Disallow: /photoz/
 
 # 搜索引擎爬虫（显式放行公开页，但**必须重复一遍 Disallow**）：
 # ⚠️ robots 规范是「最长匹配的 UA 组生效、不与 * 组合并」—— 只写 Allow: / 会让这三家
@@ -20,6 +22,8 @@ Disallow: /games/users.html
 Disallow: /games/allplayers.html
 Disallow: /games/go/katago-test/
 Disallow: /games/stockfish/
+Disallow: /music/
+Disallow: /photoz/
 
 User-agent: Baiduspider
 Allow: /
@@ -28,6 +32,8 @@ Disallow: /games/users.html
 Disallow: /games/allplayers.html
 Disallow: /games/go/katago-test/
 Disallow: /games/stockfish/
+Disallow: /music/
+Disallow: /photoz/
 
 User-agent: Bingbot
 Allow: /
@@ -36,6 +42,8 @@ Disallow: /games/users.html
 Disallow: /games/allplayers.html
 Disallow: /games/go/katago-test/
 Disallow: /games/stockfish/
+Disallow: /music/
+Disallow: /photoz/
 
 # 站点地图（帮助搜索引擎完整收录公开页面）
 Sitemap: https://maomaowang.top/sitemap.xml
